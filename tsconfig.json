@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "target": "ES6",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "rootDir": "./server"
+  },
+
+  "include": ["server/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
