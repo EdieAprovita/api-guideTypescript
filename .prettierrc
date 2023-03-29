@@ -6,7 +6,7 @@
   "htmlWhitespaceSensitivity": "css",
   "arrowParens": "avoid",
   "quoteProps": "as-needed",
-  "useTabs": false,
+  "useTabs": true,
   "bracketSpacing": true,
   "bracketSameLine": true,
   "indent_size": 2,

@@ -1,15 +1,15 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "target": "ES6",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "esModuleInterop": true,
-    "outDir": "./dist",
-    "rootDir": "./server"
-  },
+	"compilerOptions": {
+		"allowJs": true,
+		"target": "ES6",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"sourceMap": true,
+		"esModuleInterop": true,
+		"outDir": "./dist",
+		"rootDir": "./src"
+	},
 
-  "include": ["server/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+	"include": ["src/server.ts"],
+	"exclude": ["node_modules", "dist"]
 }
