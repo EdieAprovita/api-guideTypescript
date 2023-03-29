@@ -1,38 +1,35 @@
 import mongoose, { Schema } from "mongoose";
 
-import { Profession } from "../types/modalTypes";
+import { LocalMarket, Product } from "../types/modalTypes";
 
-const professionSchema: Schema = new mongoose.Schema<Profession>(
+const localMarketSchema: Schema = new mongoose.Schema<LocalMarket>(
 	{
 		name: {
 			type: String,
 			required: true,
 			unique: true,
 		},
-		description: {
+		address: {
 			type: String,
 			required: true,
 		},
-		salary: {
-			type: Number,
-			required: true,
-		},
-		requirements: {
-			type: [String],
-			required: true,
-		},
-		creator: {
+		phone: {
 			type: String,
 			required: true,
 		},
-		skills: {
+		products: {
 			type: [
 				{
 					name: String,
-					level: Number,
-					description: String,
+					category: String,
+					price: Number,
+					quantity: Number,
 				},
 			],
+			required: true,
+		},
+		rating: {
+			type: Number,
 			required: true,
 		},
 		reviews: {
@@ -49,7 +46,3 @@ const professionSchema: Schema = new mongoose.Schema<Profession>(
 	},
 	{ timestamps: true }
 );
-
-const Profession = mongoose.model<Profession>("Profession", professionSchema);
-
-export default Profession;

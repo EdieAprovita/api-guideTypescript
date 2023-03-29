@@ -14,7 +14,8 @@ export interface Profession {
 	createdAt: Date;
 	updatedAt: Date;
 	creator: string;
-	skills: Skill[];
+    skills: Skill[];
+    reviews: Review[];
 }
 
 export interface Skill {
@@ -67,7 +68,8 @@ export interface Medic {
 	address: string;
 	appointments: Appointment[];
 	createdAt: Date;
-	updatedAt: Date;
+    updatedAt: Date;
+    reviews: Review[];
 }
 
 export interface Appointment {
@@ -87,7 +89,8 @@ export interface Recipe {
 	servings: number;
 	rating: number;
 	createdAt: Date;
-	updatedAt: Date;
+    updatedAt: Date;
+    reviews: Review[];
 }
 
 export interface Ingredient {
@@ -107,7 +110,8 @@ export interface Business {
 	categories: string[];
 	hours: BusinessHours[];
 	createdAt: Date;
-	updatedAt: Date;
+    updatedAt: Date;
+    reviews: Review[];
 }
 
 export interface BusinessHours {
