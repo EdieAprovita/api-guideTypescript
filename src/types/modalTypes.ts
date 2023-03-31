@@ -1,4 +1,5 @@
-export interface User {
+export interface IUser {
+	id: string;
 	username: string;
 	password: string;
 	email: string;
@@ -14,8 +15,8 @@ export interface Profession {
 	createdAt: Date;
 	updatedAt: Date;
 	creator: string;
-    skills: Skill[];
-    reviews: Review[];
+	skills: Skill[];
+	reviews: Review[];
 }
 
 export interface Skill {
@@ -68,8 +69,8 @@ export interface Medic {
 	address: string;
 	appointments: Appointment[];
 	createdAt: Date;
-    updatedAt: Date;
-    reviews: Review[];
+	updatedAt: Date;
+	reviews: Review[];
 }
 
 export interface Appointment {
@@ -89,8 +90,8 @@ export interface Recipe {
 	servings: number;
 	rating: number;
 	createdAt: Date;
-    updatedAt: Date;
-    reviews: Review[];
+	updatedAt: Date;
+	reviews: Review[];
 }
 
 export interface Ingredient {
@@ -110,8 +111,8 @@ export interface Business {
 	categories: string[];
 	hours: BusinessHours[];
 	createdAt: Date;
-    updatedAt: Date;
-    reviews: Review[];
+	updatedAt: Date;
+	reviews: Review[];
 }
 
 export interface BusinessHours {
@@ -119,4 +120,3 @@ export interface BusinessHours {
 	openTime: string;
 	closeTime: string;
 }
-
