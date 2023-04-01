@@ -1,55 +1,60 @@
 import mongoose, { Schema } from "mongoose";
 
-import { Profession } from "../types/modalTypes";
+import { IProfessionProfile } from "../types/modalTypes";
 
-const professionSchema: Schema = new mongoose.Schema<Profession>(
-	{
-		name: {
-			type: String,
-			required: true,
-			unique: true,
-		},
-		description: {
-			type: String,
-			required: true,
-		},
-		salary: {
-			type: Number,
-			required: true,
-		},
-		requirements: {
-			type: [String],
-			required: true,
-		},
-		creator: {
-			type: String,
-			required: true,
-		},
-		skills: {
-			type: [
-				{
-					name: String,
-					level: Number,
-					description: String,
-				},
-			],
-			required: true,
-		},
-		reviews: {
-			type: [
-				{
-					user: String,
-					rating: Number,
-					comment: String,
-					date: Date,
-				},
-			],
-			required: true,
-		},
+const professionalProfileSchema = new Schema<IProfessionProfile>({
+	user: {
+		type: Schema.Types.ObjectId,
+		ref: "User",
 	},
-	{ timestamps: true }
+	contact: [
+		{
+			phone: {
+				type: Number,
+				required: true,
+			},
+			email: {
+				type: String,
+				required: true,
+			},
+		},
+	],
+	skills: [{ type: String }],
+	experience: [
+		{
+			title: {
+				type: String,
+				required: true,
+			},
+			company: {
+				type: String,
+				required: true,
+			},
+			location: {
+				type: String,
+				required: true,
+			},
+			from: {
+				type: Date,
+				required: true,
+			},
+			to: {
+				type: Date,
+			},
+			current: {
+				type: Boolean,
+				default: false,
+			},
+			description: {
+				type: String,
+				required: true,
+			},
+		},
+	],
+});
+
+const professionalProfile = mongoose.model<IProfessionProfile>(
+	"ProfessionalProfile",
+	professionalProfileSchema
 );
-
-const Profession = mongoose.model<Profession>("Profession", professionSchema);
-
-export default Profession;
+export default professionalProfile;

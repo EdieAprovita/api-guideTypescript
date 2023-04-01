@@ -39,3 +39,37 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 		});
 	}
 };
+
+/**
+ * @name admin
+ * @description Grant access to admin
+ */
+
+export const admin = async (req: Request, res: Response, next: NextFunction) => {
+	if (req.user && req.user.isAdmin) {
+		next();
+	} else {
+		res.status(403).json({
+			message: "Forbidden",
+			success: false,
+			error: "You are not an admin",
+		});
+	}
+};
+
+/**
+ * @name professional
+ * @description Protect routes with JWT for professional
+ */
+
+export const professional = async (req: Request, res: Response, next: NextFunction) => {
+	if (req.user && req.user.isProfessional) {
+		next();
+	} else {
+		res.status(403).json({
+			message: "Forbidden",
+			success: false,
+			error: "You are not a professional",
+		});
+	}
+};

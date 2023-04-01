@@ -1,8 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 
-import { Recipe } from "../types/modalTypes";
+import { IRecipe } from "../types/modalTypes";
 
-const recipeSchema: Schema = new mongoose.Schema<Recipe>(
+const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 	{
 		name: {
 			type: String,
@@ -60,6 +60,6 @@ const recipeSchema: Schema = new mongoose.Schema<Recipe>(
 	{ timestamps: true }
 );
 
-const Recipe = mongoose.model<Recipe>("Recipe", recipeSchema);
+const Recipe = mongoose.model<IRecipe>("Recipe", recipeSchema);
 
 export default Recipe;

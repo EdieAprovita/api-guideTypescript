@@ -3,7 +3,7 @@ import mongoose, { Schema } from "mongoose";
 
 import { IUser } from "../types/modalTypes";
 
-const userSchema: Schema = new mongoose.Schema<IUser>(
+const userSchema = new Schema<IUser>(
 	{
 		username: {
 			type: String,
@@ -14,17 +14,28 @@ const userSchema: Schema = new mongoose.Schema<IUser>(
 			type: String,
 			required: true,
 		},
+		role: {
+			type: String,
+			required: true,
+			enum: ["user", "admin", "professional"],
+			default: "user",
+		},
 		email: {
 			type: String,
 			required: true,
 			unique: true,
+		},
+		photo: {
+			type: String,
+			default:
+				"https://res.cloudinary.com/dzqbzqgjm/image/upload/v1599098981/default-user_qjqjqz.png",
 		},
 		isAdmin: {
 			type: Boolean,
 			required: true,
 			default: false,
 		},
-		isProfesional: {
+		isProfessional: {
 			type: Boolean,
 			required: true,
 			default: false,
@@ -49,5 +60,4 @@ userSchema.pre("save", async function (next) {
 });
 
 const User = mongoose.model<IUser>("User", userSchema);
-
 export default User;
