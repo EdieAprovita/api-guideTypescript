@@ -1,8 +1,9 @@
+import bcrypt from "bcryptjs";
 import mongoose, { Schema } from "mongoose";
 
-import { User } from "../types/modalTypes";
+import { IUser } from "../types/modalTypes";
 
-const userSchema: Schema = new mongoose.Schema<User>(
+const userSchema = new Schema<IUser>(
 	{
 		username: {
 			type: String,
@@ -13,17 +14,28 @@ const userSchema: Schema = new mongoose.Schema<User>(
 			type: String,
 			required: true,
 		},
+		role: {
+			type: String,
+			required: true,
+			enum: ["user", "admin", "professional"],
+			default: "user",
+		},
 		email: {
 			type: String,
 			required: true,
 			unique: true,
+		},
+		photo: {
+			type: String,
+			default:
+				"https://res.cloudinary.com/dzqbzqgjm/image/upload/v1599098981/default-user_qjqjqz.png",
 		},
 		isAdmin: {
 			type: Boolean,
 			required: true,
 			default: false,
 		},
-		isProfesional: {
+		isProfessional: {
 			type: Boolean,
 			required: true,
 			default: false,
@@ -32,6 +44,20 @@ const userSchema: Schema = new mongoose.Schema<User>(
 	{ timestamps: true }
 );
 
-const User = mongoose.model<User>("User", userSchema);
+//Check if password is correct
 
+userSchema.methods.matchPassword = async function (enteredPassword: string) {
+	return await bcrypt.compare(enteredPassword, this.password);
+};
+
+//Encrypt password before saving
+
+userSchema.pre("save", async function (next) {
+	if (!this.isModified("password")) {
+		this.password = await bcrypt.hash(this.password, 10);
+	}
+	next();
+});
+
+const User = mongoose.model<IUser>("User", userSchema);
 export default User;
