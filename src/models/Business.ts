@@ -1,10 +1,10 @@
 import mongoose, { Schema } from "mongoose";
 
-import { Business } from "../types/modalTypes";
+import { IBusiness } from "../types/modalTypes";
 
-const businessSchema: Schema = new mongoose.Schema<Business>(
+const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 	{
-		name: {
+		namePlace: {
 			type: String,
 			required: true,
 			unique: true,
@@ -13,28 +13,24 @@ const businessSchema: Schema = new mongoose.Schema<Business>(
 			type: String,
 			required: true,
 		},
-		phone: {
-			type: String,
-			required: true,
-		},
-		email: {
-			type: String,
-			required: true,
-		},
-		website: {
-			type: String,
-			required: true,
-		},
-		description: {
-			type: String,
+		contact: [
+			{
+				phone: String,
+				email: String,
+				facebook: String,
+				instagram: String,
+			},
+		],
+		author: {
+			type: Schema.Types.ObjectId,
 			required: true,
 		},
 		rating: {
 			type: Number,
 			required: true,
 		},
-		categories: {
-			type: [String],
+		image: {
+			type: String,
 			required: true,
 		},
 		hours: {
@@ -58,10 +54,14 @@ const businessSchema: Schema = new mongoose.Schema<Business>(
 			],
 			required: true,
 		},
+		numReviews: {
+			type: Number,
+			required: true,
+		},
 	},
 	{ timestamps: true }
 );
 
-const Business = mongoose.model<Business>("Business", businessSchema);
+const Business = mongoose.model<IBusiness>("Business", businessSchema);
 
 export default Business;
