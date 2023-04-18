@@ -1,10 +1,10 @@
 import mongoose, { Schema } from "mongoose";
 
-import { Restaurant } from "../types/modalTypes";
+import { IRestaurant } from "../types/modalTypes";
 
-const restaurantSchema: Schema = new mongoose.Schema<Restaurant>(
+const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 	{
-		name: {
+		restaurantName: {
 			type: String,
 			required: true,
 			unique: true,
@@ -13,10 +13,13 @@ const restaurantSchema: Schema = new mongoose.Schema<Restaurant>(
 			type: String,
 			required: true,
 		},
-		phone: {
-			type: String,
-			required: true,
-		},
+		contact: [
+			{
+				phone: String,
+				facebook: String,
+				instagram: String,
+			},
+		],
 		cuisine: {
 			type: [String],
 			required: true,
@@ -36,13 +39,14 @@ const restaurantSchema: Schema = new mongoose.Schema<Restaurant>(
 			],
 			required: true,
 		},
+		numReviews: {
+			type: Number,
+			required: true,
+		},
 	},
 	{ timestamps: true }
 );
 
-const Restaurant = mongoose.model<Restaurant>(
-    "Restaurant",
-    restaurantSchema
-);
+const Restaurant = mongoose.model<IRestaurant>("Restaurant", restaurantSchema);
 
 export default Restaurant;

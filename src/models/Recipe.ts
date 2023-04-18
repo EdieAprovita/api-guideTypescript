@@ -4,7 +4,7 @@ import { IRecipe } from "../types/modalTypes";
 
 const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 	{
-		name: {
+		title: {
 			type: String,
 			required: true,
 			unique: true,
@@ -14,30 +14,22 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 			required: true,
 		},
 		ingredients: {
-			ingredients: {
-				type: [
-					{
-						name: String,
-						quantity: Number,
-						unit: String,
-					},
-				],
-				required: true,
-			},
-		},
-		steps: {
 			type: [String],
 			required: true,
 		},
-		prepTime: {
+		author: {
+			type: Schema.Types.ObjectId,
+			required: true,
+		},
+		instructions: {
+			type: String,
+			required: true,
+		},
+		cookingTime: {
 			type: Number,
 			required: true,
 		},
-		cookTime: {
-			type: Number,
-			required: true,
-		},
-		servings: {
+		numReviews: {
 			type: Number,
 			required: true,
 		},

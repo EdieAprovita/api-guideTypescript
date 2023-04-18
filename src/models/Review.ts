@@ -1,7 +1,8 @@
-import mongoose from "mongoose";
-const { Schema } = mongoose;
+import mongoose, { Schema } from "mongoose";
 
-const reviewSchema = new Schema(
+import { IReview } from "../types/modalTypes";
+
+const reviewSchema: Schema = new mongoose.Schema<IReview>(
 	{
 		username: {
 			type: String,
@@ -23,5 +24,5 @@ const reviewSchema = new Schema(
 	{ timestamps: true }
 );
 
-const Review = mongoose.model("Review", reviewSchema);
+const Review = mongoose.model<IReview>("Review", reviewSchema);
 export default Review;
