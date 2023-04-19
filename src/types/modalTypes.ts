@@ -37,6 +37,7 @@ export interface IBusiness extends Document {
 	];
 	budget: number;
 	typeBusiness: string;
+	hours: [Date];
 	reviews: [Review: unknown];
 	rating: number;
 	numReviews: number;
@@ -221,6 +222,7 @@ export interface IRestaurant extends Document {
 			instagram: string;
 		}
 	];
+	cuisine: [string];
 	reviews: [Review: unknown];
 	rating: number;
 	numReviews: number;
