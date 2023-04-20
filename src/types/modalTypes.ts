@@ -19,6 +19,10 @@ export interface IUser extends Document {
 	photo: string;
 	isAdmin: boolean;
 	isProfessional: boolean;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
 }
 
 export interface IBusiness extends Document {
