@@ -11,7 +11,7 @@ import User from "../models/User";
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
 	let token: string;
 
-	if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+	if (req.headers.authorization?.startsWith("Bearer")) {
 		try {
 			token = req.headers.authorization.split(" ")[1];
 
@@ -46,7 +46,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
  */
 
 export const admin = async (req: Request, res: Response, next: NextFunction) => {
-	if (req.user && req.user.isAdmin) {
+	if (req.user?.isAdmin) {
 		next();
 	} else {
 		res.status(403).json({
@@ -63,7 +63,7 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
  */
 
 export const professional = async (req: Request, res: Response, next: NextFunction) => {
-	if (req.user && req.user.isProfessional) {
+	if (req.user?.isProfessional) {
 		next();
 	} else {
 		res.status(403).json({
