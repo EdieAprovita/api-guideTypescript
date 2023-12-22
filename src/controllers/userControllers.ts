@@ -165,3 +165,123 @@ export const getUserById = async (req: Request, res: Response): Promise<Response
 		});
 	}
 };
+
+/**
+ * @description Update user
+ * @name updateUser
+ * @route PUT /api/users/:id
+ * @access Private/Admin
+ * @returns {Promise<Response>}
+ * */
+
+export const updateUserByAdmin = async (
+	req: Request,
+	res: Response
+): Promise<Response> => {
+	const user: IUser | null = await User.findById(req.params.id);
+
+	if (!user) {
+		return res.status(200).json({
+			success: false,
+			error: "User not found",
+		});
+	} else {
+		user.username = req.body.username || user.username;
+		user.email = req.body.email || user.email;
+		user.role = req.body.role || user.role;
+		user.photo = req.body.photo || user.photo;
+		user.isProfessional = req.body.isProfessional || user.isProfessional;
+		user.isAdmin = req.body.isAdmin || user.isAdmin;
+
+		const updatedUser = await user.save();
+
+		return res.status(200).json({
+			message: `User profile for ${user.username} updated successfully`,
+			_id: updatedUser._id,
+			username: updatedUser.username,
+			email: updatedUser.email,
+			role: updatedUser.role,
+			photo: updatedUser.photo,
+			isAdmin: updatedUser.isAdmin,
+			isProfessional: updatedUser.isProfessional,
+			createdAt: updatedUser.timestamps.createdAt,
+			updatedAt: updatedUser.timestamps.updatedAt,
+			success: true,
+		});
+	}
+};
+
+/**
+ * @description Update user profile
+ * @name updateUserProfile
+ * @route PUT /api/users/profile
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const updateUserProfile = async (
+	req: Request,
+	res: Response
+): Promise<Response> => {
+	const user: IUser | null = (await User.findById(req.params._id)) as IUser | null;
+
+	if (!user) {
+		return res.status(404).json({
+			success: false,
+			error: "User not found",
+		});
+	} else {
+		user.username = req.body.username || user.username;
+		user.email = req.body.email || user.email;
+		user.photo = req.body.photo || user.photo;
+
+		if (req.body.password) {
+			user.password = req.body.password;
+		}
+
+		const updatedUser: IUser = await user.save();
+
+		return res.status(200).json({
+			message: `User profile for ${updatedUser.username} updated successfully`,
+			_id: updatedUser._id,
+			username: updatedUser.username,
+			email: updatedUser.email,
+			role: updatedUser.role,
+			photo: updatedUser.photo,
+			isAdmin: updatedUser.isAdmin,
+			isProfessional: updatedUser.isProfessional,
+			createdAt: updatedUser.timestamps.createdAt,
+			updatedAt: updatedUser.timestamps.updatedAt,
+			success: true,
+		});
+	}
+};
+
+/**
+ * @description Delete user
+ * @name deleteUser
+ * @route DELETE /api/users/:id
+ * @access Private/Admin
+ * @returns {Promise<Response>}
+ * */
+
+export const deleteUserByAdmin = async (
+	req: Request,
+	res: Response
+): Promise<Response> => {
+	const user = await User.findById(req.params.id);
+
+	if (!user) {
+		return res.status(404).json({
+			success: false,
+			error: "User not found",
+		});
+	} else {
+		await User.findByIdAndDelete(req.params.id);
+
+		return res.status(200).json({
+			message: `User profile for ${user.username} deleted successfully`,
+			success: true,
+		});
+	}
+};
