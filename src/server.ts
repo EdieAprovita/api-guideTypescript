@@ -6,6 +6,7 @@ import path from 'path';
 
 import connectDB from './config/db';
 import { colorTheme } from './types/colorTheme'; 
+import userRoutes from './routes/userRoutes';
 
 dotenv.config();
 
@@ -35,10 +36,12 @@ if (process.env.NODE_ENV === 'production') {
 		res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
 	});
 } else {
-	app.get('/', (req, res) => {
+	app.get('/api/v1', (req, res) => {
 		res.send('API is running');
 	});
 }
+
+app.use('/api/v1/users', userRoutes);
 
 const PORT = process.env.PORT || 5000;
 

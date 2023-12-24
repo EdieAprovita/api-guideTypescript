@@ -24,6 +24,7 @@ const userSchema = new Schema<IUser>(
 			type: String,
 			required: true,
 			unique: true,
+			lowercase: true,
 		},
 		photo: {
 			type: String,
@@ -44,20 +45,20 @@ const userSchema = new Schema<IUser>(
 	{ timestamps: true }
 );
 
-//Check if password is correct
+userSchema.pre("save", async function (next) {
+    if (this.isModified("password")) {
+        this.password = await bcrypt.hash(this.password, parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'));
+    }
+    if (this.email) {
+        this.email = this.email.toLowerCase();
+    }
+    next();
+});
+
 
 userSchema.methods.matchPassword = async function (enteredPassword: string) {
 	return await bcrypt.compare(enteredPassword, this.password);
 };
-
-//Encrypt password before saving
-
-userSchema.pre("save", async function (next) {
-	if (!this.isModified("password")) {
-		this.password = await bcrypt.hash(this.password, 10);
-	}
-	next();
-});
 
 const User = mongoose.model<IUser>("User", userSchema);
 export default User;
