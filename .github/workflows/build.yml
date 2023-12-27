@@ -19,13 +19,13 @@ jobs:
         run: npm install
 
       - name: "Compile TypeScript code"
-        run: tsc
+        run: ts-node server.ts
 
       - name: "Run unit tests"
         run: npm test
 
       - name: "Generate API build"
-        run: tsc
+        run: ts-node server.ts
 
       - name: "Check current branch"
         run: |
