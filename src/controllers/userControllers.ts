@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { validationResult } from "express-validator";
 
 import { IUser } from "../types/modalTypes";
 import User from "../models/User";
@@ -16,13 +17,12 @@ export const registerUser = async (req: Request, res: Response) => {
 	try {
 		const { username, email, password, role } = req.body;
 
-		const userExists = await User.findOne({ email, username });
+		const userExists = await User.findOne({ email });
 
 		if (userExists) {
 			return res.status(400).json({
-				message: "User already exists",
 				success: false,
-				error: `User ${username} with email ${email} already exists`,
+				error: "User already exists",
 			});
 		}
 
@@ -64,17 +64,16 @@ export const loginUser = async (req: Request, res: Response) => {
 	try {
 		const { email, password, username } = req.body;
 
-		const user = await User.findOne({ email, username });
+		const user = await User.findOne({ email });
 
 		if (!user) {
 			return res.status(401).json({
-				message: `Ùser ${username} with email ${email} not found`,
 				success: false,
-				error: Error,
+				error: "User not found",
 			});
 		}
 
-		const isMatch = user.isModified(password);
+		const isMatch = await user.matchPassword(password);
 
 		if (!isMatch) {
 			return res.status(401).json({
@@ -84,10 +83,8 @@ export const loginUser = async (req: Request, res: Response) => {
 			});
 		}
 
-		const token = generateToken(user._id ?? "");
-
 		return res.status(200).json({
-			token,
+			token: generateToken(user._id ?? ""),
 			user: {
 				_id: user._id,
 				username: user.username,
@@ -282,6 +279,58 @@ export const deleteUserByAdmin = async (
 		return res.status(200).json({
 			message: `User profile for ${user.username} deleted successfully`,
 			success: true,
+		});
+	}
+};
+export const updateUser = async (req: Request, res: Response): Promise<Response> => {
+	const userId = req.params.id;
+	const { username, email, role, photo } = req.body;
+
+	try {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return res.status(400).json({ errors: errors.array() });
+		}
+
+		const userExists = await User.findByIdAndUpdate({
+			$or: [{ email }, { username }],
+			_id: { $ne: userId },
+		});
+		if (userExists) {
+			return res.status(400).json({
+				success: false,
+				error: "User already exists",
+			});
+		}
+
+		const updatedUser = await User.findByIdAndUpdate(
+			userId,
+			{ username, email, photo, role, isProfessional: false },
+			{ new: true, runValidators: true }
+		);
+
+		if (!updatedUser) {
+			return res.status(404).json({
+				success: false,
+				error: "User not found",
+			});
+		}
+
+		return res.status(200).json({
+			message: "User updated successfully",
+			user: {
+				_id: updatedUser._id,
+				username: updatedUser.username,
+				email: updatedUser.email,
+				role: updatedUser.role,
+				photo: updatedUser.photo,
+				isProfessional: updatedUser.isProfessional,
+			},
+		});
+	} catch (error) {
+		return res.status(500).json({
+			success: false,
+			error: "Server Error",
 		});
 	}
 };
