@@ -20,12 +20,18 @@ jobs:
 
       - name: "Compile TypeScript code"
         run: npm install -g ts-node && ts-node src/server.ts
+        env:
+          PORT: ${{ secrets.PORT }}
+          DB: ${{ secrets.DB }}
 
       - name: "Run unit tests"
         run: npm test
 
       - name: "Generate API build"
         run: npm install -g ts-node && ts-node src/server.ts
+        env:
+          PORT: ${{ secrets.PORT }}
+          DB: ${{ secrets.DB }}
 
       - name: "Check current branch"
         run: |
