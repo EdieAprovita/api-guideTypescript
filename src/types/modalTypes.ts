@@ -38,7 +38,7 @@ export interface IBusiness extends Document {
 			email: string;
 			facebook: string;
 			instagram: string;
-		}
+		},
 	];
 	budget: number;
 	typeBusiness: string;
@@ -65,7 +65,7 @@ export interface IMedic extends Document {
 			email: string;
 			facebook?: string;
 			instagram?: string;
-		}
+		},
 	];
 	reviews: [Review: unknown];
 	rating: number;
@@ -105,7 +105,7 @@ export interface IPost extends Document {
 			name: string;
 			avatar: string;
 			date: Date;
-		}
+		},
 	];
 	date: Date;
 	timestamps: {
@@ -125,7 +125,7 @@ export interface IProfession extends Document {
 			email: string;
 			facebook?: string;
 			instagram?: string;
-		}
+		},
 	];
 	reviews: [Review: unknown];
 	rating: number;
@@ -162,7 +162,7 @@ export interface IProfessionProfile extends Document {
 			to: Date;
 			current: boolean;
 			description: string;
-		}
+		},
 	];
 	education: [
 		{
@@ -173,7 +173,7 @@ export interface IProfessionProfile extends Document {
 			to: Date;
 			current: boolean;
 			description: string;
-		}
+		},
 	];
 	social: [
 		{
@@ -182,7 +182,7 @@ export interface IProfessionProfile extends Document {
 			twitter: string;
 			instagram: string;
 			linkedin: string;
-		}
+		},
 	];
 	date: Date;
 	timestamps: {
@@ -225,7 +225,7 @@ export interface IRestaurant extends Document {
 			phone: number;
 			facebook: string;
 			instagram: string;
-		}
+		},
 	];
 	cuisine: [string];
 	reviews: [Review: unknown];
