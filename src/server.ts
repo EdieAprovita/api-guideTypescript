@@ -42,7 +42,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 // Routes
-app.use("/api/users", userRoutes);
+app.use("/api/v1/users", userRoutes);
 
 const PORT = process.env.PORT || 5000;
 
