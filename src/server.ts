@@ -6,6 +6,7 @@ import path from "path";
 
 import connectDB from "./config/db";
 import userRoutes from "./routes/userRoutes";
+import businessRoutes from "./routes/businessRoutes";
 import { colorTheme } from "./types/colorTheme";
 
 dotenv.config();
@@ -43,6 +44,7 @@ if (process.env.NODE_ENV === "production") {
 
 // Routes
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/businesses", businessRoutes);
 
 const PORT = process.env.PORT || 5000;
 

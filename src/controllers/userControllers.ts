@@ -17,35 +17,31 @@ import { generateToken } from "../utils/generateToken";
 
 export const registerUser = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const { username, email, password, role } = req.body;
+		const { username, email, password, role } = req.body;
 
-			const userExists = await User.findOne({ email });
+		const userExists = await User.findOne({ email });
 
-			if (userExists) {
-				throw new BadRequestError("User already exists");
-			}
+		if (userExists) {
+			throw new BadRequestError("User already exists");
+		}
 
-			const user: IUser = await User.create({
-				username,
-				email,
-				password,
-				role,
+		const user: IUser = await User.create({
+			username,
+			email,
+			password,
+			role,
+		});
+
+		if (user) {
+			return res.status(201).json({
+				message: "User created successfully",
+				_id: user._id,
+				username: user.username,
+				email: user.email,
+				role: user.role,
+				isProfessional: user.isProfessional,
+				token: generateToken(user._id ?? ""),
 			});
-
-			if (user) {
-				return res.status(201).json({
-					message: "User created successfully",
-					_id: user._id,
-					username: user.username,
-					email: user.email,
-					role: user.role,
-					isProfessional: user.isProfessional,
-					token: generateToken(user._id ?? ""),
-				});
-			}
-		} catch (error) {
-			next(new InternalServerError(`${error}`));
 		}
 	}
 );
@@ -59,36 +55,32 @@ export const registerUser = asyncHandler(
 
 export const loginUser = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const { email, password } = req.body;
+		const { email, password } = req.body;
 
-			const user = await User.findOne({ email });
+		const user = await User.findOne({ email });
 
-			if (!user) {
-				throw new DataNotFoundError("User not found");
-			}
-
-			const isMatch = await user.matchPassword(password);
-
-			if (!isMatch) {
-				throw new BadRequestError("Invalid credentials");
-			}
-
-			return res.status(200).json({
-				token: generateToken(user._id ?? ""),
-				user: {
-					_id: user._id,
-					username: user.username,
-					email: user.email,
-					role: user.role,
-					photo: user.photo,
-					isProfessional: user.isProfessional,
-					isAdmin: user.isAdmin,
-				},
-			});
-		} catch (error) {
-			next(new InternalServerError(`${error}`));
+		if (!user) {
+			throw new DataNotFoundError("User not found");
 		}
+
+		const isMatch = await user.matchPassword(password);
+
+		if (!isMatch) {
+			throw new BadRequestError("Invalid credentials");
+		}
+
+		return res.status(200).json({
+			token: generateToken(user._id ?? ""),
+			user: {
+				_id: user._id,
+				username: user.username,
+				email: user.email,
+				role: user.role,
+				photo: user.photo,
+				isProfessional: user.isProfessional,
+				isAdmin: user.isAdmin,
+			},
+		});
 	}
 );
 
@@ -102,17 +94,13 @@ export const loginUser = asyncHandler(
 
 export const getUsers = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-		try {
-			const users: IUser[] = await User.find({});
-			return res.status(200).json({
-				message: "Users fetched successfully",
-				success: true,
-				count: users.length,
-				data: users,
-			});
-		} catch (error) {
-			next(new InternalServerError(`${error}`));
-		}
+		const users: IUser[] = await User.find({});
+		return res.status(200).json({
+			message: "Users fetched successfully",
+			success: true,
+			count: users.length,
+			data: users,
+		});
 	}
 );
 
