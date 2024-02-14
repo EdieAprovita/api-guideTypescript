@@ -10,10 +10,10 @@ import {
 
 const router = express.Router();
 
-router.get("/business", getBusinesses);
-router.get("/business/:id", getBusinessById);
-router.post("/business", protect, createBusiness);
-router.put("/business/:id", protect, updateBusiness);
-router.delete("/business/:id", protect, admin, deleteBusiness);
+router.get("/", getBusinesses);
+router.get("/:id", getBusinessById);
+router.post("/create", protect, createBusiness);
+router.put("/update/:id", protect, updateBusiness);
+router.delete("/delete/:id", protect, admin, deleteBusiness);
 
 export default router;
