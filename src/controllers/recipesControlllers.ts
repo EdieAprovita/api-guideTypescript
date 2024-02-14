@@ -3,25 +3,25 @@ import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 
 import { BadRequestError, NotFoundError, InternalServerError } from "../types/Errors";
-import { IBusiness } from "../types/modalTypes";
-import Business from "../models/Business";
+import { IRecipe } from "../types/modalTypes";
+import Recipe from "../models/Recipe";
 
 /**
- * @description Get all businesses
- * @name getBusinesses
- * @route GET /api/businesses
+ * @description Get all recipes
+ * @name getRecipes
+ * @route GET /api/recipes
  * @access Public
  * @returns {Promise<Response>}
  */
 
-export const getBusinesses = asyncHandler(
+export const getRecipes = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const businesses: IBusiness[] = await Business.find({});
+			const recipes: IRecipe[] = await Recipe.find({});
 			return res.status(200).json({
 				success: true,
-				message: "Businesses fetched successfully",
-				data: businesses,
+				message: "Recipes fetched successfully",
+				data: recipes,
 			});
 		} catch (error) {
 			next(new InternalServerError(`${error}`));
@@ -30,25 +30,27 @@ export const getBusinesses = asyncHandler(
 );
 
 /**
- * @description Get a business by id
- * @name getBusinessById
- * @route GET /api/businesses/:id
+ * @description Get a recipe by id
+ * @name getRecipeById
+ * @route GET /api/recipes/:id
  * @access Public
  * @returns {Promise<Response>}
  */
 
-export const getBusinessById = asyncHandler(
+export const getRecipeById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const business = await Business.findById(id);
-			if (!business) {
+			const recipe = await Recipe.findById(id);
+
+			if (!recipe) {
 				throw new NotFoundError();
 			}
+
 			res.status(200).json({
 				success: true,
-				message: "Business fetched successfully",
-				data: business,
+				message: "Recipe fetched successfully",
+				data: recipe,
 			});
 		} catch (error) {
 			next(error);
@@ -57,27 +59,25 @@ export const getBusinessById = asyncHandler(
 );
 
 /**
- * @description Create a new business
- * @name createBusiness
- * @route POST /api/businesses
+ * @description Create a new recipe
+ * @name createRecipe
+ * @route POST /api/recipes
  * @access Private
  * @returns {Promise<Response>}
  */
 
-export const createBusiness = asyncHandler(
+export const createRecipe = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			next(new BadRequestError("Invalid request parameters"));
-			return;
+			return next(new BadRequestError("Invalid data"));
 		}
-
 		try {
-			const business: IBusiness = await Business.create(req.body);
-			return res.status(201).json({
+			const recipe = await Recipe.create(req.body);
+			res.status(201).json({
 				success: true,
-				message: "Business created successfully",
-				data: business,
+				message: "Recipe created successfully",
+				data: recipe,
 			});
 		} catch (error) {
 			next(new InternalServerError(`${error}`));
@@ -86,28 +86,30 @@ export const createBusiness = asyncHandler(
 );
 
 /**
- * @description Update a business by id
- * @name updateBusiness
- * @route PUT /api/businesses/:id
+ * @description Update a recipe by id
+ * @name updateRecipe
+ * @route PUT /api/recipes/:id
  * @access Private
  * @returns {Promise<Response>}
  */
 
-export const updateBusiness = asyncHandler(
+export const updateRecipe = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const business = await Business.findByIdAndUpdate(id, req.body, {
+			const recipe = await Recipe.findByIdAndUpdate(id, req.body, {
 				new: true,
 				runValidators: true,
 			});
-			if (!business) {
+
+			if (!recipe) {
 				throw new NotFoundError();
 			}
+
 			res.status(200).json({
 				success: true,
-				message: "Business updated successfully",
-				data: business,
+				message: "Recipe updated successfully",
+				data: recipe,
 			});
 		} catch (error) {
 			next(error);
@@ -116,23 +118,26 @@ export const updateBusiness = asyncHandler(
 );
 
 /**
- * @description Delete a business by id
- * @name deleteBusiness
- * @route DELETE /api/businesses/:id
+ * @description Delete a recipe by id
+ * @name deleteRecipe
+ * @route DELETE /api/recipes/:id
  * @access Private
  * @returns {Promise<Response>}
  */
 
-export const deleteBusiness = asyncHandler(
+export const deleteRecipe = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const business = await Business.findById(id);
-			if (!business) {
+			const recipe = await Recipe.findByIdAndDelete(id);
+			if (!recipe) {
 				throw new NotFoundError();
 			}
-			await business.deleteOne();
-			res.status(200).json({ success: true, message: "Business deleted successfully" });
+			res.status(200).json({
+				success: true,
+				message: "Recipe deleted successfully",
+				data: recipe,
+			});
 		} catch (error) {
 			next(error);
 		}
