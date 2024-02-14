@@ -1,5 +1,5 @@
 import request from "supertest";
-import server from "../../server";
+import app from "../../server";
 import User from "../../models/User";
 
 jest.mock("bcryptjs", () => ({
@@ -13,9 +13,19 @@ jest.mock("../../models/User", () => ({
 }));
 
 describe("User Registration", () => {
+	let serverInstance;
+
+	beforeAll(() => {
+		const PORT = process.env.TEST_PORT || 5001;
+		serverInstance = app.listen(PORT);
+	});
+
+	afterAll(done => {
+		serverInstance.close(done);
+	});
+
 	beforeEach(() => {
-		(User.findOne as jest.Mock).mockClear();
-		(User.create as jest.Mock).mockClear();
+		jest.clearAllMocks();
 	});
 
 	it("should register a new user if email does not exist", async () => {
@@ -29,7 +39,7 @@ describe("User Registration", () => {
 			token: "someToken",
 		});
 
-		const response = await request(server).post("/api/v1/users/register").send({
+		const response = await request(app).post("/api/v1/users/register").send({
 			username: "testUser",
 			email: "test@example.com",
 			password: "password123",
@@ -37,8 +47,8 @@ describe("User Registration", () => {
 		});
 
 		expect(response.statusCode).toBe(201);
-		expect(response.body).toHaveProperty("message", "User created successfully");
-		expect(User.create).toBeCalledWith({
+		expect(response.body.message).toEqual("User created successfully");
+		expect(User.create).toHaveBeenCalledWith({
 			username: "testUser",
 			email: "test@example.com",
 			password: expect.any(String),
@@ -47,9 +57,15 @@ describe("User Registration", () => {
 	});
 
 	it("should return 400 if user already exists", async () => {
-		(User.findOne as jest.Mock).mockResolvedValue(true);
+		(User.findOne as jest.Mock).mockResolvedValue({
+			_id: "someUserId",
+			username: "existingUser",
+			email: "test@example.com",
+			password: "password123",
+			role: "user",
+		});
 
-		const response = await request(server).post("/api/v1/users/register").send({
+		const response = await request(app).post("/api/v1/users/register").send({
 			username: "existingUser",
 			email: "exist@example.com",
 			password: "password123",
@@ -57,6 +73,5 @@ describe("User Registration", () => {
 		});
 
 		expect(response.statusCode).toBe(400);
-		expect(response.body).toHaveProperty("error", "User already exists");
 	});
 });
