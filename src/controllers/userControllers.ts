@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
-import { validationResult } from "express-validator";
 
-import { BadRequestError, InternalServerError, DataNotFoundError } from "../types/Errors";
+import { BadRequestError, DataNotFoundError } from "../types/Errors";
 import { IUser } from "../types/modalTypes";
 import User from "../models/User";
 import { generateToken } from "../utils/generateToken";
@@ -244,59 +243,4 @@ export const deleteUserByAdmin = asyncHandler(
 	}
 );
 
-/**
- * @description Get user profile
- * @name getUserProfile
- * @route GET /api/users/profile
- * @access Private
- * @returns {Promise<Response>}
- * */
 
-export const updateUser = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-		const userId = req.params.id;
-		const { username, email, role, photo } = req.body;
-
-		try {
-			const errors = validationResult(req);
-			if (!errors.isEmpty()) {
-				next(new BadRequestError("Invalid input"));
-			}
-
-			const userExists = await User.findByIdAndUpdate({
-				$or: [{ email }, { username }],
-				_id: { $ne: userId },
-			});
-			if (userExists) {
-				return res.status(400).json({
-					success: false,
-					error: "User already exists",
-				});
-			}
-
-			const updatedUser = await User.findByIdAndUpdate(
-				userId,
-				{ username, email, photo, role, isProfessional: false },
-				{ new: true, runValidators: true }
-			);
-
-			if (!updatedUser) {
-				next(new DataNotFoundError("User not found"));
-			}
-
-			return res.status(200).json({
-				message: "User updated successfully",
-				user: {
-					_id: updatedUser._id,
-					username: updatedUser.username,
-					email: updatedUser.email,
-					role: updatedUser.role,
-					photo: updatedUser.photo,
-					isProfessional: updatedUser.isProfessional,
-				},
-			});
-		} catch (error) {
-			next(new InternalServerError(`${error}`));
-		}
-	}
-);

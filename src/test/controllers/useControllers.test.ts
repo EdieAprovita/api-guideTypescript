@@ -1,5 +1,5 @@
 import request from "supertest";
-import app from "../../server";
+import app from "../../app";
 import User from "../../models/User";
 
 jest.mock("bcryptjs", () => ({
@@ -7,9 +7,18 @@ jest.mock("bcryptjs", () => ({
 	compare: jest.fn().mockResolvedValue(true),
 }));
 
+jest.mock('../../middleware/authMiddleware', () => ({
+	protect: jest.fn((req, res, next) => next()),
+    admin: jest.fn((req, res, next) => next()),
+}));
+
 jest.mock("../../models/User", () => ({
-	findOne: jest.fn(),
-	create: jest.fn(),
+	find: jest.fn().mockResolvedValue([
+		{ _id: "1", username: "testUser1", email: "test1@example.com", role: "user" },
+		{ _id: "2", username: "testUser2", email: "test2@example.com", role: "user" }
+	  ]),	
+	  findOne: jest.fn(),
+	  create: jest.fn(),
 }));
 
 describe("User Registration", () => {
@@ -75,3 +84,24 @@ describe("User Registration", () => {
 		expect(response.statusCode).toBe(400);
 	});
 });
+
+describe("Get All Users", () => {
+	it("should return all users", async () => {
+	  const response = await request(app)
+	  .get("/api/v1/users")
+	  .set("Authorization", `Bearer fakeToken`);
+  
+	  expect(response.statusCode).toBe(200);
+	  expect(response.body).toEqual({
+		success: true,
+		message: "Users fetched successfully",
+		count: 2,
+		data: [
+		  { _id: "1", username: "testUser1", email: "test1@example.com", role: "user" },
+		  { _id: "2", username: "testUser2", email: "test2@example.com", role: "user" }
+		]
+	  });
+	  expect(User.find).toHaveBeenCalledTimes(1);
+	});
+});
+  
