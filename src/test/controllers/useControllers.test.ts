@@ -25,21 +25,6 @@ jest.mock("../../models/User", () => ({
 }));
 
 describe("User Registration", () => {
-	let serverInstance;
-
-	beforeAll(() => {
-		const PORT = process.env.TEST_PORT || 5001;
-		serverInstance = app.listen(PORT);
-	});
-
-	afterAll(done => {
-		serverInstance.close(done);
-	});
-
-	beforeEach(() => {
-		jest.clearAllMocks();
-	});
-
 	it("should register a new user if email does not exist", async () => {
 		(User.findOne as jest.Mock).mockResolvedValue(null);
 		(User.create as jest.Mock).mockResolvedValue({
@@ -159,7 +144,7 @@ describe("Authenticate User", () => {
 	  });
   
 	  const response = await request(app)
-		.get(`/api/v1/users/:id${userId}`)
+		.get(`/api/v1/users/${userId}`)
 		.set("Authorization", `Bearer fakeToken`);
   
 	  expect(response.statusCode).toBe(200);
@@ -183,7 +168,7 @@ describe("Authenticate User", () => {
 	  });
   
 	  const response = await request(app)
-		.put(`/api/v1/users/profile/:id${userId}`)
+		.put(`/api/v1/users/profile/${userId}`)
 		.set("Authorization", `Bearer fakeToken`) 
   
 	  expect(response.statusCode).toBe(200);
