@@ -17,6 +17,9 @@ jest.mock("../../models/User", () => ({
 		{ _id: "1", username: "testUser1", email: "test1@example.com", role: "user" },
 		{ _id: "2", username: "testUser2", email: "test2@example.com", role: "user" }
 	  ]),	
+	  findById: jest.fn(),
+  	  findByIdAndUpdate: jest.fn(),
+      findByIdAndDelete: jest.fn(),
 	  findOne: jest.fn(),
 	  create: jest.fn(),
 }));
@@ -104,4 +107,110 @@ describe("Get All Users", () => {
 	  expect(User.find).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe("Authenticate User", () => {
+    it("should authenticate user as admin", async () => {
+        const userData = {
+            email: "test@example.com",
+            password: "password123",
+        };
+
+        (User.findOne as jest.Mock).mockResolvedValue({
+            _id: "someUserId",
+            username: "testUser",
+            email: "test@example.com",
+            role: "user",
+            isProfessional: false,
+			isAdmin: true,
+            matchPassword: jest.fn().mockResolvedValue(true),
+        });
+
+        const response = await request(app)
+            .post("/api/v1/users/login")
+            .send(userData);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.user).toEqual(expect.objectContaining({
+            _id: expect.any(String),
+            username: "testUser",
+            email: "test@example.com",
+            role: "user",
+            isProfessional: false,
+            isAdmin: true,
+        }));
+        expect(User.findOne).toHaveBeenCalledWith({ email: userData.email });
+        expect(response.body.user).not.toHaveProperty('password');
+    });
+});
+
+  
+  
+  describe("Get User by ID", () => {
+	it("should return user by id", async () => {
+	  const userId = "someUserId";
+  
+	  (User.findById as jest.Mock).mockResolvedValue({
+		_id: userId,
+		username: "testUser",
+		email: "test@example.com",
+		role: "user",
+		isAdmin: false,
+		isProfessional: false,
+	  });
+  
+	  const response = await request(app)
+		.get(`/api/v1/users/:id${userId}`)
+		.set("Authorization", `Bearer fakeToken`);
+  
+	  expect(response.statusCode).toBe(200);
+	  expect(response.body.data._id).toBe(userId);
+	  expect(User.findById).toHaveBeenCalledWith(userId);
+	});
+  });
+  
+  describe("Update User", () => {
+	it("should update user details", async () => {
+	  const userId = "someUserId";
+	  const updateData = {
+		username: "updatedUser",
+		email: "update@example.com",
+		role: "admin",
+	  };
+  
+	  (User.findByIdAndUpdate as jest.Mock).mockResolvedValue({
+		_id: userId,
+		...updateData,
+	  });
+  
+	  const response = await request(app)
+		.put(`/api/v1/users/profile/:id${userId}`)
+		.set("Authorization", `Bearer fakeToken`) 
+  
+	  expect(response.statusCode).toBe(200);
+	  expect(response.body.data.username).toBe(updateData.username);
+	  expect(User.findByIdAndUpdate).toHaveBeenCalledWith(userId, updateData, {
+		new: true,
+		runValidators: true,
+	  });
+	});
+  });
+  
+  describe("Delete User", () => {
+	it("should delete user by id", async () => {
+	  const userId = "someUserId";
+  
+	  (User.findByIdAndDelete as jest.Mock).mockResolvedValue({
+		_id: userId,
+		username: "testUser",
+	  });
+  
+	  const response = await request(app)
+		.delete(`/api/v1/users/${userId}`)
+		.set("Authorization", `Bearer fakeToken`);
+  
+	  expect(response.statusCode).toBe(200);
+	  expect(response.body.message).toContain("deleted successfully");
+	  expect(User.findByIdAndDelete).toHaveBeenCalledWith(userId);
+	});
+  });
   

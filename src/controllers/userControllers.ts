@@ -4,7 +4,7 @@ import asyncHandler from "../middleware/asyncHandler";
 import { BadRequestError, DataNotFoundError } from "../types/Errors";
 import { IUser } from "../types/modalTypes";
 import User from "../models/User";
-import { generateToken } from "../utils/generateToken";
+import generateToken  from "../utils/generateToken";
 
 /**
  * @description Register a new user
@@ -32,6 +32,7 @@ export const registerUser = asyncHandler(
 		});
 
 		if (user) {
+			generateToken(res, user._id);
 			return res.status(201).json({
 				message: "User created successfully",
 				_id: user._id,
@@ -39,7 +40,6 @@ export const registerUser = asyncHandler(
 				email: user.email,
 				role: user.role,
 				isProfessional: user.isProfessional,
-				token: generateToken(user._id ?? ""),
 			});
 		}
 	}
@@ -68,8 +68,8 @@ export const loginUser = asyncHandler(
 			throw new BadRequestError("Invalid credentials");
 		}
 
+		generateToken(res, user._id);
 		return res.status(200).json({
-			token: generateToken(user._id ?? ""),
 			user: {
 				_id: user._id,
 				username: user.username,
