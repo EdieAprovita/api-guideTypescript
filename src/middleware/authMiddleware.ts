@@ -9,34 +9,32 @@ import User from "../models/User";
  */
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
-	let token: string;
+	try {
+		let token: string;
 
-	if (req.headers.authorization?.startsWith("Bearer")) {
-		try {
-			token = req.headers.authorization.split(" ")[1];
+		if(req.cookies.jwt) {
+			token = req.cookies.jwt;
+		}
 
-			const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as IUser;
-
-			req.user = User.findById(decoded.id).select(
-				"-password"
-			) as unknown as Request["user"];
-
-			next();
-		} catch (error) {
-			res.status(401).json({
-				message: "Unauthorized",
+		if(!token) {
+			return res.status(401).json({
+				message: "Not authorized to access this route",
 				success: false,
-				error: `${error}`,
+			});
+		
+		}
+
+		const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
+		const currentUsers = await User.findById(decoded.userId).select("-password");
+
+		if(!currentUsers) {
+			return res.status(401).json({
+				message: "User not found",
+				success: false,
 			});
 		}
-	}
-	token = req.body.token || req.query.token || req.headers["x-access-token"];
-	if (!token) {
-		res.status(401).json({
-			message: "Unauthorized",
-			success: false,
-			error: "No token provided",
-		});
+	} catch (error) {
+		
 	}
 };
 

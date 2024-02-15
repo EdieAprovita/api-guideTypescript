@@ -148,7 +148,14 @@ describe("Authenticate User", () => {
 		.set("Authorization", `Bearer fakeToken`);
   
 	  expect(response.statusCode).toBe(200);
-	  expect(response.body.data._id).toBe(userId);
+	  expect(response.body).toEqual(expect.objectContaining({
+		_id: userId,
+		username: "testUser",
+		email: "test@example.com",
+		role: "user",
+		isAdmin: false,
+		isProfessional: false,
+	  }));	  
 	  expect(User.findById).toHaveBeenCalledWith(userId);
 	});
   });
@@ -169,10 +176,11 @@ describe("Authenticate User", () => {
   
 	  const response = await request(app)
 		.put(`/api/v1/users/profile/${userId}`)
+		.send(updateData)
 		.set("Authorization", `Bearer fakeToken`) 
   
 	  expect(response.statusCode).toBe(200);
-	  expect(response.body.data.username).toBe(updateData.username);
+	  expect(response.body).toEqual(expect.objectContaining(updateData));
 	  expect(User.findByIdAndUpdate).toHaveBeenCalledWith(userId, updateData, {
 		new: true,
 		runValidators: true,
