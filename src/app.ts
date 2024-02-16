@@ -49,7 +49,7 @@ if (process.env.NODE_ENV === "production") {
 
 // Routes
 app.use("/api/v1/users", userRoutes);
-app.use("/api/v1/business", businessRoutes);
+app.use("/api/v1/businesses", businessRoutes);
 app.use("/api/v1/recipes", recipesRoutes);
 
 app.use(notFound);
