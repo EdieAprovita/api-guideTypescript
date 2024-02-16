@@ -2,12 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { CustomError } from "../types/Errors";
 import logger from "../utils/logger";
 
-export const errorHandler = (
-	err: Error,
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
+export const errorHandler = (err: Error, req: Request, res: Response) => {
 	logger.error(`[Error] ${req.method} ${req.path}`, {
 		error: err.message,
 		stack: err.stack,

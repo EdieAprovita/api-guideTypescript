@@ -27,24 +27,24 @@ export interface IUser extends Document {
 	matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
+export interface IContact {
+	phone: number;
+	email: string;
+	facebook?: string;
+	instagram?: string;
+}
+
 export interface IBusiness extends Document {
 	_id?: string;
 	namePlace: string;
 	author: Types.ObjectId;
 	address: string;
 	image: string;
-	contact: [
-		{
-			phone: string;
-			email: string;
-			facebook: string;
-			instagram: string;
-		},
-	];
+	contact: IContact[];
 	budget: number;
 	typeBusiness: string;
 	hours: [Date];
-	reviews: [Review: unknown];
+	reviews: Array<IReview>;
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -60,15 +60,8 @@ export interface IMedic extends Document {
 	address: string;
 	image: string;
 	specialty: string;
-	contact: [
-		{
-			phone: number;
-			email: string;
-			facebook?: string;
-			instagram?: string;
-		},
-	];
-	reviews: [Review: unknown];
+	contact: IContact[];
+	reviews: Array<IReview>;
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -84,7 +77,7 @@ export interface IMarket extends Document {
 	address: string;
 	image: string;
 	typeMarket: string;
-	reviews: [Review: unknown];
+	reviews: Array<IReview>;
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -120,15 +113,8 @@ export interface IProfession extends Document {
 	professionName: string;
 	author: Types.ObjectId;
 	specialty: string;
-	contact: [
-		{
-			phone: number;
-			email: string;
-			facebook?: string;
-			instagram?: string;
-		},
-	];
-	reviews: [Review: unknown];
+	contact: IContact[];
+	reviews: Array<IReview>;
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -149,42 +135,42 @@ export interface IReview extends Document {
 	};
 }
 
+export interface IExperience {
+	title: string;
+	company: string;
+	location: string;
+	from: Date;
+	to: Date;
+	current: boolean;
+	description: string;
+}
+
+export interface IEducation {
+	school: string;
+	degree: string;
+	fieldOfStudy: string;
+	from: Date;
+	to: Date;
+	current: boolean;
+	description: string;
+}
+
+export interface ISocial {
+	youtube?: string;
+	facebook?: string;
+	twitter?: string;
+	instagram?: string;
+	linkedin?: string;
+}
+
 export interface IProfessionProfile extends Document {
 	_id?: string;
 	user: Types.ObjectId;
-	contact: [{ phone: number; email: string }];
-	skills: [string];
-	experience: [
-		{
-			title: string;
-			company: string;
-			location: string;
-			from: Date;
-			to: Date;
-			current: boolean;
-			description: string;
-		},
-	];
-	education: [
-		{
-			school: string;
-			degree: string;
-			fieldOfStudy: string;
-			from: Date;
-			to: Date;
-			current: boolean;
-			description: string;
-		},
-	];
-	social: [
-		{
-			youtube: string;
-			facebook: string;
-			twitter: string;
-			instagram: string;
-			linkedin: string;
-		},
-	];
+	contact: IContact[];
+	skills: Array<string>;
+	experience: IExperience[];
+	education: IEducation[];
+	social: ISocial;
 	date: Date;
 	timestamps: {
 		createdAt: Date;
@@ -198,12 +184,12 @@ export interface IRecipe extends Document {
 	author: Types.ObjectId;
 	description: string;
 	instructions: string;
-	ingredients: [string];
+	ingredients: Array<string>;
 	typeDish: string;
 	image: string;
 	cookingTime: number;
 	difficulty: string;
-	reviews: [Review: unknown];
+	reviews: Array<IReview>;
 	rating: number;
 	numReviews: number;
 	budget: string;
@@ -221,15 +207,9 @@ export interface IRestaurant extends Document {
 	address: string;
 	image: string;
 	budget: string;
-	contact: [
-		{
-			phone: number;
-			facebook: string;
-			instagram: string;
-		},
-	];
+	contact: IContact[];
 	cuisine: [string];
-	reviews: [Review: unknown];
+	reviews: Array<IReview>;
 	rating: number;
 	numReviews: number;
 	timestamps: {
