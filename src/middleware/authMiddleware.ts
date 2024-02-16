@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { IUser } from "../types/modalTypes";
 import User from "../models/User";
 
 /**
@@ -12,29 +11,33 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 	try {
 		let token: string;
 
-		if(req.cookies.jwt) {
+		if (req.cookies.jwt) {
 			token = req.cookies.jwt;
 		}
 
-		if(!token) {
+		if (!token) {
 			return res.status(401).json({
 				message: "Not authorized to access this route",
 				success: false,
 			});
-		
 		}
 
-		const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
+		const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+			userId: string;
+		};
 		const currentUsers = await User.findById(decoded.userId).select("-password");
 
-		if(!currentUsers) {
+		if (!currentUsers) {
 			return res.status(401).json({
 				message: "User not found",
 				success: false,
 			});
 		}
+
+		req.user = currentUsers;
+		next();
 	} catch (error) {
-		
+		return next(error);
 	}
 };
 
