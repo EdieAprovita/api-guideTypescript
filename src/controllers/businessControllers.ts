@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
-
-import { BadRequestError, NotFoundError, InternalServerError } from "../types/Errors";
-import { IBusiness } from "../types/modalTypes";
-import Business from "../models/Business";
+import { BadRequestError, InternalServerError } from "../types/Errors";
+import BusinessService from "../services/BusinessService";
 
 /**
  * @description Get all businesses
@@ -17,8 +15,8 @@ import Business from "../models/Business";
 export const getBusinesses = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const businesses: IBusiness[] = await Business.find({});
-			return res.status(200).json({
+			const businesses = await BusinessService.getAllBusinesses();
+			res.status(200).json({
 				success: true,
 				message: "Businesses fetched successfully",
 				data: businesses,
@@ -41,10 +39,7 @@ export const getBusinessById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const business = await Business.findById(id);
-			if (!business) {
-				throw new NotFoundError();
-			}
+			const business = await BusinessService.getBusinessById(id);
 			res.status(200).json({
 				success: true,
 				message: "Business fetched successfully",
@@ -73,8 +68,8 @@ export const createBusiness = asyncHandler(
 		}
 
 		try {
-			const business: IBusiness = await Business.create(req.body);
-			return res.status(201).json({
+			const business = await BusinessService.createBusiness(req.body);
+			res.status(201).json({
 				success: true,
 				message: "Business created successfully",
 				data: business,
@@ -97,13 +92,7 @@ export const updateBusiness = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const business = await Business.findByIdAndUpdate(id, req.body, {
-				new: true,
-				runValidators: true,
-			});
-			if (!business) {
-				throw new NotFoundError();
-			}
+			const business = await BusinessService.updateBusiness(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Business updated successfully",
@@ -127,11 +116,7 @@ export const deleteBusiness = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const business = await Business.findById(id);
-			if (!business) {
-				throw new NotFoundError();
-			}
-			await business.deleteOne();
+			await BusinessService.deleteBusiness(id);
 			res.status(200).json({ success: true, message: "Business deleted successfully" });
 		} catch (error) {
 			next(error);
