@@ -1,10 +1,7 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
+import { NotFoundError } from "../types/Errors";
 import asyncHandler from "../middleware/asyncHandler";
-import { validationResult } from "express-validator";
-
-import { BadRequestError, NotFoundError, InternalServerError } from "../types/Errors";
-import { IRecipe } from "../types/modalTypes";
-import Recipe from "../models/Recipe";
+import RecipeService from "../services/RecipesService";
 
 /**
  * @description Get all recipes
@@ -14,20 +11,13 @@ import Recipe from "../models/Recipe";
  * @returns {Promise<Response>}
  */
 
-export const getRecipes = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const recipes: IRecipe[] = await Recipe.find({});
-			return res.status(200).json({
-				success: true,
-				message: "Recipes fetched successfully",
-				data: recipes,
-			});
-		} catch (error) {
-			next(new InternalServerError(`${error}`));
-		}
-	}
-);
+export const getRecipes = asyncHandler(async (req: Request, res: Response) => {
+	const recipes = await RecipeService.getAllRecipes();
+	res.status(200).json({
+		success: true,
+		data: recipes,
+	});
+});
 
 /**
  * @description Get a recipe by id
@@ -37,27 +27,17 @@ export const getRecipes = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const getRecipeById = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const { id } = req.params;
-			const recipe = await Recipe.findById(id);
+export const getRecipeById = asyncHandler(async (req: Request, res: Response) => {
+	const recipe = await RecipeService.getRecipeById(req.params.id);
 
-			if (!recipe) {
-				throw new NotFoundError();
-			}
-
-			res.status(200).json({
-				success: true,
-				message: "Recipe fetched successfully",
-				data: recipe,
-			});
-		} catch (error) {
-			next(error);
-		}
+	if (!recipe) {
+		throw new NotFoundError();
 	}
-);
-
+	res.status(200).json({
+		success: true,
+		data: recipe,
+	});
+});
 /**
  * @description Create a new recipe
  * @name createRecipe
@@ -66,25 +46,13 @@ export const getRecipeById = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const createRecipe = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid data"));
-		}
-		try {
-			const recipe = await Recipe.create(req.body);
-			res.status(201).json({
-				success: true,
-				message: "Recipe created successfully",
-				data: recipe,
-			});
-		} catch (error) {
-			next(new InternalServerError(`${error}`));
-		}
-	}
-);
-
+export const createRecipe = asyncHandler(async (req: Request, res: Response) => {
+	const recipe = await RecipeService.createRecipe(req.body);
+	res.status(201).json({
+		success: true,
+		data: recipe,
+	});
+});
 /**
  * @description Update a recipe by id
  * @name updateRecipe
@@ -93,30 +61,17 @@ export const createRecipe = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const updateRecipe = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const { id } = req.params;
-			const recipe = await Recipe.findByIdAndUpdate(id, req.body, {
-				new: true,
-				runValidators: true,
-			});
+export const updateRecipe = asyncHandler(async (req: Request, res: Response) => {
+	const recipe = await RecipeService.updateRecipe(req.params.id, req.body);
 
-			if (!recipe) {
-				throw new NotFoundError();
-			}
-
-			res.status(200).json({
-				success: true,
-				message: "Recipe updated successfully",
-				data: recipe,
-			});
-		} catch (error) {
-			next(error);
-		}
+	if (!recipe) {
+		throw new NotFoundError();
 	}
-);
-
+	res.status(200).json({
+		success: true,
+		data: recipe,
+	});
+});
 /**
  * @description Delete a recipe by id
  * @name deleteRecipe
@@ -125,21 +80,10 @@ export const updateRecipe = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const deleteRecipe = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const { id } = req.params;
-			const recipe = await Recipe.findByIdAndDelete(id);
-			if (!recipe) {
-				throw new NotFoundError();
-			}
-			res.status(200).json({
-				success: true,
-				message: "Recipe deleted successfully",
-				data: recipe,
-			});
-		} catch (error) {
-			next(error);
-		}
-	}
-);
+export const deleteRecipe = asyncHandler(async (req: Request, res: Response) => {
+	await RecipeService.deleteRecipe(req.params.id);
+	res.status(204).json({
+		success: true,
+		data: {},
+	});
+});
