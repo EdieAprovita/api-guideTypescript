@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { IUser } from "../types/modalTypes";
 import User from "../models/User";
 
 /**
@@ -9,34 +8,36 @@ import User from "../models/User";
  */
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
-	let token: string;
+	try {
+		let token: string;
 
-	if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-		try {
-			token = req.headers.authorization.split(" ")[1];
+		if (req.cookies.jwt) {
+			token = req.cookies.jwt;
+		}
 
-			const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as IUser;
-
-			req.user = User.findById(decoded.id).select(
-				"-password"
-			) as unknown as Request["user"];
-
-			next();
-		} catch (error) {
-			res.status(401).json({
-				message: "Unauthorized",
+		if (!token) {
+			return res.status(401).json({
+				message: "Not authorized to access this route",
 				success: false,
-				error: `${error}`,
 			});
 		}
-	}
-	token = req.body.token || req.query.token || req.headers["x-access-token"];
-	if (!token) {
-		res.status(401).json({
-			message: "Unauthorized",
-			success: false,
-			error: "No token provided",
-		});
+
+		const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+			userId: string;
+		};
+		const currentUsers = await User.findById(decoded.userId).select("-password");
+
+		if (!currentUsers) {
+			return res.status(401).json({
+				message: "User not found",
+				success: false,
+			});
+		}
+
+		req.user = currentUsers;
+		next();
+	} catch (error) {
+		return next(error);
 	}
 };
 
@@ -46,7 +47,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
  */
 
 export const admin = async (req: Request, res: Response, next: NextFunction) => {
-	if (req.user && req.user.isAdmin) {
+	if (req.user?.isAdmin) {
 		next();
 	} else {
 		res.status(403).json({
@@ -63,7 +64,7 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
  */
 
 export const professional = async (req: Request, res: Response, next: NextFunction) => {
-	if (req.user && req.user.isProfessional) {
+	if (req.user?.isProfessional) {
 		next();
 	} else {
 		res.status(403).json({

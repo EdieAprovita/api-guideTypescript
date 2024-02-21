@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  app:
+    container_name: api-guidetypescript
+    build:
+      context: .
+      dockerfile: .dockerfile
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    volumes:
+      - .:/src
+      - /src/node_modules
+    command: npm run dev
