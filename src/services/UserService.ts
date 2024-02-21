@@ -1,4 +1,5 @@
 import { Response } from "express";
+import bcrypt from "bcryptjs";
 import User from "../models/User";
 import { IUser } from "../types/modalTypes";
 import { BadRequestError, DataNotFoundError } from "../types/Errors";
@@ -86,6 +87,16 @@ class UserService {
 		if (!user) {
 			throw new DataNotFoundError("User not found");
 		}
+
+		if (updateData.password) {
+			updateData.password = await bcrypt.hash(
+				updateData.password,
+				parseInt(process.env.BCRYPT_SALT_ROUNDS || "10")
+			);
+		}
+
+		Object.assign(user, updateData);
+		await user.save();
 		return user;
 	}
 
