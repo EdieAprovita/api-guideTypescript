@@ -1,5 +1,4 @@
 import { Response } from "express";
-import bcrypt from "bcryptjs";
 import User from "../models/User";
 import { IUser } from "../types/modalTypes";
 import { BadRequestError, DataNotFoundError } from "../types/Errors";
@@ -35,7 +34,7 @@ class UserService {
 	}
 
 	async loginUser(email: string, password: string, res: Response) {
-		const user = await User.findOne({ email });
+		const user = await User.findOne({ email }).select("+password");
 
 		if (!user) {
 			throw new DataNotFoundError("User not found");
@@ -83,21 +82,26 @@ class UserService {
 	}
 
 	async updateUserById(userId: string, updateData: Partial<IUser>) {
-		const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
+		const user = await User.findById(userId);
 		if (!user) {
 			throw new DataNotFoundError("User not found");
 		}
 
 		if (updateData.password) {
-			updateData.password = await bcrypt.hash(
-				updateData.password,
-				parseInt(process.env.BCRYPT_SALT_ROUNDS || "10")
-			);
+			user.password = updateData.password;
 		}
 
-		Object.assign(user, updateData);
-		await user.save();
-		return user;
+		if (user) {
+			user.username = updateData.username || user.username;
+			user.email = updateData.email || user.email;
+			user.photo = updateData.photo || user.photo;
+			user.role = updateData.role || user.role;
+			user.isProfessional = updateData.isProfessional || user.isProfessional;
+		}
+
+		const updatedUser = await user.save();
+
+		return updatedUser;
 	}
 
 	async deleteUserById(userId: string) {
