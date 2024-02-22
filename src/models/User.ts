@@ -31,30 +31,22 @@ const userSchema = new Schema<IUser>(
 			default:
 				"https://res.cloudinary.com/dzqbzqgjm/image/upload/v1599098981/default-user_qjqjqz.png",
 		},
-		isAdmin: {
-			type: Boolean,
-			required: true,
-			default: false,
-		},
-		isProfessional: {
-			type: Boolean,
-			required: true,
-			default: false,
-		},
 	},
 	{ timestamps: true }
 );
 
 userSchema.pre("save", async function (next) {
-    if (this.isModified("password")) {
-        this.password = await bcrypt.hash(this.password, parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'));
-    }
-    if (this.email) {
-        this.email = this.email.toLowerCase();
-    }
-    next();
+	if (this.isModified("password")) {
+		this.password = await bcrypt.hash(
+			this.password,
+			parseInt(process.env.BCRYPT_SALT_ROUNDS || "10")
+		);
+	}
+	if (this.email) {
+		this.email = this.email.toLowerCase();
+	}
+	next();
 });
-
 
 userSchema.methods.matchPassword = async function (enteredPassword: string) {
 	return await bcrypt.compare(enteredPassword, this.password);

@@ -47,7 +47,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
  */
 
 export const admin = async (req: Request, res: Response, next: NextFunction) => {
-	if (req.user?.isAdmin) {
+	if (req.user?.role === "admin") {
 		next();
 	} else {
 		res.status(403).json({
@@ -64,7 +64,7 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
  */
 
 export const professional = async (req: Request, res: Response, next: NextFunction) => {
-	if (req.user?.isProfessional) {
+	if (req.user?.role === "professional") {
 		next();
 	} else {
 		res.status(403).json({

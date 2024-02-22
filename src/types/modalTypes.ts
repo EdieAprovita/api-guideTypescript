@@ -5,8 +5,7 @@ declare global {
 		interface Request {
 			user?: {
 				_id?: string;
-				isAdmin: boolean;
-				isProfessional: boolean;
+				role: "user" | "admin" | "professional";
 			};
 		}
 	}
@@ -15,11 +14,9 @@ export interface IUser extends Document {
 	_id?: string;
 	username: string;
 	password: string;
-	role: string;
+	role: "user" | "admin" | "professional";
 	email: string;
 	photo: string;
-	isAdmin: boolean;
-	isProfessional: boolean;
 	timestamps: {
 		createdAt: Date;
 		updatedAt: Date;
