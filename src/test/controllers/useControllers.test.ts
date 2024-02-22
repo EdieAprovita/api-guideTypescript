@@ -19,9 +19,24 @@ jest.mock("../../services/UserService", () => ({
 }));
 
 jest.mock("../../middleware/authMiddleware", () => ({
-	protect: (req, res, next) => next(),
-	admin: (req, res, next) => next(),
-	professional: (req, res, next) => next(),
+	protect: (req, res, next) => {
+		req.user = { id: "someUserId", role: "user" };
+		next();
+	},
+	admin: (req, res, next) => {
+		if (req.user.role === "admin") {
+			next();
+		} else {
+			res.status(403).json({ message: "Forbidden" });
+		}
+	},
+	professional: (req, res, next) => {
+		if (req.user.role === "professional") {
+			next();
+		} else {
+			res.status(403).json({ message: "Forbidden" });
+		}
+	},
 }));
 
 beforeEach(() => {
