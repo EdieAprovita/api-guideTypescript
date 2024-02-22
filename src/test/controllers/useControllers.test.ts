@@ -2,6 +2,7 @@ import request from "supertest";
 import app from "../../app";
 import User from "../../models/User";
 import UserService from "../../services/UserService";
+import { IUser } from "../../types/modalTypes";
 
 jest.mock("jsonwebtoken", () => ({
 	verify: jest.fn().mockReturnValue({ userId: "someUserId" }),
@@ -20,7 +21,7 @@ jest.mock("../../services/UserService", () => ({
 
 jest.mock("../../middleware/authMiddleware", () => ({
 	protect: (req, res, next) => {
-		req.user = { id: "someUserId", role: "user" };
+		req.user = { id: "someUserId", role: "admin" };
 		next();
 	},
 	admin: (req, res, next) => {
@@ -102,7 +103,7 @@ describe("Get All Users", () => {
 			_id: "mockUserId",
 			username: "mockUser",
 			email: "mock@example.com",
-			isAdmin: true,
+			role: "admin",
 		});
 
 		UserService.findAllUsers = jest.fn().mockResolvedValue([
@@ -139,7 +140,7 @@ describe("Get User by ID", () => {
 describe("Update User Profile", () => {
 	it("should update user details", async () => {
 		const userId = "1";
-		const updateData = {
+		const updateData: Partial<IUser> = {
 			username: "updatedUser",
 			email: "update@example.com",
 			password: "newPassword",

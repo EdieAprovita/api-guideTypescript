@@ -27,8 +27,6 @@ class UserService {
 				username: user.username,
 				email: user.email,
 				role: user.role,
-				isProfessional: user.isProfessional,
-				isAdmin: user.isAdmin,
 			},
 		};
 	}
@@ -54,8 +52,6 @@ class UserService {
 				email: user.email,
 				role: user.role,
 				photo: user.photo,
-				isProfessional: user.isProfessional,
-				isAdmin: user.isAdmin,
 			},
 		};
 	}
@@ -68,8 +64,6 @@ class UserService {
 			email: user.email,
 			role: user.role,
 			photo: user.photo,
-			isProfessional: user.isProfessional,
-			isAdmin: user.isAdmin,
 		}));
 	}
 
@@ -96,7 +90,6 @@ class UserService {
 			user.email = updateData.email || user.email;
 			user.photo = updateData.photo || user.photo;
 			user.role = updateData.role || user.role;
-			user.isProfessional = updateData.isProfessional || user.isProfessional;
 		}
 
 		const updatedUser = await user.save();
