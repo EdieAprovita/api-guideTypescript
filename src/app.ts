@@ -10,6 +10,7 @@ import { errorHandler, notFound } from "./middleware/errorHandler";
 import userRoutes from "./routes/userRoutes";
 import businessRoutes from "./routes/businessRoutes";
 import recipesRoutes from "./routes/recipesRoutes";
+import marketRoutes from "./routes/marketsRoutes";
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ if (process.env.NODE_ENV === "production") {
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/businesses", businessRoutes);
 app.use("/api/v1/recipes", recipesRoutes);
+app.use("/api/v1/markets", marketRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
