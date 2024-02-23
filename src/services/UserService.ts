@@ -9,7 +9,11 @@ class UserService {
 		userData: Pick<IUser, "username" | "email" | "password" | "role">,
 		res: Response
 	) {
-		const { email } = userData;
+		const { email, role } = userData;
+
+		if (role === "admin") {
+			throw new BadRequestError("Invalid role");
+		}
 
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
