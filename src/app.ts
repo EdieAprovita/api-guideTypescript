@@ -11,6 +11,7 @@ import userRoutes from "./routes/userRoutes";
 import businessRoutes from "./routes/businessRoutes";
 import recipesRoutes from "./routes/recipesRoutes";
 import marketRoutes from "./routes/marketsRoutes";
+import restaurantRoutes from "./routes/restaurantRoutes";
 
 dotenv.config();
 
@@ -53,6 +54,7 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/businesses", businessRoutes);
 app.use("/api/v1/recipes", recipesRoutes);
 app.use("/api/v1/markets", marketRoutes);
+app.use("/api/v1/restaurants", restaurantRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
