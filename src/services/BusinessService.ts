@@ -8,6 +8,4 @@ class BusinessService extends BaseService<IBusiness> {
 	}
 }
 
-const businessService = new BusinessService();
-
-export default BusinessService;
+export const businessService = new BusinessService();
