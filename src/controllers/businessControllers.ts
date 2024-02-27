@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
-import BusinessService from "../services/BusinessService";
+import { businessService as BusinessService } from "../services/BusinessService";
 
 /**
  * @description Get all businesses
@@ -15,7 +15,7 @@ import BusinessService from "../services/BusinessService";
 export const getBusinesses = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const businesses = await BusinessService.getAllBusinesses();
+			const businesses = await BusinessService.getAll();
 			res.status(200).json({
 				success: true,
 				message: "Businesses fetched successfully",
@@ -39,7 +39,7 @@ export const getBusinessById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const business = await BusinessService.getBusinessById(id);
+			const business = await BusinessService.findById(id);
 			res.status(200).json({
 				success: true,
 				message: "Business fetched successfully",
@@ -68,7 +68,7 @@ export const createBusiness = asyncHandler(
 		}
 
 		try {
-			const business = await BusinessService.createBusiness(req.body);
+			const business = await BusinessService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "Business created successfully",
@@ -92,7 +92,7 @@ export const updateBusiness = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const business = await BusinessService.updateBusiness(id, req.body);
+			const business = await BusinessService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Business updated successfully",
@@ -116,7 +116,7 @@ export const deleteBusiness = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			await BusinessService.deleteBusiness(id);
+			await BusinessService.deleteById(id);
 			res.status(200).json({ success: true, message: "Business deleted successfully" });
 		} catch (error) {
 			next(error);
