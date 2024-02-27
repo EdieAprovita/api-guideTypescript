@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
-import DoctorService from "../services/DoctorService";
+import { doctorService as DoctorService } from "../services/DoctorService";
 
 /**
  * @description Get all doctors
@@ -15,7 +15,7 @@ import DoctorService from "../services/DoctorService";
 export const getDoctors = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const doctors = await DoctorService.getAllDoctors();
+			const doctors = await DoctorService.getAll();
 			res.status(200).json({
 				success: true,
 				message: "Doctors fetched successfully",
@@ -39,7 +39,7 @@ export const getDoctorById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const doctor = await DoctorService.getDoctorById(id);
+			const doctor = await DoctorService.findById(id);
 			res.status(200).json({
 				success: true,
 				message: "Doctor fetched successfully",
@@ -66,7 +66,7 @@ export const createDoctor = asyncHandler(
 			return next(new BadRequestError("Invalid data"));
 		}
 		try {
-			const doctor = await DoctorService.createDoctor(req.body);
+			const doctor = await DoctorService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "Doctor created successfully",
@@ -94,7 +94,7 @@ export const updateDoctor = asyncHandler(
 		}
 		try {
 			const { id } = req.params;
-			const doctor = await DoctorService.updateDoctor(id, req.body);
+			const doctor = await DoctorService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Doctor updated successfully",
@@ -118,7 +118,7 @@ export const deleteDoctor = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			await DoctorService.deleteDoctor(id);
+			await DoctorService.deleteById(id);
 			res.status(200).json({
 				success: true,
 				message: "Doctor deleted successfully",

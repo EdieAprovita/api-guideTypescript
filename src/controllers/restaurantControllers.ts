@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
-import RestaurantService from "../services/RestaurantService";
+import { restaurantService as RestaurantService } from "../services/RestaurantService";
 
 /**
  * @description Get all restaurants
@@ -15,7 +15,7 @@ import RestaurantService from "../services/RestaurantService";
 export const getRestaurants = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const restaurants = await RestaurantService.getAllRestaurants();
+			const restaurants = await RestaurantService.getAll();
 			res.status(200).json({
 				success: true,
 				message: "Restaurants fetched successfully",
@@ -39,7 +39,7 @@ export const getRestaurantById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const restaurant = await RestaurantService.getRestaurantById(id);
+			const restaurant = await RestaurantService.findById(id);
 			res.status(200).json({
 				success: true,
 				message: "Restaurant fetched successfully",
@@ -66,7 +66,7 @@ export const createRestaurant = asyncHandler(
 			if (!errors.isEmpty()) {
 				return next(new BadRequestError("Invalid data"));
 			}
-			const restaurant = await RestaurantService.createRestaurant(req.body);
+			const restaurant = await RestaurantService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "Restaurant created successfully",
@@ -90,7 +90,7 @@ export const updateRestaurant = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const restaurant = await RestaurantService.updateRestaurant(id, req.body);
+			const restaurant = await RestaurantService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Restaurant updated successfully",
@@ -114,7 +114,7 @@ export const deleteRestaurant = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			await RestaurantService.deleteRestaurant(id);
+			await RestaurantService.deleteById(id);
 			res.status(200).json({
 				success: true,
 				message: "Restaurant deleted successfully",

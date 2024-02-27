@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { NotFoundError } from "../types/Errors";
 import asyncHandler from "../middleware/asyncHandler";
-import RecipeService from "../services/RecipesService";
+import { recipeService as RecipeService } from "../services/RecipesService";
 
 /**
  * @description Get all recipes
@@ -12,7 +12,7 @@ import RecipeService from "../services/RecipesService";
  */
 
 export const getRecipes = asyncHandler(async (req: Request, res: Response) => {
-	const recipes = await RecipeService.getAllRecipes();
+	const recipes = await RecipeService.getAll();
 	res.status(200).json({
 		success: true,
 		data: recipes,
@@ -28,7 +28,7 @@ export const getRecipes = asyncHandler(async (req: Request, res: Response) => {
  */
 
 export const getRecipeById = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.getRecipeById(req.params.id);
+	const recipe = await RecipeService.findById(req.params.id);
 
 	if (!recipe) {
 		throw new NotFoundError();
@@ -47,7 +47,7 @@ export const getRecipeById = asyncHandler(async (req: Request, res: Response) =>
  */
 
 export const createRecipe = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.createRecipe(req.body);
+	const recipe = await RecipeService.create(req.body);
 	res.status(201).json({
 		success: true,
 		data: recipe,
@@ -62,7 +62,7 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const updateRecipe = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.updateRecipe(req.params.id, req.body);
+	const recipe = await RecipeService.updateById(req.params.id, req.body);
 
 	if (!recipe) {
 		throw new NotFoundError();
@@ -81,7 +81,7 @@ export const updateRecipe = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const deleteRecipe = asyncHandler(async (req: Request, res: Response) => {
-	await RecipeService.deleteRecipe(req.params.id);
+	await RecipeService.deleteById(req.params.id);
 	res.status(204).json({
 		success: true,
 		data: {},
