@@ -51,7 +51,8 @@ const doctorSchema = new Schema<IMedic>(
 		],
 		reviews: [
 			{
-				type: [Review.schema],
+				type: Schema.Types.ObjectId,
+				ref: "Review",
 			},
 		],
 		rating: {

@@ -1,47 +1,29 @@
+import { Types } from "mongoose";
+import BaseService from "./BaseService";
+import { reviewService } from "./ReviewService";
 import Recipe from "../models/Recipe";
-import { IRecipe } from "../types/modalTypes";
-import { DataNotFoundError } from "../types/Errors";
+import { IRecipe, IReview } from "../types/modalTypes";
 
-class RecipeService {
-	async getAllRecipes(): Promise<IRecipe[]> {
-		const recipes = await Recipe.find({});
-		if (!recipes) {
-			throw new DataNotFoundError("Error fetching recipes");
-		}
-		return recipes;
+class RecipeService extends BaseService<IRecipe> {
+	constructor() {
+		super(Recipe);
 	}
 
-	async getRecipeById(id: string): Promise<IRecipe> {
-		const recipe = await Recipe.findById(id);
-
-		if (!recipe) {
-			throw new DataNotFoundError("Recipe not found");
-		}
-		return recipe;
-	}
-
-	async createRecipe(data: IRecipe): Promise<IRecipe> {
-		return await Recipe.create(data);
-	}
-
-	async updateRecipe(id: string, data: IRecipe): Promise<IRecipe> {
-		const recipe = await Recipe.findByIdAndUpdate(id, data, {
-			new: true,
-			runValidators: true,
+	async addReview(recipeId: string, reviewData: Partial<IReview>): Promise<IRecipe> {
+		const objectId = new Types.ObjectId(recipeId);
+		const review = await reviewService.addReview({
+			...reviewData,
+			refId: objectId,
+			refModel: "Recipe",
 		});
-		if (!recipe) {
-			throw new DataNotFoundError("Recipe not found");
+		const recipe = await this.findById(recipeId);
+		if (!recipe.reviews) {
+			recipe.reviews = [];
 		}
+		recipe.reviews.push(new Types.ObjectId(review._id));
+		await recipe.save();
 		return recipe;
-	}
-
-	async deleteRecipe(id: string): Promise<void> {
-		const recipe = await Recipe.findById(id);
-		if (!recipe) {
-			throw new DataNotFoundError("Recipe not found");
-		}
-		await recipe.deleteOne();
 	}
 }
 
-export default new RecipeService();
+export const recipeService = new RecipeService();
