@@ -41,7 +41,7 @@ export interface IBusiness extends Document {
 	budget: number;
 	typeBusiness: string;
 	hours: [Date];
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -58,7 +58,7 @@ export interface IMedic extends Document {
 	image: string;
 	specialty: string;
 	contact: IContact[];
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -74,7 +74,7 @@ export interface IMarket extends Document {
 	address: string;
 	image: string;
 	typeMarket: string;
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -111,7 +111,7 @@ export interface IProfession extends Document {
 	author: Types.ObjectId;
 	specialty: string;
 	contact: IContact[];
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -126,6 +126,8 @@ export interface IReview extends Document {
 	rating: number;
 	comment: string;
 	user: Types.ObjectId;
+	refId: Types.ObjectId;
+	refModel: string;
 	timestamps: {
 		createdAt: Date;
 		updatedAt: Date;
@@ -186,7 +188,7 @@ export interface IRecipe extends Document {
 	image: string;
 	cookingTime: number;
 	difficulty: string;
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	budget: string;
@@ -206,7 +208,7 @@ export interface IRestaurant extends Document {
 	budget: string;
 	contact: IContact[];
 	cuisine: [string];
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {

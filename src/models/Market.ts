@@ -29,7 +29,8 @@ const marketSchema = new Schema<IMarket>(
 		},
 		reviews: [
 			{
-				type: [Review.schema],
+				type: Schema.Types.ObjectId,
+				ref: "Review",
 			},
 		],
 		rating: {

@@ -43,17 +43,12 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 			],
 			required: true,
 		},
-		reviews: {
-			type: [
-				{
-					user: String,
-					rating: Number,
-					comment: String,
-					date: Date,
-				},
-			],
-			required: true,
-		},
+		reviews: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: "Review",
+			},
+		],
 		numReviews: {
 			type: Number,
 			required: true,
