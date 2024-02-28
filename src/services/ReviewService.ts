@@ -2,7 +2,15 @@ import Review from "../models/Review";
 import { IReview } from "../types/modalTypes";
 import { NotFoundError } from "../types/Errors";
 
-class ReviewService {
+export interface IReviewService {
+	addReview(reviewData: Partial<IReview>): Promise<IReview>;
+	getReviewById(reviewId: string): Promise<IReview>;
+	updateReview(reviewId: string, updateData: Partial<IReview>): Promise<IReview>;
+	deleteReview(reviewId: string): Promise<void>;
+	listReviewsForModel(refId: string, refModel: string): Promise<IReview[]>;
+}
+
+class ReviewService implements IReviewService {
 	async addReview(reviewData: Partial<IReview>): Promise<IReview> {
 		const review = await Review.create(reviewData);
 		return review;
