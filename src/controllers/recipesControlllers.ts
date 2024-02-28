@@ -38,6 +38,7 @@ export const getRecipeById = asyncHandler(async (req: Request, res: Response) =>
 		data: recipe,
 	});
 });
+
 /**
  * @description Create a new recipe
  * @name createRecipe
@@ -53,6 +54,7 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response) => 
 		data: recipe,
 	});
 });
+
 /**
  * @description Update a recipe by id
  * @name updateRecipe
@@ -72,6 +74,7 @@ export const updateRecipe = asyncHandler(async (req: Request, res: Response) => 
 		data: recipe,
 	});
 });
+
 /**
  * @description Delete a recipe by id
  * @name deleteRecipe
