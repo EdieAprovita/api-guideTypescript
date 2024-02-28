@@ -1,7 +1,7 @@
 import BaseService from "./BaseService";
 import Doctor from "../models/Doctor";
-import { IMedic } from "../types/modalTypes";
-class DoctorService extends BaseService<IMedic> {
+import { IDoctor } from "../types/modalTypes";
+class DoctorService extends BaseService<IDoctor> {
 	constructor() {
 		super(Doctor);
 	}
