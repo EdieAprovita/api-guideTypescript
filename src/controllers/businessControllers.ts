@@ -123,3 +123,29 @@ export const deleteBusiness = asyncHandler(
 		}
 	}
 );
+
+/**
+ * @description Add a review to a business
+ * @name addReviewToBusiness
+ * @route POST /api/businesses/:id/reviews
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const addReviewToBusiness = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { businessId } = req.params;
+		const reviewData = req.body;
+
+		const updateBusiness = await BusinessService.addReviewToBusiness(
+			businessId,
+			reviewData
+		);
+
+		res.status(200).json({
+			success: true,
+			message: "Review added successfully",
+			data: updateBusiness,
+		});
+	}
+);
