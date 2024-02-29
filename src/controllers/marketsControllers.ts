@@ -123,3 +123,25 @@ export const deleteMarket = asyncHandler(
 		}
 	}
 );
+
+/**
+ * @description Add review to a market
+ * @route POST /api/markets/:id/reviews
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const addReviewToMarket = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { marketId } = req.params;
+		const reviewData = req.body;
+
+		const updatedMarket = await MarketsService.addReviewToMarket(marketId, reviewData);
+
+		res.status(200).json({
+			success: true,
+			message: "Review added successfully",
+			data: updatedMarket,
+		});
+	}
+);

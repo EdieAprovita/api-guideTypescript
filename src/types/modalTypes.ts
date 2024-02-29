@@ -50,7 +50,7 @@ export interface IBusiness extends Document {
 	};
 }
 
-export interface IMedic extends Document {
+export interface IDoctor extends Document {
 	_id?: string;
 	doctorName: string;
 	author: Types.ObjectId;

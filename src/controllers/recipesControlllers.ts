@@ -38,6 +38,7 @@ export const getRecipeById = asyncHandler(async (req: Request, res: Response) =>
 		data: recipe,
 	});
 });
+
 /**
  * @description Create a new recipe
  * @name createRecipe
@@ -53,6 +54,7 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response) => 
 		data: recipe,
 	});
 });
+
 /**
  * @description Update a recipe by id
  * @name updateRecipe
@@ -72,6 +74,7 @@ export const updateRecipe = asyncHandler(async (req: Request, res: Response) => 
 		data: recipe,
 	});
 });
+
 /**
  * @description Delete a recipe by id
  * @name deleteRecipe
@@ -85,5 +88,25 @@ export const deleteRecipe = asyncHandler(async (req: Request, res: Response) => 
 	res.status(204).json({
 		success: true,
 		data: {},
+	});
+});
+
+/**
+ * @description Add a review to a recipe
+ * @name addReviewToRecipe
+ * @route POST /api/recipes/:id/reviews
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const addReviewToRecipe = asyncHandler(async (req: Request, res: Response) => {
+	const { recipeId } = req.params;
+	const reviewData = req.body;
+
+	const updatedRecipe = await RecipeService.addReviewToRecipe(recipeId, reviewData);
+
+	res.status(200).json({
+		success: true,
+		data: updatedRecipe,
 	});
 });

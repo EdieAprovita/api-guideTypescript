@@ -128,3 +128,26 @@ export const deleteDoctor = asyncHandler(
 		}
 	}
 );
+
+/**
+ * @description Add a review to a doctor
+ * @name addReviewToDoctor
+ * @route POST /api/doctors/:id/reviews
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const addReviewToDoctor = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { doctorId } = req.params;
+		const reviewData = req.body;
+
+		const updatedDoctor = await DoctorService.addReviewToDoctor(doctorId, reviewData);
+
+		res.status(200).json({
+			success: true,
+			message: "Review added successfully",
+			data: updatedDoctor,
+		});
+	}
+);

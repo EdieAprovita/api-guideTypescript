@@ -1,29 +1,42 @@
 import { Types } from "mongoose";
 import BaseService from "./BaseService";
-import { reviewService } from "./ReviewService";
 import Recipe from "../models/Recipe";
 import { IRecipe, IReview } from "../types/modalTypes";
+import { reviewService, IReviewService } from "./ReviewService";
+import { NotFoundError, InternalServerError } from "../types/Errors";
 
 class RecipeService extends BaseService<IRecipe> {
-	constructor() {
+	constructor(private ReviewService: IReviewService) {
 		super(Recipe);
 	}
 
-	async addReview(recipeId: string, reviewData: Partial<IReview>): Promise<IRecipe> {
-		const objectId = new Types.ObjectId(recipeId);
-		const review = await reviewService.addReview({
-			...reviewData,
-			refId: objectId,
-			refModel: "Recipe",
-		});
-		const recipe = await this.findById(recipeId);
-		if (!recipe.reviews) {
-			recipe.reviews = [];
+	async addReviewToRecipe(
+		recipeId: string,
+		reviewData: Partial<IReview>
+	): Promise<IRecipe> {
+		try {
+			const recipe = await this.findById(recipeId);
+			if (!recipe) {
+				throw new NotFoundError("Receta no encontrada");
+			}
+
+			const review = await this.ReviewService.addReview({
+				...reviewData,
+				refId: new Types.ObjectId(recipeId),
+				refModel: "Recipe",
+			});
+
+			recipe.reviews.push(new Types.ObjectId(review._id));
+			await recipe.save();
+			return recipe;
+		} catch (error) {
+			if (error instanceof NotFoundError) {
+				throw error;
+			} else {
+				throw new InternalServerError("Error al añadir reseña a la receta");
+			}
 		}
-		recipe.reviews.push(new Types.ObjectId(review._id));
-		await recipe.save();
-		return recipe;
 	}
 }
 
-export const recipeService = new RecipeService();
+export const recipeService = new RecipeService(reviewService);

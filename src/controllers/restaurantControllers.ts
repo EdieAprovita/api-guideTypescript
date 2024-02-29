@@ -124,3 +124,28 @@ export const deleteRestaurant = asyncHandler(
 		}
 	}
 );
+
+/**
+ * @description Add a review to a restaurant
+ * @name getRestaurantsByLocation
+ * @route GET /api/restaurants/addReview/:id
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const addReviewToRestaurant = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { restaurantId } = req.params;
+		const reviewData = req.body;
+
+		const updatedRestaurant = await RestaurantService.addReviewToRestaurant(
+			restaurantId,
+			reviewData
+		);
+
+		res.status(200).json({
+			success: true,
+			data: updatedRestaurant,
+		});
+	}
+);
