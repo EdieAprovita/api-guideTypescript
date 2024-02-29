@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import { Types } from "mongoose";
 import BaseService from "./BaseService";
 import Business from "../models/Business";
 import { IBusiness, IReview } from "../types/modalTypes";
@@ -21,11 +21,11 @@ class BusinessService extends BaseService<IBusiness> {
 
 			const review = await this.ReviewService.addReview({
 				...reviewData,
-				refId: new mongoose.Types.ObjectId(businessId),
+				refId: new Types.ObjectId(businessId),
 				refModel: "Business",
 			});
 
-			business.reviews.push(new mongoose.Types.ObjectId(review._id));
+			business.reviews.push(new Types.ObjectId(review._id));
 			await business.save();
 			return business;
 		} catch (error) {
