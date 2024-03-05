@@ -32,10 +32,12 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 		numReviews: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 		rating: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 		reviews: [
 			{

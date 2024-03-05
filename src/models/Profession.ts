@@ -105,6 +105,22 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 			},
 		},
 	],
+	reviews: [
+		{
+			type: Schema.Types.ObjectId,
+			ref: "Review",
+		},
+	],
+	rating: {
+		type: Number,
+		required: true,
+		default: 0,
+	},
+	numReviews: {
+		type: Number,
+		required: true,
+		default: 0,
+	},
 });
 
 const professionalProfile = mongoose.model<IProfessionProfile>(

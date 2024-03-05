@@ -28,6 +28,7 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 		rating: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 		image: {
 			type: String,
@@ -52,6 +53,7 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 		numReviews: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 	},
 	{ timestamps: true }

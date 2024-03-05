@@ -1,7 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
 import { IDoctor } from "../types/modalTypes";
-import Review from "./Review";
 
 const doctorSchema = new Schema<IDoctor>(
 	{

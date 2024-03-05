@@ -181,6 +181,9 @@ export interface IProfessionProfile extends Document {
 	education: IEducation[];
 	social: ISocial;
 	date: Date;
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
 	timestamps: {
 		createdAt: Date;
 		updatedAt: Date;
