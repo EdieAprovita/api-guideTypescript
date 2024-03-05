@@ -1,29 +1,29 @@
 import { Types } from "mongoose";
-import BaseServices from "./BaseService";
-import Profession from "../models/Profession";
-import { IProfession, IReview } from "../types/modalTypes";
+import BaseService from "./BaseService";
+import ProfessionProfile from "../models/ProfessionProfile";
+import { IProfessionProfile, IReview } from "../types/modalTypes";
 import { reviewService, IReviewService } from "./ReviewService";
 import { NotFoundError, InternalServerError } from "../types/Errors";
 
-class ProfessionService extends BaseServices<IProfession> {
+class ProfessionProfileService extends BaseService<IProfessionProfile> {
 	constructor(private ReviewService: IReviewService) {
-		super(Profession);
+		super(ProfessionProfile);
 	}
 
 	async addReviewToProfession(
 		professionId: string,
 		reviewData: Partial<IReview>
-	): Promise<IProfession> {
+	): Promise<IProfessionProfile> {
 		try {
 			const profession = await this.findById(professionId);
 			if (!profession) {
 				throw new NotFoundError("Profesión no encontrada");
 			}
 
-			const review = await this.ReviewService.addReview({
+			const review = await reviewService.addReview({
 				...reviewData,
 				refId: new Types.ObjectId(professionId),
-				refModel: "Profession",
+				refModel: "ProfessionProfile",
 			});
 
 			profession.reviews.push(new Types.ObjectId(review._id));
@@ -39,4 +39,4 @@ class ProfessionService extends BaseServices<IProfession> {
 	}
 }
 
-export const professionService = new ProfessionService(reviewService);
+export const professionProfileService = new ProfessionProfileService(reviewService);

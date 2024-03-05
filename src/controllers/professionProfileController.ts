@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
-import { professionService as ProfessionService } from "../services/ProfessionService";
+import { professionProfileService as ProfessionProfileService } from "../services/ProfessionProfileService";
 
 /**
  * @description Get all professions
@@ -15,7 +15,7 @@ import { professionService as ProfessionService } from "../services/ProfessionSe
 export const getProfessions = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const professions = await ProfessionService.getAll();
+			const professions = await ProfessionProfileService.getAll();
 			res.status(200).json({
 				success: true,
 				message: "Professions fetched successfully",
@@ -39,7 +39,7 @@ export const getProfessionById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const profession = await ProfessionService.findById(id);
+			const profession = await ProfessionProfileService.findById(id);
 			res.status(200).json({
 				success: true,
 				message: "Profession fetched successfully",
@@ -66,7 +66,7 @@ export const createProfession = asyncHandler(
 			return next(new BadRequestError("Validation failed"));
 		}
 		try {
-			const profession = await ProfessionService.create(req.body);
+			const profession = await ProfessionProfileService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "Profession created successfully",
@@ -94,7 +94,7 @@ export const updateProfession = asyncHandler(
 		}
 		try {
 			const { id } = req.params;
-			const profession = await ProfessionService.updateById(id, req.body);
+			const profession = await ProfessionProfileService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Profession updated successfully",
@@ -118,7 +118,7 @@ export const deleteProfession = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			await ProfessionService.deleteById(id);
+			await ProfessionProfileService.deleteById(id);
 			res.status(200).json({
 				success: true,
 				message: "Profession deleted successfully",

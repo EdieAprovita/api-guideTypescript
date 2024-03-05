@@ -14,6 +14,7 @@ import recipesRoutes from "./routes/recipesRoutes";
 import marketsRoutes from "./routes/marketsRoutes";
 import restaurantRoutes from "./routes/restaurantRoutes";
 import doctorsRoutes from "./routes/doctorsRoutes";
+import professionProfileRoutes from "./routes/professionProfileRoutes";
 import professionRoutes from "./routes/professionRoutes";
 
 dotenv.config();
@@ -57,6 +58,7 @@ app.use("/api/v1/recipes", recipesRoutes);
 app.use("/api/v1/markets", marketsRoutes);
 app.use("/api/v1/restaurants", restaurantRoutes);
 app.use("/api/v1/doctors", doctorsRoutes);
+app.use("/api/v1/professionsProfile", professionProfileRoutes);
 app.use("/api/v1/professions", professionRoutes);
 
 // Error handling

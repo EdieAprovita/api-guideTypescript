@@ -13,6 +13,11 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 			type: String,
 			required: true,
 		},
+		author: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
 		contact: [
 			{
 				phone: String,
