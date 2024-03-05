@@ -27,6 +27,7 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 		rating: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 		reviews: {
 			type: [
@@ -42,6 +43,7 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 		numReviews: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 	},
 	{ timestamps: true }

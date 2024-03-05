@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { NotFoundError } from "../types/Errors";
 import asyncHandler from "../middleware/asyncHandler";
-import RecipeService from "../services/RecipesService";
+import { recipeService as RecipeService } from "../services/RecipesService";
 
 /**
  * @description Get all recipes
@@ -12,7 +12,7 @@ import RecipeService from "../services/RecipesService";
  */
 
 export const getRecipes = asyncHandler(async (req: Request, res: Response) => {
-	const recipes = await RecipeService.getAllRecipes();
+	const recipes = await RecipeService.getAll();
 	res.status(200).json({
 		success: true,
 		data: recipes,
@@ -28,7 +28,7 @@ export const getRecipes = asyncHandler(async (req: Request, res: Response) => {
  */
 
 export const getRecipeById = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.getRecipeById(req.params.id);
+	const recipe = await RecipeService.findById(req.params.id);
 
 	if (!recipe) {
 		throw new NotFoundError();
@@ -38,6 +38,7 @@ export const getRecipeById = asyncHandler(async (req: Request, res: Response) =>
 		data: recipe,
 	});
 });
+
 /**
  * @description Create a new recipe
  * @name createRecipe
@@ -47,12 +48,13 @@ export const getRecipeById = asyncHandler(async (req: Request, res: Response) =>
  */
 
 export const createRecipe = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.createRecipe(req.body);
+	const recipe = await RecipeService.create(req.body);
 	res.status(201).json({
 		success: true,
 		data: recipe,
 	});
 });
+
 /**
  * @description Update a recipe by id
  * @name updateRecipe
@@ -62,7 +64,7 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const updateRecipe = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.updateRecipe(req.params.id, req.body);
+	const recipe = await RecipeService.updateById(req.params.id, req.body);
 
 	if (!recipe) {
 		throw new NotFoundError();
@@ -72,6 +74,7 @@ export const updateRecipe = asyncHandler(async (req: Request, res: Response) => 
 		data: recipe,
 	});
 });
+
 /**
  * @description Delete a recipe by id
  * @name deleteRecipe
@@ -81,9 +84,29 @@ export const updateRecipe = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const deleteRecipe = asyncHandler(async (req: Request, res: Response) => {
-	await RecipeService.deleteRecipe(req.params.id);
+	await RecipeService.deleteById(req.params.id);
 	res.status(204).json({
 		success: true,
 		data: {},
+	});
+});
+
+/**
+ * @description Add a review to a recipe
+ * @name addReviewToRecipe
+ * @route POST /api/recipes/:id/reviews
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const addReviewToRecipe = asyncHandler(async (req: Request, res: Response) => {
+	const { recipeId } = req.params;
+	const reviewData = req.body;
+
+	const updatedRecipe = await RecipeService.addReviewToRecipe(recipeId, reviewData);
+
+	res.status(200).json({
+		success: true,
+		data: updatedRecipe,
 	});
 });

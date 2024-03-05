@@ -5,8 +5,7 @@ declare global {
 		interface Request {
 			user?: {
 				_id?: string;
-				isAdmin: boolean;
-				isProfessional: boolean;
+				role: "user" | "admin" | "professional";
 			};
 		}
 	}
@@ -15,11 +14,9 @@ export interface IUser extends Document {
 	_id?: string;
 	username: string;
 	password: string;
-	role: string;
+	role: "user" | "admin" | "professional";
 	email: string;
 	photo: string;
-	isAdmin: boolean;
-	isProfessional: boolean;
 	timestamps: {
 		createdAt: Date;
 		updatedAt: Date;
@@ -44,7 +41,7 @@ export interface IBusiness extends Document {
 	budget: number;
 	typeBusiness: string;
 	hours: [Date];
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -53,7 +50,7 @@ export interface IBusiness extends Document {
 	};
 }
 
-export interface IMedic extends Document {
+export interface IDoctor extends Document {
 	_id?: string;
 	doctorName: string;
 	author: Types.ObjectId;
@@ -61,7 +58,7 @@ export interface IMedic extends Document {
 	image: string;
 	specialty: string;
 	contact: IContact[];
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -77,7 +74,7 @@ export interface IMarket extends Document {
 	address: string;
 	image: string;
 	typeMarket: string;
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -114,7 +111,7 @@ export interface IProfession extends Document {
 	author: Types.ObjectId;
 	specialty: string;
 	contact: IContact[];
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {
@@ -129,6 +126,8 @@ export interface IReview extends Document {
 	rating: number;
 	comment: string;
 	user: Types.ObjectId;
+	refId: Types.ObjectId;
+	refModel: string;
 	timestamps: {
 		createdAt: Date;
 		updatedAt: Date;
@@ -163,15 +162,28 @@ export interface ISocial {
 	linkedin?: string;
 }
 
+export interface ISkill {
+	skill: string;
+	company: string;
+	location: string;
+	from: Date;
+	to: Date;
+	current: boolean;
+	description: string;
+}
+
 export interface IProfessionProfile extends Document {
 	_id?: string;
 	user: Types.ObjectId;
 	contact: IContact[];
-	skills: Array<string>;
+	skills: ISkill[];
 	experience: IExperience[];
 	education: IEducation[];
 	social: ISocial;
 	date: Date;
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
 	timestamps: {
 		createdAt: Date;
 		updatedAt: Date;
@@ -189,7 +201,7 @@ export interface IRecipe extends Document {
 	image: string;
 	cookingTime: number;
 	difficulty: string;
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	budget: string;
@@ -209,7 +221,7 @@ export interface IRestaurant extends Document {
 	budget: string;
 	contact: IContact[];
 	cuisine: [string];
-	reviews: Array<IReview>;
+	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
 	timestamps: {

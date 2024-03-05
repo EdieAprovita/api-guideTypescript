@@ -1,7 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
 import { IMarket } from "../types/modalTypes";
-import Review from "./Review";
 
 const marketSchema = new Schema<IMarket>(
 	{
@@ -29,16 +28,19 @@ const marketSchema = new Schema<IMarket>(
 		},
 		reviews: [
 			{
-				type: [Review.schema],
+				type: Schema.Types.ObjectId,
+				ref: "Review",
 			},
 		],
 		rating: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 		numReviews: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 	},
 	{ timestamps: true }

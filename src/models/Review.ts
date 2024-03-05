@@ -20,6 +20,15 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
 			type: Schema.Types.ObjectId,
 			ref: "User",
 		},
+		refId: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
+		refModel: {
+			type: String,
+			required: true,
+		},
 	},
 	{ timestamps: true }
 );

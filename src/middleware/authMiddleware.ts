@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+
+import { NotFoundError, NotAuthorizedError } from "../types/Errors";
 import User from "../models/User";
 
 /**
@@ -16,10 +18,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 		}
 
 		if (!token) {
-			return res.status(401).json({
-				message: "Not authorized to access this route",
-				success: false,
-			});
+			return next(new NotAuthorizedError("Not authorized"));
 		}
 
 		const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
@@ -28,10 +27,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 		const currentUsers = await User.findById(decoded.userId).select("-password");
 
 		if (!currentUsers) {
-			return res.status(401).json({
-				message: "User not found",
-				success: false,
-			});
+			return next(new NotFoundError("User not found"));
 		}
 
 		req.user = currentUsers;
@@ -47,7 +43,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
  */
 
 export const admin = async (req: Request, res: Response, next: NextFunction) => {
-	if (req.user?.isAdmin) {
+	if (req.user?.role === "admin") {
 		next();
 	} else {
 		res.status(403).json({
@@ -64,7 +60,7 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
  */
 
 export const professional = async (req: Request, res: Response, next: NextFunction) => {
-	if (req.user?.isProfessional) {
+	if (req.user?.role === "professional") {
 		next();
 	} else {
 		res.status(403).json({

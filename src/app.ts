@@ -7,12 +7,16 @@ import path from "path";
 
 import connectDB from "./config/db";
 import { errorHandler, notFound } from "./middleware/errorHandler";
+
 import userRoutes from "./routes/userRoutes";
 import businessRoutes from "./routes/businessRoutes";
 import recipesRoutes from "./routes/recipesRoutes";
+import marketsRoutes from "./routes/marketsRoutes";
+import restaurantRoutes from "./routes/restaurantRoutes";
+import doctorsRoutes from "./routes/doctorsRoutes";
+import professionRoutes from "./routes/professionRoutes";
 
 dotenv.config();
-
 connectDB();
 
 const app = express();
@@ -23,17 +27,16 @@ if (process.env.NODE_ENV === "development") {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 app.use(cookieParser());
-
-//CORS
 app.use(
-	cors({
-		credentials: true,
-		origin: process.env.FRONTEND_URL,
+	cors((req, callback) => {
+		const corsOptions = {
+			credentials: true,
+			origin: process.env.FRONTEND_URL,
+		};
+		callback(null, corsOptions);
 	})
 );
-
 app.use("/uploads", express.static(path.join(__dirname, "/uploads")));
 
 if (process.env.NODE_ENV === "production") {
@@ -51,7 +54,12 @@ if (process.env.NODE_ENV === "production") {
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/businesses", businessRoutes);
 app.use("/api/v1/recipes", recipesRoutes);
+app.use("/api/v1/markets", marketsRoutes);
+app.use("/api/v1/restaurants", restaurantRoutes);
+app.use("/api/v1/doctors", doctorsRoutes);
+app.use("/api/v1/professions", professionRoutes);
 
+// Error handling
 app.use(notFound);
 app.use(errorHandler);
 

@@ -1,9 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 
-import { IMedic } from "../types/modalTypes";
-import Review from "./Review";
+import { IDoctor } from "../types/modalTypes";
 
-const doctorSchema = new Schema<IMedic>(
+const doctorSchema = new Schema<IDoctor>(
 	{
 		doctorName: {
 			type: String,
@@ -51,7 +50,8 @@ const doctorSchema = new Schema<IMedic>(
 		],
 		reviews: [
 			{
-				type: [Review.schema],
+				type: Schema.Types.ObjectId,
+				ref: "Review",
 			},
 		],
 		rating: {
@@ -67,5 +67,5 @@ const doctorSchema = new Schema<IMedic>(
 	},
 	{ timestamps: true }
 );
-const Doctor = mongoose.model<IMedic>("Doctor", doctorSchema);
+const Doctor = mongoose.model<IDoctor>("Doctor", doctorSchema);
 export default Doctor;

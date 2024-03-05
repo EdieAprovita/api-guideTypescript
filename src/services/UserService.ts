@@ -9,7 +9,11 @@ class UserService {
 		userData: Pick<IUser, "username" | "email" | "password" | "role">,
 		res: Response
 	) {
-		const { email } = userData;
+		const { email, role } = userData;
+
+		if (role === "admin") {
+			throw new BadRequestError("Invalid role");
+		}
 
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
@@ -27,14 +31,12 @@ class UserService {
 				username: user.username,
 				email: user.email,
 				role: user.role,
-				isProfessional: user.isProfessional,
-				isAdmin: user.isAdmin,
 			},
 		};
 	}
 
 	async loginUser(email: string, password: string, res: Response) {
-		const user = await User.findOne({ email });
+		const user = await User.findOne({ email }).select("+password");
 
 		if (!user) {
 			throw new DataNotFoundError("User not found");
@@ -54,8 +56,6 @@ class UserService {
 				email: user.email,
 				role: user.role,
 				photo: user.photo,
-				isProfessional: user.isProfessional,
-				isAdmin: user.isAdmin,
 			},
 		};
 	}
@@ -68,8 +68,6 @@ class UserService {
 			email: user.email,
 			role: user.role,
 			photo: user.photo,
-			isProfessional: user.isProfessional,
-			isAdmin: user.isAdmin,
 		}));
 	}
 
@@ -82,11 +80,25 @@ class UserService {
 	}
 
 	async updateUserById(userId: string, updateData: Partial<IUser>) {
-		const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
+		const user = await User.findById(userId);
 		if (!user) {
 			throw new DataNotFoundError("User not found");
 		}
-		return user;
+
+		if (updateData.password) {
+			user.password = updateData.password;
+		}
+
+		if (user) {
+			user.username = updateData.username || user.username;
+			user.email = updateData.email || user.email;
+			user.photo = updateData.photo || user.photo;
+			user.role = updateData.role || user.role;
+		}
+
+		const updatedUser = await user.save();
+
+		return updatedUser;
 	}
 
 	async deleteUserById(userId: string) {

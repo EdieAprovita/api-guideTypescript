@@ -1,42 +1,41 @@
+import { Types } from "mongoose";
+import BaseService from "./BaseService";
 import Business from "../models/Business";
-import { IBusiness } from "../types/modalTypes";
-import { NotFoundError } from "../types/Errors";
-
-class BusinessService {
-	async getAllBusinesses(): Promise<IBusiness[]> {
-		return await Business.find({});
+import { IBusiness, IReview } from "../types/modalTypes";
+import { reviewService, IReviewService } from "./ReviewService";
+import { NotFoundError, InternalServerError } from "../types/Errors";
+class BusinessService extends BaseService<IBusiness> {
+	constructor(private ReviewService: IReviewService) {
+		super(Business);
 	}
 
-	async getBusinessById(id: string): Promise<IBusiness> {
-		const business = await Business.findById(id);
-		if (!business) {
-			throw new NotFoundError();
+	async addReviewToBusiness(
+		businessId: string,
+		reviewData: Partial<IReview>
+	): Promise<IBusiness> {
+		try {
+			const business = await this.findById(businessId);
+			if (!business) {
+				throw new NotFoundError("Negocio no encontrado");
+			}
+
+			const review = await this.ReviewService.addReview({
+				...reviewData,
+				refId: new Types.ObjectId(businessId),
+				refModel: "Business",
+			});
+
+			business.reviews.push(new Types.ObjectId(review._id));
+			await business.save();
+			return business;
+		} catch (error) {
+			if (error instanceof NotFoundError) {
+				throw error;
+			} else {
+				throw new InternalServerError("Error al añadir reseña al negocio");
+			}
 		}
-		return business;
-	}
-
-	async createBusiness(data: IBusiness): Promise<IBusiness> {
-		return await Business.create(data);
-	}
-
-	async updateBusiness(id: string, data: IBusiness): Promise<IBusiness> {
-		const business = await Business.findByIdAndUpdate(id, data, {
-			new: true,
-			runValidators: true,
-		});
-		if (!business) {
-			throw new NotFoundError();
-		}
-		return business;
-	}
-
-	async deleteBusiness(id: string): Promise<void> {
-		const business = await Business.findById(id);
-		if (!business) {
-			throw new NotFoundError();
-		}
-		await business.deleteOne();
 	}
 }
 
-export default new BusinessService();
+export const businessService = new BusinessService(reviewService);

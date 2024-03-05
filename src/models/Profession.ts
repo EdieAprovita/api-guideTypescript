@@ -17,9 +17,32 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 				type: String,
 				required: true,
 			},
+			facebook: {
+				type: String,
+			},
+			instagram: {
+				type: String,
+			},
 		},
 	],
 	skills: [{ type: String }],
+	social: {
+		youtube: {
+			type: String,
+		},
+		facebook: {
+			type: String,
+		},
+		twitter: {
+			type: String,
+		},
+		instagram: {
+			type: String,
+		},
+		linkedin: {
+			type: String,
+		},
+	},
 	experience: [
 		{
 			title: {
@@ -51,6 +74,53 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 			},
 		},
 	],
+	education: [
+		{
+			school: {
+				type: String,
+				required: true,
+			},
+			degree: {
+				type: String,
+				required: true,
+			},
+			fieldOfStudy: {
+				type: String,
+				required: true,
+			},
+			from: {
+				type: Date,
+				required: true,
+			},
+			to: {
+				type: Date,
+			},
+			current: {
+				type: Boolean,
+				default: false,
+			},
+			description: {
+				type: String,
+				required: true,
+			},
+		},
+	],
+	reviews: [
+		{
+			type: Schema.Types.ObjectId,
+			ref: "Review",
+		},
+	],
+	rating: {
+		type: Number,
+		required: true,
+		default: 0,
+	},
+	numReviews: {
+		type: Number,
+		required: true,
+		default: 0,
+	},
 });
 
 const professionalProfile = mongoose.model<IProfessionProfile>(

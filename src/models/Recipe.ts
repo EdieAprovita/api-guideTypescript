@@ -32,22 +32,19 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 		numReviews: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
 		rating: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
-		reviews: {
-			type: [
-				{
-					user: String,
-					rating: Number,
-					comment: String,
-					date: Date,
-				},
-			],
-			required: true,
-		},
+		reviews: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: "Review",
+			},
+		],
 	},
 	{ timestamps: true }
 );
