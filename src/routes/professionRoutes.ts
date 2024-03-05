@@ -1,5 +1,5 @@
 import express from "express";
-import { protect, admin } from "../middleware/authMiddleware";
+import { protect, isOwnerOrAdmin, professional } from "../middleware/authMiddleware";
 import {
 	getProfessions,
 	getProfessionById,
@@ -12,8 +12,8 @@ const router = express.Router();
 
 router.get("/", getProfessions);
 router.get("/:id", getProfessionById);
-router.post("/create", protect, admin, createProfession);
-router.put("/update/:id", protect, updateProfession);
-router.delete("/delete/:id", protect, admin, deleteProfession);
+router.post("/create", protect, professional, createProfession);
+router.put("/update/:id", protect, isOwnerOrAdmin, updateProfession);
+router.delete("/delete/:id", protect, isOwnerOrAdmin, deleteProfession);
 
 export default router;
