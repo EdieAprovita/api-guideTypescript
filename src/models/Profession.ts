@@ -17,6 +17,12 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 				type: String,
 				required: true,
 			},
+			facebook: {
+				type: String,
+			},
+			instagram: {
+				type: String,
+			},
 		},
 	],
 	skills: [{ type: String }],
@@ -31,6 +37,37 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 				required: true,
 			},
 			location: {
+				type: String,
+				required: true,
+			},
+			from: {
+				type: Date,
+				required: true,
+			},
+			to: {
+				type: Date,
+			},
+			current: {
+				type: Boolean,
+				default: false,
+			},
+			description: {
+				type: String,
+				required: true,
+			},
+		},
+	],
+	education: [
+		{
+			school: {
+				type: String,
+				required: true,
+			},
+			degree: {
+				type: String,
+				required: true,
+			},
+			fieldOfStudy: {
 				type: String,
 				required: true,
 			},

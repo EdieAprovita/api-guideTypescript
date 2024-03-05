@@ -162,11 +162,21 @@ export interface ISocial {
 	linkedin?: string;
 }
 
+export interface ISkill {
+	skill: string;
+	company: string;
+	location: string;
+	from: Date;
+	to: Date;
+	current: boolean;
+	description: string;
+}
+
 export interface IProfessionProfile extends Document {
 	_id?: string;
 	user: Types.ObjectId;
 	contact: IContact[];
-	skills: Array<string>;
+	skills: ISkill[];
 	experience: IExperience[];
 	education: IEducation[];
 	social: ISocial;
