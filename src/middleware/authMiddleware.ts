@@ -83,7 +83,7 @@ export const isOwnerOrAdmin = async (req: Request, res: Response, next: NextFunc
 		if (!profile) {
 			throw new NotFoundError("Profile not found");
 		}
-		if (profile.user.equals(req.user._id) || req.user.role === "admin") {
+		if (profile.user.equals(req.user._id) && req.user.role === "professional") {
 			next();
 		} else {
 			throw new NotAuthorizedError("Not authorized");
