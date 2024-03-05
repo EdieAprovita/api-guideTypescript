@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 
 import { NotFoundError, NotAuthorizedError } from "../types/Errors";
 import User from "../models/User";
-import professionalProfile from "../models/Profession";
 
 /**
  * @description Protect routes
@@ -69,26 +68,5 @@ export const professional = async (req: Request, res: Response, next: NextFuncti
 			success: false,
 			error: "You are not a professional",
 		});
-	}
-};
-
-/**
- * @name isOwnerOrAdmin
- * @description Protect routes with JWT for user or admin
- */
-
-export const isOwnerOrAdmin = async (req: Request, res: Response, next: NextFunction) => {
-	try {
-		const profile = await professionalProfile.findById(req.params.id);
-		if (!profile) {
-			throw new NotFoundError("Profile not found");
-		}
-		if (profile.user.equals(req.user._id) && req.user.role === "professional") {
-			next();
-		} else {
-			throw new NotAuthorizedError("Not authorized");
-		}
-	} catch (error) {
-		next(error);
 	}
 };
