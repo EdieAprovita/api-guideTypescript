@@ -26,6 +26,23 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 		},
 	],
 	skills: [{ type: String }],
+	social: {
+		youtube: {
+			type: String,
+		},
+		facebook: {
+			type: String,
+		},
+		twitter: {
+			type: String,
+		},
+		instagram: {
+			type: String,
+		},
+		linkedin: {
+			type: String,
+		},
+	},
 	experience: [
 		{
 			title: {
