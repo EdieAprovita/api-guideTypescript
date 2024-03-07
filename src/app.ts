@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import express from "express";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import path from "path";
 
 import connectDB from "./config/db";
 import { errorHandler, notFound } from "./middleware/errorHandler";
@@ -22,7 +21,6 @@ connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
 
 
 if (process.env.NODE_ENV === "development") {
