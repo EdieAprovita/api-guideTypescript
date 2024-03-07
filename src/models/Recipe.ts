@@ -19,6 +19,7 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 		},
 		author: {
 			type: Schema.Types.ObjectId,
+			ref: "User",
 			required: true,
 		},
 		instructions: {

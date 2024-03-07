@@ -12,6 +12,7 @@ const doctorSchema = new Schema<IDoctor>(
 		author: {
 			type: Schema.Types.ObjectId,
 			ref: "User",
+			required: true,
 		},
 		address: {
 			type: String,

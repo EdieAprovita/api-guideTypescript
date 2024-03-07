@@ -12,6 +12,7 @@ const marketSchema = new Schema<IMarket>(
 		author: {
 			type: Schema.Types.ObjectId,
 			ref: "User",
+			required: true,
 		},
 		address: {
 			type: String,

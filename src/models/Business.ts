@@ -23,6 +23,7 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 		],
 		author: {
 			type: Schema.Types.ObjectId,
+			ref: "User",
 			required: true,
 		},
 		rating: {
