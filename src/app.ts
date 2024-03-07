@@ -21,6 +21,9 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+
+
 
 if (process.env.NODE_ENV === "development") {
 	app.use(morgan("dev"));
@@ -38,18 +41,10 @@ app.use(
 		callback(null, corsOptions);
 	})
 );
-app.use("/uploads", express.static(path.join(__dirname, "/uploads")));
 
-if (process.env.NODE_ENV === "production") {
-	app.use(express.static(path.join(__dirname, "client/build")));
-	app.get("*", (req, res) => {
-		res.sendFile(path.join(__dirname, "client", "build", "index.html"));
-	});
-} else {
-	app.get("/api/v1", (req, res) => {
-		res.send("API is running");
-	});
-}
+app.get("/api/v1", (req, res) => {
+    res.send("API is running");
+});
 
 // Routes
 app.use("/api/v1/users", userRoutes);
@@ -65,6 +60,5 @@ app.use("/api/v1/professions", professionRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
 
 export default app;
