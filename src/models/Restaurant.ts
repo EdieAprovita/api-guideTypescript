@@ -1,6 +1,25 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IRestaurant } from "../types/modalTypes";
+import { IContact } from "../types/modalTypes";
+
+export interface IRestaurant extends Document {
+	_id?: string;
+	restaurantName: string;
+	author: Types.ObjectId;
+	typePlace: string;
+	address: string;
+	image: string;
+	budget: string;
+	contact: IContact[];
+	cuisine: [string];
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
 
 const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 	{
@@ -54,6 +73,4 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 	{ timestamps: true }
 );
 
-const Restaurant = mongoose.model<IRestaurant>("Restaurant", restaurantSchema);
-
-export default Restaurant;
+export const Restaurant = mongoose.model<IRestaurant>("Restaurant", restaurantSchema);

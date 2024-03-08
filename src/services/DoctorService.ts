@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import BaseService from "./BaseService";
-import Doctor from "../models/Doctor";
-import { IDoctor, IReview } from "../types/modalTypes";
+import { IDoctor, Doctor } from "../models/Doctor";
+import { IReview } from "../models/Review";
 import { reviewService, IReviewService } from "./ReviewService";
 import { NotFoundError, InternalServerError } from "../types/Errors";
 class DoctorService extends BaseService<IDoctor> {

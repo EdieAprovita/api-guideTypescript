@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import BaseServices from "./BaseService";
-import Profession from "../models/Profession";
-import { IProfession, IReview } from "../types/modalTypes";
+import { Profession, IProfession } from "../models/Profession";
+import { IReview } from "../models/Review";
 import { reviewService, IReviewService } from "./ReviewService";
 import { NotFoundError, InternalServerError } from "../types/Errors";
 

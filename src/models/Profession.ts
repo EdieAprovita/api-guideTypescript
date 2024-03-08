@@ -1,7 +1,21 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IProfession } from "../types/modalTypes";
+import { IContact } from "../types/modalTypes";
 
+export interface IProfession extends Document {
+	_id?: string;
+	professionName: string;
+	author: Types.ObjectId;
+	specialty: string;
+	contact: IContact[];
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
 const professionSchema: Schema = new mongoose.Schema<IProfession>(
 	{
 		professionName: {
@@ -55,6 +69,4 @@ const professionSchema: Schema = new mongoose.Schema<IProfession>(
 	{ timestamps: true }
 );
 
-const Profession = mongoose.model<IProfession>("Profession", professionSchema);
-
-export default Profession;
+export const Profession = mongoose.model<IProfession>("Profession", professionSchema);

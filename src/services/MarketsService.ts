@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import BaseService from "./BaseService";
-import Market from "../models/Market";
-import { IMarket, IReview } from "../types/modalTypes";
+import { Market, IMarket } from "../models/Market";
+import { IReview } from "../models/Review";
 import { reviewService, IReviewService } from "./ReviewService";
 import { NotFoundError, InternalServerError } from "../types/Errors";
 

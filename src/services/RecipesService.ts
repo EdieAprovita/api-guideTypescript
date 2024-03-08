@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import BaseService from "./BaseService";
-import Recipe from "../models/Recipe";
-import { IRecipe, IReview } from "../types/modalTypes";
+import { Recipe, IRecipe } from "../models/Recipe";
+import { IReview } from "../models/Review";
 import { reviewService, IReviewService } from "./ReviewService";
 import { NotFoundError, InternalServerError } from "../types/Errors";
 

@@ -1,7 +1,19 @@
 import bcrypt from "bcryptjs";
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-import { IUser } from "../types/modalTypes";
+export interface IUser extends Document {
+	_id?: string;
+	username: string;
+	password: string;
+	role: "user" | "admin" | "professional";
+	email: string;
+	photo: string;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+	matchPassword(enteredPassword: string): Promise<boolean>;
+}
 
 const userSchema = new Schema<IUser>(
 	{
@@ -52,5 +64,4 @@ userSchema.methods.matchPassword = async function (enteredPassword: string) {
 	return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model<IUser>("User", userSchema);
-export default User;
+export const User = mongoose.model<IUser>("User", userSchema);

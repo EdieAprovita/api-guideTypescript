@@ -1,8 +1,7 @@
 import request from "supertest";
 import app from "../../app";
-import User from "../../models/User";
+import { User, IUser } from "../../models/User";
 import UserService from "../../services/UserService";
-import { IUser } from "../../types/modalTypes";
 
 jest.mock("jsonwebtoken", () => ({
 	verify: jest.fn().mockReturnValue({ userId: "someUserId" }),

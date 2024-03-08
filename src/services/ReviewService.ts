@@ -1,5 +1,4 @@
-import Review from "../models/Review";
-import { IReview } from "../types/modalTypes";
+import { Review, IReview } from "../models/Review";
 import { NotFoundError } from "../types/Errors";
 
 export interface IReviewService {

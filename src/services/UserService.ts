@@ -1,6 +1,5 @@
 import { Response } from "express";
-import User from "../models/User";
-import { IUser } from "../types/modalTypes";
+import { User, IUser } from "../models/User";
 import { BadRequestError, DataNotFoundError } from "../types/Errors";
 import generateTokenAndSetCookie from "../utils/generateToken";
 

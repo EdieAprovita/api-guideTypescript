@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import BaseService from "./BaseService";
-import Business from "../models/Business";
-import { IBusiness, IReview } from "../types/modalTypes";
+import { IBusiness, Business } from "../models/Business";
+import { IReview } from "../models/Review";
 import { reviewService, IReviewService } from "./ReviewService";
 import { NotFoundError, InternalServerError } from "../types/Errors";
 class BusinessService extends BaseService<IBusiness> {
