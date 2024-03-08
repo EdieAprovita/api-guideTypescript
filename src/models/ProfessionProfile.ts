@@ -1,4 +1,4 @@
-import mongoose, { Schema, Types } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
 import { IContact, IEducation, IExperience, ISkill, ISocial } from "../types/modalTypes";
 
@@ -141,8 +141,7 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 	},
 });
 
-const professionalProfile = mongoose.model<IProfessionProfile>(
+export const ProfessionalProfile = mongoose.model<IProfessionProfile>(
 	"ProfessionalProfile",
 	professionalProfileSchema
 );
-export default professionalProfile;

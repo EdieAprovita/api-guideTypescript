@@ -1,13 +1,13 @@
 import { Types } from "mongoose";
 import BaseService from "./BaseService";
-import ProfessionProfile from "../models/ProfessionProfile";
-import { IProfessionProfile, IReview } from "../types/modalTypes";
+import { ProfessionalProfile, IProfessionProfile } from "../models/ProfessionProfile";
+import { IReview } from "../models/Review";
 import { reviewService, IReviewService } from "./ReviewService";
 import { NotFoundError, InternalServerError } from "../types/Errors";
 
 class ProfessionProfileService extends BaseService<IProfessionProfile> {
 	constructor(private ReviewService: IReviewService) {
-		super(ProfessionProfile);
+		super(ProfessionalProfile);
 	}
 
 	async addReviewToProfession(
