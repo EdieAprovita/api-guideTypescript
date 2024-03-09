@@ -3,6 +3,7 @@ import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
 import { marketsService as MarketsService } from "../services/MarketsService";
+import { reviewService as ReviewService } from "../services/ReviewService";
 
 /**
  * @description Get all markets
@@ -133,10 +134,9 @@ export const deleteMarket = asyncHandler(
 
 export const addReviewToMarket = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { marketId } = req.params;
 		const reviewData = req.body;
 
-		const updatedMarket = await MarketsService.addReviewToMarket(marketId, reviewData);
+		const updatedMarket = await ReviewService.addReview(reviewData);
 
 		res.status(200).json({
 			success: true,

@@ -7,7 +7,7 @@ import {
 	addReviewToProfession,
 	updateProfession,
 	deleteProfession,
-} from "../controllers/professionProfileControllers";
+} from "../controllers/professionControllers";
 
 const router = express.Router();
 

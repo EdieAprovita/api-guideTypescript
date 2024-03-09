@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { NotFoundError } from "../types/Errors";
 import asyncHandler from "../middleware/asyncHandler";
 import { recipeService as RecipeService } from "../services/RecipesService";
+import { reviewService as ReviewService } from "../services/ReviewService";
 
 /**
  * @description Get all recipes
@@ -100,10 +101,9 @@ export const deleteRecipe = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const addReviewToRecipe = asyncHandler(async (req: Request, res: Response) => {
-	const { recipeId } = req.params;
 	const reviewData = req.body;
 
-	const updatedRecipe = await RecipeService.addReviewToRecipe(recipeId, reviewData);
+	const updatedRecipe = await ReviewService.addReview(reviewData);
 
 	res.status(200).json({
 		success: true,

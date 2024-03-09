@@ -3,6 +3,7 @@ import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
 import { professionService as ProfessionService } from "../services/ProfessionService";
+import { reviewService as ReviewService } from "../services/ReviewService";
 
 /**
  * @description Get all professions
@@ -141,12 +142,10 @@ export const deleteProfession = asyncHandler(
 
 export const addReviewToProfession = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { professionId } = req.params;
-		const review = req.body;
+		const reviewData = req.body;
 
-		const updatedProfession = await ProfessionService.addReviewToProfession(
-			professionId,
-			review
+		const updatedProfession = await ReviewService.addReview(
+			reviewData
 		);
 
 		res.status(200).json({

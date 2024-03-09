@@ -3,6 +3,7 @@ import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
 import { doctorService as DoctorService } from "../services/DoctorService";
+import { reviewService as ReviewService } from "../services/ReviewService";
 
 /**
  * @description Get all doctors
@@ -139,10 +140,9 @@ export const deleteDoctor = asyncHandler(
 
 export const addReviewToDoctor = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { doctorId } = req.params;
 		const reviewData = req.body;
 
-		const updatedDoctor = await DoctorService.addReviewToDoctor(doctorId, reviewData);
+		const updatedDoctor = await ReviewService.addReview(reviewData);
 
 		res.status(200).json({
 			success: true,

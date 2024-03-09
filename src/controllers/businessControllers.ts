@@ -3,6 +3,7 @@ import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
 import { businessService as BusinessService } from "../services/BusinessService";
+import { reviewService as ReviewService } from "../services/ReviewService";
 
 /**
  * @description Get all businesses
@@ -134,11 +135,9 @@ export const deleteBusiness = asyncHandler(
 
 export const addReviewToBusiness = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { businessId } = req.params;
 		const reviewData = req.body;
 
-		const updateBusiness = await BusinessService.addReviewToBusiness(
-			businessId,
+		const updateBusiness = await ReviewService.addReview(
 			reviewData
 		);
 
