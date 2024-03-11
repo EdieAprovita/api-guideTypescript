@@ -34,7 +34,7 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 		},
 		contact: [
 			{
-				phone: String,
+				phone: Number,
 				email: String,
 				facebook: String,
 				instagram: String,

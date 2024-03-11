@@ -142,9 +142,7 @@ export const addReviewToProfessionProfile = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const reviewData = req.body;
 
-		const updatedProfession = await ReviewService.addReview(
-			reviewData
-		);
+		const updatedProfession = await ReviewService.addReview(reviewData);
 
 		res.status(200).json({
 			success: true,
