@@ -58,7 +58,7 @@ export const getUsers = asyncHandler(
 export const getUserById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const user = await UserServices.findUserById(req.params.id);
-		res.json(user);
+		res.status(200).json(user);
 	}
 );
 

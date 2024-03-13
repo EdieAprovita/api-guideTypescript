@@ -1,5 +1,3 @@
-import { Document, Types } from "mongoose";
-
 declare global {
 	namespace Express {
 		interface Request {
@@ -16,28 +14,6 @@ export interface IContact {
 	email: string;
 	facebook?: string;
 	instagram?: string;
-}
-
-export interface IPost extends Document {
-	_id?: string;
-	author: Types.ObjectId;
-	text: string;
-	avatar: string;
-	likes: [{ username: Types.ObjectId }];
-	comments: [
-		{
-			username: Types.ObjectId;
-			text: string;
-			name: string;
-			avatar: string;
-			date: Date;
-		},
-	];
-	date: Date;
-	timestamps: {
-		createdAt: Date;
-		updatedAt: Date;
-	};
 }
 
 export interface IExperience {
