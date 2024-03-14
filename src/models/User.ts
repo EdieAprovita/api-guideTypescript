@@ -43,6 +43,10 @@ const userSchema = new Schema<IUser>(
 			required: true,
 			unique: true,
 			lowercase: true,
+			match: [
+				/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+				"Please fill a valid email address",
+			],
 		},
 		photo: {
 			type: String,
@@ -59,9 +63,6 @@ userSchema.pre("save", async function (next) {
 			this.password,
 			parseInt(process.env.BCRYPT_SALT_ROUNDS || "10")
 		);
-	}
-	if (this.email) {
-		this.email = this.email.toLowerCase();
 	}
 	next();
 });
