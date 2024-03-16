@@ -1,7 +1,17 @@
+enum HttpStatusCode {
+	BAD_REQUEST = 400,
+	NOT_FOUND = 404,
+	UNAUTHORIZED = 401,
+	INTERNAL_SERVER_ERROR = 500,
+}
+
 export class CustomError extends Error {
 	statusCode: number;
 
-	constructor(message: string, statusCode: number) {
+	constructor(
+		message: string,
+		statusCode: number = HttpStatusCode.INTERNAL_SERVER_ERROR
+	) {
 		super(message);
 		this.statusCode = statusCode;
 		Object.setPrototypeOf(this, new.target.prototype);
@@ -13,32 +23,31 @@ export class CustomError extends Error {
 }
 
 export class BadRequestError extends CustomError {
-	statusCode: 400;
-	constructor(message: string) {
-		super(message, 400);
+	constructor(message: string = "Bad Request") {
+		super(message, HttpStatusCode.BAD_REQUEST);
 	}
 }
 
 export class NotFoundError extends CustomError {
 	constructor(message: string = "Not Found") {
-		super(message, 404);
+		super(message, HttpStatusCode.NOT_FOUND);
 	}
 }
 
 export class NotAuthorizedError extends CustomError {
 	constructor(message: string = "Not authorized") {
-		super(message, 401);
+		super(message, HttpStatusCode.UNAUTHORIZED);
 	}
 }
 
 export class InternalServerError extends CustomError {
 	constructor(message: string = "Internal Server Error") {
-		super(message, 500);
+		super(message, HttpStatusCode.INTERNAL_SERVER_ERROR);
 	}
 }
 
-export class DataNotFoundError extends CustomError {
+export class DataNotFoundError extends NotFoundError {
 	constructor(message: string = "Data not found") {
-		super(message, 404);
+		super(message);
 	}
 }
