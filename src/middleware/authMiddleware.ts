@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 import { NotFoundError, NotAuthorizedError } from "../types/Errors";
-import User from "../models/User";
+import { User } from "../models/User";
 
 /**
  * @description Protect routes

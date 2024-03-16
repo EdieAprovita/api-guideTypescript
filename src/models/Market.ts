@@ -1,6 +1,20 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IMarket } from "../types/modalTypes";
+export interface IMarket extends Document {
+	_id?: string;
+	marketName: string;
+	author: Types.ObjectId;
+	address: string;
+	image: string;
+	typeMarket: string;
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
 
 const marketSchema = new Schema<IMarket>(
 	{
@@ -47,5 +61,4 @@ const marketSchema = new Schema<IMarket>(
 	{ timestamps: true }
 );
 
-const Market = mongoose.model<IMarket>("Market", marketSchema);
-export default Market;
+export const Market = mongoose.model<IMarket>("Market", marketSchema);

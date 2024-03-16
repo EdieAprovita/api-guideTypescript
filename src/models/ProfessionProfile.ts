@@ -1,6 +1,24 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IProfessionProfile } from "../types/modalTypes";
+import { IContact, IEducation, IExperience, ISkill, ISocial } from "../types/modalTypes";
+
+export interface IProfessionProfile extends Document {
+	_id?: string;
+	user: Types.ObjectId;
+	contact: IContact[];
+	skills: ISkill[];
+	experience: IExperience[];
+	education: IEducation[];
+	social: ISocial;
+	date: Date;
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
 
 const professionalProfileSchema = new Schema<IProfessionProfile>({
 	user: {
@@ -123,8 +141,7 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 	},
 });
 
-const professionalProfile = mongoose.model<IProfessionProfile>(
+export const ProfessionalProfile = mongoose.model<IProfessionProfile>(
 	"ProfessionalProfile",
 	professionalProfileSchema
 );
-export default professionalProfile;

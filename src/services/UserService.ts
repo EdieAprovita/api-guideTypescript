@@ -1,19 +1,14 @@
 import { Response } from "express";
-import User from "../models/User";
-import { IUser } from "../types/modalTypes";
+import { User, IUser } from "../models/User";
 import { BadRequestError, DataNotFoundError } from "../types/Errors";
 import generateTokenAndSetCookie from "../utils/generateToken";
 
 class UserService {
 	async registerUser(
-		userData: Pick<IUser, "username" | "email" | "password" | "role">,
+		userData: Pick<IUser, "username" | "email" | "password">,
 		res: Response
 	) {
-		const { email, role } = userData;
-
-		if (role === "admin") {
-			throw new BadRequestError("Invalid role");
-		}
+		const { email } = userData;
 
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
@@ -21,7 +16,6 @@ class UserService {
 		}
 
 		const user = await User.create(userData);
-
 		generateTokenAndSetCookie(res, user._id);
 
 		return {
@@ -31,6 +25,7 @@ class UserService {
 				username: user.username,
 				email: user.email,
 				role: user.role,
+				isAdmin: user.isAdmin,
 			},
 		};
 	}

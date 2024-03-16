@@ -1,6 +1,25 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IBusiness } from "../types/modalTypes";
+import { IContact } from "../types/modalTypes";
+
+export interface IBusiness extends Document {
+	_id?: string;
+	namePlace: string;
+	author: Types.ObjectId;
+	address: string;
+	image: string;
+	contact: IContact[];
+	budget: number;
+	typeBusiness: string;
+	hours: [Date];
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
 
 const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 	{
@@ -15,7 +34,7 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 		},
 		contact: [
 			{
-				phone: String,
+				phone: Number,
 				email: String,
 				facebook: String,
 				instagram: String,
@@ -60,6 +79,4 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 	{ timestamps: true }
 );
 
-const Business = mongoose.model<IBusiness>("Business", businessSchema);
-
-export default Business;
+export const Business = mongoose.model<IBusiness>("Business", businessSchema);

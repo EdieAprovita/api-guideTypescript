@@ -3,16 +3,17 @@ import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
 import { professionProfileService as ProfessionProfileService } from "../services/ProfessionProfileService";
+import { reviewService as ReviewService } from "../services/ReviewService";
 
 /**
- * @description Get all professions
+ * @description Get all professionsProfile
  * @name getProfessions
- * @route GET /api/professions
+ * @route GET /api/professionsProfile
  * @access Public
  * @returns {Promise<Response>}
  */
 
-export const getProfessions = asyncHandler(
+export const getProfessionsProfile = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const professions = await ProfessionProfileService.getAll();
@@ -28,14 +29,14 @@ export const getProfessions = asyncHandler(
 );
 
 /**
- * @description Get a profession by id
- * @name getProfessionById
+ * @description Get a professionProfile by id
+ * @name getProfessionProfileById
  * @route GET /api/professions/:id
  * @access Public
  * @returns {Promise<Response>}
  */
 
-export const getProfessionById = asyncHandler(
+export const getProfessionProfileById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
@@ -52,14 +53,14 @@ export const getProfessionById = asyncHandler(
 );
 
 /**
- * @description Create a new profession
- * @name createProfession
+ * @description Create a new professionProfile
+ * @name createProfessionProfile
  * @route POST /api/professions
  * @access Private
  * @returns {Promise<Response>}
  */
 
-export const createProfession = asyncHandler(
+export const createProfessionProfile = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
@@ -79,14 +80,14 @@ export const createProfession = asyncHandler(
 );
 
 /**
- * @description Update a profession
+ * @description Update a professionProfile
  * @name updateProfession
- * @route PUT /api/professions/:id
+ * @route PUT /api/professionsProfile/:id
  * @access Private
  * @returns {Promise<Response>}
  */
 
-export const updateProfession = asyncHandler(
+export const updateProfessionProfile = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
@@ -107,14 +108,14 @@ export const updateProfession = asyncHandler(
 );
 
 /**
- * @description Delete a profession
+ * @description Delete a professionProfile
  * @name deleteProfession
- * @route DELETE /api/professions/:id
+ * @route DELETE /api/professionsProfile/:id
  * @access Private
  * @returns {Promise<Response>}
  */
 
-export const deleteProfession = asyncHandler(
+export const deleteProfessionProfile = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
@@ -126,5 +127,27 @@ export const deleteProfession = asyncHandler(
 		} catch (error) {
 			next(new InternalServerError(`${error}`));
 		}
+	}
+);
+
+/**
+ * @description Add a review to a professionProfile
+ * @name addReviewToProfession
+ * @route POST /api/professionsProfile/add-review/:id
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const addReviewToProfessionProfile = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const reviewData = req.body;
+
+		const updatedProfession = await ReviewService.addReview(reviewData);
+
+		res.status(200).json({
+			success: true,
+			message: "Review added successfully",
+			data: updatedProfession,
+		});
 	}
 );

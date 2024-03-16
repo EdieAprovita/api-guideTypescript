@@ -3,6 +3,7 @@ import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { BadRequestError, InternalServerError } from "../types/Errors";
 import { restaurantService as RestaurantService } from "../services/RestaurantService";
+import { reviewService as ReviewService } from "../services/ReviewService";
 
 /**
  * @description Get all restaurants
@@ -135,11 +136,10 @@ export const deleteRestaurant = asyncHandler(
 
 export const addReviewToRestaurant = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { restaurantId } = req.params;
 		const reviewData = req.body;
 
-		const updatedRestaurant = await RestaurantService.addReviewToRestaurant(
-			restaurantId,
+		const updatedRestaurant = await ReviewService.addReview(
+			
 			reviewData
 		);
 

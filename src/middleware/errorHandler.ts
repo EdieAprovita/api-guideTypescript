@@ -2,7 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import { CustomError } from "../types/Errors";
 import logger from "../utils/logger";
 
-export const errorHandler = (err: Error, req: Request, res: Response) => {
+export const errorHandler = (
+	err: Error,
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
 	logger.error(`[Error] ${req.method} ${req.path}`, {
 		error: err.message,
 		stack: err.stack,
@@ -24,8 +29,6 @@ export const errorHandler = (err: Error, req: Request, res: Response) => {
 	});
 };
 
-export const notFound = (req: Request, res: Response, next: NextFunction) => {
-	const error = new Error(`Not Found - ${req.originalUrl}`);
-	res.status(404);
-	next(error);
+export const notFound = (req: Request, res: Response) => {
+	res.status(404).json({ message: `Not Found - ${req.originalUrl}` });
 };

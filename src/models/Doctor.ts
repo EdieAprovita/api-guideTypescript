@@ -1,6 +1,23 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IDoctor } from "../types/modalTypes";
+import { IContact } from "../types/modalTypes";
+
+export interface IDoctor extends Document {
+	_id?: string;
+	doctorName: string;
+	author: Types.ObjectId;
+	address: string;
+	image: string;
+	specialty: string;
+	contact: IContact[];
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
 
 const doctorSchema = new Schema<IDoctor>(
 	{
@@ -68,5 +85,4 @@ const doctorSchema = new Schema<IDoctor>(
 	},
 	{ timestamps: true }
 );
-const Doctor = mongoose.model<IDoctor>("Doctor", doctorSchema);
-export default Doctor;
+export const Doctor = mongoose.model<IDoctor>("Doctor", doctorSchema);

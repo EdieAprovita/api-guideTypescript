@@ -1,6 +1,18 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 
-import { IReview } from "../types/modalTypes";
+export interface IReview extends Document {
+	_id?: string;
+	username: string;
+	rating: number;
+	comment: string;
+	user: Types.ObjectId;
+	refId: Types.ObjectId;
+	refModel: string;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
 
 const reviewSchema: Schema = new mongoose.Schema<IReview>(
 	{
@@ -33,5 +45,4 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
 	{ timestamps: true }
 );
 
-const Review = mongoose.model<IReview>("Review", reviewSchema);
-export default Review;
+export const Review = mongoose.model<IReview>("Review", reviewSchema);

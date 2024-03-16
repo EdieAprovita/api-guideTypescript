@@ -1,7 +1,20 @@
 import bcrypt from "bcryptjs";
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-import { IUser } from "../types/modalTypes";
+export interface IUser extends Document {
+	_id?: string;
+	username: string;
+	password: string;
+	role: "user" | "professional";
+	isAdmin: boolean;
+	email: string;
+	photo: string;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+	matchPassword(enteredPassword: string): Promise<boolean>;
+}
 
 const userSchema = new Schema<IUser>(
 	{
@@ -17,14 +30,23 @@ const userSchema = new Schema<IUser>(
 		role: {
 			type: String,
 			required: true,
-			enum: ["user", "admin", "professional"],
+			enum: ["user", "professional"],
 			default: "user",
+		},
+		isAdmin: {
+			type: Boolean,
+			required: true,
+			default: false,
 		},
 		email: {
 			type: String,
 			required: true,
 			unique: true,
 			lowercase: true,
+			match: [
+				/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+				"Please fill a valid email address",
+			],
 		},
 		photo: {
 			type: String,
@@ -42,9 +64,6 @@ userSchema.pre("save", async function (next) {
 			parseInt(process.env.BCRYPT_SALT_ROUNDS || "10")
 		);
 	}
-	if (this.email) {
-		this.email = this.email.toLowerCase();
-	}
 	next();
 });
 
@@ -52,5 +71,4 @@ userSchema.methods.matchPassword = async function (enteredPassword: string) {
 	return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model<IUser>("User", userSchema);
-export default User;
+export const User = mongoose.model<IUser>("User", userSchema);
