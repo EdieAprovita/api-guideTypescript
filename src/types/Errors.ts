@@ -64,3 +64,10 @@ export class UserIdRequiredError extends Error {
 		this.name = "UserIdRequiredError";
 	}
 }
+
+export class DatabaseError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "DatabaseError";
+    }
+}

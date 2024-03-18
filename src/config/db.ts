@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { colorTheme } from "../types/colorTheme";
 
+import { DatabaseError } from "../types/Errors";
+
 /**
  * @description  Connect to MongoDB database
  */
@@ -16,7 +18,7 @@ const connectDB = async () => {
 		);
 	} catch (error) {
 		console.error(`Error: ${error.message}`.red.underline.underline);
-		process.exit(1);
+        throw new DatabaseError("Error connecting to the database");
 	}
 };
 
