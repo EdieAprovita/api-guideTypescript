@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 
 import connectDB from "./config/db";
 import { errorHandler, notFound } from "./middleware/errorHandler";
+import corsMiddleware from "./middleware/corsOptions";
 
 import userRoutes from "./routes/userRoutes";
 import businessRoutes from "./routes/businessRoutes";
@@ -30,15 +31,7 @@ if (process.env.NODE_ENV === "development") {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(
-	cors((req, callback) => {
-		const corsOptions = {
-			credentials: true,
-			origin: process.env.FRONTEND_URL,
-		};
-		callback(null, corsOptions);
-	})
-);
+app.use(corsMiddleware);
 
 app.get("/api/v1", (req, res) => {
 	res.send("API is running");
