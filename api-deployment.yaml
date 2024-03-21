@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-guidetypescript-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-guidetypescript
+  template:
+    metadata:
+      labels:
+        app: api-guidetypescript
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: api-guidetypescript
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+        image: api-guidetypescript-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: PORT
+          value: "5000"
