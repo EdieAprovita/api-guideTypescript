@@ -11,7 +11,7 @@ class BaseService<T extends Document> {
 	async findById(id: string): Promise<T> {
 		const item = await this.model.findById(id);
 		if (!item) {
-			throw new NotFoundError();
+			throw new NotFoundError(`Item with id ${id} not found`);
 		}
 		return item;
 	}
@@ -23,7 +23,7 @@ class BaseService<T extends Document> {
 	async updateById(id: string, data: Partial<T>): Promise<T> {
 		const item = await this.model.findByIdAndUpdate(id, data, { new: true });
 		if (!item) {
-			throw new NotFoundError();
+			throw new NotFoundError(`Item with id ${id} not found`);
 		}
 		return item;
 	}

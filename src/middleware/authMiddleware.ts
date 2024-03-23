@@ -1,13 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-
-import { NotFoundError, NotAuthorizedError } from "../types/Errors";
+import { NotAuthorizedError, NotFoundError } from "../types/Errors";
 import { User } from "../models/User";
-
-/**
- * @description Protect routes
- * @name protect
- */
+import { errorHandler } from "./errorHandler"; 
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
 	try {
@@ -18,31 +13,26 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 		}
 
 		if (!token) {
-			return next(new NotAuthorizedError("Not authorized"));
+			throw new NotAuthorizedError("Not authorized");
 		}
 
 		const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
 			userId: string;
 		};
-		const currentUsers = await User.findById(decoded.userId).select("-password");
+		const currentUser = await User.findById(decoded.userId).select("-password");
 
-		if (!currentUsers) {
-			return next(new NotFoundError("User not found"));
+		if (!currentUser) {
+			throw new NotFoundError("User not found");
 		}
 
-		req.user = currentUsers;
+		req.user = currentUser;
 		next();
 	} catch (error) {
-		return next(error);
+		errorHandler(error, req, res, next);
 	}
 };
 
-/**
- * @name admin
- * @description Grant access to admin
- */
-
-export const admin = async (req: Request, res: Response, next: NextFunction) => {
+export const admin = (req: Request, res: Response, next: NextFunction) => {
 	if (req.user?.role === "admin") {
 		next();
 	} else {
@@ -54,12 +44,7 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
 	}
 };
 
-/**
- * @name professional
- * @description Protect routes with JWT for professional
- */
-
-export const professional = async (req: Request, res: Response, next: NextFunction) => {
+export const professional = (req: Request, res: Response, next: NextFunction) => {
 	if (req.user?.role === "professional") {
 		next();
 	} else {
