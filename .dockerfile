@@ -1,6 +1,6 @@
 #Use Node.js 18 as the base image
 
-FROM node:21-alpine3.19
+FROM node:18-alpine3.19
 
 #Set the working directory in the container to /src
 
