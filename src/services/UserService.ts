@@ -1,4 +1,8 @@
 import { Response } from "express";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import bcrypt from "bcryptjs";
+
 import { User, IUser } from "../models/User";
 import { BadRequestError, DataNotFoundError } from "../types/Errors";
 import generateTokenAndSetCookie from "../utils/generateToken";
@@ -53,6 +57,56 @@ class UserService {
 				photo: user.photo,
 			},
 		};
+	}
+
+	async forgotPassword(email: string) {
+		const user = await User.findOne({ email });
+		if (!user) {
+			throw new DataNotFoundError("User not found");
+		}
+
+		const resetToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+			expiresIn: "1h",
+		});
+
+		const transporter = nodemailer.createTransport({
+			service: "gmail",
+			auth: {
+				user: process.env.EMAIL_USER,
+				pass: process.env.EMAIL_PASS,
+			},
+		});
+
+		await transporter.sendMail({
+			from: process.env.EMAIL_USER,
+			to: user.email,
+			subject: "Password reset request",
+			text:
+				"Click on the link to reset your password: " +
+				process.env.CLIENT_URL +
+				"/reset-password/" +
+				resetToken,
+		});
+
+		return { message: "Email sent with password reset instructions" };
+	}
+
+	async resetPassword(resetToken: string, newPassword: string) {
+		const decoded = jwt.verify(resetToken, process.env.JWT_SECRET) as JwtPayload;
+		if (!decoded) {
+			throw new BadRequestError("Invalid token");
+		}
+
+		const user = await User.findById(decoded.userId);
+		if (!user) {
+			throw new DataNotFoundError("User not found");
+		}
+
+		const hashedPassword = await bcrypt.hash(newPassword, 10);
+		user.password = hashedPassword;
+		await user.save();
+
+		return { message: "Password reset successful" };
 	}
 
 	async findAllUsers() {

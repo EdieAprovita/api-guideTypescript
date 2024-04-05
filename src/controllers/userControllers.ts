@@ -33,6 +33,38 @@ export const loginUser = asyncHandler(
 );
 
 /**
+ * @description Forgot password
+ * @name forgotPassword
+ * @route POST /api/users/forgot-password
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const forgotPassword = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { email } = req.body;
+		const response = await UserServices.forgotPassword(email);
+		res.status(200).json(response);
+	}
+);
+
+/**
+ * @description Reset password
+ * @name resetPassword
+ * @route POST /api/users/reset-password
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const resetPassword = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { token, newPassword } = req.body;
+		const response = await UserServices.resetPassword(token, newPassword);
+		res.status(200).json(response);
+	}
+);
+
+/**
  * @description Get all users
  * @name getUsers
  * @route GET /api/users
@@ -43,7 +75,7 @@ export const loginUser = asyncHandler(
 export const getUsers = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const users = await UserServices.findAllUsers();
-		res.json(users);
+		res.status(200).json(users);
 	}
 );
 

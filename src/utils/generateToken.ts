@@ -18,7 +18,7 @@ const DEFAULT_COOKIE_OPTIONS: DefaultCookieOptions = {
 	maxAge: 30 * 24 * 60 * 60 * 1000,
 };
 
-interface TokenPayload {
+export interface TokenPayload {
 	userId: string;
 }
 
