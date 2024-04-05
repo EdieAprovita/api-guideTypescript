@@ -5,6 +5,8 @@ export interface IUser extends Document {
 	_id?: string;
 	username: string;
 	password: string;
+	passwordResetToken?: string;
+	passwordResetExpires?: Date;
 	role: "user" | "professional";
 	isAdmin: boolean;
 	email: string;
@@ -26,6 +28,12 @@ const userSchema = new Schema<IUser>(
 		password: {
 			type: String,
 			required: true,
+		},
+		passwordResetToken: {
+			type: String,
+		},
+		passwordResetExpires: {
+			type: Date,
 		},
 		role: {
 			type: String,
