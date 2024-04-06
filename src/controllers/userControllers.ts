@@ -1,6 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import UserServices from "../services/UserService";
+import {
+	BadRequestError,
+	DataNotFoundError,
+	InternalServerError,
+	NotAuthorizedError,
+} from "../types/Errors";
 
 /**
  * @description Authenticate user and get token
@@ -11,8 +17,12 @@ import UserServices from "../services/UserService";
 
 export const registerUser = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const result = await UserServices.registerUser(req.body, res);
-		res.status(201).json(result);
+		try {
+			const result = await UserServices.registerUser(req.body, res);
+			res.status(201).json(result);
+		} catch (error) {
+			throw new InternalServerError("Unable to register user");
+		}
 	}
 );
 
@@ -26,9 +36,13 @@ export const registerUser = asyncHandler(
 
 export const loginUser = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { email, password } = req.body;
-		const result = await UserServices.loginUser(email, password, res);
-		res.status(200).json(result);
+		try {
+			const { email, password } = req.body;
+			const result = await UserServices.loginUser(email, password, res);
+			res.status(200).json(result);
+		} catch (error) {
+			throw new NotAuthorizedError("Invalid credentials");
+		}
 	}
 );
 
@@ -42,9 +56,13 @@ export const loginUser = asyncHandler(
 
 export const forgotPassword = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { email } = req.body;
-		const response = await UserServices.forgotPassword(email);
-		res.status(200).json(response);
+		try {
+			const { email } = req.body;
+			const response = await UserServices.forgotPassword(email);
+			res.status(200).json(response);
+		} catch (error) {
+			throw new DataNotFoundError("User not found");
+		}
 	}
 );
 
@@ -58,9 +76,13 @@ export const forgotPassword = asyncHandler(
 
 export const resetPassword = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { token, newPassword } = req.body;
-		const response = await UserServices.resetPassword(token, newPassword);
-		res.status(200).json(response);
+		try {
+			const { token, newPassword } = req.body;
+			const response = await UserServices.resetPassword(token, newPassword);
+			res.status(200).json(response);
+		} catch (error) {
+			throw new BadRequestError("Unable to reset password");
+		}
 	}
 );
 
@@ -74,8 +96,12 @@ export const resetPassword = asyncHandler(
 
 export const getUsers = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const users = await UserServices.findAllUsers();
-		res.status(200).json(users);
+		try {
+			const users = await UserServices.findAllUsers();
+			res.status(200).json(users);
+		} catch (error) {
+			throw new DataNotFoundError("Users not found");
+		}
 	}
 );
 
@@ -89,8 +115,12 @@ export const getUsers = asyncHandler(
 
 export const getUserById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const user = await UserServices.findUserById(req.params.id);
-		res.status(200).json(user);
+		try {
+			const user = await UserServices.findUserById(req.params.id);
+			res.status(200).json(user);
+		} catch (error) {
+			throw new DataNotFoundError("User not found");
+		}
 	}
 );
 
@@ -104,10 +134,14 @@ export const getUserById = asyncHandler(
 
 export const updateUserProfile = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const userId = req.user?._id;
-		if (!userId) throw new Error("User ID not found in request");
-		const updatedUser = await UserServices.updateUserById(userId, req.body);
-		res.json(updatedUser);
+		try {
+			const userId = req.user?._id;
+			if (!userId) throw new Error("User ID not found in request");
+			const updatedUser = await UserServices.updateUserById(userId, req.body);
+			res.json(updatedUser);
+		} catch (error) {
+			throw new BadRequestError("Unable to update user profile");
+		}
 	}
 );
 
@@ -121,7 +155,11 @@ export const updateUserProfile = asyncHandler(
 
 export const deleteUserById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const message = await UserServices.deleteUserById(req.params.id);
-		res.json(message);
+		try {
+			const message = await UserServices.deleteUserById(req.params.id);
+			res.json(message);
+		} catch (error) {
+			throw new BadRequestError("Unable to delete user");
+		}
 	}
 );
