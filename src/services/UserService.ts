@@ -4,7 +4,7 @@ import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 
 import { User, IUser } from "../models/User";
-import { BadRequestError, DataNotFoundError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 import generateTokenAndSetCookie from "../utils/generateToken";
 
 class UserService {
@@ -16,7 +16,7 @@ class UserService {
 
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
-			throw new BadRequestError("User already exists");
+			throw new HttpError(HttpStatusCode.BAD_REQUEST, "User already exists");
 		}
 
 		const user = await User.create(userData);
@@ -38,12 +38,12 @@ class UserService {
 		const user = await User.findOne({ email }).select("+password");
 
 		if (!user) {
-			throw new DataNotFoundError("User not found");
+			throw new HttpError(HttpStatusCode.UNAUTHORIZED, "Invalid credentials");
 		}
 
 		const isMatch = await user.matchPassword(password);
 		if (!isMatch) {
-			throw new BadRequestError("Invalid credentials");
+			throw new HttpError(HttpStatusCode.UNAUTHORIZED, "Invalid credentials");
 		}
 
 		generateTokenAndSetCookie(res, user._id);
@@ -62,7 +62,7 @@ class UserService {
 	async forgotPassword(email: string) {
 		const user = await User.findOne({ email });
 		if (!user) {
-			throw new DataNotFoundError("User not found");
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "User not found");
 		}
 
 		const resetToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
@@ -94,12 +94,12 @@ class UserService {
 	async resetPassword(resetToken: string, newPassword: string) {
 		const decoded = jwt.verify(resetToken, process.env.JWT_SECRET) as JwtPayload;
 		if (!decoded) {
-			throw new BadRequestError("Invalid token");
+			throw new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid token");
 		}
 
 		const user = await User.findById(decoded.userId);
 		if (!user) {
-			throw new DataNotFoundError("User not found");
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "User not found");
 		}
 
 		const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -123,7 +123,7 @@ class UserService {
 	async findUserById(userId: string) {
 		const user = await User.findById(userId);
 		if (!user) {
-			throw new DataNotFoundError("User not found");
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "User not found");
 		}
 		return user;
 	}
@@ -131,7 +131,7 @@ class UserService {
 	async updateUserById(userId: string, updateData: Partial<IUser>) {
 		const user = await User.findById(userId);
 		if (!user) {
-			throw new DataNotFoundError("User not found");
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "User not found");
 		}
 
 		if (updateData.password) {
@@ -153,7 +153,7 @@ class UserService {
 	async deleteUserById(userId: string) {
 		const user = await User.findByIdAndDelete(userId);
 		if (!user) {
-			throw new DataNotFoundError("User not found");
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "User not found");
 		}
 		return { message: "User deleted successfully" };
 	}

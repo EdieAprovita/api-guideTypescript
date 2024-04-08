@@ -1,5 +1,5 @@
 import { Review, IReview } from "../models/Review";
-import { NotFoundError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 
 export interface IReviewService {
 	addReview(reviewData: Partial<IReview>): Promise<IReview>;
@@ -19,7 +19,7 @@ class ReviewService implements IReviewService {
 	async getReviewById(reviewId: string): Promise<IReview> {
 		const review = await Review.findById(reviewId);
 		if (!review) {
-			throw new NotFoundError();
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "Review not found");
 		}
 		return review;
 	}
@@ -27,7 +27,7 @@ class ReviewService implements IReviewService {
 	async updateReview(reviewId: string, updateData: Partial<IReview>): Promise<IReview> {
 		const review = await Review.findByIdAndUpdate(reviewId, updateData, { new: true });
 		if (!review) {
-			throw new NotFoundError();
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "Review not found");
 		}
 		return review;
 	}
@@ -35,7 +35,7 @@ class ReviewService implements IReviewService {
 	async deleteReview(reviewId: string): Promise<void> {
 		const review = await Review.findById(reviewId);
 		if (!review) {
-			throw new NotFoundError();
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "Review not found");
 		}
 		await Review.deleteOne({ _id: reviewId });
 	}

@@ -1,5 +1,5 @@
 import { Document, Model } from "mongoose";
-import { NotFoundError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 
 class BaseService<T extends Document> {
 	constructor(protected model: Model<T>) {}
@@ -11,7 +11,7 @@ class BaseService<T extends Document> {
 	async findById(id: string): Promise<T> {
 		const item = await this.model.findById(id);
 		if (!item) {
-			throw new NotFoundError(`Item with id ${id} not found`);
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "Item not found");
 		}
 		return item;
 	}
@@ -23,7 +23,7 @@ class BaseService<T extends Document> {
 	async updateById(id: string, data: Partial<T>): Promise<T> {
 		const item = await this.model.findByIdAndUpdate(id, data, { new: true });
 		if (!item) {
-			throw new NotFoundError(`Item with id ${id} not found`);
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "Item not found");
 		}
 		return item;
 	}
@@ -31,7 +31,7 @@ class BaseService<T extends Document> {
 	async deleteById(id: string): Promise<void> {
 		const item = await this.model.findById(id);
 		if (!item) {
-			throw new NotFoundError();
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "Item not found");
 		}
 		await this.model.deleteOne({ _id: id });
 	}

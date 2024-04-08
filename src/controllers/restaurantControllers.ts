@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
-import { BadRequestError, InternalServerError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
+import { getErrorMessage } from "../types/modalTypes";
 import { restaurantService as RestaurantService } from "../services/RestaurantService";
 import { reviewService as ReviewService } from "../services/ReviewService";
 
@@ -23,7 +24,7 @@ export const getRestaurants = asyncHandler(
 				data: restaurants,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -41,13 +42,14 @@ export const getRestaurantById = asyncHandler(
 		try {
 			const { id } = req.params;
 			const restaurant = await RestaurantService.findById(id);
+
 			res.status(200).json({
 				success: true,
 				message: "Restaurant fetched successfully",
 				data: restaurant,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -62,11 +64,16 @@ export const getRestaurantById = asyncHandler(
 
 export const createRestaurant = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return next(
+				new HttpError(
+					HttpStatusCode.BAD_REQUEST,
+					getErrorMessage(new Error(errors.array()[0].msg))
+				)
+			);
+		}
 		try {
-			const errors = validationResult(req);
-			if (!errors.isEmpty()) {
-				return next(new BadRequestError("Invalid data"));
-			}
 			const restaurant = await RestaurantService.create(req.body);
 			res.status(201).json({
 				success: true,
@@ -74,7 +81,7 @@ export const createRestaurant = asyncHandler(
 				data: restaurant,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
@@ -89,6 +96,15 @@ export const createRestaurant = asyncHandler(
 
 export const updateRestaurant = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return next(
+				new HttpError(
+					HttpStatusCode.BAD_REQUEST,
+					getErrorMessage(new Error(errors.array()[0].msg))
+				)
+			);
+		}
 		try {
 			const { id } = req.params;
 			const restaurant = await RestaurantService.updateById(id, req.body);
@@ -98,7 +114,7 @@ export const updateRestaurant = asyncHandler(
 				data: restaurant,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
@@ -121,14 +137,14 @@ export const deleteRestaurant = asyncHandler(
 				message: "Restaurant deleted successfully",
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
 
 /**
  * @description Add a review to a restaurant
- * @name getRestaurantsByLocation
+ * @name addReviewToRestaurant
  * @route GET /api/restaurants/addReview/:id
  * @access Public
  * @returns {Promise<Response>}
@@ -136,16 +152,17 @@ export const deleteRestaurant = asyncHandler(
 
 export const addReviewToRestaurant = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const reviewData = req.body;
+		try {
+			const reviewData = { ...req.body, restaurantId: req.params.id };
+			const newReview = await ReviewService.addReview(reviewData);
 
-		const updatedRestaurant = await ReviewService.addReview(
-			
-			reviewData
-		);
-
-		res.status(200).json({
-			success: true,
-			data: updatedRestaurant,
-		});
+			res.status(200).json({
+				success: true,
+				message: "Review added successfully",
+				data: newReview,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+		}
 	}
 );

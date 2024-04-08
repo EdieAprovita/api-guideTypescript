@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { NotAuthorizedError, NotFoundError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 import { User } from "../models/User";
-import { errorHandler } from "./errorHandler"; 
+import { errorHandler } from "./errorHandler";
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
 	try {
@@ -13,7 +13,10 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 		}
 
 		if (!token) {
-			throw new NotAuthorizedError("Not authorized");
+			throw new HttpError(
+				HttpStatusCode.UNAUTHORIZED,
+				"Not authorized to access this route"
+			);
 		}
 
 		const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
@@ -22,7 +25,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 		const currentUser = await User.findById(decoded.userId).select("-password");
 
 		if (!currentUser) {
-			throw new NotFoundError("User not found");
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "User not found");
 		}
 
 		req.user = currentUser;

@@ -1,12 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import UserServices from "../services/UserService";
-import {
-	BadRequestError,
-	DataNotFoundError,
-	InternalServerError,
-	NotAuthorizedError,
-} from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
+import { getErrorMessage } from "../types/modalTypes";
 
 /**
  * @description Authenticate user and get token
@@ -21,7 +17,7 @@ export const registerUser = asyncHandler(
 			const result = await UserServices.registerUser(req.body, res);
 			res.status(201).json(result);
 		} catch (error) {
-			throw new InternalServerError("Unable to register user");
+			next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error)));
 		}
 	}
 );
@@ -41,7 +37,7 @@ export const loginUser = asyncHandler(
 			const result = await UserServices.loginUser(email, password, res);
 			res.status(200).json(result);
 		} catch (error) {
-			throw new NotAuthorizedError("Invalid credentials");
+			next(new HttpError(HttpStatusCode.UNAUTHORIZED, getErrorMessage(error)));
 		}
 	}
 );
@@ -61,7 +57,7 @@ export const forgotPassword = asyncHandler(
 			const response = await UserServices.forgotPassword(email);
 			res.status(200).json(response);
 		} catch (error) {
-			throw new DataNotFoundError("User not found");
+			next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error)));
 		}
 	}
 );
@@ -81,7 +77,7 @@ export const resetPassword = asyncHandler(
 			const response = await UserServices.resetPassword(token, newPassword);
 			res.status(200).json(response);
 		} catch (error) {
-			throw new BadRequestError("Unable to reset password");
+			next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error)));
 		}
 	}
 );
@@ -100,7 +96,7 @@ export const getUsers = asyncHandler(
 			const users = await UserServices.findAllUsers();
 			res.status(200).json(users);
 		} catch (error) {
-			throw new DataNotFoundError("Users not found");
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -119,7 +115,7 @@ export const getUserById = asyncHandler(
 			const user = await UserServices.findUserById(req.params.id);
 			res.status(200).json(user);
 		} catch (error) {
-			throw new DataNotFoundError("User not found");
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -136,11 +132,11 @@ export const updateUserProfile = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const userId = req.user?._id;
-			if (!userId) throw new Error("User ID not found in request");
+			if (!userId) throw new HttpError(HttpStatusCode.UNAUTHORIZED, "User not found");
 			const updatedUser = await UserServices.updateUserById(userId, req.body);
 			res.json(updatedUser);
 		} catch (error) {
-			throw new BadRequestError("Unable to update user profile");
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
@@ -157,9 +153,10 @@ export const deleteUserById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const message = await UserServices.deleteUserById(req.params.id);
+			if (!message) throw new HttpError(HttpStatusCode.NOT_FOUND, "User not found");
 			res.json(message);
 		} catch (error) {
-			throw new BadRequestError("Unable to delete user");
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
