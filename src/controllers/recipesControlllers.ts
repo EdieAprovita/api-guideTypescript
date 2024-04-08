@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { validationResult } from "express-validator";
 import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import asyncHandler from "../middleware/asyncHandler";
@@ -62,6 +63,12 @@ export const getRecipeById = asyncHandler(
 
 export const createRecipe = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return next(
+				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
+			);
+		}
 		try {
 			const recipe = await RecipeService.create(req.body);
 			res.status(201).json({
@@ -84,6 +91,12 @@ export const createRecipe = asyncHandler(
 
 export const updateRecipe = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return next(
+				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
+			);
+		}
 		try {
 			const recipe = await RecipeService.updateById(req.params.id, req.body);
 
@@ -111,7 +124,8 @@ export const updateRecipe = asyncHandler(
 export const deleteRecipe = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			await RecipeService.deleteById(req.params.id);
+			const { id } = req.params;
+			await RecipeService.deleteById(id);
 			res.status(204).json({
 				success: true,
 				data: {},
@@ -133,16 +147,16 @@ export const deleteRecipe = asyncHandler(
 export const addReviewToRecipe = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const reviewData = req.body;
-
-			const updatedRecipe = await ReviewService.addReview(reviewData);
+			const reviewData = { ...req.body, recipeId: req.params.id };
+			const newReview = await ReviewService.addReview(reviewData);
 
 			res.status(200).json({
 				success: true,
-				data: updatedRecipe,
+				message: "Review added successfully",
+				data: newReview,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );

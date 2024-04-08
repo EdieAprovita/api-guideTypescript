@@ -65,10 +65,7 @@ export const createPost = asyncHandler(
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
 			return next(
-				new HttpError(
-					HttpStatusCode.BAD_REQUEST,
-					getErrorMessage(new Error(errors.array()[0].msg))
-				)
+				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
 			);
 		}
 		try {
@@ -97,10 +94,7 @@ export const addComment = asyncHandler(
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
 			return next(
-				new HttpError(
-					HttpStatusCode.BAD_REQUEST,
-					getErrorMessage(new Error(errors.array()[0].msg))
-				)
+				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
 			);
 		}
 		try {
