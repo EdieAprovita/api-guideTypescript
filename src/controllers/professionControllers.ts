@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { HttpError, HttpStatusCode } from "../types/Errors";
+import { getErrorMessage } from "../types/modalTypes";
 import { professionService as ProfessionService } from "../services/ProfessionService";
 import { reviewService as ReviewService } from "../services/ReviewService";
 
@@ -23,7 +24,7 @@ export const getProfessions = asyncHandler(
 				data: professions,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -41,13 +42,14 @@ export const getProfessionById = asyncHandler(
 		try {
 			const { id } = req.params;
 			const profession = await ProfessionService.findById(id);
+
 			res.status(200).json({
 				success: true,
 				message: "Profession fetched successfully",
 				data: profession,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, "Profession not found"));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -64,7 +66,12 @@ export const createProfession = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
+			return next(
+				new HttpError(
+					HttpStatusCode.BAD_REQUEST,
+					getErrorMessage(new Error(errors.array()[0].msg))
+				)
+			);
 		}
 
 		try {
@@ -75,7 +82,7 @@ export const createProfession = asyncHandler(
 				data: profession,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
@@ -92,7 +99,12 @@ export const updateProfession = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
+			return next(
+				new HttpError(
+					HttpStatusCode.BAD_REQUEST,
+					getErrorMessage(new Error(errors.array()[0].msg))
+				)
+			);
 		}
 
 		try {
@@ -104,7 +116,7 @@ export const updateProfession = asyncHandler(
 				data: profession,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
@@ -127,7 +139,7 @@ export const deleteProfession = asyncHandler(
 				message: "Profession deleted successfully",
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
@@ -143,17 +155,15 @@ export const deleteProfession = asyncHandler(
 export const addReviewToProfession = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const reviewData = req.body;
-
-			const updatedProfession = await ReviewService.addReview(reviewData);
-
+			const reviewData = { ...req.body, professionId: req.params.id };
+			const newReview = await ReviewService.addReview(reviewData);
 			res.status(200).json({
 				success: true,
 				message: "Review added successfully",
-				data: updatedProfession,
+				data: newReview,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );

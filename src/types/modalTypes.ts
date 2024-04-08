@@ -9,6 +9,9 @@ declare global {
 	}
 }
 
+export const getErrorMessage = (error: Error) =>
+	process.env.NODE_ENV === "development" ? error.message : "Internal server error";
+
 export interface IContact {
 	phone: number;
 	email: string;

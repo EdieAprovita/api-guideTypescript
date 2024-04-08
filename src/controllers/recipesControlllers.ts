@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { HttpError, HttpStatusCode } from "../types/Errors";
+import { getErrorMessage } from "../types/modalTypes";
 import asyncHandler from "../middleware/asyncHandler";
 import { recipeService as RecipeService } from "../services/RecipesService";
 import { reviewService as ReviewService } from "../services/ReviewService";
@@ -21,7 +22,7 @@ export const getRecipes = asyncHandler(
 				data: recipes,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -37,17 +38,16 @@ export const getRecipes = asyncHandler(
 export const getRecipeById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const recipe = await RecipeService.findById(req.params.id);
+			const { id } = req.params;
+			const recipe = await RecipeService.findById(id);
 
-			if (!recipe) {
-				throw new HttpError(HttpStatusCode.NOT_FOUND, "Recipe not found");
-			}
 			res.status(200).json({
 				success: true,
+				message: "Recipe fetched successfully",
 				data: recipe,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );

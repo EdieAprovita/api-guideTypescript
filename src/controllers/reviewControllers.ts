@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { reviewService as ReviewService } from "../services/ReviewService";
 import { HttpError, HttpStatusCode } from "../types/Errors";
+import { getErrorMessage } from "../types/modalTypes";
 
 /**
  * @description Get all reviews
@@ -15,7 +16,7 @@ export const listReviews = asyncHandler(
 			const reviews = await ReviewService.listReviewsForModel(refId, refModel);
 			res.status(200).json(reviews);
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -32,7 +33,7 @@ export const addReview = asyncHandler(
 			const newReview = await ReviewService.addReview(reviewData);
 			res.status(201).json(newReview);
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.BAD_REQUEST, `${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );
@@ -49,7 +50,7 @@ export const getReviewById = asyncHandler(
 			const review = await ReviewService.getReviewById(reviewId);
 			res.status(200).json({ success: true, data: review });
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
@@ -66,7 +67,7 @@ export const updateReview = asyncHandler(
 			const review = await ReviewService.updateReview(id, req.body);
 			res.status(200).json({ success: true, data: review });
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
@@ -83,7 +84,7 @@ export const deleteReview = asyncHandler(
 			await ReviewService.deleteReview(reviewId);
 			res.status(200).json({ success: true, message: "Review deleted successfully" });
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );
