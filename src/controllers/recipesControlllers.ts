@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { NotFoundError } from "../types/Errors";
+import { BadRequestError, InternalServerError, NotFoundError } from "../types/Errors";
 import asyncHandler from "../middleware/asyncHandler";
 import { recipeService as RecipeService } from "../services/RecipesService";
 import { reviewService as ReviewService } from "../services/ReviewService";
@@ -13,11 +13,15 @@ import { reviewService as ReviewService } from "../services/ReviewService";
  */
 
 export const getRecipes = asyncHandler(async (req: Request, res: Response) => {
-	const recipes = await RecipeService.getAll();
-	res.status(200).json({
-		success: true,
-		data: recipes,
-	});
+	try {
+		const recipes = await RecipeService.getAll();
+		res.status(200).json({
+			success: true,
+			data: recipes,
+		});
+	} catch (error) {
+		throw new InternalServerError(`${error}`);
+	}
 });
 
 /**
@@ -29,15 +33,19 @@ export const getRecipes = asyncHandler(async (req: Request, res: Response) => {
  */
 
 export const getRecipeById = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.findById(req.params.id);
+	try {
+		const recipe = await RecipeService.findById(req.params.id);
 
-	if (!recipe) {
-		throw new NotFoundError();
+		if (!recipe) {
+			throw new NotFoundError();
+		}
+		res.status(200).json({
+			success: true,
+			data: recipe,
+		});
+	} catch (error) {
+		throw new NotFoundError("Recipe not found");
 	}
-	res.status(200).json({
-		success: true,
-		data: recipe,
-	});
 });
 
 /**
@@ -49,11 +57,15 @@ export const getRecipeById = asyncHandler(async (req: Request, res: Response) =>
  */
 
 export const createRecipe = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.create(req.body);
-	res.status(201).json({
-		success: true,
-		data: recipe,
-	});
+	try {
+		const recipe = await RecipeService.create(req.body);
+		res.status(201).json({
+			success: true,
+			data: recipe,
+		});
+	} catch (error) {
+		throw new BadRequestError("Unable to create recipe");
+	}
 });
 
 /**
@@ -65,15 +77,19 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const updateRecipe = asyncHandler(async (req: Request, res: Response) => {
-	const recipe = await RecipeService.updateById(req.params.id, req.body);
+	try {
+		const recipe = await RecipeService.updateById(req.params.id, req.body);
 
-	if (!recipe) {
-		throw new NotFoundError();
+		if (!recipe) {
+			throw new NotFoundError();
+		}
+		res.status(200).json({
+			success: true,
+			data: recipe,
+		});
+	} catch (error) {
+		throw new BadRequestError("Unable to update recipe");
 	}
-	res.status(200).json({
-		success: true,
-		data: recipe,
-	});
 });
 
 /**
@@ -85,11 +101,15 @@ export const updateRecipe = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const deleteRecipe = asyncHandler(async (req: Request, res: Response) => {
-	await RecipeService.deleteById(req.params.id);
-	res.status(204).json({
-		success: true,
-		data: {},
-	});
+	try {
+		await RecipeService.deleteById(req.params.id);
+		res.status(204).json({
+			success: true,
+			data: {},
+		});
+	} catch (error) {
+		throw new NotFoundError("Recipe not found");
+	}
 });
 
 /**
@@ -101,12 +121,16 @@ export const deleteRecipe = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const addReviewToRecipe = asyncHandler(async (req: Request, res: Response) => {
-	const reviewData = req.body;
+	try {
+		const reviewData = req.body;
 
-	const updatedRecipe = await ReviewService.addReview(reviewData);
+		const updatedRecipe = await ReviewService.addReview(reviewData);
 
-	res.status(200).json({
-		success: true,
-		data: updatedRecipe,
-	});
+		res.status(200).json({
+			success: true,
+			data: updatedRecipe,
+		});
+	} catch (error) {
+		throw new BadRequestError("Unable to add review");
+	}
 });
