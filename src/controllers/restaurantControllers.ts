@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
-import { BadRequestError, InternalServerError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 import { restaurantService as RestaurantService } from "../services/RestaurantService";
 import { reviewService as ReviewService } from "../services/ReviewService";
 
@@ -23,7 +23,7 @@ export const getRestaurants = asyncHandler(
 				data: restaurants,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
 		}
 	}
 );
@@ -47,7 +47,7 @@ export const getRestaurantById = asyncHandler(
 				data: restaurant,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.NOT_FOUND, "Restaurant not found"));
 		}
 	}
 );
@@ -65,7 +65,7 @@ export const createRestaurant = asyncHandler(
 		try {
 			const errors = validationResult(req);
 			if (!errors.isEmpty()) {
-				return next(new BadRequestError("Invalid data"));
+				return next(new HttpError(HttpStatusCode.BAD_REQUEST, `${errors}`));
 			}
 			const restaurant = await RestaurantService.create(req.body);
 			res.status(201).json({
@@ -74,7 +74,7 @@ export const createRestaurant = asyncHandler(
 				data: restaurant,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -98,7 +98,7 @@ export const updateRestaurant = asyncHandler(
 				data: restaurant,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -121,14 +121,14 @@ export const deleteRestaurant = asyncHandler(
 				message: "Restaurant deleted successfully",
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
 
 /**
  * @description Add a review to a restaurant
- * @name getRestaurantsByLocation
+ * @name addReviewToRestaurant
  * @route GET /api/restaurants/addReview/:id
  * @access Public
  * @returns {Promise<Response>}
@@ -136,16 +136,17 @@ export const deleteRestaurant = asyncHandler(
 
 export const addReviewToRestaurant = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const reviewData = req.body;
+		try {
+			const reviewData = req.body;
 
-		const updatedRestaurant = await ReviewService.addReview(
-			
-			reviewData
-		);
+			const updatedRestaurant = await ReviewService.addReview(reviewData);
 
-		res.status(200).json({
-			success: true,
-			data: updatedRestaurant,
-		});
+			res.status(200).json({
+				success: true,
+				data: updatedRestaurant,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+		}
 	}
 );

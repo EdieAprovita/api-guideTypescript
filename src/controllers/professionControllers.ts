@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
-import { BadRequestError, InternalServerError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 import { professionService as ProfessionService } from "../services/ProfessionService";
 import { reviewService as ReviewService } from "../services/ReviewService";
 
@@ -23,7 +23,7 @@ export const getProfessions = asyncHandler(
 				data: professions,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
 		}
 	}
 );
@@ -47,7 +47,7 @@ export const getProfessionById = asyncHandler(
 				data: profession,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.NOT_FOUND, "Profession not found"));
 		}
 	}
 );
@@ -64,7 +64,7 @@ export const createProfession = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid request parameters"));
+			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
 		}
 
 		try {
@@ -75,7 +75,7 @@ export const createProfession = asyncHandler(
 				data: profession,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -92,7 +92,7 @@ export const updateProfession = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid request parameters"));
+			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
 		}
 
 		try {
@@ -104,7 +104,7 @@ export const updateProfession = asyncHandler(
 				data: profession,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -127,7 +127,7 @@ export const deleteProfession = asyncHandler(
 				message: "Profession deleted successfully",
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -142,16 +142,18 @@ export const deleteProfession = asyncHandler(
 
 export const addReviewToProfession = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const reviewData = req.body;
+		try {
+			const reviewData = req.body;
 
-		const updatedProfession = await ReviewService.addReview(
-			reviewData
-		);
+			const updatedProfession = await ReviewService.addReview(reviewData);
 
-		res.status(200).json({
-			success: true,
-			message: "Review added successfully",
-			data: updatedProfession,
-		});
+			res.status(200).json({
+				success: true,
+				message: "Review added successfully",
+				data: updatedProfession,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+		}
 	}
 );

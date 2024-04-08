@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
-import { BadRequestError, InternalServerError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 import { businessService as BusinessService } from "../services/BusinessService";
 import { reviewService as ReviewService } from "../services/ReviewService";
 
@@ -23,7 +23,7 @@ export const getBusinesses = asyncHandler(
 				data: businesses,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
 		}
 	}
 );
@@ -47,7 +47,7 @@ export const getBusinessById = asyncHandler(
 				data: business,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.NOT_FOUND, "Business not found"));
 		}
 	}
 );
@@ -64,7 +64,7 @@ export const createBusiness = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			next(new BadRequestError("Invalid request parameters"));
+			next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
 			return;
 		}
 
@@ -76,7 +76,7 @@ export const createBusiness = asyncHandler(
 				data: business,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -100,7 +100,7 @@ export const updateBusiness = asyncHandler(
 				data: business,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -120,7 +120,7 @@ export const deleteBusiness = asyncHandler(
 			await BusinessService.deleteById(id);
 			res.status(200).json({ success: true, message: "Business deleted successfully" });
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -135,16 +135,18 @@ export const deleteBusiness = asyncHandler(
 
 export const addReviewToBusiness = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const reviewData = req.body;
+		try {
+			const reviewData = req.body;
 
-		const updateBusiness = await ReviewService.addReview(
-			reviewData
-		);
+			const updateBusiness = await ReviewService.addReview(reviewData);
 
-		res.status(200).json({
-			success: true,
-			message: "Review added successfully",
-			data: updateBusiness,
-		});
+			res.status(200).json({
+				success: true,
+				message: "Review added successfully",
+				data: updateBusiness,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+		}
 	}
 );

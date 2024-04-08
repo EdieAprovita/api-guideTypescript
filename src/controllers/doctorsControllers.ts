@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
-import { BadRequestError, InternalServerError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 import { doctorService as DoctorService } from "../services/DoctorService";
 import { reviewService as ReviewService } from "../services/ReviewService";
 
@@ -23,7 +23,7 @@ export const getDoctors = asyncHandler(
 				data: doctors,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
 		}
 	}
 );
@@ -47,7 +47,7 @@ export const getDoctorById = asyncHandler(
 				data: doctor,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.NOT_FOUND, "Doctor not found"));
 		}
 	}
 );
@@ -64,7 +64,7 @@ export const createDoctor = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid data"));
+			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
 		}
 		try {
 			const doctor = await DoctorService.create(req.body);
@@ -74,7 +74,7 @@ export const createDoctor = asyncHandler(
 				data: doctor,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -91,7 +91,7 @@ export const updateDoctor = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid data"));
+			return next(new HttpError(HttpStatusCode.NOT_FOUND, "Invalid data"));
 		}
 		try {
 			const { id } = req.params;
@@ -102,7 +102,7 @@ export const updateDoctor = asyncHandler(
 				data: doctor,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -125,7 +125,7 @@ export const deleteDoctor = asyncHandler(
 				message: "Doctor deleted successfully",
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -140,14 +140,18 @@ export const deleteDoctor = asyncHandler(
 
 export const addReviewToDoctor = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const reviewData = req.body;
+		try {
+			const reviewData = req.body;
 
-		const updatedDoctor = await ReviewService.addReview(reviewData);
+			const updatedDoctor = await ReviewService.addReview(reviewData);
 
-		res.status(200).json({
-			success: true,
-			message: "Review added successfully",
-			data: updatedDoctor,
-		});
+			res.status(200).json({
+				success: true,
+				message: "Review added successfully",
+				data: updatedDoctor,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+		}
 	}
 );

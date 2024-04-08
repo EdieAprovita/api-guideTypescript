@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
-import { BadRequestError, InternalServerError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 import { marketsService as MarketsService } from "../services/MarketsService";
 import { reviewService as ReviewService } from "../services/ReviewService";
 
@@ -22,7 +22,7 @@ export const getMarkets = asyncHandler(
 				data: markets,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
 		}
 	}
 );
@@ -45,7 +45,7 @@ export const getMarketById = asyncHandler(
 				data: market,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.NOT_FOUND, "Market not found"));
 		}
 	}
 );
@@ -61,7 +61,7 @@ export const createMarket = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid data"));
+			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
 		}
 		try {
 			const market = await MarketsService.create(req.body);
@@ -71,7 +71,7 @@ export const createMarket = asyncHandler(
 				data: market,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -87,7 +87,7 @@ export const updateMarket = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid data"));
+			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
 		}
 		try {
 			const { id } = req.params;
@@ -98,7 +98,7 @@ export const updateMarket = asyncHandler(
 				data: market,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -114,13 +114,14 @@ export const deleteMarket = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
+			if (!id) throw new HttpError(HttpStatusCode.NOT_FOUND, "Market not found");
 			await MarketsService.deleteById(id);
 			res.status(200).json({
 				success: true,
 				message: "Market deleted successfully",
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -135,7 +136,8 @@ export const deleteMarket = asyncHandler(
 export const addReviewToMarket = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const reviewData = req.body;
-
+		if (!reviewData.market)
+			throw new HttpError(HttpStatusCode.NOT_FOUND, "Market not found");
 		const updatedMarket = await ReviewService.addReview(reviewData);
 
 		res.status(200).json({

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
-import { BadRequestError, InternalServerError } from "../types/Errors";
+import { HttpError, HttpStatusCode } from "../types/Errors";
 import { postService as PostService } from "../services/PostService";
 
 /**
@@ -22,7 +22,7 @@ export const getPosts = asyncHandler(
 				data: posts,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
 		}
 	}
 );
@@ -46,7 +46,7 @@ export const getPostById = asyncHandler(
 				data: post,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.NOT_FOUND, "Post not found"));
 		}
 	}
 );
@@ -63,7 +63,7 @@ export const createPost = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid request parameters"));
+			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
 		}
 		try {
 			const post = await PostService.create(req.body);
@@ -73,7 +73,7 @@ export const createPost = asyncHandler(
 				data: post,
 			});
 		} catch (error) {
-			next(new InternalServerError(`${error}`));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -90,7 +90,7 @@ export const addComment = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
-			return next(new BadRequestError("Invalid request parameters"));
+			return next(new HttpError(HttpStatusCode.BAD_REQUEST, "Invalid data"));
 		}
 		try {
 			const { id } = req.params;
@@ -103,7 +103,7 @@ export const addComment = asyncHandler(
 				data: comments,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -128,7 +128,7 @@ export const likePost = asyncHandler(
 				data: likes,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -153,7 +153,7 @@ export const unlikePost = asyncHandler(
 				data: likes,
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
@@ -176,7 +176,7 @@ export const deletePost = asyncHandler(
 				message: "Post deleted successfully",
 			});
 		} catch (error) {
-			next(error);
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
 		}
 	}
 );
