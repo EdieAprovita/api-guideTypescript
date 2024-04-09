@@ -1,10 +1,29 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { Business } from "../types/modalTypes";
+import { IContact } from "../types/modalTypes";
 
-const businessSchema: Schema = new mongoose.Schema<Business>(
+export interface IBusiness extends Document {
+	_id?: string;
+	namePlace: string;
+	author: Types.ObjectId;
+	address: string;
+	image: string;
+	contact: IContact[];
+	budget: number;
+	typeBusiness: string;
+	hours: [Date];
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
+
+const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 	{
-		name: {
+		namePlace: {
 			type: String,
 			required: true,
 			unique: true,
@@ -13,28 +32,26 @@ const businessSchema: Schema = new mongoose.Schema<Business>(
 			type: String,
 			required: true,
 		},
-		phone: {
-			type: String,
-			required: true,
-		},
-		email: {
-			type: String,
-			required: true,
-		},
-		website: {
-			type: String,
-			required: true,
-		},
-		description: {
-			type: String,
+		contact: [
+			{
+				phone: Number,
+				email: String,
+				facebook: String,
+				instagram: String,
+			},
+		],
+		author: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
 			required: true,
 		},
 		rating: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
-		categories: {
-			type: [String],
+		image: {
+			type: String,
 			required: true,
 		},
 		hours: {
@@ -47,21 +64,19 @@ const businessSchema: Schema = new mongoose.Schema<Business>(
 			],
 			required: true,
 		},
-		reviews: {
-			type: [
-				{
-					user: String,
-					rating: Number,
-					comment: String,
-					date: Date,
-				},
-			],
+		reviews: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: "Review",
+			},
+		],
+		numReviews: {
+			type: Number,
 			required: true,
+			default: 0,
 		},
 	},
 	{ timestamps: true }
 );
 
-const Business = mongoose.model<Business>("Business", businessSchema);
-
-export default Business;
+export const Business = mongoose.model<IBusiness>("Business", businessSchema);

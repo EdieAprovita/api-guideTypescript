@@ -1,10 +1,29 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IRecipe } from "../types/modalTypes";
+export interface IRecipe extends Document {
+	_id?: string;
+	title: string;
+	author: Types.ObjectId;
+	description: string;
+	instructions: string;
+	ingredients: Array<string>;
+	typeDish: string;
+	image: string;
+	cookingTime: number;
+	difficulty: string;
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	budget: string;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
 
 const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 	{
-		name: {
+		title: {
 			type: String,
 			required: true,
 			unique: true,
@@ -14,52 +33,40 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 			required: true,
 		},
 		ingredients: {
-			ingredients: {
-				type: [
-					{
-						name: String,
-						quantity: Number,
-						unit: String,
-					},
-				],
-				required: true,
-			},
-		},
-		steps: {
 			type: [String],
 			required: true,
 		},
-		prepTime: {
+		author: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
+		instructions: {
+			type: String,
+			required: true,
+		},
+		cookingTime: {
 			type: Number,
 			required: true,
 		},
-		cookTime: {
+		numReviews: {
 			type: Number,
 			required: true,
-		},
-		servings: {
-			type: Number,
-			required: true,
+			default: 0,
 		},
 		rating: {
 			type: Number,
 			required: true,
+			default: 0,
 		},
-		reviews: {
-			type: [
-				{
-					user: String,
-					rating: Number,
-					comment: String,
-					date: Date,
-				},
-			],
-			required: true,
-		},
+		reviews: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: "Review",
+			},
+		],
 	},
 	{ timestamps: true }
 );
 
-const Recipe = mongoose.model<IRecipe>("Recipe", recipeSchema);
-
-export default Recipe;
+export const Recipe = mongoose.model<IRecipe>("Recipe", recipeSchema);

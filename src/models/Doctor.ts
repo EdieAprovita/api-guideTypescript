@@ -1,9 +1,25 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IMedic } from "../types/modalTypes";
-import Review from "./Review";
+import { IContact } from "../types/modalTypes";
 
-const doctorSchema = new Schema<IMedic>(
+export interface IDoctor extends Document {
+	_id?: string;
+	doctorName: string;
+	author: Types.ObjectId;
+	address: string;
+	image: string;
+	specialty: string;
+	contact: IContact[];
+	reviews: Types.ObjectId[];
+	rating: number;
+	numReviews: number;
+	timestamps: {
+		createdAt: Date;
+		updatedAt: Date;
+	};
+}
+
+const doctorSchema = new Schema<IDoctor>(
 	{
 		doctorName: {
 			type: String,
@@ -13,6 +29,7 @@ const doctorSchema = new Schema<IMedic>(
 		author: {
 			type: Schema.Types.ObjectId,
 			ref: "User",
+			required: true,
 		},
 		address: {
 			type: String,
@@ -51,7 +68,8 @@ const doctorSchema = new Schema<IMedic>(
 		],
 		reviews: [
 			{
-				type: [Review.schema],
+				type: Schema.Types.ObjectId,
+				ref: "Review",
 			},
 		],
 		rating: {
@@ -67,5 +85,4 @@ const doctorSchema = new Schema<IMedic>(
 	},
 	{ timestamps: true }
 );
-const Doctor = mongoose.model<IMedic>("Doctor", doctorSchema);
-export default Doctor;
+export const Doctor = mongoose.model<IDoctor>("Doctor", doctorSchema);
