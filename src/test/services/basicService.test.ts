@@ -1,7 +1,7 @@
 import { Model } from "mongoose";
 import BaseService from "../../services/BaseService";
-import { NotFoundError } from "../../types/Errors";
-import { IUser, User } from "../../models/User";
+import { HttpError, HttpStatusCode } from "../../types/Errors";
+import { IUser } from "../../models/User";
 
 describe("BaseService", () => {
 	let service: BaseService<IUser>;
@@ -38,7 +38,9 @@ describe("BaseService", () => {
 
 	it("should throw NotFoundError if item is not found", async () => {
 		model.findById = jest.fn().mockResolvedValue(null);
-		await expect(service.findById("1")).rejects.toThrow(NotFoundError);
+		await expect(service.findById("1")).rejects.toThrow(
+			new HttpError(HttpStatusCode.NOT_FOUND, "Internal Server Error")
+		);
 	});
 
 	describe("create", () => {
@@ -60,7 +62,9 @@ describe("BaseService", () => {
 
 		it("should throw NotFoundError if item is not found", async () => {
 			model.findByIdAndUpdate = jest.fn().mockResolvedValue(null);
-			await expect(service.updateById("1", {} as IUser)).rejects.toThrow(NotFoundError);
+			await expect(service.updateById("1", {} as IUser)).rejects.toThrow(
+				new HttpError(HttpStatusCode.NOT_FOUND, "Internal Server Error")
+			);
 		});
 	});
 
@@ -73,7 +77,9 @@ describe("BaseService", () => {
 
 		it("should throw NotFoundError if item is not found", async () => {
 			model.findById = jest.fn().mockResolvedValue(null);
-			await expect(service.deleteById("1")).rejects.toThrow(NotFoundError);
+			await expect(service.deleteById("1")).rejects.toThrow(
+				new HttpError(HttpStatusCode.NOT_FOUND, "Internal Server Error")
+			);
 		});
 	});
 });
