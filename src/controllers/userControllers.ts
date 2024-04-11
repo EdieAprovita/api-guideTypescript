@@ -83,6 +83,25 @@ export const resetPassword = asyncHandler(
 );
 
 /**
+ * @description Logout user
+ * @name logout
+ * @route GET /api/users/logout
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const logout = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const response = await UserServices.logoutUser(res);
+			res.status(200).json(response);
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+		}
+	}
+);
+
+/**
  * @description Get all users
  * @name getUsers
  * @route GET /api/users

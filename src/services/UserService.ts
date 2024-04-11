@@ -119,6 +119,11 @@ class UserService {
 		return { message: "Password reset successful" };
 	}
 
+	async logoutUser(res: Response) {
+		res.clearCookie("jwt");
+		return { message: "User logged out successfully" };
+	}
+
 	async findAllUsers() {
 		const users = await User.find({});
 		return users.map(user => ({
