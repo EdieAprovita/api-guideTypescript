@@ -2,6 +2,13 @@ import { Document, Model } from "mongoose";
 import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 
+/**
+ * @description Base service class
+ * @name BaseService
+ * @class
+ * @returns {Object}
+ */
+
 class BaseService<T extends Document> {
 	constructor(protected model: Model<T>) {}
 
