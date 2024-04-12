@@ -4,6 +4,12 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { User } from "../models/User";
 import { errorHandler } from "./errorHandler";
 
+/**
+ * @description Protect routes
+ * @name protect
+ * @returns {Promise<void>}
+ */
+
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
 	try {
 		let token: string;
@@ -35,6 +41,12 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 	}
 };
 
+/**
+ * @description Check if user is logged in
+ * @name isLoggedIn
+ * @returns {Promise<void>}
+ */
+
 export const admin = (req: Request, res: Response, next: NextFunction) => {
 	if (req.user?.role === "admin") {
 		next();
@@ -46,6 +58,12 @@ export const admin = (req: Request, res: Response, next: NextFunction) => {
 		});
 	}
 };
+
+/**
+ * @description Check if user is logged in
+ * @name isLoggedIn
+ * @returns {Promise<void>}
+ */
 
 export const professional = (req: Request, res: Response, next: NextFunction) => {
 	if (req.user?.role === "professional") {

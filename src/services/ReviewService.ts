@@ -11,6 +11,13 @@ export interface IReviewService {
 	getTopRatedModel(refModel: string): Promise<IReview[]>;
 }
 
+/**
+ * @description Review service class
+ * @name ReviewService
+ * @class
+ * @returns
+ * */
+
 class ReviewService implements IReviewService {
 	async addReview(reviewData: Partial<IReview>): Promise<IReview> {
 		const review = await Review.create(reviewData);

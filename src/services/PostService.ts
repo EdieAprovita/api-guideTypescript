@@ -3,6 +3,13 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import { IPost, Post } from "../models/Post";
 
+/**
+ * @description Post service class
+ * @name PostService
+ * @class
+ * @returns
+ * */
+
 class PostService extends BaseService<IPost> {
 	constructor() {
 		super(Post);

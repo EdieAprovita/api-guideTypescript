@@ -8,6 +8,13 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import generateTokenAndSetCookie from "../utils/generateToken";
 
+/**
+ * @description User service class
+ * @name UserService
+ * @class
+ * @returns {Object}
+ */
+
 class UserService {
 	async registerUser(
 		userData: Pick<IUser, "username" | "email" | "password">,

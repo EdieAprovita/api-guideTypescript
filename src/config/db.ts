@@ -5,6 +5,8 @@ import { DataBaseError } from "../types/Errors";
 
 /**
  * @description  Connect to MongoDB database
+ * @name connectDB
+ * @returns {Promise<void>}
  */
 
 const connectDB = async () => {
