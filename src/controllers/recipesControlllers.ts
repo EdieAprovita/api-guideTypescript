@@ -160,3 +160,27 @@ export const addReviewToRecipe = asyncHandler(
 		}
 	}
 );
+
+/**
+ * @description Get Top rated recipes
+ * @name getTopRatedRecipes
+ * @route GET /api/recipes/top-rated
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const getTopRatedRecipes = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const topRatedRecipes = await ReviewService.getTopRatedReviews("recipe");
+
+			res.status(200).json({
+				success: true,
+				message: "Top rated recipes fetched successfully",
+				data: topRatedRecipes,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
+		}
+	}
+);

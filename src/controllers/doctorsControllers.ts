@@ -154,7 +154,30 @@ export const addReviewToDoctor = asyncHandler(
 				data: newReview,
 			});
 		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+		}
+	}
+);
+
+/**
+ * @description Get Top rated doctors
+ * @name getTopRatedDoctors
+ * @route GET /api/doctors/top
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const getTopRatedDoctors = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const topRatedDoctors = await ReviewService.getTopRatedReviews("doctor");
+			res.status(200).json({
+				success: true,
+				message: "Top rated doctors fetched successfully",
+				data: topRatedDoctors,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
 		}
 	}
 );

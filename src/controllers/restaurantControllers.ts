@@ -160,3 +160,26 @@ export const addReviewToRestaurant = asyncHandler(
 		}
 	}
 );
+
+/**
+ * @description Get Top rated restaurants
+ * @name getTopRatedRestaurants
+ * @route GET /api/restaurants/top-rated
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const getTopRatedRestaurants = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const topRatedRestaurants = await ReviewService.getTopRatedReviews("restaurant");
+			res.status(200).json({
+				success: true,
+				message: "Top rated restaurants fetched successfully",
+				data: topRatedRestaurants,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
+		}
+	}
+);

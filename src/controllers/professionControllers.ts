@@ -161,3 +161,27 @@ export const addReviewToProfession = asyncHandler(
 		}
 	}
 );
+
+/**
+ * @description Get Top rated professions
+ * @name getTopRatedProfessions
+ * @route GET /api/professions/top
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const getTopRatedProfessions = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const topRatedProfessions = await ReviewService.getTopRatedReviews("profession");
+
+			res.status(200).json({
+				success: true,
+				message: "Top rated professions fetched successfully",
+				data: topRatedProfessions,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
+		}
+	}
+);
