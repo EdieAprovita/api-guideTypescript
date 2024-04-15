@@ -138,9 +138,9 @@ export const deleteBusiness = asyncHandler(
 );
 
 /**
- * @description Get all reviews for a business
- * @name getReviewsByBusiness
- * @route GET /api/businesses/:id/reviews
+ * @description Create a new review for a business
+ * @name addReviewToBusiness
+ * @route POST /api/businesses/:id/reviews
  * @access Public
  * @returns {Promise<Response>}
  */
@@ -158,6 +158,30 @@ export const addReviewToBusiness = asyncHandler(
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+		}
+	}
+);
+
+/**
+ * @description Get Top rated businesses
+ * @name getTopRatedBusinesses
+ * @route GET /api/businesses/top-rated
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const getTopRatedBusinesses = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const topRatedBusinesses = await ReviewService.getTopRatedReviews("business");
+
+			res.status(200).json({
+				success: true,
+				message: "Top rated businesses fetched successfully",
+				data: topRatedBusinesses,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
 		}
 	}
 );

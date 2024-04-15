@@ -8,7 +8,7 @@ export interface IReviewService {
 	updateReview(reviewId: string, updateData: Partial<IReview>): Promise<IReview>;
 	deleteReview(reviewId: string): Promise<void>;
 	listReviewsForModel(refId: string, refModel: string): Promise<IReview[]>;
-	getTopRatedModel(refModel: string): Promise<IReview[]>;
+	getTopRatedReviews(refModel: string): Promise<IReview[]>;
 }
 
 /**
@@ -53,7 +53,7 @@ class ReviewService implements IReviewService {
 		return reviews;
 	}
 
-	async getTopRatedModel(refModel: string): Promise<IReview[]> {
+	async getTopRatedReviews(refModel: string): Promise<IReview[]> {
 		const reviews = await Review.aggregate([
 			{ $match: { refModel } },
 			{

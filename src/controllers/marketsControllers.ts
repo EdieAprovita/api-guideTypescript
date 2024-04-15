@@ -159,3 +159,26 @@ export const addReviewToMarket = asyncHandler(
 		}
 	}
 );
+
+/**
+ * @description Get Top rated markets
+ * @name getTopRatedMarkets
+ * @route GET /api/markets/top
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const getTopRatedMarkets = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const getTopRatedMarkets = await ReviewService.getTopRatedReviews("market");
+			res.status(200).json({
+				success: true,
+				message: "Top rated markets fetched successfully",
+				data: getTopRatedMarkets,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
+		}
+	}
+);

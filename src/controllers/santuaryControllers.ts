@@ -135,21 +135,46 @@ export const deleteSantuary = asyncHandler(
 );
 
 /**
- * @description Get all reviews for a santuary
- * @name getReviews
- * @route GET /api/santuaries/:id/reviews
- * @access Public
+ * @description Create a review for a santuary
+ * @name addReviewToSantuary
+ * @route POST /api/santuaries/:id/reviews
+ * @access Private
+ * @returns {Promise<Response>}
  */
 
-export const getReviews = asyncHandler(
+export const addReviewToSantuary = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const reviewData = { ...req.body, santuary: req.params.id };
+			const reviewData = { ...req.body, santuaryId: req.params.id };
 			const newReview = await ReviewService.addReview(reviewData);
+
 			res.status(200).json({
 				success: true,
-				message: "Reviews fetched successfully",
+				message: "Review added successfully",
 				data: newReview,
+			});
+		} catch (error) {
+			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+		}
+	}
+);
+
+/**
+ * @description Get Top rated santuaries
+ * @name getTopRatedSantuaries
+ * @route GET /api/santuaries/top
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const getTopRatedSantuaries = asyncHandler(
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const topRatedSantuary = await ReviewService.getTopRatedReviews("santuary");
+			res.status(200).json({
+				success: true,
+				message: "Top rated santuaries fetched successfully",
+				data: topRatedSantuary,
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
