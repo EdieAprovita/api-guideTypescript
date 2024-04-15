@@ -6,7 +6,7 @@ import {
 	createSantuary,
 	updateSantuary,
 	deleteSantuary,
-	getReviews,
+	addReviewToSantuary,
 } from "../controllers/santuaryControllers";
 
 const router = express.Router();
@@ -14,7 +14,7 @@ const router = express.Router();
 router.get("/", getSantuaries);
 router.get("/:id", getSantuaryById);
 router.post("/create", protect, createSantuary);
-router.post("/add-review/:id", protect, getReviews);
+router.post("/add-review/:id", protect, addReviewToSantuary);
 router.put("/update/:id", protect, admin, updateSantuary);
 router.delete("/delete/:id", protect, admin, deleteSantuary);
 
