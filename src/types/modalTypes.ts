@@ -56,3 +56,16 @@ export interface ISkill {
 	current: boolean;
 	description: string;
 }
+
+export interface IAnimal {
+	_id?: string;
+	animalName: string;
+	specie: string;
+	age: number;
+	gender: string;
+	habitat: string;
+	diet: string[];
+	image: string;
+	vaccines: string[];
+	lastVaccine?: Date;
+}

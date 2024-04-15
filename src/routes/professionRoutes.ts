@@ -13,8 +13,8 @@ const router = express.Router();
 
 router.get("/", getProfessions);
 router.get("/:id", getProfessionById);
-router.post("/create", protect, admin, createProfession);
-router.post("/add-review/:id", protect, admin, addReviewToProfession);
+router.post("/create", protect, createProfession);
+router.post("/add-review/:id", protect, addReviewToProfession);
 router.put("/update/:id", protect, admin, updateProfession);
 router.delete("/delete/:id", protect, admin, deleteProfession);
 

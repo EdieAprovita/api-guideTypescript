@@ -1,5 +1,5 @@
 import express from "express";
-import { protect, professional } from "../middleware/authMiddleware";
+import { protect, professional, admin } from "../middleware/authMiddleware";
 import {
 	getProfessionsProfile,
 	getProfessionProfileById,
@@ -13,7 +13,7 @@ const router = express.Router();
 router.get("/", getProfessionsProfile);
 router.get("/:id", getProfessionProfileById);
 router.post("/create", protect, professional, createProfessionProfile);
-router.put("/update/:id", protect, professional, updateProfessionProfile);
-router.delete("/delete/:id", protect, professional, deleteProfessionProfile);
+router.put("/update/:id", protect, professional, admin, updateProfessionProfile);
+router.delete("/delete/:id", protect, professional, admin, deleteProfessionProfile);
 
 export default router;
