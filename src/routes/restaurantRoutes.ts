@@ -1,5 +1,5 @@
 import express from "express";
-import { protect } from "../middleware/authMiddleware";
+import { protect, admin } from "../middleware/authMiddleware";
 import {
 	getRestaurants,
 	getRestaurantById,
@@ -15,7 +15,7 @@ router.get("/", getRestaurants);
 router.get("/:id", getRestaurantById);
 router.post("/create", protect, createRestaurant);
 router.post("/add-review/:id", protect, addReviewToRestaurant);
-router.put("/update/:id", protect, updateRestaurant);
-router.delete("/delete/:id", protect, deleteRestaurant);
+router.put("/update/:id", protect, admin, updateRestaurant);
+router.delete("/delete/:id", protect, admin, deleteRestaurant);
 
 export default router;

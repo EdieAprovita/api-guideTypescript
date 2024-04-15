@@ -1,5 +1,5 @@
 import express from "express";
-import { protect } from "../middleware/authMiddleware";
+import { protect, admin } from "../middleware/authMiddleware";
 import {
 	getDoctors,
 	getDoctorById,
@@ -15,7 +15,7 @@ router.get("/", getDoctors);
 router.get("/:id", getDoctorById);
 router.post("/create", protect, createDoctor);
 router.post("/add-review/:id", protect, addReviewToDoctor);
-router.put("/update/:id", protect, updateDoctor);
-router.delete("/delete/:id", protect, deleteDoctor);
+router.put("/update/:id", protect, admin, updateDoctor);
+router.delete("/delete/:id", protect, admin, deleteDoctor);
 
 export default router;
