@@ -5,7 +5,7 @@ import { Market, IMarket } from "../models/Market";
  * @description Markets service class
  * @name MarketsService
  * @class
- * @returns
+ * @returns {Object}
  * */
 
 class MarketsService extends BaseService<IMarket> {

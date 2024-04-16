@@ -3,21 +3,21 @@ import asyncHandler from "../middleware/asyncHandler";
 import { validationResult } from "express-validator";
 import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
-import { santuaryService as SantuaryService } from "../services/SantuaryService";
+import { sanctuaryService as SanctuaryService } from "../services/SanctuaryService";
 import { reviewService as ReviewService } from "../services/ReviewService";
 
 /**
  * @description Get all santuaries
  * @name getSantuaries
- * @route GET /api/santuaries
+ * @route GET /api/sanctuaries
  * @access Public
  * @returns {Promise<Response>}
  */
 
-export const getSantuaries = asyncHandler(
+export const getSanctuaries = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const santuaries = await SantuaryService.getAll();
+			const santuaries = await SanctuaryService.getAll();
 			res.status(200).json({
 				success: true,
 				message: "Santuaries fetched successfully",
@@ -30,22 +30,22 @@ export const getSantuaries = asyncHandler(
 );
 
 /**
- * @description Get a santuary by id
- * @name getSantuaryById
- * @route GET /api/santuaries/:id
+ * @description Get a sanctuary by id
+ * @name getSanctuaryById
+ * @route GET /api/sanctuaries/:id
  * @access Public
  * @returns {Promise<Response>}
  */
 
-export const getSantuaryById = asyncHandler(
+export const getSanctuaryById = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			const santuary = await SantuaryService.findById(id);
+			const sanctuary = await SanctuaryService.findById(id);
 			res.status(200).json({
 				success: true,
-				message: "Santuary fetched successfully",
-				data: santuary,
+				message: "sanctuary fetched successfully",
+				data: sanctuary,
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
@@ -54,13 +54,13 @@ export const getSantuaryById = asyncHandler(
 );
 
 /**
- * @description Create a new santuary
- * @name createSantuary
- * @route POST /api/santuaries
+ * @description Create a new sanctuary
+ * @name createSanctuary
+ * @route POST /api/sanctuaries
  * @access Private
  */
 
-export const createSantuary = asyncHandler(
+export const createSanctuary = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
@@ -70,11 +70,11 @@ export const createSantuary = asyncHandler(
 		}
 
 		try {
-			const santuary = await SantuaryService.create(req.body);
+			const sanctuary = await SanctuaryService.create(req.body);
 			res.status(201).json({
 				success: true,
-				message: "Santuary created successfully",
-				data: santuary,
+				message: "sanctuary created successfully",
+				data: sanctuary,
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error)));
@@ -83,13 +83,13 @@ export const createSantuary = asyncHandler(
 );
 
 /**
- * @description Update a santuary
- * @name updateSantuary
- * @route PUT /api/santuaries/:id
+ * @description Update a sanctuary
+ * @name updateSanctuary
+ * @route PUT /api/sanctuaries/:id
  * @access Private
  */
 
-export const updateSantuary = asyncHandler(
+export const updateSanctuary = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
@@ -100,11 +100,11 @@ export const updateSantuary = asyncHandler(
 
 		try {
 			const { id } = req.params;
-			const santuary = await SantuaryService.updateById(id, req.body);
+			const sanctuary = await SanctuaryService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
-				message: "Santuary updated successfully",
-				data: santuary,
+				message: "sanctuary updated successfully",
+				data: sanctuary,
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
@@ -113,20 +113,20 @@ export const updateSantuary = asyncHandler(
 );
 
 /**
- * @description Delete a santuary
- * @name deleteSantuary
- * @route DELETE /api/santuaries/:id
+ * @description Delete a sanctuary
+ * @name deleteSanctuary
+ * @route DELETE /api/sanctuaries/:id
  * @access Private
  */
 
-export const deleteSantuary = asyncHandler(
+export const deleteSanctuary = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const { id } = req.params;
-			await SantuaryService.deleteById(id);
+			await SanctuaryService.deleteById(id);
 			res.status(200).json({
 				success: true,
-				message: "Santuary deleted successfully",
+				message: "sanctuary deleted successfully",
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
@@ -135,17 +135,17 @@ export const deleteSantuary = asyncHandler(
 );
 
 /**
- * @description Create a review for a santuary
- * @name addReviewToSantuary
- * @route POST /api/santuaries/:id/reviews
+ * @description Create a review for a sanctuary
+ * @name addReviewToSanctuary
+ * @route POST /api/sanctuaries/:id/reviews
  * @access Private
  * @returns {Promise<Response>}
  */
 
-export const addReviewToSantuary = asyncHandler(
+export const addReviewToSanctuary = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const reviewData = { ...req.body, santuaryId: req.params.id };
+			const reviewData = { ...req.body, sanctuaryId: req.params.id };
 			const newReview = await ReviewService.addReview(reviewData);
 
 			res.status(200).json({
@@ -160,21 +160,21 @@ export const addReviewToSantuary = asyncHandler(
 );
 
 /**
- * @description Get Top rated santuaries
- * @name getTopRatedSantuaries
- * @route GET /api/santuaries/top
+ * @description Get Top rated sanctuaries
+ * @name getTopRatedSanctuaries
+ * @route GET /api/sanctuaries/top
  * @access Public
  * @returns {Promise<Response>}
  */
 
-export const getTopRatedSantuaries = asyncHandler(
+export const getTopRatedSanctuaries = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const topRatedSantuary = await ReviewService.getTopRatedReviews("santuary");
+			const topRatedSanctuary = await ReviewService.getTopRatedReviews("sanctuary");
 			res.status(200).json({
 				success: true,
 				message: "Top rated santuaries fetched successfully",
-				data: topRatedSantuary,
+				data: topRatedSanctuary,
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));

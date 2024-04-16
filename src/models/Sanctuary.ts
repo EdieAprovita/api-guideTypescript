@@ -2,13 +2,13 @@ import mongoose, { Schema, Types, Document } from "mongoose";
 
 import { IAnimal, IContact } from "../types/modalTypes";
 
-export interface ISantuary extends Document {
+export interface ISanctuary extends Document {
 	_id?: string;
-	santuaryName: string;
+	sanctuaryName: string;
 	author: Types.ObjectId;
 	address?: string;
 	image: string;
-	typeofSantuary: string;
+	typeofsanctuary: string;
 	animals: IAnimal[];
 	capacity: number;
 	caretakers: string[];
@@ -22,9 +22,9 @@ export interface ISantuary extends Document {
 	};
 }
 
-const santuarySchema = new Schema<ISantuary>(
+const sanctuarySchema = new Schema<ISanctuary>(
 	{
-		santuaryName: {
+		sanctuaryName: {
 			type: String,
 			required: true,
 			unique: true,
@@ -41,7 +41,7 @@ const santuarySchema = new Schema<ISantuary>(
 			type: String,
 			required: true,
 		},
-		typeofSantuary: {
+		typeofsanctuary: {
 			type: String,
 			required: true,
 		},
@@ -134,4 +134,4 @@ const santuarySchema = new Schema<ISantuary>(
 	},
 	{ timestamps: true }
 );
-export const Santuary = mongoose.model<ISantuary>("Santuary", santuarySchema);
+export const Sanctuary = mongoose.model<ISanctuary>("sanctuary", sanctuarySchema);

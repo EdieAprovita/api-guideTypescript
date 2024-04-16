@@ -7,7 +7,7 @@ import { IPost, Post } from "../models/Post";
  * @description Post service class
  * @name PostService
  * @class
- * @returns
+ * @returns {Object}
  * */
 
 class PostService extends BaseService<IPost> {

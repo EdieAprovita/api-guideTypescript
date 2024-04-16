@@ -5,7 +5,7 @@ import { IBusiness, Business } from "../models/Business";
  * @description Business service class
  * @name BusinessService
  * @class
- * @returns
+ * @returns {Object}
  * */
 
 class BusinessService extends BaseService<IBusiness> {

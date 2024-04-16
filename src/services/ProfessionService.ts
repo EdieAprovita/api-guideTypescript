@@ -5,7 +5,7 @@ import { Profession, IProfession } from "../models/Profession";
  * @description Profession service class
  * @name ProfessionService
  * @class
- * @returns
+ * @returns {Object}
  * */
 
 class ProfessionService extends BaseServices<IProfession> {
