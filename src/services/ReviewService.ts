@@ -15,7 +15,7 @@ export interface IReviewService {
  * @description Review service class
  * @name ReviewService
  * @class
- * @returns
+ * @returns {Object}
  * */
 
 class ReviewService implements IReviewService {

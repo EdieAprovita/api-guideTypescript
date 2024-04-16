@@ -5,7 +5,7 @@ import { IDoctor, Doctor } from "../models/Doctor";
  * @description Doctor service class
  * @name DoctorService
  * @class
- * @returns
+ * @returns {Object}
  * */
 
 class DoctorService extends BaseService<IDoctor> {

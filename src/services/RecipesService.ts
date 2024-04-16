@@ -5,7 +5,7 @@ import { Recipe, IRecipe } from "../models/Recipe";
  * @description Recipe service class
  * @name RecipeService
  * @class
- * @returns
+ * @returns {Object}
  * */
 
 class RecipeService extends BaseService<IRecipe> {

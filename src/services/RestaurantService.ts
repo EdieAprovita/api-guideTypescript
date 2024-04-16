@@ -5,7 +5,7 @@ import { Restaurant, IRestaurant } from "../models/Restaurant";
  * @description Restaurant service class
  * @name RestaurantService
  * @class
- * @returns
+ * @returns {Object}
  * */
 
 class RestaurantService extends BaseService<IRestaurant> {

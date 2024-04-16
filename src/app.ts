@@ -16,7 +16,7 @@ import doctorsRoutes from "./routes/doctorsRoutes";
 import professionProfileRoutes from "./routes/professionProfileRoutes";
 import professionRoutes from "./routes/professionRoutes";
 import postRoutes from "./routes/postRoutes";
-import santuaryRoutes from "./routes/santuaryRoutes";
+import sanctuaryRoutes from "./routes/sanctuaryRoutes";
 
 dotenv.config();
 connectDB();
@@ -46,7 +46,7 @@ app.use("/api/v1/doctors", doctorsRoutes);
 app.use("/api/v1/professionsProfile", professionProfileRoutes);
 app.use("/api/v1/professions", professionRoutes);
 app.use("/api/v1/posts", postRoutes);
-app.use("/api/v1/santuaries", santuaryRoutes);
+app.use("/api/v1/sanctuaries", sanctuaryRoutes);
 
 // Error handling
 app.use(notFound);
