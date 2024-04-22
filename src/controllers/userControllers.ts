@@ -85,7 +85,7 @@ export const resetPassword = asyncHandler(
 /**
  * @description Logout user
  * @name logout
- * @route GET /api/users/logout
+ * @route POST /api/users/logout
  * @access Private
  * @returns {Promise<Response>}
  */
