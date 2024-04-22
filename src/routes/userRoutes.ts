@@ -8,6 +8,7 @@ import {
 	getUsers,
 	getUserById,
 	updateUserProfile,
+	logout,
 	deleteUserById,
 } from "../controllers/userControllers";
 
@@ -18,6 +19,7 @@ router.get("/:id", protect, getUserById);
 router.post("/login", loginUser);
 router.post("/register", registerUser);
 router.post("/forgot-password", forgotPassword);
+router.post("/logout", logout);
 router.put("/reset-password", resetPassword);
 router.put("/profile/:id", protect, updateUserProfile);
 router.delete("/:id", protect, admin, deleteUserById);
