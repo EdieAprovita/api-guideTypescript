@@ -10,7 +10,10 @@ import { getErrorMessage } from "../types/modalTypes";
  */
 
 class BaseService<T extends Document> {
-	constructor(protected model: Model<T>) {}
+	constructor(
+		protected model: Model<T>,
+		protected userId?: string
+	) {}
 
 	async getAll(): Promise<T[]> {
 		return this.model.find();
@@ -25,6 +28,7 @@ class BaseService<T extends Document> {
 	}
 
 	async create(data: Partial<T>): Promise<T> {
+		if (this.userId) data = { ...data, author: this.userId };
 		return this.model.create(data);
 	}
 
