@@ -8,20 +8,8 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import generateTokenAndSetCookie from "../utils/generateToken";
 
-/**
- * @description User service class
- * @name UserService
- * @class
- * @returns {Object}
- */
-
-class UserService {
-	async registerUser(
-		userData: Pick<IUser, "username" | "email" | "password">,
-		res: Response
-	) {
-		const { email } = userData;
-
+abstract class BaseService {
+	protected async validateUserNotExists(email: string) {
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
 			throw new HttpError(
@@ -29,63 +17,30 @@ class UserService {
 				getErrorMessage("User already exists")
 			);
 		}
-
-		const user = await User.create(userData);
-		generateTokenAndSetCookie(res, user._id);
-
-		return {
-			message: "User registered successfully",
-			user: {
-				_id: user._id,
-				username: user.username,
-				email: user.email,
-				role: user.role,
-				isAdmin: user.isAdmin,
-			},
-		};
 	}
 
-	async loginUser(email: string, password: string, res: Response) {
+	protected async getUserByEmail(email: string) {
 		const user = await User.findOne({ email }).select("+password");
-
-		if (!user) {
-			throw new HttpError(
-				HttpStatusCode.UNAUTHORIZED,
-				getErrorMessage("Invalid credentials")
-			);
-		}
-
-		const isMatch = await user.matchPassword(password);
-		if (!isMatch) {
-			throw new HttpError(
-				HttpStatusCode.UNAUTHORIZED,
-				getErrorMessage("Invalid credentials")
-			);
-		}
-
-		generateTokenAndSetCookie(res, user._id);
-
-		return {
-			user: {
-				_id: user._id,
-				username: user.username,
-				email: user.email,
-				role: user.role,
-				photo: user.photo,
-			},
-		};
+		this.validateUserExists(user);
+		return user;
 	}
 
-	async forgotPassword(email: string) {
-		const user = await User.findOne({ email });
-		if (!user) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("User not found"));
+	protected validateUserCredentials(user: IUser | null, password: string) {
+		if (!user || !user.matchPassword(password)) {
+			throw new HttpError(
+				HttpStatusCode.UNAUTHORIZED,
+				getErrorMessage("Invalid credentials")
+			);
 		}
+	}
 
-		const resetToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+	protected async generateResetToken(user: IUser) {
+		return jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
 			expiresIn: "1h",
 		});
+	}
 
+	protected async sendPasswordResetEmail(email: string, resetToken: string) {
 		const transporter = nodemailer.createTransport({
 			service: "gmail",
 			auth: {
@@ -96,33 +51,64 @@ class UserService {
 
 		await transporter.sendMail({
 			from: process.env.EMAIL_USER,
-			to: user.email,
+			to: email,
 			subject: "Password reset request",
-			text:
-				"Click on the link to reset your password: " +
-				process.env.CLIENT_URL +
-				"/reset-password/" +
-				resetToken,
+			text: `Click on the link to reset your password: ${process.env.CLIENT_URL}/reset-password/${resetToken}`,
 		});
-
-		return { message: "Email sent with password reset instructions" };
 	}
 
-	async resetPassword(resetToken: string, newPassword: string) {
+	protected async getUserByResetToken(resetToken: string) {
 		const decoded = jwt.verify(resetToken, process.env.JWT_SECRET) as JwtPayload;
 		if (!decoded) {
 			throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage("Invalid token"));
 		}
 
 		const user = await User.findById(decoded.userId);
-		if (!user) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("User not found"));
-		}
+		this.validateUserExists(user);
+		return user;
+	}
 
+	protected async updateUserPassword(user: IUser, newPassword: string) {
 		const hashedPassword = await bcrypt.hash(newPassword, 10);
 		user.password = hashedPassword;
 		await user.save();
+	}
 
+	protected validateUserExists(user: IUser | null) {
+		if (!user) {
+			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("User not found"));
+		}
+	}
+}
+
+class UserService extends BaseService {
+	async registerUser(
+		userData: Pick<IUser, "username" | "email" | "password">,
+		res: Response
+	) {
+		await this.validateUserNotExists(userData.email);
+		const user = await User.create(userData);
+		generateTokenAndSetCookie(res, user._id);
+		return this.getUserResponse(user);
+	}
+
+	async loginUser(email: string, password: string, res: Response) {
+		const user = await this.getUserByEmail(email);
+		this.validateUserCredentials(user, password);
+		generateTokenAndSetCookie(res, user._id);
+		return this.getUserResponse(user);
+	}
+
+	async forgotPassword(email: string) {
+		const user = await this.getUserByEmail(email);
+		const resetToken = await this.generateResetToken(user);
+		await this.sendPasswordResetEmail(user.email, resetToken);
+		return { message: "Email sent with password reset instructions" };
+	}
+
+	async resetPassword(resetToken: string, newPassword: string) {
+		const user = await this.getUserByResetToken(resetToken);
+		await this.updateUserPassword(user, newPassword);
 		return { message: "Password reset successful" };
 	}
 
@@ -133,51 +119,38 @@ class UserService {
 
 	async findAllUsers() {
 		const users = await User.find({});
-		return users.map(user => ({
-			_id: user._id,
-			username: user.username,
-			email: user.email,
-			role: user.role,
-			photo: user.photo,
-		}));
+		return users.map(this.getUserResponse);
 	}
 
 	async findUserById(userId: string) {
-		const user = await User.findById(userId);
-		if (!user) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("User not found"));
-		}
-		return user;
+		return User.findById(userId);
 	}
 
 	async updateUserById(userId: string, updateData: Partial<IUser>) {
-		const user = await User.findById(userId);
-		if (!user) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("User not found"));
-		}
-
-		if (updateData.password) {
-			user.password = updateData.password;
-		}
-
-		if (user) {
-			user.username = updateData.username || user.username;
-			user.email = updateData.email || user.email;
-			user.photo = updateData.photo || user.photo;
-			user.role = updateData.role || user.role;
-		}
-
-		const updatedUser = await user.save();
-
-		return updatedUser;
+		const user = await this.findUserById(userId);
+		this.updateUserFields(user, updateData);
+		return user.save();
 	}
 
 	async deleteUserById(userId: string) {
-		const user = await User.findByIdAndDelete(userId);
-		if (!user) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("User not found"));
-		}
+		await User.findByIdAndDelete(userId);
 		return { message: "User deleted successfully" };
+	}
+
+	private getUserResponse(user: IUser) {
+		const { _id, username, email, role, photo } = user;
+		return { _id, username, email, role, photo };
+	}
+
+	private updateUserFields(user: IUser, updateData: Partial<IUser>) {
+		const { password, username, email, photo, role } = updateData;
+		if (password) {
+			user.password = password;
+		}
+		user.username = username ?? user.username;
+		user.email = email ?? user.email;
+		user.photo = photo ?? user.photo;
+		user.role = role ?? user.role;
 	}
 }
 

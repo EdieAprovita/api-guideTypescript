@@ -12,11 +12,7 @@ import { errorHandler } from "./errorHandler";
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		let token: string;
-
-		if (req.cookies.jwt) {
-			token = req.cookies.jwt;
-		}
+		const token = req.cookies.jwt;
 
 		if (!token) {
 			throw new HttpError(
@@ -30,10 +26,6 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 		};
 		const currentUser = await User.findById(decoded.userId).select("-password");
 
-		if (!currentUser) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, "User not found");
-		}
-
 		req.user = currentUser;
 		next();
 	} catch (error) {
@@ -42,8 +34,8 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 };
 
 /**
- * @description Check if user is logged in
- * @name isLoggedIn
+ * @description Check if user is admin
+ * @name isAdmin
  * @returns {Promise<void>}
  */
 
@@ -60,8 +52,8 @@ export const admin = (req: Request, res: Response, next: NextFunction) => {
 };
 
 /**
- * @description Check if user is logged in
- * @name isLoggedIn
+ * @description Check if user is professional
+ * @name professional
  * @returns {Promise<void>}
  */
 

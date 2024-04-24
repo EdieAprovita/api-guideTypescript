@@ -23,11 +23,11 @@ interface TokenPayload {
 }
 
 const generateTokenAndSetCookie = (res: Response, userId: string): void => {
-	try {
-		if (!userId) {
-			throw new UserIdRequiredError("User ID is required");
-		}
+	if (!userId) {
+		throw new UserIdRequiredError("User ID is required");
+	}
 
+	try {
 		const token = jwt.sign({ userId } as TokenPayload, process.env.JWT_SECRET as string, {
 			expiresIn: "30d",
 		});
@@ -38,11 +38,7 @@ const generateTokenAndSetCookie = (res: Response, userId: string): void => {
 		};
 		res.cookie(COOKIE_NAME, token, cookieOptions);
 	} catch (error) {
-		if (error instanceof TokenGenerationError || error instanceof UserIdRequiredError) {
-			throw error;
-		} else {
-			throw new Error("Unable to generate token and set cookie");
-		}
+		throw new TokenGenerationError("Unable to generate token and set cookie");
 	}
 };
 
