@@ -8,7 +8,7 @@ export interface ISanctuary extends Document {
 	author: Types.ObjectId;
 	address?: string;
 	image: string;
-	typeofsanctuary: string;
+	typeofSanctuary: string;
 	animals: IAnimal[];
 	capacity: number;
 	caretakers: string[];
@@ -41,7 +41,7 @@ const sanctuarySchema = new Schema<ISanctuary>(
 			type: String,
 			required: true,
 		},
-		typeofsanctuary: {
+		typeofSanctuary: {
 			type: String,
 			required: true,
 		},
