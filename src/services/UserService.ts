@@ -4,7 +4,7 @@ import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 
 import { User, IUser } from "../models/User";
-import { HttpError, HttpStatusCode } from "../types/Errors";
+import { HttpError, HttpStatusCode, UserIdRequiredError } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import generateTokenAndSetCookie from "../utils/generateToken";
 
@@ -123,6 +123,7 @@ class UserService extends BaseService {
 	}
 
 	async findUserById(userId: string) {
+		if (!userId) throw new UserIdRequiredError("User ID not found");
 		return User.findById(userId);
 	}
 

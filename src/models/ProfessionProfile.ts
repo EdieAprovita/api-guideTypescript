@@ -9,7 +9,7 @@ export interface IProfessionProfile extends Document {
 	skills: ISkill[];
 	experience: IExperience[];
 	education: IEducation[];
-	social: ISocial;
+	social: ISocial[];
 	date: Date;
 	reviews: Types.ObjectId[];
 	rating: number;
@@ -44,23 +44,25 @@ const professionalProfileSchema = new Schema<IProfessionProfile>({
 		},
 	],
 	skills: [{ type: String }],
-	social: {
-		youtube: {
-			type: String,
+	social: [
+		{
+			youtube: {
+				type: String,
+			},
+			facebook: {
+				type: String,
+			},
+			twitter: {
+				type: String,
+			},
+			instagram: {
+				type: String,
+			},
+			linkedin: {
+				type: String,
+			},
 		},
-		facebook: {
-			type: String,
-		},
-		twitter: {
-			type: String,
-		},
-		instagram: {
-			type: String,
-		},
-		linkedin: {
-			type: String,
-		},
-	},
+	],
 	experience: [
 		{
 			title: {
