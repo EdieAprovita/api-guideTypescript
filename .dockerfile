@@ -24,7 +24,7 @@ RUN npm run build
 
 #Expose the port defined in the .env file or default to 5000
 
-ENV PORT=${PORT:-5000}
+ENV PORT=${PORT:-5001}
 
 # Set the NODE_ENV environment variable to 'development' by default
 ENV NODE_ENV=${NODE_ENV:-development}
