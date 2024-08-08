@@ -9,6 +9,12 @@ import { getErrorMessage } from "../types/modalTypes";
 import generateTokenAndSetCookie from "../utils/generateToken";
 
 abstract class BaseService {
+	protected validateUserExists(user: IUser | null) {
+		if (!user) {
+			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("User not found"));
+		}
+	}
+
 	protected async validateUserNotExists(email: string) {
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
@@ -25,8 +31,8 @@ abstract class BaseService {
 		return user;
 	}
 
-	protected validateUserCredentials(user: IUser | null, password: string) {
-		if (!user || !user.matchPassword(password)) {
+	protected async validateUserCredentials(user: IUser | null, password: string) {
+		if (!user || !(await user.matchPassword(password))) {
 			throw new HttpError(
 				HttpStatusCode.UNAUTHORIZED,
 				getErrorMessage("Invalid credentials")
@@ -72,12 +78,6 @@ abstract class BaseService {
 		const hashedPassword = await bcrypt.hash(newPassword, 10);
 		user.password = hashedPassword;
 		await user.save();
-	}
-
-	protected validateUserExists(user: IUser | null) {
-		if (!user) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("User not found"));
-		}
 	}
 }
 
