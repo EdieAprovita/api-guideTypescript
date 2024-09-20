@@ -1,36 +1,42 @@
-#Use Node.js 18 as the base image
+# Etapa 1: Construcción
+FROM node:18-alpine AS builder
 
-FROM node:18-alpine3.19
-
-#Set the working directory in the container to /src
-
+# Establecer el directorio de trabajo
 WORKDIR /src
 
-#Copy the package.json and package-lock.json files to the working directory
-
+# Copiar los archivos de dependencias
 COPY package*.json ./
 
-#Install the dependencies
-
+# Instalar dependencias de desarrollo y producción
 RUN npm install
 
-#Copy the rest of the application files to the working directory
-
+# Copiar el resto de los archivos de la aplicación
 COPY . .
 
-#Build Typescript code 
-
+# Construir la aplicación
 RUN npm run build
 
-#Expose the port defined in the .env file or default to 5000
+# Etapa 2: Imagen de producción
+FROM node:18-alpine
 
-ENV PORT=${PORT:-5001}
+# Establecer el directorio de trabajo
+WORKDIR /src
 
-# Set the NODE_ENV environment variable to 'development' by default
-ENV NODE_ENV=${NODE_ENV:-development}
+# Copiar las dependencias de producción desde el builder
+COPY --from=builder /src/package*.json ./
+COPY --from=builder /src/node_modules ./node_modules
 
-# Expose the port on which the app will run
-EXPOSE $PORT
+# Copiar el código compilado
+COPY --from=builder /src/dist ./dist
 
-# Command to start the application
-CMD ["npm", "run", "start:prod"]
+# Exponer el puerto (ajústalo si tu aplicación usa otro puerto)
+EXPOSE 5000
+
+# Establecer NODE_ENV a 'production'
+ENV NODE_ENV=production
+
+# Usar un usuario no root
+USER node
+
+# Comando para iniciar la aplicación
+CMD ["node", "dist/server.js"]

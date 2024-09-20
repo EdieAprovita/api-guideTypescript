@@ -24,9 +24,9 @@ spec:
             cpu: "1"
             memory: "512Mi"
             ephemeral-storage: "2Gi"
-        image: api-guidetypescript-app:efac9508c0d6
+        image: edieveg316/api-guidetypescript-app:latest
         ports:
-        - containerPort: 5000
+        - containerPort: 5001
         env:
         - name: PORT
-          value: "5000"
+          value: "5001"

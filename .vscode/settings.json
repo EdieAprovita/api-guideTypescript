@@ -1,0 +1,6 @@
+{
+	"sonarlint.connectedMode.project": {
+		"connectionId": "edieaprovita",
+		"projectKey": "EdieAprovita_api-guideTypescript"
+	}
+}
