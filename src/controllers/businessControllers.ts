@@ -5,7 +5,7 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import { businessService as BusinessService } from "../services/BusinessService";
 import { reviewService as ReviewService } from "../services/ReviewService";
-import geoService from "../services/GeoService";
+import geocodeAndAssignLocation from "../utils/geocodeLocation";
 
 /**
  * @description Get all businesses
@@ -72,17 +72,9 @@ export const createBusiness = asyncHandler(
 			);
 		}
 
-        try {
-                        if (req.body.address) {
-                                const coords = await geoService.geocodeAddress(req.body.address);
-                                if (coords) {
-                                        req.body.location = {
-                                                type: "Point",
-                                                coordinates: [coords.lng, coords.lat],
-                                        };
-                                }
-                        }
-                        const business = await BusinessService.create(req.body);
+       try {
+                        await geocodeAndAssignLocation(req.body);
+                       const business = await BusinessService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "Business created successfully",
@@ -112,16 +104,8 @@ export const updateBusiness = asyncHandler(
 		}
                 try {
                         const { id } = req.params;
-                        if (req.body.address) {
-                                const coords = await geoService.geocodeAddress(req.body.address);
-                                if (coords) {
-                                        req.body.location = {
-                                                type: "Point",
-                                                coordinates: [coords.lng, coords.lat],
-                                        };
-                                }
-                        }
-                        const updatedBusiness = await BusinessService.updateById(id, req.body);
+                        await geocodeAndAssignLocation(req.body);
+                       const updatedBusiness = await BusinessService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Business updated successfully",

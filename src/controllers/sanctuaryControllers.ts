@@ -5,10 +5,10 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import { sanctuaryService as SanctuaryService } from "../services/SanctuaryService";
 import { reviewService as ReviewService } from "../services/ReviewService";
-import geoService from "../services/GeoService";
+import geocodeAndAssignLocation from "../utils/geocodeLocation";
 
 /**
- * @description Get all santuaries
+ * @description Get all sanctuaries
  * @name getSantuaries
  * @route GET /api/sanctuaries
  * @access Public
@@ -18,11 +18,11 @@ import geoService from "../services/GeoService";
 export const getSanctuaries = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const santuaries = await SanctuaryService.getAll();
-			res.status(200).json({
-				success: true,
-				message: "Santuaries fetched successfully",
-				data: santuaries,
+                        const sanctuaries = await SanctuaryService.getAll();
+                        res.status(200).json({
+                                success: true,
+                                message: "Sanctuaries fetched successfully",
+                                data: sanctuaries,
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
@@ -71,16 +71,8 @@ export const createSanctuary = asyncHandler(
 		}
 
                try {
-                        if (req.body.address) {
-                                const coords = await geoService.geocodeAddress(req.body.address);
-                                if (coords) {
-                                        req.body.location = {
-                                                type: "Point",
-                                                coordinates: [coords.lng, coords.lat],
-                                        };
-                                }
-                        }
-                        const sanctuary = await SanctuaryService.create(req.body);
+                        await geocodeAndAssignLocation(req.body);
+                       const sanctuary = await SanctuaryService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "sanctuary created successfully",
@@ -110,16 +102,8 @@ export const updateSanctuary = asyncHandler(
 
                try {
                        const { id } = req.params;
-                        if (req.body.address) {
-                                const coords = await geoService.geocodeAddress(req.body.address);
-                                if (coords) {
-                                        req.body.location = {
-                                                type: "Point",
-                                                coordinates: [coords.lng, coords.lat],
-                                        };
-                                }
-                        }
-                        const sanctuary = await SanctuaryService.updateById(id, req.body);
+                        await geocodeAndAssignLocation(req.body);
+                       const sanctuary = await SanctuaryService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "sanctuary updated successfully",
@@ -189,11 +173,11 @@ export const addReviewToSanctuary = asyncHandler(
 export const getTopRatedSanctuaries = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const topRatedSanctuary = await ReviewService.getTopRatedReviews("sanctuary");
-			res.status(200).json({
-				success: true,
-				message: "Top rated santuaries fetched successfully",
-				data: topRatedSanctuary,
+                        const topRatedSanctuary = await ReviewService.getTopRatedReviews("sanctuary");
+                        res.status(200).json({
+                                success: true,
+                                message: "Top rated sanctuaries fetched successfully",
+                                data: topRatedSanctuary,
 			});
 		} catch (error) {
 			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));

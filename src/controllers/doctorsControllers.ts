@@ -5,7 +5,7 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import { doctorService as DoctorService } from "../services/DoctorService";
 import { reviewService as ReviewService } from "../services/ReviewService";
-import geoService from "../services/GeoService";
+import geocodeAndAssignLocation from "../utils/geocodeLocation";
 
 /**
  * @description Get all doctors
@@ -71,15 +71,7 @@ export const createDoctor = asyncHandler(
 			);
 		}
                 try {
-                        if (req.body.address) {
-                                const coords = await geoService.geocodeAddress(req.body.address);
-                                if (coords) {
-                                        req.body.location = {
-                                                type: "Point",
-                                                coordinates: [coords.lng, coords.lat],
-                                        };
-                                }
-                        }
+                        await geocodeAndAssignLocation(req.body);
                         const doctor = await DoctorService.create(req.body);
 			res.status(201).json({
 				success: true,
@@ -110,15 +102,7 @@ export const updateDoctor = asyncHandler(
 		}
                 try {
                         const { id } = req.params;
-                        if (req.body.address) {
-                                const coords = await geoService.geocodeAddress(req.body.address);
-                                if (coords) {
-                                        req.body.location = {
-                                                type: "Point",
-                                                coordinates: [coords.lng, coords.lat],
-                                        };
-                                }
-                        }
+                        await geocodeAndAssignLocation(req.body);
                         const doctor = await DoctorService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,

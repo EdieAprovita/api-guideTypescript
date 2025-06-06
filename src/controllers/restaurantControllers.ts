@@ -5,7 +5,7 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import { restaurantService as RestaurantService } from "../services/RestaurantService";
 import { reviewService as ReviewService } from "../services/ReviewService";
-import geoService from "../services/GeoService";
+import geocodeAndAssignLocation from "../utils/geocodeLocation";
 
 /**
  * @description Get all restaurants
@@ -72,15 +72,7 @@ export const createRestaurant = asyncHandler(
 			);
 		}
                 try {
-                        if (req.body.address) {
-                                const coords = await geoService.geocodeAddress(req.body.address);
-                                if (coords) {
-                                        req.body.location = {
-                                                type: "Point",
-                                                coordinates: [coords.lng, coords.lat],
-                                        };
-                                }
-                        }
+                        await geocodeAndAssignLocation(req.body);
                         const restaurant = await RestaurantService.create(req.body);
 			res.status(201).json({
 				success: true,
@@ -111,15 +103,7 @@ export const updateRestaurant = asyncHandler(
 		}
                 try {
                         const { id } = req.params;
-                        if (req.body.address) {
-                                const coords = await geoService.geocodeAddress(req.body.address);
-                                if (coords) {
-                                        req.body.location = {
-                                                type: "Point",
-                                                coordinates: [coords.lng, coords.lat],
-                                        };
-                                }
-                        }
+                        await geocodeAndAssignLocation(req.body);
                         const restaurant = await RestaurantService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
