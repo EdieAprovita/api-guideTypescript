@@ -29,6 +29,8 @@ if (process.env.NODE_ENV !== "test") {
 
 const app = express();
 
+app.use(helmet());
+
 const limiter = rateLimit({
         windowMs: 15 * 60 * 1000,
         max: 100,
@@ -39,11 +41,10 @@ if (process.env.NODE_ENV === "development") {
         app.use(morgan("dev"));
 }
 
+app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(helmet());
-app.use(limiter);
 app.use(mongoSanitize());
 app.use(xssClean());
 app.use(corsMiddleware);
