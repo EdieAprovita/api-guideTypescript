@@ -1,14 +1,9 @@
 import request from "supertest";
-jest.mock("../../config/db");
+import { geoService } from "./controllerTestSetup";
+import "./controllerTestSetup";
 import app from "../../app";
 import { marketsService } from "../../services/MarketsService";
 import { reviewService } from "../../services/ReviewService";
-import geoService from "../../services/GeoService";
-
-jest.mock("../../services/GeoService", () => ({
-  __esModule: true,
-  default: { geocodeAddress: jest.fn() },
-}));
 
 jest.mock("../../services/MarketsService", () => ({
   marketsService: {
@@ -19,26 +14,6 @@ jest.mock("../../services/MarketsService", () => ({
     deleteById: jest.fn(),
   },
 }));
-
-jest.mock("../../services/ReviewService", () => ({
-  reviewService: {
-    addReview: jest.fn(),
-    getTopRatedReviews: jest.fn(),
-  },
-}));
-
-jest.mock("../../middleware/authMiddleware", () => ({
-  protect: (req, _res, next) => {
-    req.user = { id: "user", role: "admin" };
-    next();
-  },
-  admin: (_req, _res, next) => next(),
-  professional: (_req, _res, next) => next(),
-}));
-
-beforeEach(() => {
-  jest.clearAllMocks();
-});
 
 describe("Markets Controllers", () => {
   it("gets all markets", async () => {
