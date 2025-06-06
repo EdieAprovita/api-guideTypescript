@@ -11,7 +11,7 @@ describe("UserService updateUserById", () => {
         jest.spyOn(UserService, "findUserById").mockResolvedValue(null as any);
 
         await expect(UserService.updateUserById("1", {})).rejects.toThrow(
-            new HttpError(HttpStatusCode.NOT_FOUND, "Internal Server Error")
+            new HttpError(HttpStatusCode.NOT_FOUND, "User not found")
         );
     });
 });
