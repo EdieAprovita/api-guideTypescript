@@ -149,7 +149,7 @@ export const deleteDoctor = asyncHandler(
 export const addReviewToDoctor = asyncHandler(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const reviewData = { ...req.body, businessId: req.params.id };
+                        const reviewData = { ...req.body, doctorId: req.params.id };
 			const newReview = await ReviewService.addReview(reviewData);
 			res.status(200).json({
 				success: true,
