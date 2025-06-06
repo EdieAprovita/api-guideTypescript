@@ -5,6 +5,7 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import { restaurantService as RestaurantService } from "../services/RestaurantService";
 import { reviewService as ReviewService } from "../services/ReviewService";
+import geocodeAndAssignLocation from "../utils/geocodeLocation";
 
 /**
  * @description Get all restaurants
@@ -70,8 +71,9 @@ export const createRestaurant = asyncHandler(
 				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
 			);
 		}
-		try {
-			const restaurant = await RestaurantService.create(req.body);
+                try {
+                        await geocodeAndAssignLocation(req.body);
+                        const restaurant = await RestaurantService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "Restaurant created successfully",
@@ -99,9 +101,10 @@ export const updateRestaurant = asyncHandler(
 				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
 			);
 		}
-		try {
-			const { id } = req.params;
-			const restaurant = await RestaurantService.updateById(id, req.body);
+                try {
+                        const { id } = req.params;
+                        await geocodeAndAssignLocation(req.body);
+                        const restaurant = await RestaurantService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Restaurant updated successfully",

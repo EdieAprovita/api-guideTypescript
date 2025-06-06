@@ -5,6 +5,7 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import { marketsService as MarketsService } from "../services/MarketsService";
 import { reviewService as ReviewService } from "../services/ReviewService";
+import geocodeAndAssignLocation from "../utils/geocodeLocation";
 
 /**
  * @description Get all markets
@@ -69,8 +70,9 @@ export const createMarket = asyncHandler(
 				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
 			);
 		}
-		try {
-			const market = await MarketsService.create(req.body);
+                try {
+                        await geocodeAndAssignLocation(req.body);
+                        const market = await MarketsService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "Market created successfully",
@@ -98,9 +100,10 @@ export const updateMarket = asyncHandler(
 				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
 			);
 		}
-		try {
-			const { id } = req.params;
-			const market = await MarketsService.updateById(id, req.body);
+                try {
+                        const { id } = req.params;
+                        await geocodeAndAssignLocation(req.body);
+                        const market = await MarketsService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Market updated successfully",
