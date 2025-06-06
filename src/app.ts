@@ -2,6 +2,10 @@ import dotenv from "dotenv";
 import express from "express";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import mongoSanitize from "express-mongo-sanitize";
+import xssClean from "xss-clean";
 
 import connectDB from "./config/db";
 import { errorHandler, notFound } from "./middleware/errorHandler";
@@ -25,13 +29,23 @@ if (process.env.NODE_ENV !== "test") {
 
 const app = express();
 
+const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 100,
+        message: "Too many requests, please try again later.",
+});
+
 if (process.env.NODE_ENV === "development") {
-	app.use(morgan("dev"));
+        app.use(morgan("dev"));
 }
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(helmet());
+app.use(limiter);
+app.use(mongoSanitize());
+app.use(xssClean());
 app.use(corsMiddleware);
 
 app.get("/api/v1", (req, res) => {
