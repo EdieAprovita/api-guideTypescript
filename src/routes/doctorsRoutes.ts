@@ -13,9 +13,17 @@ const router = express.Router();
 
 router.get("/", getDoctors);
 router.get("/:id", getDoctorById);
+
+// For compatibility with older clients use explicit action paths
+router.post("/create", protect, createDoctor);
 router.post("/", protect, createDoctor);
+
 router.post("/add-review/:id", protect, addReviewToDoctor);
+
+router.put("/update/:id", protect, admin, updateDoctor);
 router.put("/:id", protect, admin, updateDoctor);
+
+router.delete("/delete/:id", protect, admin, deleteDoctor);
 router.delete("/:id", protect, admin, deleteDoctor);
 
 export default router;
