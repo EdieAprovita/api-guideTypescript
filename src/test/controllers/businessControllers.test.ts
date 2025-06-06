@@ -113,6 +113,23 @@ describe("Business Controllers Tests", () => {
                                 })
                         );
                 });
+
+                it("handles geocoding errors gracefully", async () => {
+                        (geoService.geocodeAddress as jest.Mock).mockRejectedValue(new Error("boom"));
+                        (businessService.create as jest.Mock).mockResolvedValue({ id: "1" });
+
+                        await request(app)
+                                .post("/api/v1/businesses/create")
+                                .send({ namePlace: "BoomCo", address: "explode" });
+
+                        expect(geoService.geocodeAddress).toHaveBeenCalledWith("explode");
+                        expect(businessService.create).toHaveBeenCalledWith(
+                                expect.objectContaining({
+                                        namePlace: "BoomCo",
+                                        address: "explode",
+                                })
+                        );
+                });
         });
 
         describe("Update business", () => {
