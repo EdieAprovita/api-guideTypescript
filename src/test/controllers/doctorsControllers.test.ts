@@ -67,6 +67,6 @@ describe("Doctors Controllers", () => {
       .send({ text: "good" });
 
     expect(res.status).toBe(200);
-    expect(reviewService.addReview).toHaveBeenCalledWith({ text: "good", businessId: "1" });
+    expect(reviewService.addReview).toHaveBeenCalledWith({ text: "good", doctorId: "1" });
   });
 });
