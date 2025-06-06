@@ -5,6 +5,7 @@ import { HttpError, HttpStatusCode } from "../types/Errors";
 import { getErrorMessage } from "../types/modalTypes";
 import { doctorService as DoctorService } from "../services/DoctorService";
 import { reviewService as ReviewService } from "../services/ReviewService";
+import geoService from "../services/GeoService";
 
 /**
  * @description Get all doctors
@@ -69,8 +70,17 @@ export const createDoctor = asyncHandler(
 				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
 			);
 		}
-		try {
-			const doctor = await DoctorService.create(req.body);
+                try {
+                        if (req.body.address) {
+                                const coords = await geoService.geocodeAddress(req.body.address);
+                                if (coords) {
+                                        req.body.location = {
+                                                type: "Point",
+                                                coordinates: [coords.lng, coords.lat],
+                                        };
+                                }
+                        }
+                        const doctor = await DoctorService.create(req.body);
 			res.status(201).json({
 				success: true,
 				message: "Doctor created successfully",
@@ -98,9 +108,18 @@ export const updateDoctor = asyncHandler(
 				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
 			);
 		}
-		try {
-			const { id } = req.params;
-			const doctor = await DoctorService.updateById(id, req.body);
+                try {
+                        const { id } = req.params;
+                        if (req.body.address) {
+                                const coords = await geoService.geocodeAddress(req.body.address);
+                                if (coords) {
+                                        req.body.location = {
+                                                type: "Point",
+                                                coordinates: [coords.lng, coords.lat],
+                                        };
+                                }
+                        }
+                        const doctor = await DoctorService.updateById(id, req.body);
 			res.status(200).json({
 				success: true,
 				message: "Doctor updated successfully",
