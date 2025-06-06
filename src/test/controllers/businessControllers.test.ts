@@ -40,13 +40,17 @@ describe("Business Controllers Tests", () => {
 					],
 				},
 			];
-                        (businessService.getAll as jest.Mock).mockResolvedValue(mockBusinesses);
+                        (businessService.getAll as jest.Mock).mockResolvedValueOnce(mockBusinesses);
 
 			const response = await request(app).get("/api/v1/businesses");
 
                         expect(response.status).toBe(200);
                         expect(businessService.getAll).toHaveBeenCalled();
-                        expect(response.body.data).toEqual(mockBusinesses);
+                        expect(response.body).toEqual({
+                                success: true,
+                                message: "Businesses fetched successfully",
+                                data: mockBusinesses,
+                        });
                 });
         });
 
