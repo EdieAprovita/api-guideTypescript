@@ -1,14 +1,13 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
+import { IGeoJSONPoint } from "../types/modalTypes";
+import { geoJSONPointSchema } from "./GeoJSON";
 
 export interface IMarket extends Document {
 	_id: string;
 	marketName: string;
         author: Types.ObjectId;
         address: string;
-        location?: {
-                type: string;
-                coordinates: number[];
-        };
+        location?: IGeoJSONPoint;
         image: string;
 	typeMarket: string;
 	reviews: Types.ObjectId[];
@@ -36,10 +35,7 @@ const marketSchema = new Schema<IMarket>(
                         type: String,
                         required: true,
                 },
-                location: {
-                        type: { type: String, enum: ["Point"], default: "Point" },
-                        coordinates: [Number],
-                },
+                location: geoJSONPointSchema,
                 image: {
                         type: String,
                         required: true,

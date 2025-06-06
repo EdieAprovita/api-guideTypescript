@@ -69,3 +69,8 @@ export interface IAnimal {
 	vaccines: string[];
 	lastVaccine?: Date;
 }
+
+export interface IGeoJSONPoint {
+        type: 'Point';
+        coordinates: [number, number];
+}

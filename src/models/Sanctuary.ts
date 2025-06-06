@@ -1,16 +1,14 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IAnimal, IContact } from "../types/modalTypes";
+import { IAnimal, IContact, IGeoJSONPoint } from "../types/modalTypes";
+import { geoJSONPointSchema } from "./GeoJSON";
 
 export interface ISanctuary extends Document {
 	_id: string;
 	sanctuaryName: string;
         author: Types.ObjectId;
         address?: string;
-        location?: {
-                type: string;
-                coordinates: number[];
-        };
+        location?: IGeoJSONPoint;
         image: string;
 	typeofSanctuary: string;
 	animals: IAnimal[];
@@ -41,10 +39,7 @@ const sanctuarySchema = new Schema<ISanctuary>(
                 address: {
                         type: String,
                 },
-                location: {
-                        type: { type: String, enum: ["Point"], default: "Point" },
-                        coordinates: [Number],
-                },
+                location: geoJSONPointSchema,
                 image: {
                         type: String,
                         required: true,

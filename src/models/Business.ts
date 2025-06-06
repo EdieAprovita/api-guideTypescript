@@ -1,16 +1,14 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IContact } from "../types/modalTypes";
+import { IContact, IGeoJSONPoint } from "../types/modalTypes";
+import { geoJSONPointSchema } from "./GeoJSON";
 
 export interface IBusiness extends Document {
         _id: string;
         namePlace: string;
         author: Types.ObjectId;
         address: string;
-        location?: {
-                type: string;
-                coordinates: number[];
-        };
+        location?: IGeoJSONPoint;
         image: string;
         contact: IContact[];
         budget: number;
@@ -36,10 +34,7 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
                         type: String,
                         required: true,
                 },
-                location: {
-                        type: { type: String, enum: ["Point"], default: "Point" },
-                        coordinates: [Number],
-                },
+                location: geoJSONPointSchema,
                 contact: [
                         {
                                 phone: Number,

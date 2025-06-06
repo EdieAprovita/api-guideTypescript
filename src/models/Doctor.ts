@@ -1,16 +1,14 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IContact } from "../types/modalTypes";
+import { IContact, IGeoJSONPoint } from "../types/modalTypes";
+import { geoJSONPointSchema } from "./GeoJSON";
 
 export interface IDoctor extends Document {
 	_id: string;
 	doctorName: string;
         author: Types.ObjectId;
         address: string;
-        location?: {
-                type: string;
-                coordinates: number[];
-        };
+        location?: IGeoJSONPoint;
         image: string;
 	specialty: string;
 	contact: IContact[];
@@ -39,10 +37,7 @@ const doctorSchema = new Schema<IDoctor>(
                         type: String,
                         required: true,
                 },
-                location: {
-                        type: { type: String, enum: ["Point"], default: "Point" },
-                        coordinates: [Number],
-                },
+                location: geoJSONPointSchema,
                 image: {
                         type: String,
                         required: true,

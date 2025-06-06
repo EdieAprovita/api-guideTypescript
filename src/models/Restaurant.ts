@@ -1,6 +1,7 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
-import { IContact } from "../types/modalTypes";
+import { IContact, IGeoJSONPoint } from "../types/modalTypes";
+import { geoJSONPointSchema } from "./GeoJSON";
 
 export interface IRestaurant extends Document {
 	_id: string;
@@ -8,10 +9,7 @@ export interface IRestaurant extends Document {
 	author: Types.ObjectId;
         typePlace: string;
         address: string;
-        location?: {
-                type: string;
-                coordinates: number[];
-        };
+        location?: IGeoJSONPoint;
         image: string;
 	budget: string;
 	contact: IContact[];
@@ -36,10 +34,7 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
                         type: String,
                         required: true,
                 },
-                location: {
-                        type: { type: String, enum: ["Point"], default: "Point" },
-                        coordinates: [Number],
-                },
+                location: geoJSONPointSchema,
                 author: {
                         type: Schema.Types.ObjectId,
                         ref: "User",
