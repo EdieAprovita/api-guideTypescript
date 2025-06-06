@@ -1,4 +1,4 @@
-# # Vegan City Guide API
+# Vegan City Guide API
 
 The Vegan City Guide API is a RESTful API designed to serve as a platform for users to share and discover vegan-friendly places and services in their city. Whether it's recipes, restaurants, businesses, medical professionals, or markets, this API aims to provide a comprehensive guide for vegans and those interested in plant-based living.
 
@@ -14,37 +14,37 @@ The Vegan City Guide API is a RESTful API designed to serve as a platform for us
 
 ### Authentication
 
-- `POST /api/auth/register`: Register a new user.
-- `POST /api/auth/login`: User login.
+- `POST /api/v1/users/register`: Register a new user.
+- `POST /api/v1/users/login`: User login.
 
 ### User Management
 
-- `GET /api/users`: Get all users.
-- `GET /api/users/:id`: Get user by ID.
-- `PUT /api/users/:id`: Update user profile.
-- `DELETE /api/users/:id`: Delete user account.
+- `GET /api/v1/users`: Get all users.
+- `GET /api/v1/users/:id`: Get user by ID.
+- `PUT /api/v1/users/:id`: Update user profile.
+- `DELETE /api/v1/users/:id`: Delete user account.
 
 ### Places
 
-- `GET /api/places`: Get all places.
-- `GET /api/places/:id`: Get place by ID.
-- `POST /api/places`: Create a new place.
-- `PUT /api/places/:id`: Update place details.
-- `DELETE /api/places/:id`: Delete a place.
+- `GET /api/v1/places`: Get all places.
+- `GET /api/v1/places/:id`: Get place by ID.
+- `POST /api/v1/places`: Create a new place.
+- `PUT /api/v1/places/:id`: Update place details.
+- `DELETE /api/v1/places/:id`: Delete a place.
 
 ### Services
 
-- `GET /api/services`: Get all services.
-- `GET /api/services/:id`: Get service by ID.
-- `POST /api/services`: Create a new service.
-- `PUT /api/services/:id`: Update service details.
-- `DELETE /api/services/:id`: Delete a service.
+- `GET /api/v1/services`: Get all services.
+- `GET /api/v1/services/:id`: Get service by ID.
+- `POST /api/v1/services`: Create a new service.
+- `PUT /api/v1/services/:id`: Update service details.
+- `DELETE /api/v1/services/:id`: Delete a service.
 
 ### Social Interactions
 
-- `POST /api/places/:id/like`: Like a place.
-- `POST /api/places/:id/comment`: Add a comment to a place.
-- `POST /api/places/:id/share`: Share a place.
+- `POST /api/v1/places/:id/like`: Like a place.
+- `POST /api/v1/places/:id/comment`: Add a comment to a place.
+- `POST /api/v1/places/:id/share`: Share a place.
 
 ## Getting Started
 
