@@ -1,6 +1,5 @@
 import request from "supertest";
 import { geoService } from "./controllerTestSetup";
-import "./controllerTestSetup";
 import app from "../../app";
 import { restaurantService } from "../../services/RestaurantService";
 import { reviewService } from "../../services/ReviewService";
