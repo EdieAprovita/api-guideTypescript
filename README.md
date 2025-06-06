@@ -1,4 +1,4 @@
-# # Vegan City Guide API
+# Vegan City Guide API
 
 The Vegan City Guide API is a RESTful API designed to serve as a platform for users to share and discover vegan-friendly places and services in their city. Whether it's recipes, restaurants, businesses, medical professionals, or markets, this API aims to provide a comprehensive guide for vegans and those interested in plant-based living.
 
