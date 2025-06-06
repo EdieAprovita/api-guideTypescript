@@ -1,9 +1,8 @@
 import request from "supertest";
+// Prevent database connection attempts when importing the app
+jest.mock("../../config/db");
 import app from "../../app";
-import { Business } from "../../models/Business";
 import { businessService } from "../../services/BusinessService";
-
-jest.mock("../../models/Business");
 
 jest.mock("../../services/BusinessService", () => ({
 	businessService: {
@@ -41,14 +40,15 @@ describe("Business Controllers Tests", () => {
 					],
 				},
 			];
-			(Business.find as jest.Mock).mockResolvedValue(mockBusinesses);
+                        (businessService.getAll as jest.Mock).mockResolvedValue(mockBusinesses);
 
 			const response = await request(app).get("/api/v1/businesses");
 
-			expect(response.status).toBe(200);
-			expect(businessService.getAll).toHaveBeenCalled();
-		});
-	});
+                        expect(response.status).toBe(200);
+                        expect(businessService.getAll).toHaveBeenCalled();
+                        expect(response.body.data).toEqual(mockBusinesses);
+                });
+        });
 
 	describe("Get business by id", () => {
 		it("should get business by id", async () => {
