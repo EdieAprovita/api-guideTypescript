@@ -19,7 +19,7 @@ describe("UserService updateUserById", () => {
     });
 
     it("should throw NotFound error when user does not exist", async () => {
-        jest.spyOn(UserService, "findUserById").mockResolvedValue(null as any);
+        jest.spyOn(UserService, "findUserById").mockResolvedValue(null);
 
         const resultPromise = UserService.updateUserById("1", {});
         await expect(resultPromise).rejects.toThrowError(HttpError);
