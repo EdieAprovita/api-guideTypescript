@@ -1,14 +1,17 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 import { IContact } from "../types/modalTypes";
+import { IGeoJSONPoint } from "../types/GeoJSON";
+import { geoJSONPointSchema } from "./GeoJSON";
 
 export interface IRestaurant extends Document {
 	_id: string;
 	restaurantName: string;
 	author: Types.ObjectId;
-	typePlace: string;
-	address: string;
-	image: string;
+        typePlace: string;
+        address: string;
+        location?: IGeoJSONPoint;
+        image: string;
 	budget: string;
 	contact: IContact[];
 	cuisine: [string];
@@ -28,14 +31,15 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 			required: true,
 			unique: true,
 		},
-		address: {
-			type: String,
-			required: true,
-		},
-		author: {
-			type: Schema.Types.ObjectId,
-			ref: "User",
-			required: true,
+                address: {
+                        type: String,
+                        required: true,
+                },
+                location: geoJSONPointSchema,
+                author: {
+                        type: Schema.Types.ObjectId,
+                        ref: "User",
+                        required: true,
 		},
 		contact: [
 			{
@@ -72,5 +76,6 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 	},
 	{ timestamps: true }
 );
+restaurantSchema.index({ location: "2dsphere" });
 
 export const Restaurant = mongoose.model<IRestaurant>("Restaurant", restaurantSchema);

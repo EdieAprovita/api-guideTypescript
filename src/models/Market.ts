@@ -1,11 +1,14 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
+import { IGeoJSONPoint } from "../types/GeoJSON";
+import { geoJSONPointSchema } from "./GeoJSON";
 
 export interface IMarket extends Document {
 	_id: string;
 	marketName: string;
-	author: Types.ObjectId;
-	address: string;
-	image: string;
+        author: Types.ObjectId;
+        address: string;
+        location?: IGeoJSONPoint;
+        image: string;
 	typeMarket: string;
 	reviews: Types.ObjectId[];
 	rating: number;
@@ -28,14 +31,15 @@ const marketSchema = new Schema<IMarket>(
 			ref: "User",
 			required: true,
 		},
-		address: {
-			type: String,
-			required: true,
-		},
-		image: {
-			type: String,
-			required: true,
-		},
+                address: {
+                        type: String,
+                        required: true,
+                },
+                location: geoJSONPointSchema,
+                image: {
+                        type: String,
+                        required: true,
+                },
 		typeMarket: {
 			type: String,
 			required: true,
@@ -60,5 +64,6 @@ const marketSchema = new Schema<IMarket>(
 	},
 	{ timestamps: true }
 );
+marketSchema.index({ location: "2dsphere" });
 
 export const Market = mongoose.model<IMarket>("Market", marketSchema);

@@ -69,3 +69,4 @@ export interface IAnimal {
 	vaccines: string[];
 	lastVaccine?: Date;
 }
+
