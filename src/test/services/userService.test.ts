@@ -2,7 +2,8 @@ import UserService from "../../services/UserService";
 import { HttpError } from "../../types/Errors";
 import { getErrorMessage } from "../../types/modalTypes";
 
-// Ensure predictable error messages in tests
+// Ensure `getErrorMessage` returns the raw text
+// instead of "Internal Server Error" during this suite
 const originalEnv = process.env.NODE_ENV;
 
 beforeAll(() => {
