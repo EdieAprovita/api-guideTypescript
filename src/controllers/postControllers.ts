@@ -84,7 +84,7 @@ export const createPost = asyncHandler(
 /**
  * @description Update a post by id
  * @name updatePost
- * @route PUT /api/posts/update/:id
+ * @route PUT /api/posts/:id
  * @access Private
  * @returns {Promise<Response>}
  */
