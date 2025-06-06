@@ -1,7 +1,11 @@
 import geoService from "../services/GeoService";
 import { IGeoJSONPoint } from "../types/GeoJSON";
 
-export async function geocodeAndAssignLocation(body: any): Promise<void> {
+export interface IGeocodeBody {
+    address?: string;
+    location?: IGeoJSONPoint;
+}
+export async function geocodeAndAssignLocation(body: IGeocodeBody): Promise<void> {
     if (body.address) {
         const coords = await geoService.geocodeAddress(body.address);
         if (coords) {

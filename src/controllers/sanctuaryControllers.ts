@@ -9,7 +9,7 @@ import geocodeAndAssignLocation from "../utils/geocodeLocation";
 
 /**
  * @description Get all sanctuaries
- * @name getSantuaries
+ * @name getSanctuaries
  * @route GET /api/sanctuaries
  * @access Public
  * @returns {Promise<Response>}
