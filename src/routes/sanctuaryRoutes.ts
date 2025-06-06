@@ -13,9 +13,9 @@ const router = express.Router();
 
 router.get("/", getSanctuaries);
 router.get("/:id", getSanctuaryById);
-router.post("/create", protect, createSanctuary);
+router.post("/", protect, createSanctuary);
 router.post("/add-review/:id", protect, addReviewToSanctuary);
-router.put("/update/:id", protect, admin, updateSanctuary);
-router.delete("/delete/:id", protect, admin, deleteSanctuary);
+router.put("/:id", protect, admin, updateSanctuary);
+router.delete("/:id", protect, admin, deleteSanctuary);
 
 export default router;
