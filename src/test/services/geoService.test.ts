@@ -1,7 +1,17 @@
 import { Client } from "@googlemaps/google-maps-services-js";
+jest.mock("../../utils/logger", () => ({
+    __esModule: true,
+    default: { error: jest.fn() },
+}));
+import logger from "../../utils/logger";
 import { GeoService } from "../../services/GeoService";
 
+const mockLogger = logger as unknown as { error: jest.Mock };
+
 describe("GeoService", () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
     it("geocodeAddress returns lat/lng", async () => {
         const geocode = jest.fn().mockResolvedValue({
             data: {
@@ -26,5 +36,15 @@ describe("GeoService", () => {
 
         const result = await service.geocodeAddress("missing");
         expect(result).toBeNull();
+    });
+
+    it("logs and rethrows on geocoding error", async () => {
+        const error = new Error("fail");
+        const geocode = jest.fn().mockRejectedValue(error);
+        const mockClient: Partial<Client> = { geocode };
+        const service = new GeoService(mockClient as Client, "test-key");
+
+        await expect(service.geocodeAddress("test")).rejects.toThrow(error);
+        expect(mockLogger.error).toHaveBeenCalled();
     });
 });

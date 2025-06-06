@@ -1,4 +1,5 @@
 import { Client } from "@googlemaps/google-maps-services-js";
+import logger from "../utils/logger";
 
 export class GeoService {
         readonly client: Client;
@@ -28,8 +29,10 @@ export class GeoService {
                         const { lat, lng } = result.geometry.location;
                         return { lat, lng };
                 } catch (error) {
-                        console.error("Error during geocoding:", error);
-                        return null;
+                        logger.error("Error during geocoding", {
+                                error: error instanceof Error ? error.message : String(error),
+                        });
+                        throw error;
                 }
         }
 }
