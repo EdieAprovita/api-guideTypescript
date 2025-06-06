@@ -1,13 +1,16 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 import { IContact } from "../types/modalTypes";
+import { IGeoJSONPoint } from "../types/GeoJSON";
+import { geoJSONPointSchema } from "./GeoJSON";
 
 export interface IDoctor extends Document {
 	_id: string;
 	doctorName: string;
-	author: Types.ObjectId;
-	address: string;
-	image: string;
+        author: Types.ObjectId;
+        address: string;
+        location?: IGeoJSONPoint;
+        image: string;
 	specialty: string;
 	contact: IContact[];
 	reviews: Types.ObjectId[];
@@ -31,14 +34,15 @@ const doctorSchema = new Schema<IDoctor>(
 			ref: "User",
 			required: true,
 		},
-		address: {
-			type: String,
-			required: true,
-		},
-		image: {
-			type: String,
-			required: true,
-		},
+                address: {
+                        type: String,
+                        required: true,
+                },
+                location: geoJSONPointSchema,
+                image: {
+                        type: String,
+                        required: true,
+                },
 		specialty: {
 			type: String,
 			required: true,
@@ -85,4 +89,5 @@ const doctorSchema = new Schema<IDoctor>(
 	},
 	{ timestamps: true }
 );
+doctorSchema.index({ location: "2dsphere" });
 export const Doctor = mongoose.model<IDoctor>("Doctor", doctorSchema);
