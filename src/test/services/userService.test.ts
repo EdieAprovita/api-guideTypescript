@@ -1,5 +1,6 @@
 import UserService from "../../services/UserService";
 import { HttpError } from "../../types/Errors";
+import { getErrorMessage } from "../../types/modalTypes";
 
 // Ensure predictable error messages in tests
 const originalEnv = process.env.NODE_ENV;
@@ -22,6 +23,8 @@ describe("UserService updateUserById", () => {
 
         const resultPromise = UserService.updateUserById("1", {});
         await expect(resultPromise).rejects.toThrowError(HttpError);
-        await expect(resultPromise).rejects.toThrowError("User not found");
+        await expect(resultPromise).rejects.toThrowError(
+            getErrorMessage("User not found")
+        );
     });
 });
