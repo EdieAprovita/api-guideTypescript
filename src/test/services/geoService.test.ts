@@ -8,8 +8,8 @@ describe("GeoService", () => {
                 results: [{ geometry: { location: { lat: 10, lng: 20 } } }]
             }
         });
-        const mockClient = { geocode } as unknown as Client;
-        const service = new GeoService(mockClient, "test-key");
+        const mockClient: Partial<Client> = { geocode };
+        const service = new GeoService(mockClient as Client, "test-key");
 
         const result = await service.geocodeAddress("test");
 
@@ -21,8 +21,8 @@ describe("GeoService", () => {
 
     it("returns null when no results", async () => {
         const geocode = jest.fn().mockResolvedValue({ data: { results: [] } });
-        const mockClient = { geocode } as unknown as Client;
-        const service = new GeoService(mockClient, "test-key");
+        const mockClient: Partial<Client> = { geocode };
+        const service = new GeoService(mockClient as Client, "test-key");
 
         const result = await service.geocodeAddress("missing");
         expect(result).toBeNull();

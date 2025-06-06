@@ -14,18 +14,23 @@ export class GeoService {
                         throw new Error("Google Maps API key is not configured");
                 }
 
-                const response = await this.client.geocode({
-                        params: {
-                                address,
-                                key: this.apiKey,
-                        },
-                });
+                try {
+                        const response = await this.client.geocode({
+                                params: {
+                                        address,
+                                        key: this.apiKey,
+                                },
+                        });
 
-                const result = response.data.results[0];
-                if (!result) return null;
+                        const result = response.data.results[0];
+                        if (!result) return null;
 
-                const { lat, lng } = result.geometry.location;
-                return { lat, lng };
+                        const { lat, lng } = result.geometry.location;
+                        return { lat, lng };
+                } catch (error) {
+                        console.error("Error during geocoding:", error);
+                        return null;
+                }
         }
 }
 
