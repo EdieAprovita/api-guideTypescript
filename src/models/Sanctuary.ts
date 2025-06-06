@@ -3,7 +3,7 @@ import mongoose, { Schema, Types, Document } from "mongoose";
 import { IAnimal, IContact } from "../types/modalTypes";
 
 export interface ISanctuary extends Document {
-	_id?: string;
+	_id: string;
 	sanctuaryName: string;
 	author: Types.ObjectId;
 	address?: string;

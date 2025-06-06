@@ -3,7 +3,7 @@ import mongoose, { Schema, Types, Document } from "mongoose";
 import { IContact } from "../types/modalTypes";
 
 export interface IRestaurant extends Document {
-	_id?: string;
+	_id: string;
 	restaurantName: string;
 	author: Types.ObjectId;
 	typePlace: string;

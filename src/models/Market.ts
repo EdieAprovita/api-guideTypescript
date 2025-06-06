@@ -1,7 +1,7 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 export interface IMarket extends Document {
-	_id?: string;
+	_id: string;
 	marketName: string;
 	author: Types.ObjectId;
 	address: string;

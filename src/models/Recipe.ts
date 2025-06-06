@@ -1,7 +1,7 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 export interface IRecipe extends Document {
-	_id?: string;
+	_id: string;
 	title: string;
 	author: Types.ObjectId;
 	description: string;

@@ -14,7 +14,7 @@ export interface IComment {
 }
 
 export interface IPost extends Document {
-	_id?: string;
+	_id: string;
 	username?: Types.ObjectId;
 	text: string;
 	name?: string;

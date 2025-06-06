@@ -3,7 +3,7 @@ import mongoose, { Schema, Types, Document } from "mongoose";
 import { IContact } from "../types/modalTypes";
 
 export interface IDoctor extends Document {
-	_id?: string;
+	_id: string;
 	doctorName: string;
 	author: Types.ObjectId;
 	address: string;

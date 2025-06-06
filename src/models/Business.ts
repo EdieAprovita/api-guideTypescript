@@ -3,7 +3,7 @@ import mongoose, { Schema, Types, Document } from "mongoose";
 import { IContact } from "../types/modalTypes";
 
 export interface IBusiness extends Document {
-	_id?: string;
+	_id: string;
 	namePlace: string;
 	author: Types.ObjectId;
 	address: string;
