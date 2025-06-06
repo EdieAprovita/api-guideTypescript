@@ -1,4 +1,6 @@
 import request from "supertest";
+// Prevent database connection attempts when importing the app
+jest.mock("../../config/db");
 import app from "../../app";
 import { User, IUser } from "../../models/User";
 import UserService from "../../services/UserService";
