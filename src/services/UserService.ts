@@ -127,11 +127,17 @@ class UserService extends BaseService {
 		return User.findById(userId);
 	}
 
-	async updateUserById(userId: string, updateData: Partial<IUser>) {
-		const user = await this.findUserById(userId);
-		this.updateUserFields(user, updateData);
-		return user.save();
-	}
+        async updateUserById(userId: string, updateData: Partial<IUser>) {
+                const user = await this.findUserById(userId);
+                if (!user) {
+                        throw new HttpError(
+                                HttpStatusCode.NOT_FOUND,
+                                getErrorMessage("User not found")
+                        );
+                }
+                this.updateUserFields(user, updateData);
+                return user.save();
+        }
 
 	async deleteUserById(userId: string) {
 		await User.findByIdAndDelete(userId);

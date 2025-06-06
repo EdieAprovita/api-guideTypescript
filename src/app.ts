@@ -19,7 +19,9 @@ import postRoutes from "./routes/postRoutes";
 import sanctuaryRoutes from "./routes/sanctuaryRoutes";
 
 dotenv.config();
-connectDB();
+if (process.env.NODE_ENV !== "test") {
+        connectDB();
+}
 
 const app = express();
 
