@@ -56,6 +56,15 @@ To get started with the Vegan City Guide API, follow these steps:
 4. Start the server: `npm start`
 5. Explore the API using your favorite API testing tool (e.g., Postman).
 
+## Security Middleware
+
+The API uses several middleware packages to improve security:
+
+- **[helmet](https://helmetjs.github.io/)** – sets HTTP headers to help protect the app.
+- **[express-rate-limit](https://github.com/nfriedly/express-rate-limit)** – prevents abuse by limiting requests (100 requests per 15 minutes).
+- **[express-mongo-sanitize](https://github.com/fiznool/express-mongo-sanitize)** – sanitizes data to prevent MongoDB operator injection.
+- **[xss-clean](https://www.npmjs.com/package/xss-clean)** – cleans input to prevent cross-site scripting attacks.
+
 ## Contributing
 
 Contributions to the Vegan City Guide API are welcome! To contribute, please follow these guidelines:

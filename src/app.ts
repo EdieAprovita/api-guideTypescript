@@ -2,6 +2,10 @@ import dotenv from "dotenv";
 import express from "express";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import mongoSanitize from "express-mongo-sanitize";
+import xssClean from "xss-clean";
 
 import connectDB from "./config/db";
 import { errorHandler, notFound } from "./middleware/errorHandler";
@@ -25,8 +29,22 @@ if (process.env.NODE_ENV !== "test") {
 
 const app = express();
 
+// Security middleware to protect the application from common vulnerabilities
+app.use(helmet()); // sets HTTP headers for basic security
+
+// Limit repeated requests to 100 per 15 minutes to mitigate abuse
+const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 100,
+        message: "Too many requests, please try again later.",
+});
+app.use(limiter);
+
+app.use(mongoSanitize()); // prevent MongoDB operator injection
+app.use(xssClean()); // sanitize user input against XSS
+
 if (process.env.NODE_ENV === "development") {
-	app.use(morgan("dev"));
+        app.use(morgan("dev"));
 }
 
 app.use(express.json());
