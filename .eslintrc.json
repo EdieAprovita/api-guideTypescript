@@ -1,14 +1,13 @@
 {
   "ignorePatterns": ["**/graphql.ts"],
   "extends": [
-    "airbnb-typescript",
-    "airbnb/hooks",
+    "airbnb-typescript/base",
     "plugin:@typescript-eslint/recommended",
     "plugin:prettier/recommended"
   ],
-  "plugins": ["react", "@typescript-eslint", "import"],
+  "plugins": ["@typescript-eslint", "import"],
   "env": {
-    "browser": true,
+    "browser": false,
     "es6": true
   },
   "globals": {
@@ -67,8 +66,6 @@
     "linebreak-style": "warn",
     "no-debugger": "warn",
     "no-console": "warn",
-    "react/prop-types": "off",
-    "react/require-default-props": "off",
     "prettier/prettier": [
       "warn",
       {
