@@ -7,7 +7,7 @@ import {
 	updateRecipe,
 	addReviewToRecipe,
 	deleteRecipe,
-} from "../controllers/recipesControlllers";
+} from "../controllers/recipesControllers";
 
 const router = express.Router();
 
