@@ -14,7 +14,8 @@ const router = express.Router();
 router.get("/", getDoctors);
 router.get("/:id", getDoctorById);
 
-// For compatibility with older clients use explicit action paths
+// Deprecated: explicit action routes ("/create", "/update/:id", "/delete/:id")
+// are kept for legacy clients and will be removed in the next major version.
 router.post("/create", protect, createDoctor);
 router.post("/", protect, createDoctor);
 

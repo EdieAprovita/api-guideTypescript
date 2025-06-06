@@ -14,7 +14,8 @@ const router = express.Router();
 router.get("/", getRestaurants);
 router.get("/:id", getRestaurantById);
 
-// Accept legacy style endpoints alongside RESTful routes
+// Deprecated: explicit action routes ("/create", "/update/:id", "/delete/:id")
+// are kept for legacy clients and will be removed in the next major version.
 router.post("/create", protect, createRestaurant);
 router.post("/", protect, createRestaurant);
 

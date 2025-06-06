@@ -14,7 +14,8 @@ const router = express.Router();
 router.get("/", getMarkets);
 router.get("/:id", getMarketById);
 
-// Support explicit action routes in addition to RESTful ones
+// Deprecated: explicit action routes ("/create", "/update/:id", "/delete/:id")
+// are kept for legacy clients and will be removed in the next major version.
 router.post("/create", protect, createMarket);
 router.post("/", protect, createMarket);
 
