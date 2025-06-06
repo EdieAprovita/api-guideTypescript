@@ -1,12 +1,12 @@
 import { Client } from "@googlemaps/google-maps-services-js";
 
-class GeoService {
-        private client: Client;
-        private apiKey: string;
+export class GeoService {
+        readonly client: Client;
+        readonly apiKey: string;
 
-        constructor() {
-                this.client = new Client({});
-                this.apiKey = process.env.GOOGLE_MAPS_API_KEY as string;
+        constructor(client: Client = new Client({}), apiKey: string = process.env.GOOGLE_MAPS_API_KEY as string) {
+                this.client = client;
+                this.apiKey = apiKey;
         }
 
         async geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
