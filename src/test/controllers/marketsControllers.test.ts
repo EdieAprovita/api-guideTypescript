@@ -77,4 +77,28 @@ describe("Markets Controllers", () => {
     expect(res.status).toBe(200);
     expect(reviewService.addReview).toHaveBeenCalledWith({ text: "good", marketId: "1" });
   });
+
+  it("updates a market", async () => {
+    (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 3, lng: 4 });
+    (marketsService.updateById as jest.Mock).mockResolvedValue({ id: "1" });
+
+    await request(app)
+      .put("/api/v1/markets/update/1")
+      .send({ address: "b" });
+
+    expect(geoService.geocodeAddress).toHaveBeenCalledWith("b");
+    expect(marketsService.updateById).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({ address: "b", location: { type: "Point", coordinates: [4, 3] } })
+    );
+  });
+
+  it("deletes a market", async () => {
+    (marketsService.deleteById as jest.Mock).mockResolvedValue(undefined);
+
+    const res = await request(app).delete("/api/v1/markets/delete/1");
+
+    expect(res.status).toBe(200);
+    expect(marketsService.deleteById).toHaveBeenCalledWith("1");
+  });
 });

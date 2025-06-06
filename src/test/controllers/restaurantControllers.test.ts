@@ -57,4 +57,38 @@ describe("Restaurant Controllers", () => {
       expect.objectContaining({ address: "b", location: { type: "Point", coordinates: [3, 2] } })
     );
   });
+
+  it("creates a restaurant", async () => {
+    (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 1, lng: 2 });
+    (restaurantService.create as jest.Mock).mockResolvedValue({ id: "1" });
+
+    await request(app)
+      .post("/api/v1/restaurants/create")
+      .send({ address: "a" });
+
+    expect(geoService.geocodeAddress).toHaveBeenCalledWith("a");
+    expect(restaurantService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ address: "a", location: { type: "Point", coordinates: [2, 1] } })
+    );
+  });
+
+  it("adds a review", async () => {
+    (reviewService.addReview as jest.Mock).mockResolvedValue({ id: "r" });
+
+    const res = await request(app)
+      .post("/api/v1/restaurants/add-review/1")
+      .send({ text: "good" });
+
+    expect(res.status).toBe(200);
+    expect(reviewService.addReview).toHaveBeenCalledWith({ text: "good", restaurantId: "1" });
+  });
+
+  it("deletes a restaurant", async () => {
+    (restaurantService.deleteById as jest.Mock).mockResolvedValue(undefined);
+
+    const res = await request(app).delete("/api/v1/restaurants/delete/1");
+
+    expect(res.status).toBe(200);
+    expect(restaurantService.deleteById).toHaveBeenCalledWith("1");
+  });
 });
