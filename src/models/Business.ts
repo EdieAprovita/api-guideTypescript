@@ -3,15 +3,19 @@ import mongoose, { Schema, Types, Document } from "mongoose";
 import { IContact } from "../types/modalTypes";
 
 export interface IBusiness extends Document {
-	_id: string;
-	namePlace: string;
-	author: Types.ObjectId;
-	address: string;
-	image: string;
-	contact: IContact[];
-	budget: number;
-	typeBusiness: string;
-	hours: [Date];
+        _id: string;
+        namePlace: string;
+        author: Types.ObjectId;
+        address: string;
+        location?: {
+                type: string;
+                coordinates: number[];
+        };
+        image: string;
+        contact: IContact[];
+        budget: number;
+        typeBusiness: string;
+        hours: [Date];
 	reviews: Types.ObjectId[];
 	rating: number;
 	numReviews: number;
@@ -28,15 +32,19 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 			required: true,
 			unique: true,
 		},
-		address: {
-			type: String,
-			required: true,
-		},
-		contact: [
-			{
-				phone: Number,
-				email: String,
-				facebook: String,
+                address: {
+                        type: String,
+                        required: true,
+                },
+                location: {
+                        type: { type: String, enum: ["Point"], default: "Point" },
+                        coordinates: [Number],
+                },
+                contact: [
+                        {
+                                phone: Number,
+                                email: String,
+                                facebook: String,
 				instagram: String,
 			},
 		],
@@ -76,7 +84,9 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 			default: 0,
 		},
 	},
-	{ timestamps: true }
+        { timestamps: true }
 );
+
+businessSchema.index({ location: "2dsphere" });
 
 export const Business = mongoose.model<IBusiness>("Business", businessSchema);

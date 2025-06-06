@@ -5,9 +5,13 @@ import { IContact } from "../types/modalTypes";
 export interface IDoctor extends Document {
 	_id: string;
 	doctorName: string;
-	author: Types.ObjectId;
-	address: string;
-	image: string;
+        author: Types.ObjectId;
+        address: string;
+        location?: {
+                type: string;
+                coordinates: number[];
+        };
+        image: string;
 	specialty: string;
 	contact: IContact[];
 	reviews: Types.ObjectId[];
@@ -31,14 +35,18 @@ const doctorSchema = new Schema<IDoctor>(
 			ref: "User",
 			required: true,
 		},
-		address: {
-			type: String,
-			required: true,
-		},
-		image: {
-			type: String,
-			required: true,
-		},
+                address: {
+                        type: String,
+                        required: true,
+                },
+                location: {
+                        type: { type: String, enum: ["Point"], default: "Point" },
+                        coordinates: [Number],
+                },
+                image: {
+                        type: String,
+                        required: true,
+                },
 		specialty: {
 			type: String,
 			required: true,
@@ -85,4 +93,5 @@ const doctorSchema = new Schema<IDoctor>(
 	},
 	{ timestamps: true }
 );
+doctorSchema.index({ location: "2dsphere" });
 export const Doctor = mongoose.model<IDoctor>("Doctor", doctorSchema);

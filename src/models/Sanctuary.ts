@@ -5,9 +5,13 @@ import { IAnimal, IContact } from "../types/modalTypes";
 export interface ISanctuary extends Document {
 	_id: string;
 	sanctuaryName: string;
-	author: Types.ObjectId;
-	address?: string;
-	image: string;
+        author: Types.ObjectId;
+        address?: string;
+        location?: {
+                type: string;
+                coordinates: number[];
+        };
+        image: string;
 	typeofSanctuary: string;
 	animals: IAnimal[];
 	capacity: number;
@@ -34,13 +38,17 @@ const sanctuarySchema = new Schema<ISanctuary>(
 			ref: "User",
 			required: true,
 		},
-		address: {
-			type: String,
-		},
-		image: {
-			type: String,
-			required: true,
-		},
+                address: {
+                        type: String,
+                },
+                location: {
+                        type: { type: String, enum: ["Point"], default: "Point" },
+                        coordinates: [Number],
+                },
+                image: {
+                        type: String,
+                        required: true,
+                },
 		typeofSanctuary: {
 			type: String,
 			required: true,
@@ -134,4 +142,5 @@ const sanctuarySchema = new Schema<ISanctuary>(
 	},
 	{ timestamps: true }
 );
+sanctuarySchema.index({ location: "2dsphere" });
 export const Sanctuary = mongoose.model<ISanctuary>("sanctuary", sanctuarySchema);

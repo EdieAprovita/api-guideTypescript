@@ -6,9 +6,13 @@ export interface IRestaurant extends Document {
 	_id: string;
 	restaurantName: string;
 	author: Types.ObjectId;
-	typePlace: string;
-	address: string;
-	image: string;
+        typePlace: string;
+        address: string;
+        location?: {
+                type: string;
+                coordinates: number[];
+        };
+        image: string;
 	budget: string;
 	contact: IContact[];
 	cuisine: [string];
@@ -28,14 +32,18 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 			required: true,
 			unique: true,
 		},
-		address: {
-			type: String,
-			required: true,
-		},
-		author: {
-			type: Schema.Types.ObjectId,
-			ref: "User",
-			required: true,
+                address: {
+                        type: String,
+                        required: true,
+                },
+                location: {
+                        type: { type: String, enum: ["Point"], default: "Point" },
+                        coordinates: [Number],
+                },
+                author: {
+                        type: Schema.Types.ObjectId,
+                        ref: "User",
+                        required: true,
 		},
 		contact: [
 			{
@@ -72,5 +80,6 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 	},
 	{ timestamps: true }
 );
+restaurantSchema.index({ location: "2dsphere" });
 
 export const Restaurant = mongoose.model<IRestaurant>("Restaurant", restaurantSchema);
