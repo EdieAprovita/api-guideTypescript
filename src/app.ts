@@ -31,8 +31,9 @@ const app = express();
 
 app.use(helmet());
 
+// Limit repeated requests to 100 per 15 minutes to mitigate abuse
 const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000,
+        windowMs: 15 * 60 * 1000, // 15 minutes
         max: 100,
         message: "Too many requests, please try again later.",
 });
