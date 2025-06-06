@@ -29,7 +29,8 @@ if (process.env.NODE_ENV !== "test") {
 
 const app = express();
 
-app.use(helmet());
+// Security middleware to protect the application from common vulnerabilities
+app.use(helmet()); // sets HTTP headers for basic security
 
 // Limit repeated requests to 100 per 15 minutes to mitigate abuse
 const limiter = rateLimit({
@@ -37,17 +38,18 @@ const limiter = rateLimit({
         max: 100,
         message: "Too many requests, please try again later.",
 });
+app.use(limiter);
+
+app.use(mongoSanitize()); // prevent MongoDB operator injection
+app.use(xssClean()); // sanitize user input against XSS
 
 if (process.env.NODE_ENV === "development") {
         app.use(morgan("dev"));
 }
 
-app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(mongoSanitize());
-app.use(xssClean());
 app.use(corsMiddleware);
 
 app.get("/api/v1", (req, res) => {
