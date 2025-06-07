@@ -1,30 +1,31 @@
 import express from "express";
 import { protect, admin } from "../middleware/authMiddleware";
 import {
-	getDoctors,
-	getDoctorById,
-	createDoctor,
-	updateDoctor,
-	addReviewToDoctor,
-	deleteDoctor,
+        getDoctors,
+        getDoctorById,
+        createDoctor,
+        updateDoctor,
+        addReviewToDoctor,
+        deleteDoctor,
 } from "../controllers/doctorsControllers";
+import { registerLegacyRoutes } from "../utils/registerLegacyRoutes";
 
 const router = express.Router();
 
 router.get("/", getDoctors);
 router.get("/:id", getDoctorById);
 
-// Deprecated: explicit action routes ("/create", "/update/:id", "/delete/:id")
-// are kept for legacy clients and will be removed in the next major version.
-router.post("/create", protect, createDoctor);
+// Deprecated action routes are kept for legacy clients and will be removed in
+// the next major version.
+registerLegacyRoutes(router, {
+        create: createDoctor,
+        update: updateDoctor,
+        remove: deleteDoctor,
+});
+
 router.post("/", protect, createDoctor);
-
 router.post("/add-review/:id", protect, addReviewToDoctor);
-
-router.put("/update/:id", protect, admin, updateDoctor);
 router.put("/:id", protect, admin, updateDoctor);
-
-router.delete("/delete/:id", protect, admin, deleteDoctor);
 router.delete("/:id", protect, admin, deleteDoctor);
 
 export default router;
