@@ -10,8 +10,7 @@ services:
       - .env
     volumes:
       - .:/src
-      - /src/node_modules
-    command: npm run start:prod
+    command: sh -c "npm run build && npm run start:prod"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - PORT=${PORT:-5000}
