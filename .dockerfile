@@ -1,5 +1,5 @@
 # Etapa 1: Construcción
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Establecer el directorio de trabajo
 WORKDIR /src
@@ -8,7 +8,7 @@ WORKDIR /src
 COPY package*.json ./
 
 # Instalar dependencias de desarrollo y producción
-RUN npm install
+RUN npm ci
 
 # Copiar el resto de los archivos de la aplicación
 COPY . .
@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Etapa 2: Imagen de producción
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Establecer el directorio de trabajo
 WORKDIR /src

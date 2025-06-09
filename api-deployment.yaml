@@ -27,6 +27,18 @@ spec:
         image: edieveg316/api-guidetypescript-app:latest
         ports:
         - containerPort: 5001
-        env:
-        - name: PORT
-          value: "5001"
+        envFrom:
+        - configMapRef:
+            name: api-guidetypescript-config
+        readinessProbe:
+          httpGet:
+            path: /api/v1
+            port: 5001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/v1
+            port: 5001
+          initialDelaySeconds: 15
+          periodSeconds: 20
