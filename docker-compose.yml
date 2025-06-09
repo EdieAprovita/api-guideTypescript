@@ -3,9 +3,9 @@ services:
     container_name: api-guidetypescript
     build:
       context: .
-      dockerfile: .dockerfile
+      dockerfile: dockerfile
     ports:
-      - "${PORT:-5000}:${PORT:-5000}"
+      - "${PORT:-5001}:${PORT:-5001}"
     env_file:
       - .env
     volumes:
@@ -13,4 +13,4 @@ services:
     command: sh -c "npm run build && npm run start:prod"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - PORT=${PORT:-5000}
+      - PORT=${PORT:-5001}
