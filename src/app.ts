@@ -21,7 +21,7 @@ import professionProfileRoutes from "./routes/professionProfileRoutes";
 import professionRoutes from "./routes/professionRoutes";
 import postRoutes from "./routes/postRoutes";
 import sanctuaryRoutes from "./routes/sanctuaryRoutes";
-import swaggerUi from "swagger-ui-express";
+import swaggerUi, { JsonObject } from "swagger-ui-express";
 import fs from "fs";
 import yaml from "js-yaml";
 
@@ -32,7 +32,7 @@ if (process.env.NODE_ENV !== "test") {
 
 const app = express();
 
-const swaggerDocument = yaml.load(fs.readFileSync("./swagger.yaml", "utf8"));
+const swaggerDocument = yaml.load(fs.readFileSync("./swagger.yaml", "utf8")) as JsonObject;
 
 // Security middleware to protect the application from common vulnerabilities
 app.use(helmet()); // sets HTTP headers for basic security
@@ -60,7 +60,7 @@ if (process.env.NODE_ENV !== "production") {
 	app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 }
 
-app.get("/api/v1", (req, res) => {
+app.get("/api/v1", (_req, res) => {
 	res.send("API is running");
 });
 

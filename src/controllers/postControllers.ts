@@ -13,7 +13,7 @@ import { postService as PostService } from '../services/PostService';
  * @returns {Promise<Response>}
  */
 
-export const getPosts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getPosts = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const posts = await PostService.getAll();
         res.status(200).json({

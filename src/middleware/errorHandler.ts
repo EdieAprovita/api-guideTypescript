@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import logger from '../utils/logger';
 
-export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction): void => {
     logger.error(`[Error] ${req.method} ${req.path}`, {
         error: err.message,
         stack: err.stack,
@@ -10,7 +10,8 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
     });
 
     if (err instanceof HttpError) {
-        return res.status(err.statusCode).json({ errors: err.serializeErrors() });
+        res.status(err.statusCode).json({ errors: err.serializeErrors() });
+        return;
     }
 
     const statusCode = HttpStatusCode.INTERNAL_SERVER_ERROR;

@@ -14,7 +14,7 @@ import { reviewService as ReviewService } from '../services/ReviewService';
  * @returns {Promise<Response>}
  */
 
-export const getProfessions = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getProfessions = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const professions = await ProfessionService.getAll();
         res.status(200).json({
@@ -195,7 +195,7 @@ export const addReviewToProfession = asyncHandler(async (req: Request, res: Resp
  * @returns {Promise<Response>}
  */
 
-export const getTopRatedProfessions = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getTopRatedProfessions = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const topRatedProfessions = await ReviewService.getTopRatedReviews('profession');
 

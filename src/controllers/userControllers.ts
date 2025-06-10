@@ -102,7 +102,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
  * @returns {Promise<Response>}
  */
 
-export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const logout = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const response = await UserServices.logoutUser(res);
         res.status(200).json(response);
@@ -124,7 +124,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
  * @returns {Promise<Response>}
  * */
 
-export const getUsers = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getUsers = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const users = await UserServices.findAllUsers();
         res.status(200).json(users);

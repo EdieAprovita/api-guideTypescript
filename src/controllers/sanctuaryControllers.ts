@@ -15,7 +15,7 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation';
  * @returns {Promise<Response>}
  */
 
-export const getSanctuaries = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getSanctuaries = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const sanctuaries = await SanctuaryService.getAll();
         res.status(200).json({
@@ -195,7 +195,7 @@ export const addReviewToSanctuary = asyncHandler(async (req: Request, res: Respo
  * @returns {Promise<Response>}
  */
 
-export const getTopRatedSanctuaries = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getTopRatedSanctuaries = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const topRatedSanctuary = await ReviewService.getTopRatedReviews('sanctuary');
         res.status(200).json({
