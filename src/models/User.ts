@@ -51,8 +51,8 @@ const userSchema = new Schema<IUser>(
             required: true,
             unique: true,
             lowercase: true,
-            // Simplified regex to avoid catastrophic backtracking in email validation
-            match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please fill a valid email address'],
+            // Updated regex is linear-time and slightly stricter to reduce invalid emails
+            match: [/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/, 'Please fill a valid email address'],
         },
         photo: {
             type: String,
