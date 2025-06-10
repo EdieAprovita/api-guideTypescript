@@ -1,19 +1,47 @@
 {
 	"name": "api-guidetypescript",
 	"version": "1.0.0",
-	"description": "Guide-Cdmx Api",
-	"main": "server.ts",
+	"description": "Vegan City Guide API - A comprehensive TypeScript REST API",
+	"main": "dist/server.js",
 	"scripts": {
-		"test:all": "jest --coverage",
-		"test": "jest --watch --coverage",
-		"start": "ts-node src/server.ts",
-		"start:prod": "node dist/server.js",
-		"start:nodemon": "nodemon --exec ts-node src/server.ts",
 		"dev": "nodemon src/server.ts",
-		"build": "tsc"
+		"start": "node dist/server.js",
+		"start:dev": "ts-node src/server.ts",
+		"build": "tsc",
+		"build:watch": "tsc --watch",
+		"clean": "rimraf dist",
+		"prebuild": "npm run clean",
+		"postbuild": "cp swagger.yaml dist/ && cp -r public dist/ 2>/dev/null || true",
+		"test": "jest --watchAll --coverage",
+		"test:ci": "jest --coverage --watchAll=false",
+		"test:unit": "jest --testPathPattern=unit",
+		"test:integration": "jest --testPathPattern=integration",
+		"lint": "eslint src/**/*.ts",
+		"lint:fix": "eslint src/**/*.ts --fix",
+		"format": "prettier --write src/**/*.ts",
+		"format:check": "prettier --check src/**/*.ts",
+		"type-check": "tsc --noEmit",
+		"validate": "npm run type-check && npm run lint && npm run test:ci",
+		"docker:build": "docker build -t api-guidetypescript .",
+		"docker:run": "docker run -p 5001:5001 api-guidetypescript",
+		"swagger:generate": "swagger-jsdoc -d swagger.config.js -o swagger.yaml src/routes/*.ts",
+		"docs:serve": "swagger-ui-serve swagger.yaml"
 	},
+	"keywords": [
+		"typescript",
+		"express",
+		"api",
+		"vegan",
+		"mongodb",
+		"swagger",
+		"rest-api"
+	],
 	"author": "Edgar Chavero <edieveg316@gmail.com> (https://www.linkedin.com/in/edgar-chavero/)",
 	"license": "MIT",
+	"engines": {
+		"node": ">=16.0.0",
+		"npm": ">=8.0.0"
+	},
 	"dependencies": {
 		"@googlemaps/google-maps-services-js": "^3.3.42",
 		"bcryptjs": "^2.4.3",
@@ -71,6 +99,7 @@
 		"openapi-types": "^12.1.3",
 		"postman-to-openapi": "^1.7.3",
 		"prettier": "^3.1.0",
+		"rimraf": "^5.0.5",
 		"supertest": "^6.3.4",
 		"ts-node": "^10.9.1",
 		"typescript": "^5.3.2"

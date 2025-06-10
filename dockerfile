@@ -1,43 +1,51 @@
-# Stage 1: Build
-FROM node:24-alpine AS builder
-# Install dumb-init for safe process handling
-RUN apk add --no-cache dumb-init
+# Multi-stage build for production optimization
+FROM node:18-alpine AS builder
 
-# Create node user and group
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+# Set working directory
+WORKDIR /app
 
-WORKDIR /src
-
-# Copy manifests & install deps
+# Copy package files
 COPY package*.json ./
+
+# Install dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy source & build
+# Copy source code
 COPY . .
+
+# Build the application
 RUN npm run build
 
-# Stage 2: Production
-FROM node:24-alpine
+# Production stage
+FROM node:18-alpine AS production
 
-RUN apk add --no-cache dumb-init
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+# Create app directory
+WORKDIR /app
 
-WORKDIR /src
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
 
-# Copy built artifacts + deps
-COPY --from=builder /src/dist ./dist
-COPY --from=builder /src/node_modules ./node_modules
+# Copy package files
 COPY package*.json ./
 
-# Run as non-root
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/swagger.yaml ./
+COPY --from=builder --chown=nodejs:nodejs /app/public ./public
+
+# Switch to non-root user
 USER nodejs
 
+# Expose port
 EXPOSE 5001
-ENV NODE_ENV=production
-ENV PORT=5001
 
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node healthcheck.js
+  CMD node dist/healthcheck.js || exit 1
 
-ENTRYPOINT ["dumb-init", "--"]
+# Start the application
 CMD ["node", "dist/server.js"]

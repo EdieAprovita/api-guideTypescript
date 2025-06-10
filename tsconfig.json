@@ -4,16 +4,50 @@
 		"files": true
 	},
 	"compilerOptions": {
-		"allowJs": true,
-		"target": "ES6",
+		"target": "ES2020",
 		"module": "commonjs",
+		"lib": ["ES2020"],
 		"moduleResolution": "node",
+		"allowJs": true,
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"removeComments": true,
 		"sourceMap": true,
 		"esModuleInterop": true,
-		"outDir": "./dist",
-		"rootDir": "./src"
-	},
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"noEmitOnError": true,
 
-        "include": ["src/**/*.ts"],
-        "exclude": ["node_modules", "dist", "src/test"]
+		// Strict Type Checking
+		"strict": true,
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedIndexedAccess": true,
+
+		// Additional Checks
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"exactOptionalPropertyTypes": true,
+
+		// Path mapping for cleaner imports
+		"baseUrl": "./src",
+		"paths": {
+			"@/*": ["*"],
+			"@/config/*": ["config/*"],
+			"@/controllers/*": ["controllers/*"],
+			"@/middleware/*": ["middleware/*"],
+			"@/models/*": ["models/*"],
+			"@/routes/*": ["routes/*"],
+			"@/services/*": ["services/*"],
+			"@/types/*": ["types/*"],
+			"@/utils/*": ["utils/*"]
+		}
+	},
+	"include": ["src/**/*.ts", "src/**/*.json"],
+	"exclude": ["node_modules", "dist", "src/test/**/*.test.ts", "**/*.spec.ts"]
 }

@@ -1,16 +1,83 @@
+version: "3.8"
+
 services:
-  app:
-    container_name: api-guidetypescript
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: vegan-city-guide-db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: vegan-city-guide
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - vegan-city-guide-network
+
+  # API Application
+  api:
     build:
       context: .
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
+      target: production
+    container_name: vegan-city-guide-api
+    restart: unless-stopped
     ports:
-      - "${PORT:-5001}:${PORT:-5001}"
-    env_file:
-      - .env
-    volumes:
-      - .:/src
-    command: sh -c "npm run build && npm run start:prod"
+      - "5001:5001"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - PORT=${PORT:-5001}
+      NODE_ENV: production
+      PORT: 5001
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/vegan-city-guide?authSource=admin
+      JWT_SECRET: your-super-secret-jwt-key-for-docker
+      JWT_EXPIRE: 30d
+    depends_on:
+      - mongodb
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/public/uploads
+    networks:
+      - vegan-city-guide-network
+    healthcheck:
+      test: ["CMD", "node", "dist/healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development API (for development with hot reload)
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: vegan-city-guide-api-dev
+    restart: unless-stopped
+    ports:
+      - "5002:5001"
+    environment:
+      NODE_ENV: development
+      PORT: 5001
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/vegan-city-guide?authSource=admin
+      JWT_SECRET: your-super-secret-jwt-key-for-docker-dev
+      JWT_EXPIRE: 30d
+    depends_on:
+      - mongodb
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./logs:/app/logs
+    networks:
+      - vegan-city-guide-network
+    profiles:
+      - dev
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  vegan-city-guide-network:
+    driver: bridge

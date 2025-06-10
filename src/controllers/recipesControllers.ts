@@ -1,10 +1,10 @@
-import { Request, Response, NextFunction } from "express";
-import { validationResult } from "express-validator";
-import { HttpError, HttpStatusCode } from "../types/Errors";
-import { getErrorMessage } from "../types/modalTypes";
-import asyncHandler from "../middleware/asyncHandler";
-import { recipeService as RecipeService } from "../services/RecipesService";
-import { reviewService as ReviewService } from "../services/ReviewService";
+import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
+import { HttpError, HttpStatusCode } from '../types/Errors';
+import { getErrorMessage } from '../types/modalTypes';
+import asyncHandler from '../middleware/asyncHandler';
+import { recipeService as RecipeService } from '../services/RecipesService';
+import { reviewService as ReviewService } from '../services/ReviewService';
 
 /**
  * @description Get all recipes
@@ -14,19 +14,22 @@ import { reviewService as ReviewService } from "../services/ReviewService";
  * @returns {Promise<Response>}
  */
 
-export const getRecipes = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const recipes = await RecipeService.getAll();
-			res.status(200).json({
-				success: true,
-				data: recipes,
-			});
-		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
-		}
-	}
-);
+export const getRecipes = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const recipes = await RecipeService.getAll();
+    res.status(200).json({
+      success: true,
+      data: recipes,
+    });
+  } catch (error) {
+    next(
+      new HttpError(
+        HttpStatusCode.NOT_FOUND,
+        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+      )
+    );
+  }
+});
 
 /**
  * @description Get a recipe by id
@@ -37,20 +40,28 @@ export const getRecipes = asyncHandler(
  */
 
 export const getRecipeById = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const { id } = req.params;
-			const recipe = await RecipeService.findById(id);
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Recipe ID is required'));
+      }
+      const recipe = await RecipeService.findById(id);
 
-			res.status(200).json({
-				success: true,
-				message: "Recipe fetched successfully",
-				data: recipe,
-			});
-		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
-		}
-	}
+      res.status(200).json({
+        success: true,
+        message: 'Recipe fetched successfully',
+        data: recipe,
+      });
+    } catch (error) {
+      next(
+        new HttpError(
+          HttpStatusCode.NOT_FOUND,
+          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+        )
+      );
+    }
+  }
 );
 
 /**
@@ -62,23 +73,27 @@ export const getRecipeById = asyncHandler(
  */
 
 export const createRecipe = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			return next(
-				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
-			);
-		}
-		try {
-			const recipe = await RecipeService.create(req.body);
-			res.status(201).json({
-				success: true,
-				data: recipe,
-			});
-		} catch (error) {
-			next(new HttpError(HttpStatusCode.BAD_REQUEST, `${error}`));
-		}
-	}
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const firstError = errors.array()[0];
+      return next(
+        new HttpError(
+          HttpStatusCode.BAD_REQUEST,
+          getErrorMessage(firstError?.msg || 'Validation error')
+        )
+      );
+    }
+    try {
+      const recipe = await RecipeService.create(req.body);
+      res.status(201).json({
+        success: true,
+        data: recipe,
+      });
+    } catch (error) {
+      next(new HttpError(HttpStatusCode.BAD_REQUEST, `${error}`));
+    }
+  }
 );
 
 /**
@@ -90,27 +105,35 @@ export const createRecipe = asyncHandler(
  */
 
 export const updateRecipe = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			return next(
-				new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(errors.array()[0].msg))
-			);
-		}
-		try {
-			const recipe = await RecipeService.updateById(req.params.id, req.body);
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const firstError = errors.array()[0];
+      return next(
+        new HttpError(
+          HttpStatusCode.BAD_REQUEST,
+          getErrorMessage(firstError?.msg || 'Validation error')
+        )
+      );
+    }
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Recipe ID is required'));
+      }
+      const recipe = await RecipeService.updateById(id, req.body);
 
-			if (!recipe) {
-				throw new HttpError(HttpStatusCode.NOT_FOUND, "Recipe not found");
-			}
-			res.status(200).json({
-				success: true,
-				data: recipe,
-			});
-		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
-		}
-	}
+      if (!recipe) {
+        throw new HttpError(HttpStatusCode.NOT_FOUND, 'Recipe not found');
+      }
+      res.status(200).json({
+        success: true,
+        data: recipe,
+      });
+    } catch (error) {
+      next(new HttpError(HttpStatusCode.NOT_FOUND, `${error}`));
+    }
+  }
 );
 
 /**
@@ -122,18 +145,21 @@ export const updateRecipe = asyncHandler(
  */
 
 export const deleteRecipe = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const { id } = req.params;
-			await RecipeService.deleteById(id);
-			res.status(204).json({
-				success: true,
-				data: {},
-			});
-		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
-		}
-	}
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Recipe ID is required'));
+      }
+      await RecipeService.deleteById(id);
+      res.status(204).json({
+        success: true,
+        data: {},
+      });
+    } catch (error) {
+      next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, `${error}`));
+    }
+  }
 );
 
 /**
@@ -145,20 +171,25 @@ export const deleteRecipe = asyncHandler(
  */
 
 export const addReviewToRecipe = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const reviewData = { ...req.body, recipeId: req.params.id };
-			const newReview = await ReviewService.addReview(reviewData);
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const reviewData = { ...req.body, recipeId: req.params.id };
+      const newReview = await ReviewService.addReview(reviewData);
 
-			res.status(200).json({
-				success: true,
-				message: "Review added successfully",
-				data: newReview,
-			});
-		} catch (error) {
-			next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
-		}
-	}
+      res.status(200).json({
+        success: true,
+        message: 'Review added successfully',
+        data: newReview,
+      });
+    } catch (error) {
+      next(
+        new HttpError(
+          HttpStatusCode.INTERNAL_SERVER_ERROR,
+          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+        )
+      );
+    }
+  }
 );
 
 /**
@@ -170,17 +201,22 @@ export const addReviewToRecipe = asyncHandler(
  */
 
 export const getTopRatedRecipes = asyncHandler(
-	async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			const topRatedRecipes = await ReviewService.getTopRatedReviews("recipe");
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const topRatedRecipes = await ReviewService.getTopRatedReviews('recipe');
 
-			res.status(200).json({
-				success: true,
-				message: "Top rated recipes fetched successfully",
-				data: topRatedRecipes,
-			});
-		} catch (error) {
-			next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
-		}
-	}
+      res.status(200).json({
+        success: true,
+        message: 'Top rated recipes fetched successfully',
+        data: topRatedRecipes,
+      });
+    } catch (error) {
+      next(
+        new HttpError(
+          HttpStatusCode.NOT_FOUND,
+          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+        )
+      );
+    }
+  }
 );

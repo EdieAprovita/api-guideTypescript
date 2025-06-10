@@ -1,14 +1,13 @@
 {
-	"singleQuote": false,
+	"semi": true,
 	"trailingComma": "es5",
-	"printWidth": 90,
+	"singleQuote": true,
+	"printWidth": 100,
 	"tabWidth": 2,
-	"htmlWhitespaceSensitivity": "css",
-	"arrowParens": "avoid",
-	"quoteProps": "as-needed",
-	"useTabs": true,
+	"useTabs": false,
 	"bracketSpacing": true,
-	"bracketSameLine": true,
-	"indent_size": 4,
-	"indent_style": "space"
+	"arrowParens": "avoid",
+	"endOfLine": "lf",
+	"quoteProps": "as-needed",
+	"bracketSameLine": false
 }
