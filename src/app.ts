@@ -56,8 +56,6 @@ app.use(corsMiddleware);
 if (process.env.NODE_ENV !== "production") {
 	app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 }
-    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-}
 
 app.get("/api/v1", (req, res) => {
 	res.send("API is running");
