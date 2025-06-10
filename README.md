@@ -56,6 +56,12 @@ To get started with the Vegan City Guide API, follow these steps:
 4. Start the server: `npm start`
 5. Explore the API using your favorite API testing tool (e.g., Postman).
 
+### API Documentation
+
+After running the server you can view interactive API docs powered by Swagger UI
+at `http://localhost:5000/api-docs` (available only in non-production
+environments).
+
 ## Security Middleware
 
 The API uses several middleware packages to improve security:
