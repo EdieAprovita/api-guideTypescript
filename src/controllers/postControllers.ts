@@ -14,21 +14,21 @@ import { postService as PostService } from '../services/PostService';
  */
 
 export const getPosts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const posts = await PostService.getAll();
-    res.status(200).json({
-      success: true,
-      message: 'Posts fetched successfully',
-      data: posts,
-    });
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.NOT_FOUND,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    try {
+        const posts = await PostService.getAll();
+        res.status(200).json({
+            success: true,
+            message: 'Posts fetched successfully',
+            data: posts,
+        });
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -40,25 +40,25 @@ export const getPosts = asyncHandler(async (req: Request, res: Response, next: N
  */
 
 export const getPostById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID is required'));
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID is required'));
+        }
+        const post = await PostService.findById(id);
+        res.status(200).json({
+            success: true,
+            message: 'Post fetched successfully',
+            data: post,
+        });
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-    const post = await PostService.findById(id);
-    res.status(200).json({
-      success: true,
-      message: 'Post fetched successfully',
-      data: post,
-    });
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.NOT_FOUND,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
 });
 
 /**
@@ -70,31 +70,26 @@ export const getPostById = asyncHandler(async (req: Request, res: Response, next
  */
 
 export const createPost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const firstError = errors.array()[0];
-    return next(
-      new HttpError(
-        HttpStatusCode.BAD_REQUEST,
-        getErrorMessage(firstError?.msg || 'Validation error')
-      )
-    );
-  }
-  try {
-    const post = await PostService.create(req.body);
-    res.status(201).json({
-      success: true,
-      message: 'Post created successfully',
-      data: post,
-    });
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+    }
+    try {
+        const post = await PostService.create(req.body);
+        res.status(201).json({
+            success: true,
+            message: 'Post created successfully',
+            data: post,
+        });
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -106,35 +101,30 @@ export const createPost = asyncHandler(async (req: Request, res: Response, next:
  */
 
 export const updatePost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const firstError = errors.array()[0];
-    return next(
-      new HttpError(
-        HttpStatusCode.BAD_REQUEST,
-        getErrorMessage(firstError?.msg || 'Validation error')
-      )
-    );
-  }
-  try {
-    const { id } = req.params;
-    if (!id) {
-      return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID is required'));
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
     }
-    const post = await PostService.updateById(id, req.body);
-    res.status(200).json({
-      success: true,
-      message: 'Post updated successfully',
-      data: post,
-    });
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID is required'));
+        }
+        const post = await PostService.updateById(id, req.body);
+        res.status(200).json({
+            success: true,
+            message: 'Post updated successfully',
+            data: post,
+        });
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -146,34 +136,32 @@ export const updatePost = asyncHandler(async (req: Request, res: Response, next:
  */
 
 export const addComment = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const firstError = errors.array()[0];
-    return next(
-      new HttpError(
-        HttpStatusCode.BAD_REQUEST,
-        getErrorMessage(firstError?.msg || 'Validation error')
-      )
-    );
-  }
-  try {
-    const { id } = req.params;
-    const userId = (req as any).user?._id;
-    const { text, name, avatar } = req.body;
-    const comments = await PostService.addComment(id, userId, text, name, avatar);
-    res.status(201).json({
-      success: true,
-      message: 'Comment added successfully',
-      data: comments,
-    });
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+    }
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user?._id;
+        if (!id || !userId) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
+        }
+        const { text, name, avatar } = req.body;
+        const comments = await PostService.addComment(id, userId, text, name, avatar);
+        res.status(201).json({
+            success: true,
+            message: 'Comment added successfully',
+            data: comments,
+        });
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -185,23 +173,26 @@ export const addComment = asyncHandler(async (req: Request, res: Response, next:
  */
 
 export const likePost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const postId = req.params.id;
-    const userId = (req as any).user?._id;
-    const likes = await PostService.likePost(postId, userId);
-    res.status(200).json({
-      success: true,
-      message: 'Post liked successfully',
-      data: likes,
-    });
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    try {
+        const postId = req.params.id;
+        const userId = (req as any).user?._id;
+        if (!postId || !userId) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
+        }
+        const likes = await PostService.likePost(postId, userId);
+        res.status(200).json({
+            success: true,
+            message: 'Post liked successfully',
+            data: likes,
+        });
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -213,23 +204,26 @@ export const likePost = asyncHandler(async (req: Request, res: Response, next: N
  */
 
 export const unlikePost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const postId = req.params.id;
-    const userId = (req as any).user?._id;
-    const likes = await PostService.unlikePost(postId, userId);
-    res.status(200).json({
-      success: true,
-      message: 'Post unliked successfully',
-      data: likes,
-    });
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    try {
+        const postId = req.params.id;
+        const userId = (req as any).user?._id;
+        if (!postId || !userId) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
+        }
+        const likes = await PostService.unlikePost(postId, userId);
+        res.status(200).json({
+            success: true,
+            message: 'Post unliked successfully',
+            data: likes,
+        });
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -241,22 +235,22 @@ export const unlikePost = asyncHandler(async (req: Request, res: Response, next:
  */
 
 export const deletePost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID is required'));
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID is required'));
+        }
+        await PostService.deleteById(id);
+        res.status(200).json({
+            success: true,
+            message: 'Post deleted successfully',
+        });
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-    await PostService.deleteById(id);
-    res.status(200).json({
-      success: true,
-      message: 'Post deleted successfully',
-    });
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
 });

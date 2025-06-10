@@ -11,21 +11,19 @@ import { getErrorMessage } from '../types/modalTypes';
  * @access Public
  */
 
-export const registerUser = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await UserServices.registerUser(req.body, res);
-      res.status(201).json(result);
+        const result = await UserServices.registerUser(req.body, res);
+        res.status(201).json(result);
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.BAD_REQUEST,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.BAD_REQUEST,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Register a new user
@@ -36,18 +34,18 @@ export const registerUser = asyncHandler(
  */
 
 export const loginUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { email, password } = req.body;
-    const result = await UserServices.loginUser(email, password, res);
-    res.status(200).json(result);
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.UNAUTHORIZED,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    try {
+        const { email, password } = req.body;
+        const result = await UserServices.loginUser(email, password, res);
+        res.status(200).json(result);
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.UNAUTHORIZED,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -58,22 +56,20 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
  * @returns {Promise<Response>}
  */
 
-export const forgotPassword = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const forgotPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email } = req.body;
-      const response = await UserServices.forgotPassword(email);
-      res.status(200).json(response);
+        const { email } = req.body;
+        const response = await UserServices.forgotPassword(email);
+        res.status(200).json(response);
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.BAD_REQUEST,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.BAD_REQUEST,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Reset password
@@ -83,22 +79,20 @@ export const forgotPassword = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const resetPassword = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { token, newPassword } = req.body;
-      const response = await UserServices.resetPassword(token, newPassword);
-      res.status(200).json(response);
+        const { token, newPassword } = req.body;
+        const response = await UserServices.resetPassword(token, newPassword);
+        res.status(200).json(response);
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.BAD_REQUEST,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.BAD_REQUEST,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Logout user
@@ -109,17 +103,17 @@ export const resetPassword = asyncHandler(
  */
 
 export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const response = await UserServices.logoutUser(res);
-    res.status(200).json(response);
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    try {
+        const response = await UserServices.logoutUser(res);
+        res.status(200).json(response);
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -131,17 +125,17 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
  * */
 
 export const getUsers = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const users = await UserServices.findAllUsers();
-    res.status(200).json(users);
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.NOT_FOUND,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
+    try {
+        const users = await UserServices.findAllUsers();
+        res.status(200).json(users);
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
 });
 
 /**
@@ -153,21 +147,21 @@ export const getUsers = asyncHandler(async (req: Request, res: Response, next: N
  * */
 
 export const getUserById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'User ID is required'));
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'User ID is required'));
+        }
+        const user = await UserServices.findUserById(id);
+        res.status(200).json(user);
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-    const user = await UserServices.findUserById(id);
-    res.status(200).json(user);
-  } catch (error) {
-    next(
-      new HttpError(
-        HttpStatusCode.NOT_FOUND,
-        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-  }
 });
 
 /**
@@ -178,23 +172,21 @@ export const getUserById = asyncHandler(async (req: Request, res: Response, next
  * @returns {Promise<Response>}
  */
 
-export const updateUserProfile = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const updateUserProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user?._id;
-      if (!userId) throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
-      const updatedUser = await UserServices.updateUserById(userId, req.body);
-      res.json(updatedUser);
+        const userId = req.user?._id;
+        if (!userId) throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+        const updatedUser = await UserServices.updateUserById(userId, req.body);
+        res.json(updatedUser);
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Delete user
@@ -204,23 +196,21 @@ export const updateUserProfile = asyncHandler(
  * @returns {Promise<Response>}
  * */
 
-export const deleteUserById = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const deleteUserById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
-      if (!id) {
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'User ID is required'));
-      }
-      const message = await UserServices.deleteUserById(id);
-      if (!message) throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
-      res.json(message);
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'User ID is required'));
+        }
+        const message = await UserServices.deleteUserById(id);
+        if (!message) throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        res.json(message);
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});

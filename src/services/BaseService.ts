@@ -1,6 +1,6 @@
-import { Document, Model } from "mongoose";
-import { HttpError, HttpStatusCode } from "../types/Errors";
-import { getErrorMessage } from "../types/modalTypes";
+import { Document, Model } from 'mongoose';
+import { HttpError, HttpStatusCode } from '../types/Errors';
+import { getErrorMessage } from '../types/modalTypes';
 
 /**
  * @description Base service class
@@ -10,42 +10,42 @@ import { getErrorMessage } from "../types/modalTypes";
  */
 
 class BaseService<T extends Document> {
-	constructor(
-		protected model: Model<T>,
-		protected userId?: string
-	) {}
+    constructor(
+        protected model: Model<T>,
+        protected userId?: string
+    ) {}
 
-	async getAll(): Promise<T[]> {
-		return this.model.find();
-	}
+    async getAll(): Promise<T[]> {
+        return this.model.find();
+    }
 
-	async findById(id: string): Promise<T> {
-		const item = await this.model.findById(id);
-		if (!item) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("Item not found"));
-		}
-		return item;
-	}
+    async findById(id: string): Promise<T> {
+        const item = await this.model.findById(id);
+        if (!item) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
+        }
+        return item;
+    }
 
-	async create(data: Partial<T>): Promise<T> {
-		if (this.userId) data = { ...data, author: this.userId };
-		return this.model.create(data);
-	}
+    async create(data: Partial<T>): Promise<T> {
+        if (this.userId) data = { ...data, author: this.userId };
+        return this.model.create(data);
+    }
 
-	async updateById(id: string, data: Partial<T>): Promise<T> {
-		const item = await this.model.findByIdAndUpdate(id, data, { new: true });
-		if (!item) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("Item not found"));
-		}
-		return item;
-	}
+    async updateById(id: string, data: Partial<T>): Promise<T> {
+        const item = await this.model.findByIdAndUpdate(id, data, { new: true });
+        if (!item) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
+        }
+        return item;
+    }
 
-	async deleteById(id: string): Promise<void> {
-		const item = await this.model.findById(id);
-		if (!item) {
-			throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage("Item not found"));
-		}
-		await this.model.deleteOne({ _id: id });
-	}
+    async deleteById(id: string): Promise<void> {
+        const item = await this.model.findById(id);
+        if (!item) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
+        }
+        await this.model.deleteOne({ _id: id });
+    }
 }
 export default BaseService;

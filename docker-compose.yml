@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   # MongoDB Database
@@ -7,7 +7,7 @@ services:
     container_name: vegan-city-guide-db
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - '27017:27017'
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
@@ -27,7 +27,7 @@ services:
     container_name: vegan-city-guide-api
     restart: unless-stopped
     ports:
-      - "5001:5001"
+      - '5001:5001'
     environment:
       NODE_ENV: production
       PORT: 5001
@@ -42,7 +42,7 @@ services:
     networks:
       - vegan-city-guide-network
     healthcheck:
-      test: ["CMD", "node", "dist/healthcheck.js"]
+      test: ['CMD', 'node', 'dist/healthcheck.js']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -56,7 +56,7 @@ services:
     container_name: vegan-city-guide-api-dev
     restart: unless-stopped
     ports:
-      - "5002:5001"
+      - '5002:5001'
     environment:
       NODE_ENV: development
       PORT: 5001

@@ -1,5 +1,5 @@
-import BaseService from "./BaseService";
-import { IBusiness, Business } from "../models/Business";
+import BaseService from './BaseService';
+import { IBusiness, Business } from '../models/Business';
 
 /**
  * @description Business service class
@@ -9,9 +9,9 @@ import { IBusiness, Business } from "../models/Business";
  * */
 
 class BusinessService extends BaseService<IBusiness> {
-	constructor() {
-		super(Business);
-	}
+    constructor() {
+        super(Business);
+    }
 }
 
 export const businessService = new BusinessService();

@@ -14,25 +14,23 @@ import { reviewService as ReviewService } from '../services/ReviewService';
  * @returns {Promise<Response>}
  */
 
-export const getProfessions = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const getProfessions = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const professions = await ProfessionService.getAll();
-      res.status(200).json({
-        success: true,
-        message: 'Professions fetched successfully',
-        data: professions,
-      });
+        const professions = await ProfessionService.getAll();
+        res.status(200).json({
+            success: true,
+            message: 'Professions fetched successfully',
+            data: professions,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.NOT_FOUND,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Get a profession by id
@@ -42,30 +40,28 @@ export const getProfessions = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const getProfessionById = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const getProfessionById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
-      if (!id) {
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Profession ID is required'));
-      }
-      const profession = await ProfessionService.findById(id);
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Profession ID is required'));
+        }
+        const profession = await ProfessionService.findById(id);
 
-      res.status(200).json({
-        success: true,
-        message: 'Profession fetched successfully',
-        data: profession,
-      });
+        res.status(200).json({
+            success: true,
+            message: 'Profession fetched successfully',
+            data: profession,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.NOT_FOUND,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Create a new profession
@@ -75,36 +71,29 @@ export const getProfessionById = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const createProfession = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const createProfession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const firstError = errors.array()[0];
-      return next(
-        new HttpError(
-          HttpStatusCode.BAD_REQUEST,
-          getErrorMessage(firstError?.msg || 'Validation error')
-        )
-      );
+        const firstError = errors.array()[0];
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
     }
 
     try {
-      const profession = await ProfessionService.create(req.body);
-      res.status(201).json({
-        success: true,
-        message: 'Profession created successfully',
-        data: profession,
-      });
+        const profession = await ProfessionService.create(req.body);
+        res.status(201).json({
+            success: true,
+            message: 'Profession created successfully',
+            data: profession,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Update a profession
@@ -114,40 +103,33 @@ export const createProfession = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const updateProfession = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const updateProfession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const firstError = errors.array()[0];
-      return next(
-        new HttpError(
-          HttpStatusCode.BAD_REQUEST,
-          getErrorMessage(firstError?.msg || 'Validation error')
-        )
-      );
+        const firstError = errors.array()[0];
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
     }
 
     try {
-      const { id } = req.params;
-      if (!id) {
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Profession ID is required'));
-      }
-      const profession = await ProfessionService.updateById(id, req.body);
-      res.status(200).json({
-        success: true,
-        message: 'Profession updated successfully',
-        data: profession,
-      });
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Profession ID is required'));
+        }
+        const profession = await ProfessionService.updateById(id, req.body);
+        res.status(200).json({
+            success: true,
+            message: 'Profession updated successfully',
+            data: profession,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Delete a profession
@@ -157,28 +139,26 @@ export const updateProfession = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const deleteProfession = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const deleteProfession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
-      if (!id) {
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Profession ID is required'));
-      }
-      await ProfessionService.deleteById(id);
-      res.status(200).json({
-        success: true,
-        message: 'Profession deleted successfully',
-      });
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Profession ID is required'));
+        }
+        await ProfessionService.deleteById(id);
+        res.status(200).json({
+            success: true,
+            message: 'Profession deleted successfully',
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Add a review to a profession
@@ -188,26 +168,24 @@ export const deleteProfession = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const addReviewToProfession = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const addReviewToProfession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const reviewData = { ...req.body, professionId: req.params.id };
-      const newReview = await ReviewService.addReview(reviewData);
-      res.status(200).json({
-        success: true,
-        message: 'Review added successfully',
-        data: newReview,
-      });
+        const reviewData = { ...req.body, professionId: req.params.id };
+        const newReview = await ReviewService.addReview(reviewData);
+        res.status(200).json({
+            success: true,
+            message: 'Review added successfully',
+            data: newReview,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Get Top rated professions
@@ -217,23 +195,21 @@ export const addReviewToProfession = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const getTopRatedProfessions = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const getTopRatedProfessions = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const topRatedProfessions = await ReviewService.getTopRatedReviews('profession');
+        const topRatedProfessions = await ReviewService.getTopRatedReviews('profession');
 
-      res.status(200).json({
-        success: true,
-        message: 'Top rated professions fetched successfully',
-        data: topRatedProfessions,
-      });
+        res.status(200).json({
+            success: true,
+            message: 'Top rated professions fetched successfully',
+            data: topRatedProfessions,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.NOT_FOUND,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});

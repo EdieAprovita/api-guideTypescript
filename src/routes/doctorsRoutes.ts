@@ -1,31 +1,31 @@
-import express from "express";
-import { protect, admin } from "../middleware/authMiddleware";
+import express from 'express';
+import { protect, admin } from '../middleware/authMiddleware';
 import {
-        getDoctors,
-        getDoctorById,
-        createDoctor,
-        updateDoctor,
-        addReviewToDoctor,
-        deleteDoctor,
-} from "../controllers/doctorsControllers";
-import { registerLegacyRoutes } from "../utils/registerLegacyRoutes";
+    getDoctors,
+    getDoctorById,
+    createDoctor,
+    updateDoctor,
+    addReviewToDoctor,
+    deleteDoctor,
+} from '../controllers/doctorsControllers';
+import { registerLegacyRoutes } from '../utils/registerLegacyRoutes';
 
 const router = express.Router();
 
-router.get("/", getDoctors);
-router.get("/:id", getDoctorById);
+router.get('/', getDoctors);
+router.get('/:id', getDoctorById);
 
 // Deprecated action routes are kept for legacy clients and will be removed in
 // the next major version.
 registerLegacyRoutes(router, {
-        create: createDoctor,
-        update: updateDoctor,
-        remove: deleteDoctor,
+    create: createDoctor,
+    update: updateDoctor,
+    remove: deleteDoctor,
 });
 
-router.post("/", protect, createDoctor);
-router.post("/add-review/:id", protect, addReviewToDoctor);
-router.put("/:id", protect, admin, updateDoctor);
-router.delete("/:id", protect, admin, deleteDoctor);
+router.post('/', protect, createDoctor);
+router.post('/add-review/:id', protect, addReviewToDoctor);
+router.put('/:id', protect, admin, updateDoctor);
+router.delete('/:id', protect, admin, deleteDoctor);
 
 export default router;

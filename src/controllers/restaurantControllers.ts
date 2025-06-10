@@ -15,25 +15,23 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation';
  * @returns {Promise<Response>}
  */
 
-export const getRestaurants = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const getRestaurants = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const restaurants = await RestaurantService.getAll();
-      res.status(200).json({
-        success: true,
-        message: 'Restaurants fetched successfully',
-        data: restaurants,
-      });
+        const restaurants = await RestaurantService.getAll();
+        res.status(200).json({
+            success: true,
+            message: 'Restaurants fetched successfully',
+            data: restaurants,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.NOT_FOUND,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Get a restaurant by id
@@ -43,30 +41,28 @@ export const getRestaurants = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const getRestaurantById = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const getRestaurantById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
-      if (!id) {
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
-      }
-      const restaurant = await RestaurantService.findById(id);
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
+        }
+        const restaurant = await RestaurantService.findById(id);
 
-      res.status(200).json({
-        success: true,
-        message: 'Restaurant fetched successfully',
-        data: restaurant,
-      });
+        res.status(200).json({
+            success: true,
+            message: 'Restaurant fetched successfully',
+            data: restaurant,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.NOT_FOUND,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Create a new restaurant
@@ -76,36 +72,29 @@ export const getRestaurantById = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const createRestaurant = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const createRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const firstError = errors.array()[0];
-      return next(
-        new HttpError(
-          HttpStatusCode.BAD_REQUEST,
-          getErrorMessage(firstError?.msg || 'Validation error')
-        )
-      );
+        const firstError = errors.array()[0];
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
     }
     try {
-      await geocodeAndAssignLocation(req.body);
-      const restaurant = await RestaurantService.create(req.body);
-      res.status(201).json({
-        success: true,
-        message: 'Restaurant created successfully',
-        data: restaurant,
-      });
+        await geocodeAndAssignLocation(req.body);
+        const restaurant = await RestaurantService.create(req.body);
+        res.status(201).json({
+            success: true,
+            message: 'Restaurant created successfully',
+            data: restaurant,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Update a restaurant
@@ -115,40 +104,33 @@ export const createRestaurant = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const updateRestaurant = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const updateRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const firstError = errors.array()[0];
-      return next(
-        new HttpError(
-          HttpStatusCode.BAD_REQUEST,
-          getErrorMessage(firstError?.msg || 'Validation error')
-        )
-      );
+        const firstError = errors.array()[0];
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
     }
     try {
-      const { id } = req.params;
-      if (!id) {
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
-      }
-      await geocodeAndAssignLocation(req.body);
-      const restaurant = await RestaurantService.updateById(id, req.body);
-      res.status(200).json({
-        success: true,
-        message: 'Restaurant updated successfully',
-        data: restaurant,
-      });
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
+        }
+        await geocodeAndAssignLocation(req.body);
+        const restaurant = await RestaurantService.updateById(id, req.body);
+        res.status(200).json({
+            success: true,
+            message: 'Restaurant updated successfully',
+            data: restaurant,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Delete a restaurant
@@ -158,28 +140,26 @@ export const updateRestaurant = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const deleteRestaurant = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const deleteRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
-      if (!id) {
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
-      }
-      await RestaurantService.deleteById(id);
-      res.status(200).json({
-        success: true,
-        message: 'Restaurant deleted successfully',
-      });
+        const { id } = req.params;
+        if (!id) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
+        }
+        await RestaurantService.deleteById(id);
+        res.status(200).json({
+            success: true,
+            message: 'Restaurant deleted successfully',
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Add a review to a restaurant
@@ -189,27 +169,25 @@ export const deleteRestaurant = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const addReviewToRestaurant = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const addReviewToRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const reviewData = { ...req.body, restaurantId: req.params.id };
-      const newReview = await ReviewService.addReview(reviewData);
+        const reviewData = { ...req.body, restaurantId: req.params.id };
+        const newReview = await ReviewService.addReview(reviewData);
 
-      res.status(200).json({
-        success: true,
-        message: 'Review added successfully',
-        data: newReview,
-      });
+        res.status(200).json({
+            success: true,
+            message: 'Review added successfully',
+            data: newReview,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.INTERNAL_SERVER_ERROR,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
 
 /**
  * @description Get Top rated restaurants
@@ -219,22 +197,20 @@ export const addReviewToRestaurant = asyncHandler(
  * @returns {Promise<Response>}
  */
 
-export const getTopRatedRestaurants = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+export const getTopRatedRestaurants = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const topRatedRestaurants = await ReviewService.getTopRatedReviews('restaurant');
-      res.status(200).json({
-        success: true,
-        message: 'Top rated restaurants fetched successfully',
-        data: topRatedRestaurants,
-      });
+        const topRatedRestaurants = await ReviewService.getTopRatedReviews('restaurant');
+        res.status(200).json({
+            success: true,
+            message: 'Top rated restaurants fetched successfully',
+            data: topRatedRestaurants,
+        });
     } catch (error) {
-      next(
-        new HttpError(
-          HttpStatusCode.NOT_FOUND,
-          getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-        )
-      );
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
     }
-  }
-);
+});
