@@ -1,0 +1,1199 @@
+openapi: 3.0.0
+info:
+  title: API Guide TypeScript
+  description: Complete API collection for the Express TypeScript API
+  version: 1.0.0
+servers:
+  - url: undefined://{{baseUrl}}
+components:
+  securitySchemes: {}
+security: []
+tags:
+  - name: Authentication
+  - name: Users
+  - name: Businesses
+  - name: Restaurants
+  - name: Doctors
+  - name: Markets
+  - name: Recipes
+  - name: Posts
+  - name: Sanctuaries
+  - name: Professions
+  - name: Professional Profiles
+paths:
+  /users/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register User
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: John Doe
+                email: john@example.com
+                password: password123
+                role: user
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login User
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: john@example.com
+                password: password123
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Forgot Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: john@example.com
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/reset-password:
+    put:
+      tags:
+        - Authentication
+      summary: Reset Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                token: reset-token-here
+                newPassword: newpassword123
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get All Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/:id:
+    get:
+      tags:
+        - Users
+      summary: Get User By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Users
+      summary: Delete User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/profile/:id:
+    put:
+      tags:
+        - Users
+      summary: Update User Profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Updated Name
+                email: updated@example.com
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /businesses:
+    get:
+      tags:
+        - Businesses
+      summary: Get All Businesses
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Businesses
+      summary: Create Business
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: My Business
+                address: 123 Main St, City, Country
+                contact:
+                  - phone: 1234567890
+                    email: business@example.com
+                    facebook: facebook.com/mybusiness
+                    instagram: instagram.com/mybusiness
+                image: https://example.com/image.jpg
+                hours:
+                  - dayOfWeek: Monday
+                    openTime: '09:00'
+                    closeTime: '17:00'
+                typeBusiness: retail
+                budget: 1000
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /businesses/:id:
+    get:
+      tags:
+        - Businesses
+      summary: Get Business By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Businesses
+      summary: Update Business
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Updated Business Name
+                address: 456 Updated St, City, Country
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Businesses
+      summary: Delete Business
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /businesses/add-review/:id:
+    post:
+      tags:
+        - Businesses
+      summary: Add Review to Business
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Excellent service!
+                name: John Doe
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /restaurants:
+    get:
+      tags:
+        - Restaurants
+      summary: Get All Restaurants
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Restaurants
+      summary: Create Restaurant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: My Restaurant
+                address: 123 Food St, City, Country
+                contact:
+                  - phone: 1234567890
+                    email: restaurant@example.com
+                image: https://example.com/restaurant.jpg
+                hours:
+                  - dayOfWeek: Monday
+                    openTime: '11:00'
+                    closeTime: '22:00'
+                cuisine: Italian
+                priceRange: $$
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /restaurants/:id:
+    get:
+      tags:
+        - Restaurants
+      summary: Get Restaurant By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Restaurants
+      summary: Update Restaurant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Updated Restaurant Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Restaurants
+      summary: Delete Restaurant
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /restaurants/add-review/:id:
+    post:
+      tags:
+        - Restaurants
+      summary: Add Review to Restaurant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 4
+                comment: Great food!
+                name: Jane Doe
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /restaurants/create:
+    post:
+      tags:
+        - Restaurants
+      summary: Create Restaurant (Legacy)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Legacy Restaurant
+                address: Legacy Address
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /restaurants/update/:id:
+    put:
+      tags:
+        - Restaurants
+      summary: Update Restaurant (Legacy)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Updated Legacy Restaurant
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /restaurants/delete/:id:
+    delete:
+      tags:
+        - Restaurants
+      summary: Delete Restaurant (Legacy)
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /doctors:
+    get:
+      tags:
+        - Doctors
+      summary: Get All Doctors
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Doctors
+      summary: Create Doctor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Dr. Smith Clinic
+                address: 123 Medical St, City, Country
+                contact:
+                  - phone: 1234567890
+                    email: doctor@example.com
+                image: https://example.com/doctor.jpg
+                specialty: Cardiology
+                experience: 10
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /doctors/:id:
+    get:
+      tags:
+        - Doctors
+      summary: Get Doctor By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Doctors
+      summary: Update Doctor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Updated Doctor Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Doctors
+      summary: Delete Doctor
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /doctors/add-review/:id:
+    post:
+      tags:
+        - Doctors
+      summary: Add Review to Doctor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Excellent doctor!
+                name: Patient Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /markets:
+    get:
+      tags:
+        - Markets
+      summary: Get All Markets
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Markets
+      summary: Create Market
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Central Market
+                address: 123 Market St, City, Country
+                contact:
+                  - phone: 1234567890
+                    email: market@example.com
+                image: https://example.com/market.jpg
+                marketType: farmers
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /markets/:id:
+    get:
+      tags:
+        - Markets
+      summary: Get Market By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Markets
+      summary: Update Market
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Updated Market Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Markets
+      summary: Delete Market
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /markets/add-review/:id:
+    post:
+      tags:
+        - Markets
+      summary: Add Review to Market
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 4
+                comment: Great market!
+                name: Customer Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /recipes:
+    get:
+      tags:
+        - Recipes
+      summary: Get All Recipes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Recipes
+      summary: Create Recipe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Delicious Recipe
+                description: A wonderful recipe
+                ingredients:
+                  - ingredient1
+                  - ingredient2
+                instructions:
+                  - step1
+                  - step2
+                cookingTime: 30
+                difficulty: easy
+                image: https://example.com/recipe.jpg
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /recipes/:id:
+    get:
+      tags:
+        - Recipes
+      summary: Get Recipe By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Recipes
+      summary: Update Recipe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Updated Recipe Title
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Recipes
+      summary: Delete Recipe
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /recipes/add-review/:id:
+    post:
+      tags:
+        - Recipes
+      summary: Add Review to Recipe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Amazing recipe!
+                name: Chef Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /posts:
+    get:
+      tags:
+        - Posts
+      summary: Get All Posts
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Posts
+      summary: Create Post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: My Post Title
+                content: This is the content of my post
+                image: https://example.com/post-image.jpg
+                tags:
+                  - tag1
+                  - tag2
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /posts/:id:
+    get:
+      tags:
+        - Posts
+      summary: Get Post By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Posts
+      summary: Update Post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Updated Post Title
+                content: Updated content
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Posts
+      summary: Delete Post
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /posts/like/:id:
+    post:
+      tags:
+        - Posts
+      summary: Like Post
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /posts/unlike/:id:
+    post:
+      tags:
+        - Posts
+      summary: Unlike Post
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /posts/comment/:id:
+    post:
+      tags:
+        - Posts
+      summary: Add Comment to Post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                text: This is a comment
+                name: Commenter Name
+                avatar: https://example.com/avatar.jpg
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /sanctuaries:
+    get:
+      tags:
+        - Sanctuaries
+      summary: Get All Sanctuaries
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Sanctuaries
+      summary: Create Sanctuary
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Wildlife Sanctuary
+                address: 123 Nature St, City, Country
+                contact:
+                  - phone: 1234567890
+                    email: sanctuary@example.com
+                image: https://example.com/sanctuary.jpg
+                sanctuaryType: wildlife
+                description: A beautiful wildlife sanctuary
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /sanctuaries/:id:
+    get:
+      tags:
+        - Sanctuaries
+      summary: Get Sanctuary By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Sanctuaries
+      summary: Update Sanctuary
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                namePlace: Updated Sanctuary Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Sanctuaries
+      summary: Delete Sanctuary
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /sanctuaries/add-review/:id:
+    post:
+      tags:
+        - Sanctuaries
+      summary: Add Review to Sanctuary
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Beautiful sanctuary!
+                name: Visitor Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /professions:
+    get:
+      tags:
+        - Professions
+      summary: Get All Professions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Professions
+      summary: Create Profession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Software Developer
+                description: Develops software applications
+                category: Technology
+                requirements:
+                  - Programming skills
+                  - Problem solving
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /professions/:id:
+    get:
+      tags:
+        - Professions
+      summary: Get Profession By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Professions
+      summary: Update Profession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Updated Profession Title
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Professions
+      summary: Delete Profession
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /professions/add-review/:id:
+    post:
+      tags:
+        - Professions
+      summary: Add Review to Profession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 4
+                comment: Great profession!
+                name: Reviewer Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /professionalProfile:
+    get:
+      tags:
+        - Professional Profiles
+      summary: Get All Professional Profiles
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Professional Profiles
+      summary: Create Professional Profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: John Professional
+                profession: Software Developer
+                experience: 5
+                skills:
+                  - JavaScript
+                  - TypeScript
+                  - Node.js
+                bio: Experienced software developer
+                contact:
+                  email: john@example.com
+                  phone: 1234567890
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /professionalProfile/:id:
+    get:
+      tags:
+        - Professional Profiles
+      summary: Get Professional Profile By ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Professional Profiles
+      summary: Update Professional Profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Updated Professional Name
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Professional Profiles
+      summary: Delete Professional Profile
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
