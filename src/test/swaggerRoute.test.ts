@@ -1,6 +1,10 @@
 import request from "supertest";
 jest.mock("../config/db");
 
+// Increase timeout because importing the app with ts-jest can be slow
+const TEST_TIMEOUT = 10000;
+jest.setTimeout(TEST_TIMEOUT);
+
 const originalEnv = process.env.NODE_ENV;
 
 afterEach(() => {
