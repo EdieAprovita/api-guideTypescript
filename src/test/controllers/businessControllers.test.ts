@@ -4,10 +4,16 @@ jest.mock("../../config/db");
 import app from "../../app";
 import { businessService } from "../../services/BusinessService";
 import geoService from "../../services/GeoService";
+import logger from "../../utils/logger";
 
 jest.mock("../../services/GeoService", () => ({
         __esModule: true,
         default: { geocodeAddress: jest.fn() },
+}));
+
+jest.mock("../../utils/logger", () => ({
+        __esModule: true,
+        default: { error: jest.fn() },
 }));
 
 jest.mock("../../middleware/authMiddleware", () => ({
