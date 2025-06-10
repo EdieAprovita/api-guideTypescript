@@ -21,6 +21,8 @@ import professionProfileRoutes from "./routes/professionProfileRoutes";
 import professionRoutes from "./routes/professionRoutes";
 import postRoutes from "./routes/postRoutes";
 import sanctuaryRoutes from "./routes/sanctuaryRoutes";
+import swaggerUi from "swagger-ui-express";
+import swaggerDocument from "./swagger";
 
 dotenv.config();
 if (process.env.NODE_ENV !== "test") {
@@ -51,6 +53,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(corsMiddleware);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/api/v1", (req, res) => {
 	res.send("API is running");
