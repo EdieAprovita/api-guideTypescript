@@ -23,10 +23,17 @@ export class GeoService {
                                 },
                         });
 
+                        logger.info(`Geocoding response status: ${response.status}`);
+
+
                         const result = response.data.results[0];
-                        if (!result) return null;
+                        if (!result) {
+                                logger.error(`No geocoding results found for address: ${address}`);
+                                return null;
+                        } 
 
                         const { lat, lng } = result.geometry.location;
+                        logger.info(`Geocoding successful: ${lat}, ${lng}`);
                         return { lat, lng };
                 } catch (error) {
                         logger.error("Error during geocoding", {

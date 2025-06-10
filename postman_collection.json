@@ -1,0 +1,1455 @@
+{
+	"info": {
+		"name": "API Guide TypeScript",
+		"description": "Complete API collection for the Express TypeScript API",
+		"version": "1.0.0",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.token) {",
+									"        pm.collectionVariables.set('authToken', response.token);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "login"]
+						}
+					}
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/forgot-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "forgot-password"]
+						}
+					}
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"reset-token-here\",\n  \"newPassword\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/reset-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "reset-password"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["users"]
+						}
+					}
+				},
+				{
+					"name": "Get User By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "user-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update User Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/profile/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "profile", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "user-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "user-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Businesses",
+			"item": [
+				{
+					"name": "Get All Businesses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/businesses",
+							"host": ["{{baseUrl}}"],
+							"path": ["businesses"]
+						}
+					}
+				},
+				{
+					"name": "Get Business By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/businesses/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["businesses", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "business-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Business",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"My Business\",\n  \"address\": \"123 Main St, City, Country\",\n  \"contact\": [\n    {\n      \"phone\": 1234567890,\n      \"email\": \"business@example.com\",\n      \"facebook\": \"facebook.com/mybusiness\",\n      \"instagram\": \"instagram.com/mybusiness\"\n    }\n  ],\n  \"image\": \"https://example.com/image.jpg\",\n  \"hours\": [\n    {\n      \"dayOfWeek\": \"Monday\",\n      \"openTime\": \"09:00\",\n      \"closeTime\": \"17:00\"\n    }\n  ],\n  \"typeBusiness\": \"retail\",\n  \"budget\": 1000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/businesses",
+							"host": ["{{baseUrl}}"],
+							"path": ["businesses"]
+						}
+					}
+				},
+				{
+					"name": "Update Business",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Updated Business Name\",\n  \"address\": \"456 Updated St, City, Country\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/businesses/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["businesses", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "business-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Business",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/businesses/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["businesses", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "business-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Review to Business",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 5,\n  \"comment\": \"Excellent service!\",\n  \"name\": \"John Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/businesses/add-review/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["businesses", "add-review", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "business-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Restaurants",
+			"item": [
+				{
+					"name": "Get All Restaurants",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/restaurants",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants"]
+						}
+					}
+				},
+				{
+					"name": "Get Restaurant By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/restaurants/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "restaurant-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Restaurant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"My Restaurant\",\n  \"address\": \"123 Food St, City, Country\",\n  \"contact\": [\n    {\n      \"phone\": 1234567890,\n      \"email\": \"restaurant@example.com\"\n    }\n  ],\n  \"image\": \"https://example.com/restaurant.jpg\",\n  \"hours\": [\n    {\n      \"dayOfWeek\": \"Monday\",\n      \"openTime\": \"11:00\",\n      \"closeTime\": \"22:00\"\n    }\n  ],\n  \"cuisine\": \"Italian\",\n  \"priceRange\": \"$$\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/restaurants",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants"]
+						}
+					}
+				},
+				{
+					"name": "Update Restaurant",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Updated Restaurant Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/restaurants/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "restaurant-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Restaurant",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/restaurants/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "restaurant-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Review to Restaurant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 4,\n  \"comment\": \"Great food!\",\n  \"name\": \"Jane Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/restaurants/add-review/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants", "add-review", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "restaurant-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Restaurant (Legacy)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Legacy Restaurant\",\n  \"address\": \"Legacy Address\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/restaurants/create",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants", "create"]
+						}
+					}
+				},
+				{
+					"name": "Update Restaurant (Legacy)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Updated Legacy Restaurant\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/restaurants/update/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "restaurant-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Restaurant (Legacy)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/restaurants/delete/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["restaurants", "delete", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "restaurant-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Doctors",
+			"item": [
+				{
+					"name": "Get All Doctors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/doctors",
+							"host": ["{{baseUrl}}"],
+							"path": ["doctors"]
+						}
+					}
+				},
+				{
+					"name": "Get Doctor By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/doctors/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["doctors", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "doctor-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Doctor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Dr. Smith Clinic\",\n  \"address\": \"123 Medical St, City, Country\",\n  \"contact\": [\n    {\n      \"phone\": 1234567890,\n      \"email\": \"doctor@example.com\"\n    }\n  ],\n  \"image\": \"https://example.com/doctor.jpg\",\n  \"specialty\": \"Cardiology\",\n  \"experience\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/doctors",
+							"host": ["{{baseUrl}}"],
+							"path": ["doctors"]
+						}
+					}
+				},
+				{
+					"name": "Update Doctor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Updated Doctor Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/doctors/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["doctors", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "doctor-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Doctor",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/doctors/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["doctors", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "doctor-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Review to Doctor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 5,\n  \"comment\": \"Excellent doctor!\",\n  \"name\": \"Patient Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/doctors/add-review/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["doctors", "add-review", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "doctor-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Markets",
+			"item": [
+				{
+					"name": "Get All Markets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/markets",
+							"host": ["{{baseUrl}}"],
+							"path": ["markets"]
+						}
+					}
+				},
+				{
+					"name": "Get Market By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/markets/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["markets", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "market-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Market",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Central Market\",\n  \"address\": \"123 Market St, City, Country\",\n  \"contact\": [\n    {\n      \"phone\": 1234567890,\n      \"email\": \"market@example.com\"\n    }\n  ],\n  \"image\": \"https://example.com/market.jpg\",\n  \"marketType\": \"farmers\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/markets",
+							"host": ["{{baseUrl}}"],
+							"path": ["markets"]
+						}
+					}
+				},
+				{
+					"name": "Update Market",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Updated Market Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/markets/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["markets", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "market-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Market",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/markets/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["markets", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "market-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Review to Market",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 4,\n  \"comment\": \"Great market!\",\n  \"name\": \"Customer Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/markets/add-review/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["markets", "add-review", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "market-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Recipes",
+			"item": [
+				{
+					"name": "Get All Recipes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/recipes",
+							"host": ["{{baseUrl}}"],
+							"path": ["recipes"]
+						}
+					}
+				},
+				{
+					"name": "Get Recipe By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/recipes/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["recipes", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "recipe-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Recipe",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Delicious Recipe\",\n  \"description\": \"A wonderful recipe\",\n  \"ingredients\": [\"ingredient1\", \"ingredient2\"],\n  \"instructions\": [\"step1\", \"step2\"],\n  \"cookingTime\": 30,\n  \"difficulty\": \"easy\",\n  \"image\": \"https://example.com/recipe.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/recipes",
+							"host": ["{{baseUrl}}"],
+							"path": ["recipes"]
+						}
+					}
+				},
+				{
+					"name": "Update Recipe",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Recipe Title\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/recipes/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["recipes", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "recipe-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Recipe",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/recipes/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["recipes", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "recipe-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Review to Recipe",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 5,\n  \"comment\": \"Amazing recipe!\",\n  \"name\": \"Chef Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/recipes/add-review/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["recipes", "add-review", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "recipe-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Get All Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "Get Post By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"My Post Title\",\n  \"content\": \"This is the content of my post\",\n  \"image\": \"https://example.com/post-image.jpg\",\n  \"tags\": [\"tag1\", \"tag2\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts"]
+						}
+					}
+				},
+				{
+					"name": "Update Post",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Post Title\",\n  \"content\": \"Updated content\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Post",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Like Post",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/like/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "like", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Unlike Post",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/unlike/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "unlike", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Comment to Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"This is a comment\",\n  \"name\": \"Commenter Name\",\n  \"avatar\": \"https://example.com/avatar.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts/comment/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["posts", "comment", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Sanctuaries",
+			"item": [
+				{
+					"name": "Get All Sanctuaries",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sanctuaries",
+							"host": ["{{baseUrl}}"],
+							"path": ["sanctuaries"]
+						}
+					}
+				},
+				{
+					"name": "Get Sanctuary By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sanctuaries/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["sanctuaries", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "sanctuary-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Sanctuary",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Wildlife Sanctuary\",\n  \"address\": \"123 Nature St, City, Country\",\n  \"contact\": [\n    {\n      \"phone\": 1234567890,\n      \"email\": \"sanctuary@example.com\"\n    }\n  ],\n  \"image\": \"https://example.com/sanctuary.jpg\",\n  \"sanctuaryType\": \"wildlife\",\n  \"description\": \"A beautiful wildlife sanctuary\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sanctuaries",
+							"host": ["{{baseUrl}}"],
+							"path": ["sanctuaries"]
+						}
+					}
+				},
+				{
+					"name": "Update Sanctuary",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"namePlace\": \"Updated Sanctuary Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sanctuaries/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["sanctuaries", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "sanctuary-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Sanctuary",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sanctuaries/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["sanctuaries", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "sanctuary-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Review to Sanctuary",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 5,\n  \"comment\": \"Beautiful sanctuary!\",\n  \"name\": \"Visitor Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sanctuaries/add-review/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["sanctuaries", "add-review", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "sanctuary-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Professions",
+			"item": [
+				{
+					"name": "Get All Professions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/professions",
+							"host": ["{{baseUrl}}"],
+							"path": ["professions"]
+						}
+					}
+				},
+				{
+					"name": "Get Profession By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/professions/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["professions", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "profession-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Profession",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Software Developer\",\n  \"description\": \"Develops software applications\",\n  \"category\": \"Technology\",\n  \"requirements\": [\"Programming skills\", \"Problem solving\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/professions",
+							"host": ["{{baseUrl}}"],
+							"path": ["professions"]
+						}
+					}
+				},
+				{
+					"name": "Update Profession",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Profession Title\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/professions/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["professions", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "profession-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Profession",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/professions/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["professions", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "profession-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Review to Profession",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 4,\n  \"comment\": \"Great profession!\",\n  \"name\": \"Reviewer Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/professions/add-review/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["professions", "add-review", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "profession-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Professional Profiles",
+			"item": [
+				{
+					"name": "Get All Professional Profiles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/professionalProfile",
+							"host": ["{{baseUrl}}"],
+							"path": ["professionalProfile"]
+						}
+					}
+				},
+				{
+					"name": "Get Professional Profile By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/professionalProfile/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["professionalProfile", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "profile-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Professional Profile",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Professional\",\n  \"profession\": \"Software Developer\",\n  \"experience\": 5,\n  \"skills\": [\"JavaScript\", \"TypeScript\", \"Node.js\"],\n  \"bio\": \"Experienced software developer\",\n  \"contact\": {\n    \"email\": \"john@example.com\",\n    \"phone\": 1234567890\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/professionalProfile",
+							"host": ["{{baseUrl}}"],
+							"path": ["professionalProfile"]
+						}
+					}
+				},
+				{
+					"name": "Update Professional Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Professional Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/professionalProfile/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["professionalProfile", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "profile-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Professional Profile",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/professionalProfile/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["professionalProfile", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "profile-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}
