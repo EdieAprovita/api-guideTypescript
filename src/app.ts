@@ -22,7 +22,8 @@ import professionRoutes from "./routes/professionRoutes";
 import postRoutes from "./routes/postRoutes";
 import sanctuaryRoutes from "./routes/sanctuaryRoutes";
 import swaggerUi from "swagger-ui-express";
-import swaggerDocument from "./swagger";
+import fs from "fs";
+import yaml from "js-yaml";
 
 dotenv.config();
 if (process.env.NODE_ENV !== "test") {
@@ -30,6 +31,8 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 const app = express();
+
+const swaggerDocument = yaml.load(fs.readFileSync("./swagger.yaml", "utf8"));
 
 // Security middleware to protect the application from common vulnerabilities
 app.use(helmet()); // sets HTTP headers for basic security

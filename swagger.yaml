@@ -4,27 +4,27 @@ info:
   description: Complete API collection for the Express TypeScript API
   version: 1.0.0
 servers:
-  - url: undefined://{{baseUrl}}
+- url: http://localhost:5001/api-docs
 components:
   securitySchemes: {}
 security: []
 tags:
-  - name: Authentication
-  - name: Users
-  - name: Businesses
-  - name: Restaurants
-  - name: Doctors
-  - name: Markets
-  - name: Recipes
-  - name: Posts
-  - name: Sanctuaries
-  - name: Professions
-  - name: Professional Profiles
+- name: Authentication
+- name: Users
+- name: Businesses
+- name: Restaurants
+- name: Doctors
+- name: Markets
+- name: Recipes
+- name: Posts
+- name: Sanctuaries
+- name: Professions
+- name: Professional Profiles
 paths:
   /users/register:
     post:
       tags:
-        - Authentication
+      - Authentication
       summary: Register User
       requestBody:
         content:
@@ -37,11 +37,11 @@ paths:
                 password: password123
                 role: user
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -50,7 +50,7 @@ paths:
   /users/login:
     post:
       tags:
-        - Authentication
+      - Authentication
       summary: Login User
       requestBody:
         content:
@@ -61,11 +61,11 @@ paths:
                 email: john@example.com
                 password: password123
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -74,7 +74,7 @@ paths:
   /users/forgot-password:
     post:
       tags:
-        - Authentication
+      - Authentication
       summary: Forgot Password
       requestBody:
         content:
@@ -84,11 +84,11 @@ paths:
               example:
                 email: john@example.com
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -97,7 +97,7 @@ paths:
   /users/reset-password:
     put:
       tags:
-        - Authentication
+      - Authentication
       summary: Reset Password
       requestBody:
         content:
@@ -108,11 +108,11 @@ paths:
                 token: reset-token-here
                 newPassword: newpassword123
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -121,7 +121,7 @@ paths:
   /users/logout:
     post:
       tags:
-        - Authentication
+      - Authentication
       summary: Logout
       requestBody:
         content: {}
@@ -133,7 +133,7 @@ paths:
   /users:
     get:
       tags:
-        - Users
+      - Users
       summary: Get All Users
       responses:
         '200':
@@ -143,7 +143,7 @@ paths:
   /users/:id:
     get:
       tags:
-        - Users
+      - Users
       summary: Get User By ID
       responses:
         '200':
@@ -152,7 +152,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Users
+      - Users
       summary: Delete User
       responses:
         '200':
@@ -162,7 +162,7 @@ paths:
   /users/profile/:id:
     put:
       tags:
-        - Users
+      - Users
       summary: Update User Profile
       requestBody:
         content:
@@ -173,11 +173,11 @@ paths:
                 name: Updated Name
                 email: updated@example.com
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -186,7 +186,7 @@ paths:
   /businesses:
     get:
       tags:
-        - Businesses
+      - Businesses
       summary: Get All Businesses
       responses:
         '200':
@@ -195,7 +195,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Businesses
+      - Businesses
       summary: Create Business
       requestBody:
         content:
@@ -206,23 +206,23 @@ paths:
                 namePlace: My Business
                 address: 123 Main St, City, Country
                 contact:
-                  - phone: 1234567890
-                    email: business@example.com
-                    facebook: facebook.com/mybusiness
-                    instagram: instagram.com/mybusiness
+                - phone: 1234567890
+                  email: business@example.com
+                  facebook: facebook.com/mybusiness
+                  instagram: instagram.com/mybusiness
                 image: https://example.com/image.jpg
                 hours:
-                  - dayOfWeek: Monday
-                    openTime: '09:00'
-                    closeTime: '17:00'
+                - dayOfWeek: Monday
+                  openTime: '09:00'
+                  closeTime: '17:00'
                 typeBusiness: retail
                 budget: 1000
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -231,7 +231,7 @@ paths:
   /businesses/:id:
     get:
       tags:
-        - Businesses
+      - Businesses
       summary: Get Business By ID
       responses:
         '200':
@@ -240,7 +240,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Businesses
+      - Businesses
       summary: Update Business
       requestBody:
         content:
@@ -251,11 +251,11 @@ paths:
                 namePlace: Updated Business Name
                 address: 456 Updated St, City, Country
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -263,7 +263,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Businesses
+      - Businesses
       summary: Delete Business
       responses:
         '200':
@@ -273,7 +273,7 @@ paths:
   /businesses/add-review/:id:
     post:
       tags:
-        - Businesses
+      - Businesses
       summary: Add Review to Business
       requestBody:
         content:
@@ -285,11 +285,11 @@ paths:
                 comment: Excellent service!
                 name: John Doe
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -298,7 +298,7 @@ paths:
   /restaurants:
     get:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Get All Restaurants
       responses:
         '200':
@@ -307,7 +307,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Create Restaurant
       requestBody:
         content:
@@ -318,21 +318,21 @@ paths:
                 namePlace: My Restaurant
                 address: 123 Food St, City, Country
                 contact:
-                  - phone: 1234567890
-                    email: restaurant@example.com
+                - phone: 1234567890
+                  email: restaurant@example.com
                 image: https://example.com/restaurant.jpg
                 hours:
-                  - dayOfWeek: Monday
-                    openTime: '11:00'
-                    closeTime: '22:00'
+                - dayOfWeek: Monday
+                  openTime: '11:00'
+                  closeTime: '22:00'
                 cuisine: Italian
                 priceRange: $$
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -341,7 +341,7 @@ paths:
   /restaurants/:id:
     get:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Get Restaurant By ID
       responses:
         '200':
@@ -350,7 +350,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Update Restaurant
       requestBody:
         content:
@@ -360,11 +360,11 @@ paths:
               example:
                 namePlace: Updated Restaurant Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -372,7 +372,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Delete Restaurant
       responses:
         '200':
@@ -382,7 +382,7 @@ paths:
   /restaurants/add-review/:id:
     post:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Add Review to Restaurant
       requestBody:
         content:
@@ -394,11 +394,11 @@ paths:
                 comment: Great food!
                 name: Jane Doe
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -407,7 +407,7 @@ paths:
   /restaurants/create:
     post:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Create Restaurant (Legacy)
       requestBody:
         content:
@@ -418,11 +418,11 @@ paths:
                 namePlace: Legacy Restaurant
                 address: Legacy Address
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -431,7 +431,7 @@ paths:
   /restaurants/update/:id:
     put:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Update Restaurant (Legacy)
       requestBody:
         content:
@@ -441,11 +441,11 @@ paths:
               example:
                 namePlace: Updated Legacy Restaurant
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -454,7 +454,7 @@ paths:
   /restaurants/delete/:id:
     delete:
       tags:
-        - Restaurants
+      - Restaurants
       summary: Delete Restaurant (Legacy)
       responses:
         '200':
@@ -464,7 +464,7 @@ paths:
   /doctors:
     get:
       tags:
-        - Doctors
+      - Doctors
       summary: Get All Doctors
       responses:
         '200':
@@ -473,7 +473,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Doctors
+      - Doctors
       summary: Create Doctor
       requestBody:
         content:
@@ -484,17 +484,17 @@ paths:
                 namePlace: Dr. Smith Clinic
                 address: 123 Medical St, City, Country
                 contact:
-                  - phone: 1234567890
-                    email: doctor@example.com
+                - phone: 1234567890
+                  email: doctor@example.com
                 image: https://example.com/doctor.jpg
                 specialty: Cardiology
                 experience: 10
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -503,7 +503,7 @@ paths:
   /doctors/:id:
     get:
       tags:
-        - Doctors
+      - Doctors
       summary: Get Doctor By ID
       responses:
         '200':
@@ -512,7 +512,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Doctors
+      - Doctors
       summary: Update Doctor
       requestBody:
         content:
@@ -522,11 +522,11 @@ paths:
               example:
                 namePlace: Updated Doctor Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -534,7 +534,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Doctors
+      - Doctors
       summary: Delete Doctor
       responses:
         '200':
@@ -544,7 +544,7 @@ paths:
   /doctors/add-review/:id:
     post:
       tags:
-        - Doctors
+      - Doctors
       summary: Add Review to Doctor
       requestBody:
         content:
@@ -556,11 +556,11 @@ paths:
                 comment: Excellent doctor!
                 name: Patient Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -569,7 +569,7 @@ paths:
   /markets:
     get:
       tags:
-        - Markets
+      - Markets
       summary: Get All Markets
       responses:
         '200':
@@ -578,7 +578,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Markets
+      - Markets
       summary: Create Market
       requestBody:
         content:
@@ -589,16 +589,16 @@ paths:
                 namePlace: Central Market
                 address: 123 Market St, City, Country
                 contact:
-                  - phone: 1234567890
-                    email: market@example.com
+                - phone: 1234567890
+                  email: market@example.com
                 image: https://example.com/market.jpg
                 marketType: farmers
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -607,7 +607,7 @@ paths:
   /markets/:id:
     get:
       tags:
-        - Markets
+      - Markets
       summary: Get Market By ID
       responses:
         '200':
@@ -616,7 +616,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Markets
+      - Markets
       summary: Update Market
       requestBody:
         content:
@@ -626,11 +626,11 @@ paths:
               example:
                 namePlace: Updated Market Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -638,7 +638,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Markets
+      - Markets
       summary: Delete Market
       responses:
         '200':
@@ -648,7 +648,7 @@ paths:
   /markets/add-review/:id:
     post:
       tags:
-        - Markets
+      - Markets
       summary: Add Review to Market
       requestBody:
         content:
@@ -660,11 +660,11 @@ paths:
                 comment: Great market!
                 name: Customer Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -673,7 +673,7 @@ paths:
   /recipes:
     get:
       tags:
-        - Recipes
+      - Recipes
       summary: Get All Recipes
       responses:
         '200':
@@ -682,7 +682,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Recipes
+      - Recipes
       summary: Create Recipe
       requestBody:
         content:
@@ -693,20 +693,20 @@ paths:
                 title: Delicious Recipe
                 description: A wonderful recipe
                 ingredients:
-                  - ingredient1
-                  - ingredient2
+                - ingredient1
+                - ingredient2
                 instructions:
-                  - step1
-                  - step2
+                - step1
+                - step2
                 cookingTime: 30
                 difficulty: easy
                 image: https://example.com/recipe.jpg
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -715,7 +715,7 @@ paths:
   /recipes/:id:
     get:
       tags:
-        - Recipes
+      - Recipes
       summary: Get Recipe By ID
       responses:
         '200':
@@ -724,7 +724,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Recipes
+      - Recipes
       summary: Update Recipe
       requestBody:
         content:
@@ -734,11 +734,11 @@ paths:
               example:
                 title: Updated Recipe Title
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -746,7 +746,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Recipes
+      - Recipes
       summary: Delete Recipe
       responses:
         '200':
@@ -756,7 +756,7 @@ paths:
   /recipes/add-review/:id:
     post:
       tags:
-        - Recipes
+      - Recipes
       summary: Add Review to Recipe
       requestBody:
         content:
@@ -768,11 +768,11 @@ paths:
                 comment: Amazing recipe!
                 name: Chef Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -781,7 +781,7 @@ paths:
   /posts:
     get:
       tags:
-        - Posts
+      - Posts
       summary: Get All Posts
       responses:
         '200':
@@ -790,7 +790,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Posts
+      - Posts
       summary: Create Post
       requestBody:
         content:
@@ -802,14 +802,14 @@ paths:
                 content: This is the content of my post
                 image: https://example.com/post-image.jpg
                 tags:
-                  - tag1
-                  - tag2
+                - tag1
+                - tag2
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -818,7 +818,7 @@ paths:
   /posts/:id:
     get:
       tags:
-        - Posts
+      - Posts
       summary: Get Post By ID
       responses:
         '200':
@@ -827,7 +827,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Posts
+      - Posts
       summary: Update Post
       requestBody:
         content:
@@ -838,11 +838,11 @@ paths:
                 title: Updated Post Title
                 content: Updated content
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -850,7 +850,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Posts
+      - Posts
       summary: Delete Post
       responses:
         '200':
@@ -860,7 +860,7 @@ paths:
   /posts/like/:id:
     post:
       tags:
-        - Posts
+      - Posts
       summary: Like Post
       requestBody:
         content: {}
@@ -872,7 +872,7 @@ paths:
   /posts/unlike/:id:
     post:
       tags:
-        - Posts
+      - Posts
       summary: Unlike Post
       requestBody:
         content: {}
@@ -884,7 +884,7 @@ paths:
   /posts/comment/:id:
     post:
       tags:
-        - Posts
+      - Posts
       summary: Add Comment to Post
       requestBody:
         content:
@@ -896,11 +896,11 @@ paths:
                 name: Commenter Name
                 avatar: https://example.com/avatar.jpg
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -909,7 +909,7 @@ paths:
   /sanctuaries:
     get:
       tags:
-        - Sanctuaries
+      - Sanctuaries
       summary: Get All Sanctuaries
       responses:
         '200':
@@ -918,7 +918,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Sanctuaries
+      - Sanctuaries
       summary: Create Sanctuary
       requestBody:
         content:
@@ -929,17 +929,17 @@ paths:
                 namePlace: Wildlife Sanctuary
                 address: 123 Nature St, City, Country
                 contact:
-                  - phone: 1234567890
-                    email: sanctuary@example.com
+                - phone: 1234567890
+                  email: sanctuary@example.com
                 image: https://example.com/sanctuary.jpg
                 sanctuaryType: wildlife
                 description: A beautiful wildlife sanctuary
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -948,7 +948,7 @@ paths:
   /sanctuaries/:id:
     get:
       tags:
-        - Sanctuaries
+      - Sanctuaries
       summary: Get Sanctuary By ID
       responses:
         '200':
@@ -957,7 +957,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Sanctuaries
+      - Sanctuaries
       summary: Update Sanctuary
       requestBody:
         content:
@@ -967,11 +967,11 @@ paths:
               example:
                 namePlace: Updated Sanctuary Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -979,7 +979,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Sanctuaries
+      - Sanctuaries
       summary: Delete Sanctuary
       responses:
         '200':
@@ -989,7 +989,7 @@ paths:
   /sanctuaries/add-review/:id:
     post:
       tags:
-        - Sanctuaries
+      - Sanctuaries
       summary: Add Review to Sanctuary
       requestBody:
         content:
@@ -1001,11 +1001,11 @@ paths:
                 comment: Beautiful sanctuary!
                 name: Visitor Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -1014,7 +1014,7 @@ paths:
   /professions:
     get:
       tags:
-        - Professions
+      - Professions
       summary: Get All Professions
       responses:
         '200':
@@ -1023,7 +1023,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Professions
+      - Professions
       summary: Create Profession
       requestBody:
         content:
@@ -1035,14 +1035,14 @@ paths:
                 description: Develops software applications
                 category: Technology
                 requirements:
-                  - Programming skills
-                  - Problem solving
+                - Programming skills
+                - Problem solving
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -1051,7 +1051,7 @@ paths:
   /professions/:id:
     get:
       tags:
-        - Professions
+      - Professions
       summary: Get Profession By ID
       responses:
         '200':
@@ -1060,7 +1060,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Professions
+      - Professions
       summary: Update Profession
       requestBody:
         content:
@@ -1070,11 +1070,11 @@ paths:
               example:
                 title: Updated Profession Title
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -1082,7 +1082,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Professions
+      - Professions
       summary: Delete Profession
       responses:
         '200':
@@ -1092,7 +1092,7 @@ paths:
   /professions/add-review/:id:
     post:
       tags:
-        - Professions
+      - Professions
       summary: Add Review to Profession
       requestBody:
         content:
@@ -1104,11 +1104,11 @@ paths:
                 comment: Great profession!
                 name: Reviewer Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -1117,7 +1117,7 @@ paths:
   /professionalProfile:
     get:
       tags:
-        - Professional Profiles
+      - Professional Profiles
       summary: Get All Professional Profiles
       responses:
         '200':
@@ -1126,7 +1126,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Professional Profiles
+      - Professional Profiles
       summary: Create Professional Profile
       requestBody:
         content:
@@ -1138,19 +1138,19 @@ paths:
                 profession: Software Developer
                 experience: 5
                 skills:
-                  - JavaScript
-                  - TypeScript
-                  - Node.js
+                - JavaScript
+                - TypeScript
+                - Node.js
                 bio: Experienced software developer
                 contact:
                   email: john@example.com
                   phone: 1234567890
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -1159,7 +1159,7 @@ paths:
   /professionalProfile/:id:
     get:
       tags:
-        - Professional Profiles
+      - Professional Profiles
       summary: Get Professional Profile By ID
       responses:
         '200':
@@ -1168,7 +1168,7 @@ paths:
             application/json: {}
     put:
       tags:
-        - Professional Profiles
+      - Professional Profiles
       summary: Update Professional Profile
       requestBody:
         content:
@@ -1178,11 +1178,11 @@ paths:
               example:
                 name: Updated Professional Name
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          example: application/json
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
       responses:
         '200':
           description: Successful response
@@ -1190,7 +1190,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Professional Profiles
+      - Professional Profiles
       summary: Delete Professional Profile
       responses:
         '200':
