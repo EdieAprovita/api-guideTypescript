@@ -26,7 +26,7 @@ import swaggerDocument from "./swagger";
 
 dotenv.config();
 if (process.env.NODE_ENV !== "test") {
-        connectDB();
+	connectDB();
 }
 
 const app = express();
@@ -36,9 +36,9 @@ app.use(helmet()); // sets HTTP headers for basic security
 
 // Limit repeated requests to 100 per 15 minutes to mitigate abuse
 const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100,
-        message: "Too many requests, please try again later.",
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 100,
+	message: "Too many requests, please try again later.",
 });
 app.use(limiter);
 
@@ -46,7 +46,7 @@ app.use(mongoSanitize()); // prevent MongoDB operator injection
 app.use(xssClean()); // sanitize user input against XSS
 
 if (process.env.NODE_ENV === "development") {
-        app.use(morgan("dev"));
+	app.use(morgan("dev"));
 }
 
 app.use(express.json());
@@ -54,6 +54,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(corsMiddleware);
 if (process.env.NODE_ENV !== "production") {
+	app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
     app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 }
 

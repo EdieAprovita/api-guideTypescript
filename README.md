@@ -59,7 +59,8 @@ To get started with the Vegan City Guide API, follow these steps:
 ### API Documentation
 
 After running the server you can view interactive API docs powered by Swagger UI
-at `http://localhost:5000/api-docs`.
+at `http://localhost:5000/api-docs` (available only in non-production
+environments).
 
 ## Security Middleware
 

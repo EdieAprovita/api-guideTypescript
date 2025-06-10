@@ -29,32 +29,42 @@ const swaggerDocument: OpenAPIV3.Document = {
 					},
 				},
 			},
-                        LoginRequest: {
-                                type: "object",
-                                required: ["email", "password"],
-                                properties: {
-                                        email: {
-                                                type: "string",
-                                                format: "email",
-                                                example: "test@example.com",
-                                        },
-                                        password: {
-                                                type: "string",
-                                                example: "password123",
-                                        },
-                                },
-                        },
-                        ErrorResponse: {
-                                type: "object",
-                                properties: {
-                                        message: {
-                                                type: "string",
-                                                example: "Invalid data",
-                                        },
-                                },
-                        },
-                },
-        },
+			LoginRequest: {
+				type: "object",
+				required: ["email", "password"],
+				properties: {
+					email: {
+						type: "string",
+						format: "email",
+						example: "test@example.com",
+					},
+					password: {
+						type: "string",
+						example: "password123",
+					},
+				},
+			},
+			UserResponse: {
+				type: "object",
+				properties: {
+					_id: { type: "string", example: "60c72b2f9b1d8b0015b3c123" },
+					username: { type: "string", example: "testUser" },
+					email: { type: "string", format: "email", example: "test@example.com" },
+					role: { type: "string", example: "user" },
+					photo: { type: "string", nullable: true, example: "profile.jpg" },
+				},
+			},
+			ErrorResponse: {
+				type: "object",
+				properties: {
+					message: {
+						type: "string",
+						example: "Invalid data",
+					},
+				},
+			},
+		},
+	},
 	paths: {
 		"/users/register": {
 			post: {
@@ -69,27 +79,34 @@ const swaggerDocument: OpenAPIV3.Document = {
 						},
 					},
 				},
-                                responses: {
-                                        "201": { description: "User registered" },
-                                        "400": {
-                                                description: "Invalid request",
-                                                content: {
-                                                        "application/json": {
-                                                                schema: {
-                                                                        $ref: "#/components/schemas/ErrorResponse",
-                                                                },
-                                                        },
-                                                },
-                                        },
-                                        "409": {
-                                                description: "User already exists",
-                                                content: {
-                                                        "application/json": {
-                                                                schema: { $ref: "#/components/schemas/ErrorResponse" },
-                                                        },
-                                                },
-                                        },
-                                },
+				responses: {
+					"201": {
+						description: "User registered",
+						content: {
+							"application/json": {
+								schema: { $ref: "#/components/schemas/UserResponse" },
+							},
+						},
+					},
+					"400": {
+						description: "Invalid request",
+						content: {
+							"application/json": {
+								schema: {
+									$ref: "#/components/schemas/ErrorResponse",
+								},
+							},
+						},
+					},
+					"409": {
+						description: "User already exists",
+						content: {
+							"application/json": {
+								schema: { $ref: "#/components/schemas/ErrorResponse" },
+							},
+						},
+					},
+				},
 			},
 		},
 		"/users/login": {
@@ -105,25 +122,32 @@ const swaggerDocument: OpenAPIV3.Document = {
 						},
 					},
 				},
-                                responses: {
-                                        "200": { description: "Successful login" },
-                                        "400": {
-                                                description: "Invalid request",
-                                                content: {
-                                                        "application/json": {
-                                                                schema: { $ref: "#/components/schemas/ErrorResponse" },
-                                                        },
-                                                },
-                                        },
-                                        "401": {
-                                                description: "Unauthorized",
-                                                content: {
-                                                        "application/json": {
-                                                                schema: { $ref: "#/components/schemas/ErrorResponse" },
-                                                        },
-                                                },
-                                        },
-                                },
+				responses: {
+					"200": {
+						description: "Successful login",
+						content: {
+							"application/json": {
+								schema: { $ref: "#/components/schemas/UserResponse" },
+							},
+						},
+					},
+					"400": {
+						description: "Invalid request",
+						content: {
+							"application/json": {
+								schema: { $ref: "#/components/schemas/ErrorResponse" },
+							},
+						},
+					},
+					"401": {
+						description: "Unauthorized",
+						content: {
+							"application/json": {
+								schema: { $ref: "#/components/schemas/ErrorResponse" },
+							},
+						},
+					},
+				},
 			},
 		},
 	},
