@@ -15,7 +15,7 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation';
  * @returns {Promise<Response>}
  */
 
-export const getMarkets = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getMarkets = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const markets = await MarketsService.getAll();
         res.status(200).json({
@@ -193,7 +193,7 @@ export const addReviewToMarket = asyncHandler(async (req: Request, res: Response
  * @returns {Promise<Response>}
  */
 
-export const getTopRatedMarkets = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getTopRatedMarkets = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const getTopRatedMarkets = await ReviewService.getTopRatedReviews('market');
         res.status(200).json({

@@ -15,7 +15,7 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation';
  * @returns {Promise<Response>}
  */
 
-export const getDoctors = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getDoctors = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const doctors = await DoctorService.getAll();
         res.status(200).json({
@@ -195,7 +195,7 @@ export const addReviewToDoctor = asyncHandler(async (req: Request, res: Response
  * @returns {Promise<Response>}
  */
 
-export const getTopRatedDoctors = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getTopRatedDoctors = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const topRatedDoctors = await ReviewService.getTopRatedReviews('doctor');
         res.status(200).json({

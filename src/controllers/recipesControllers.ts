@@ -14,7 +14,7 @@ import { reviewService as ReviewService } from '../services/ReviewService';
  * @returns {Promise<Response>}
  */
 
-export const getRecipes = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getRecipes = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const recipes = await RecipeService.getAll();
         res.status(200).json({
@@ -180,7 +180,7 @@ export const addReviewToRecipe = asyncHandler(async (req: Request, res: Response
  * @returns {Promise<Response>}
  */
 
-export const getTopRatedRecipes = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getTopRatedRecipes = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const topRatedRecipes = await ReviewService.getTopRatedReviews('recipe');
 
