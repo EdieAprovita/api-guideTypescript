@@ -15,7 +15,7 @@ jest.mock("../../services/ReviewService", () => ({
 
 jest.mock("../../middleware/authMiddleware", () => ({
   protect: (req: any, _res: any, next: any) => {
-    req.user = { id: "user", role: "admin" };
+    req.user = { id: "user", _id: "user", role: "admin" };
     next();
   },
   admin: (_req: any, _res: any, next: any) => next(),
