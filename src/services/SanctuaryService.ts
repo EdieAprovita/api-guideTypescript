@@ -1,5 +1,5 @@
-import BaseService from "./BaseService";
-import { ISanctuary, Sanctuary } from "../models/Sanctuary";
+import BaseService from './BaseService';
+import { ISanctuary, Sanctuary } from '../models/Sanctuary';
 
 /**
  * @description sanctuary service class
@@ -9,9 +9,9 @@ import { ISanctuary, Sanctuary } from "../models/Sanctuary";
  */
 
 class SanctuaryService extends BaseService<ISanctuary> {
-	constructor() {
-		super(Sanctuary);
-	}
+    constructor() {
+        super(Sanctuary);
+    }
 }
 
 export const sanctuaryService = new SanctuaryService();

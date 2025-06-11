@@ -1,5 +1,5 @@
-import BaseService from "./BaseService";
-import { Restaurant, IRestaurant } from "../models/Restaurant";
+import BaseService from './BaseService';
+import { Restaurant, IRestaurant } from '../models/Restaurant';
 
 /**
  * @description Restaurant service class
@@ -9,9 +9,9 @@ import { Restaurant, IRestaurant } from "../models/Restaurant";
  * */
 
 class RestaurantService extends BaseService<IRestaurant> {
-	constructor() {
-		super(Restaurant);
-	}
+    constructor() {
+        super(Restaurant);
+    }
 }
 
 export const restaurantService = new RestaurantService();

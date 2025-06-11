@@ -1,15 +1,14 @@
-declare global {
-    namespace Express {
-        interface Request {
-            user?: {
-                _id?: string;
-                role: 'user' | 'professional' | 'admin';
-            };
-        }
+// Global type augmentation for Express Request
+declare module 'express-serve-static-core' {
+    interface Request {
+        user?: {
+            _id?: string;
+            role: 'user' | 'professional' | 'admin';
+        };
     }
 }
 
-export const getErrorMessage = (message: string) =>
+export const getErrorMessage = (message: string): string =>
     process.env.NODE_ENV === 'development' ? message : 'Internal Server Error';
 
 export interface IContact {

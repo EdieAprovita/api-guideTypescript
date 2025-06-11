@@ -1,6 +1,6 @@
-import geoService from "../services/GeoService";
-import { IGeoJSONPoint } from "../types/GeoJSON";
-import logger from "./logger";
+import geoService from '../services/GeoService';
+import { IGeoJSONPoint } from '../types/GeoJSON';
+import logger from './logger';
 
 export interface IGeocodeBody {
     address?: string;
@@ -12,13 +12,13 @@ export async function geocodeAndAssignLocation(body: IGeocodeBody): Promise<void
             const coords = await geoService.geocodeAddress(body.address);
             if (coords) {
                 const location: IGeoJSONPoint = {
-                    type: "Point",
+                    type: 'Point',
                     coordinates: [coords.lng, coords.lat],
                 };
                 body.location = location;
             }
         } catch (error) {
-            logger.error("Error geocoding address", {
+            logger.error('Error geocoding address', {
                 error: error instanceof Error ? error.message : String(error),
             });
         }

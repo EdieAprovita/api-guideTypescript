@@ -1,5 +1,5 @@
-import { Router, RequestHandler } from "express";
-import { protect, admin } from "../middleware/authMiddleware";
+import { Router, RequestHandler } from 'express';
+import { protect, admin } from '../middleware/authMiddleware';
 
 /**
  * Register deprecated action routes on the given router.
@@ -7,14 +7,14 @@ import { protect, admin } from "../middleware/authMiddleware";
  * removed in the next major version.
  */
 export function registerLegacyRoutes(
-  router: Router,
-  handlers: {
-    create: RequestHandler;
-    update: RequestHandler;
-    remove: RequestHandler;
-  }
+    router: Router,
+    handlers: {
+        create: RequestHandler;
+        update: RequestHandler;
+        remove: RequestHandler;
+    }
 ) {
-  router.post("/create", protect, handlers.create);
-  router.put("/update/:id", protect, admin, handlers.update);
-  router.delete("/delete/:id", protect, admin, handlers.remove);
+    router.post('/create', protect, handlers.create);
+    router.put('/update/:id', protect, admin, handlers.update);
+    router.delete('/delete/:id', protect, admin, handlers.remove);
 }
