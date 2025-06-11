@@ -1,6 +1,12 @@
 import bcrypt from 'bcryptjs';
 import mongoose, { Schema, Document } from 'mongoose';
 
+/**
+ * Email regex that avoids catastrophic backtracking.
+ * Exported for reuse across the code base.
+ */
+export const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 export interface IUser extends Document {
     _id: string;
     username: string;
