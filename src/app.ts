@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
-import xssClean from "xss-clean";
+import { xss } from "express-xss-sanitizer";
 
 import connectDB from "./config/db";
 import { errorHandler, notFound } from "./middleware/errorHandler";
@@ -46,7 +46,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use(mongoSanitize()); // prevent MongoDB operator injection
-app.use(xssClean()); // sanitize user input against XSS
+app.use(xss()); // sanitize user input against XSS
 
 if (process.env.NODE_ENV === "development") {
 	app.use(morgan("dev"));
