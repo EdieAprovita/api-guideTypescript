@@ -275,6 +275,8 @@ Contributions are welcome! Please follow these steps:
 - Include JSDoc comments for functions
 - Update Swagger documentation for new endpoints
 - Add corresponding Postman requests
+- Run `npm run lint` before committing. The ESLint configuration has been
+  migrated to `eslint.config.js` and no longer uses `.eslintrc.json`.
 
 ## 📄 License
 

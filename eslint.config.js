@@ -4,6 +4,9 @@ const globals = require('globals');
 
 module.exports = [
   {
+    ignores: ['coverage/**'],
+  },
+  {
     files: ['src/**/*.ts'],
     ignores: ['dist/**', 'src/test/**/*.test.ts', '**/*.spec.ts', '**/graphql.ts'],
     languageOptions: {
