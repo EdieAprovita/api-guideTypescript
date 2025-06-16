@@ -23,9 +23,9 @@ describe("UserService updateUserById", () => {
         jest.spyOn(UserService, "findUserById").mockResolvedValue(null);
 
         const resultPromise = UserService.updateUserById("1", {});
-        await expect(resultPromise).rejects.toThrowError(HttpError);
-        await expect(resultPromise).rejects.toThrowError(
-            getErrorMessage("User not found")
-        );
+        await expect(resultPromise).rejects.toBeInstanceOf(HttpError);
+        await expect(resultPromise).rejects.toMatchObject({
+            message: getErrorMessage("User not found"),
+        });
     });
 });

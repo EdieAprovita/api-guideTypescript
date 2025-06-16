@@ -213,7 +213,7 @@ The API implements multiple security layers:
 - **[helmet](https://helmetjs.github.io/)** – Sets security HTTP headers
 - **[express-rate-limit](https://github.com/nfriedly/express-rate-limit)** – Rate limiting (100 requests per 15 minutes)
 - **[express-mongo-sanitize](https://github.com/fiznool/express-mongo-sanitize)** – Prevents NoSQL injection attacks
-- **[xss-clean](https://www.npmjs.com/package/xss-clean)** – Prevents XSS attacks
+- **[express-xss-sanitizer](https://www.npmjs.com/package/express-xss-sanitizer)** – Prevents XSS attacks
 - **JWT Authentication** – Secure token-based authentication
 - **Input Validation** – Request validation and sanitization
 
@@ -275,6 +275,8 @@ Contributions are welcome! Please follow these steps:
 - Include JSDoc comments for functions
 - Update Swagger documentation for new endpoints
 - Add corresponding Postman requests
+- Run `npm run lint` before committing. The ESLint configuration has been
+  migrated to `eslint.config.js` and no longer uses `.eslintrc.json`.
 
 ## 📄 License
 
