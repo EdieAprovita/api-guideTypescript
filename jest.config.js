@@ -15,13 +15,10 @@ module.exports = {
     coverageDirectory: 'coverage',
     coverageReporters: ['text', 'lcov', 'html'],
     setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
-    // Add module name mapping for better import resolution
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
     },
-    // Increase test timeout for async operations
     testTimeout: 10000,
-    // Clear mocks between tests
     clearMocks: true,
     restoreMocks: true,
 };
