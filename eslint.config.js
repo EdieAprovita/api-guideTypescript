@@ -8,7 +8,13 @@ module.exports = [
   },
   {
     files: ['src/**/*.ts'],
-    ignores: ['dist/**', 'src/test/**/*.test.ts', '**/*.spec.ts', '**/graphql.ts'],
+    ignores: [
+      'dist/**',
+      'src/test/**',
+      'src/test/**/*.test.ts',
+      '**/*.spec.ts',
+      '**/graphql.ts',
+    ],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
