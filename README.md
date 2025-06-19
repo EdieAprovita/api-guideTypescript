@@ -60,11 +60,12 @@ The Swagger documentation provides:
 ### Restaurants
 
 - `GET /restaurants` - Get all restaurants
+- `GET /restaurants/top-rated` - Get top rated restaurants
 - `GET /restaurants/:id` - Get restaurant by ID
-- `POST /restaurants` - Create a new restaurant
-- `PUT /restaurants/:id` - Update restaurant details
-- `DELETE /restaurants/:id` - Delete a restaurant
-- `POST /restaurants/add-review/:id` - Add review to restaurant
+- `POST /restaurants` - Create a new restaurant (requires authentication)
+- `PUT /restaurants/:id` - Update restaurant details (requires authentication + admin)
+- `DELETE /restaurants/:id` - Delete a restaurant (requires authentication + admin)
+- `POST /restaurants/add-review/:id` - Add review to restaurant (requires authentication)
 
 ### Doctors
 
@@ -252,6 +253,21 @@ src/
 4. View request/response schemas
 5. Authenticate using the "Authorize" button
 
+### Using Postman Collection
+
+A complete Postman collection is available in `restaurant-api-collection.json` that includes:
+
+- Authentication endpoints with automatic token management
+- All restaurant CRUD operations using standard REST endpoints
+- Pre-configured environment variables
+- Sample request bodies with realistic data
+
+**Important**: Legacy routes (`/create`, `/update/:id`, `/delete/:id`) have been removed from the restaurant API. Use the standard REST endpoints instead:
+
+- ❌ `POST /restaurants/create` → ✅ `POST /restaurants`
+- ❌ `PUT /restaurants/update/:id` → ✅ `PUT /restaurants/:id`
+- ❌ `DELETE /restaurants/delete/:id` → ✅ `DELETE /restaurants/:id`
+
 ### Running Tests
 
 ```bash
@@ -324,7 +340,6 @@ Contributions are welcome! Please follow these steps:
 - Update Swagger documentation for new endpoints
 - Run linting and type checking before committing
 - Follow conventional commit messages
-
 
 ## 📄 License
 

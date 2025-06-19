@@ -404,63 +404,17 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /restaurants/create:
-    post:
+  /restaurants/top-rated:
+    get:
       tags:
       - Restaurants
-      summary: Create Restaurant (Legacy)
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              example:
-                namePlace: Legacy Restaurant
-                address: Legacy Address
-      parameters:
-      - name: Content-Type
-        in: header
-        schema:
-          type: string
-        example: application/json
+      summary: Get Top Rated Restaurants
       responses:
         '200':
           description: Successful response
           content:
             application/json: {}
-  /restaurants/update/:id:
-    put:
-      tags:
-      - Restaurants
-      summary: Update Restaurant (Legacy)
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              example:
-                namePlace: Updated Legacy Restaurant
-      parameters:
-      - name: Content-Type
-        in: header
-        schema:
-          type: string
-        example: application/json
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json: {}
-  /restaurants/delete/:id:
-    delete:
-      tags:
-      - Restaurants
-      summary: Delete Restaurant (Legacy)
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json: {}
+
   /doctors:
     get:
       tags:
