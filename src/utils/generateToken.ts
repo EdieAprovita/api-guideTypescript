@@ -1,5 +1,6 @@
 import { CookieOptions, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import logger from './logger';
 
 import { UserIdRequiredError, TokenGenerationError } from '../types/Errors';
 
@@ -37,7 +38,11 @@ const generateTokenAndSetCookie = (res: Response, userId: string): void => {
             sameSite: 'strict',
         };
         res.cookie(COOKIE_NAME, token, cookieOptions);
-    } catch {
+    } catch (error) {
+        logger.error('Token generation failed', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            userId,
+        });
         throw new TokenGenerationError('Unable to generate token and set cookie');
     }
 };

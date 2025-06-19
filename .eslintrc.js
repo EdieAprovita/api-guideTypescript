@@ -37,14 +37,34 @@ module.exports = {
     },
     overrides: [
         {
-            // All TypeScript files
-            files: ['**/*.ts'],
+            // All TypeScript files - production code
+            files: ['src/**/*.ts'],
+            excludedFiles: ['src/test/**/*'],
             parser: '@typescript-eslint/parser',
             parserOptions: {
                 ecmaVersion: 2021,
                 sourceType: 'module',
-                project: ['./tsconfig.json', './tsconfig.test.json'],
+                project: './tsconfig.json',
                 tsconfigRootDir: __dirname,
+            },
+        },
+        {
+            // Test TypeScript files
+            files: ['src/test/**/*.ts', '**/*.test.ts', '**/*.spec.ts'],
+            parser: '@typescript-eslint/parser',
+            parserOptions: {
+                ecmaVersion: 2021,
+                sourceType: 'module',
+                project: './tsconfig.test.json',
+                tsconfigRootDir: __dirname,
+            },
+            env: {
+                jest: true,
+            },
+            rules: {
+                '@typescript-eslint/no-explicit-any': 'off',
+                '@typescript-eslint/no-non-null-assertion': 'off',
+                'no-console': 'off',
             },
         },
         {
@@ -55,18 +75,6 @@ module.exports = {
             },
             rules: {
                 '@typescript-eslint/no-var-requires': 'off',
-                'no-console': 'off',
-            },
-        },
-        {
-            // Test files have different rules
-            files: ['src/test/**/*.ts', '**/*.test.ts', '**/*.spec.ts'],
-            env: {
-                jest: true,
-            },
-            rules: {
-                '@typescript-eslint/no-explicit-any': 'off',
-                '@typescript-eslint/no-non-null-assertion': 'off',
                 'no-console': 'off',
             },
         },
