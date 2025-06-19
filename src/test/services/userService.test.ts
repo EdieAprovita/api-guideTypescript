@@ -242,7 +242,7 @@ describe('UserService', () => {
 
             expect(mockResponse.clearCookie).toHaveBeenCalledWith('jwt');
             expect(result).toEqual({ message: 'User logged out successfully' });
-        development
+        
         });
     });
 });
