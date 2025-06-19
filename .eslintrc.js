@@ -37,9 +37,12 @@ module.exports = {
     },
     overrides: [
         {
-            // TypeScript files with type checking
-            files: ['src/**/*.ts'],
+            // All TypeScript files
+            files: ['**/*.ts'],
+            parser: '@typescript-eslint/parser',
             parserOptions: {
+                ecmaVersion: 2021,
+                sourceType: 'module',
                 project: ['./tsconfig.json', './tsconfig.test.json'],
                 tsconfigRootDir: __dirname,
             },
@@ -68,4 +71,5 @@ module.exports = {
             },
         },
     ],
+    ignorePatterns: ['node_modules/', 'dist/', 'coverage/', '*.js', '!.eslintrc.js', '!jest.config.js'],
 };
