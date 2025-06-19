@@ -11,7 +11,7 @@ A comprehensive RESTful API built with Express.js and TypeScript, designed to se
 - **Professional Profiles**: Manage professional profiles and professions
 - **TypeScript**: Full type safety and modern development experience
 - **API Documentation**: Interactive Swagger UI documentation
-- **Postman Collection**: Ready-to-use API collection for testing
+- **Docker Support**: Containerized deployment ready
 
 ## 📚 API Documentation
 
@@ -30,15 +30,6 @@ The Swagger documentation provides:
 - Interactive testing interface
 - Authentication examples
 - Error response documentation
-
-### Postman Collection
-
-Import the included `postman_collection.json` file into Postman for:
-
-- Pre-configured API requests
-- Environment variables setup
-- Automated token management
-- Request examples with sample data
 
 ## 🛠️ API Endpoints
 
@@ -143,68 +134,84 @@ Import the included `postman_collection.json` file into Postman for:
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v20 or higher)
 - npm or yarn
 - MongoDB (local or cloud instance)
+- Docker (optional, for containerized deployment)
 
 ### Installation
 
 1. **Clone the repository**
 
-   ```bash
-   git clone https://github.com/your/repo.git
-   cd api-guideTypescript
-   ```
+    ```bash
+    git clone https://github.com/your/repo.git
+    cd api-guideTypescript
+    ```
 
 2. **Install dependencies**
 
-   ```bash
-   npm install
-   ```
+    ```bash
+    npm install
+    ```
 
 3. **Environment Setup**
    Create a `.env` file in the root directory:
 
-   ```env
-   NODE_ENV=development
-   PORT=5001
-   MONGODB_URI=mongodb://localhost:27017/vegan-city-guide
-   JWT_SECRET=your-jwt-secret-key
-   JWT_EXPIRE=30d
-   ```
+    ```env
+    NODE_ENV=development
+    PORT=5001
+    MONGODB_URI=mongodb://localhost:27017/vegan-city-guide
+    JWT_SECRET=your-jwt-secret-key
+    JWT_EXPIRE=30d
+    GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+    EMAIL_USER=your-email@gmail.com
+    EMAIL_PASS=your-email-password
+    FRONTEND_URL=http://localhost:3000
+    BCRYPT_SALT_ROUNDS=10
+    ```
 
 4. **Start the server**
 
-   ```bash
-   # Development mode
-   npm run dev
+    ```bash
+    # Development mode
+    npm run dev
 
-   # Production mode
-   npm start
-   ```
+    # Production mode
+    npm run build
+    npm start
+    ```
 
 5. **Access the API**
-   - API Base URL: `http://localhost:5001/api/v1`
-   - Swagger Documentation: `http://localhost:5001/api-docs`
+    - API Base URL: `http://localhost:5001/api/v1`
+    - Swagger Documentation: `http://localhost:5001/api-docs`
 
-### Using Postman Collection
+### Docker Deployment
 
-1. **Import Collection**
+1. **Build the Docker image**
 
-   - Open Postman
-   - Click "Import" button
-   - Select `postman_collection.json` file
-   - Collection will be imported with all endpoints
+    ```bash
+    docker build -t api-guide-typescript .
+    ```
 
-2. **Set Environment Variables**
+2. **Run the container**
 
-   - Base URL: `http://localhost:5001/api/v1`
-   - Auth Token: Will be automatically set after login
+    ```bash
+    docker run -d \
+      --name api-guide-app \
+      -p 5001:5000 \
+      -e NODE_ENV=production \
+      -e MONGODB_URI=your-mongodb-connection-string \
+      -e JWT_SECRET=your-jwt-secret \
+      --restart unless-stopped \
+      api-guide-typescript
+    ```
 
-3. **Authentication Flow**
-   - Use "Register User" to create an account
-   - Use "Login User" to get JWT token
-   - Token will be automatically saved for subsequent requests
+3. **Check container status**
+
+    ```bash
+    docker ps
+    docker logs api-guide-app
+    ```
 
 ## 🔒 Security Features
 
@@ -216,6 +223,7 @@ The API implements multiple security layers:
 - **[express-xss-sanitizer](https://www.npmjs.com/package/express-xss-sanitizer)** – Prevents XSS attacks
 - **JWT Authentication** – Secure token-based authentication
 - **Input Validation** – Request validation and sanitization
+- **Docker Security** – Non-root user execution in containers
 
 ## 📁 Project Structure
 
@@ -225,10 +233,11 @@ src/
 ├── models/         # Database models
 ├── routes/         # API routes
 ├── middleware/     # Custom middleware
-├── services/       # Business logic
+├── services/       # Business logic services
 ├── types/          # TypeScript type definitions
 ├── utils/          # Utility functions
 ├── config/         # Configuration files
+├── test/           # Unit and integration tests
 ├── app.ts          # Express app setup
 └── server.ts       # Server entry point
 ```
@@ -241,13 +250,51 @@ src/
 2. Explore available endpoints
 3. Test requests directly in the browser
 4. View request/response schemas
+5. Authenticate using the "Authorize" button
 
-### Using Postman
+### Running Tests
 
-1. Import the collection
-2. Set up environment variables
-3. Run individual requests or entire collections
-4. Automated testing with pre-request scripts
+```bash
+# Run all tests
+npm test
+
+# Run tests in CI mode
+npm run test:ci
+
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests
+npm run test:integration
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+```
+
+### Manual Testing
+
+Use tools like:
+
+- **curl** for command-line testing
+- **Insomnia** or **Thunder Client** (VS Code extension)
+- **HTTPie** for human-friendly HTTP requests
+
+Example with curl:
+
+```bash
+# Register a user
+curl -X POST http://localhost:5001/api/v1/users/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","email":"test@example.com","password":"password123"}'
+
+# Login
+curl -X POST http://localhost:5001/api/v1/users/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}'
+```
 
 ## 🤝 Contributing
 
@@ -255,17 +302,17 @@ Contributions are welcome! Please follow these steps:
 
 1. **Fork the repository**
 2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
+    ```bash
+    git checkout -b feature/amazing-feature
+    ```
 3. **Commit your changes**
-   ```bash
-   git commit -m 'Add some amazing feature'
-   ```
+    ```bash
+    git commit -m 'Add some amazing feature'
+    ```
 4. **Push to the branch**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
+    ```bash
+    git push origin feature/amazing-feature
+    ```
 5. **Open a Pull Request**
 
 ### Development Guidelines
@@ -273,10 +320,11 @@ Contributions are welcome! Please follow these steps:
 - Follow TypeScript best practices
 - Add proper type definitions
 - Include JSDoc comments for functions
+- Write unit tests for new features
 - Update Swagger documentation for new endpoints
-- Add corresponding Postman requests
-- Run `npm run lint` before committing. The ESLint configuration has been
-  migrated to `eslint.config.js` and no longer uses `.eslintrc.json`.
+- Run linting and type checking before committing
+- Follow conventional commit messages
+
 
 ## 📄 License
 
@@ -288,4 +336,137 @@ For support and questions:
 
 - Create an issue in the GitHub repository
 - Check the Swagger documentation for API details
-- Use the Postman collection for testing examples
+- Review the test files for usage examples
+- Use the interactive Swagger UI for endpoint testing
+
+## Code Review Best Practices
+
+This section addresses common code review issues and provides solutions:
+
+### 1. Test Coverage and ESM Compatibility
+
+**Issue**: Tests being skipped due to ESM compatibility issues.
+
+**Solution**:
+
+- Updated `jest.config.js` with proper ESM handling
+- Created `src/test/setup.ts` for consistent test environment
+- Enhanced test files with proper imports and mocking
+
+**Example**:
+
+```typescript
+// ✅ Good: Proper test structure with all imports
+import { Response } from 'express';
+import UserService from '../../services/UserService';
+import { User } from '../../models/User';
+
+// Mock dependencies at the top
+jest.mock('../../models/User');
+jest.mock('../../utils/generateToken');
+
+describe('UserService', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    // Your tests here
+});
+```
+
+### 2. Missing Imports in Components
+
+**Issue**: Components using React hooks without proper imports.
+
+**Solution**: Always include all necessary imports at the top of files.
+
+```typescript
+// ✅ Good: All necessary imports included
+import React, { useState, useCallback, useEffect } from 'react';
+
+function MyComponent() {
+    const [state, setState] = useState(null);
+    // Component logic
+}
+```
+
+### 3. API Mocking Best Practices
+
+**Issue**: Inconsistent API mocking patterns.
+
+**Solution**: Use established patterns for mocking APIs.
+
+```typescript
+// ✅ Good: Using MSW with rest API
+import { rest } from 'msw';
+
+export const handlers = [
+    rest.get('/api/users', (req, res, ctx) => {
+        return res(ctx.json({ users: [] }));
+    }),
+];
+```
+
+### 4. Filter Implementation
+
+**Issue**: Missing filter properties in API calls.
+
+**Solution**: Ensure all filter types are included in API requests.
+
+```typescript
+// ✅ Good: All filters included
+const getFiltersForAPI = () => {
+    const apiFilters: any = {};
+
+    if (statusFilters.length > 0) {
+        apiFilters.status = statusFilters;
+    }
+
+    if (journeyFilters.length > 0) {
+        apiFilters.journey = journeyFilters;
+    }
+
+    return apiFilters;
+};
+```
+
+### 5. Error Handling Standards
+
+Our codebase follows consistent error handling patterns:
+
+```typescript
+// ✅ Good: Consistent error handling
+import { HttpError, HttpStatusCode } from '../types/Errors';
+import { getErrorMessage } from '../types/modalTypes';
+
+try {
+    const result = await someAsyncOperation();
+    return result;
+} catch (error) {
+    throw new HttpError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+    );
+}
+```
+
+### 6. Testing Guidelines
+
+- **Always mock external dependencies** (databases, APIs, file systems)
+- **Use proper TypeScript types** in tests
+- **Test both success and error cases**
+- **Clear mocks between tests** using `beforeEach(() => jest.clearAllMocks())`
+- **Use descriptive test names** that explain what is being tested
+
+### 7. Code Quality Checklist
+
+Before submitting a PR, ensure:
+
+- [ ] All tests pass and have proper coverage
+- [ ] No skipped tests without valid reason
+- [ ] All imports are properly declared
+- [ ] Error handling follows project patterns
+- [ ] API filters include all necessary parameters
+- [ ] Mocks are properly configured and cleared
+- [ ] TypeScript types are correctly used
+- [ ] Code follows project style guidelines

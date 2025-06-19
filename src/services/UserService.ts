@@ -93,7 +93,7 @@ class UserService extends BaseService {
 
     async loginUser(email: string, password: string, res: Response) {
         const user = await this.getUserByEmail(email);
-        this.validateUserCredentials(user, password);
+        await this.validateUserCredentials(user, password);
         generateTokenAndSetCookie(res, user._id);
         return this.getUserResponse(user);
     }
