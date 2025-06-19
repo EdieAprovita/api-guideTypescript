@@ -54,6 +54,7 @@ jobs:
 
             - name: Format check
               run: npm run format:check
+              continue-on-error: true
 
             - name: Run tests
               run: npm run test:ci

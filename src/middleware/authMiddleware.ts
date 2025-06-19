@@ -30,7 +30,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         req.user = currentUser;
         next();
     } catch (error) {
-        errorHandler(error instanceof Error ? error : new Error('Unknown error'), req, res, next);
+        errorHandler(error instanceof Error ? error : new Error('Unknown error'), req, res);
     }
 };
 
