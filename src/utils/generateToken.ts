@@ -37,7 +37,7 @@ const generateTokenAndSetCookie = (res: Response, userId: string): void => {
             sameSite: 'strict',
         };
         res.cookie(COOKIE_NAME, token, cookieOptions);
-    } catch (error) {
+    } catch {
         throw new TokenGenerationError('Unable to generate token and set cookie');
     }
 };

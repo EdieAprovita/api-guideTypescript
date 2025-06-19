@@ -10,6 +10,9 @@ export const errorHandler = (err: Error, req: Request, res: Response, _next: Nex
     });
 
     if (err instanceof HttpError) {
+        res.status(err.statusCode).json({
+            errors: err.serializeErrors(),
+        });
     } else {
         const statusCode = HttpStatusCode.INTERNAL_SERVER_ERROR;
         res.status(statusCode).json({
