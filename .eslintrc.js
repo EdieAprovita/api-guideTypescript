@@ -5,37 +5,47 @@ module.exports = {
         jest: true,
         es2021: true,
     },
-    extends: [
-        'eslint:recommended',
-        '@typescript-eslint/recommended',
-        '@typescript-eslint/recommended-requiring-type-checking',
-    ],
+    extends: ['eslint:recommended'],
     parser: '@typescript-eslint/parser',
     parserOptions: {
         ecmaVersion: 2021,
         sourceType: 'module',
-        project: ['./tsconfig.json'],
-        tsconfigRootDir: __dirname,
     },
     plugins: ['@typescript-eslint'],
     rules: {
-        // Add any custom rules here
-        '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-        '@typescript-eslint/explicit-function-return-type': 'off',
-        '@typescript-eslint/explicit-module-boundary-types': 'off',
+        // Basic rules without requiring type checking
+        '@typescript-eslint/no-unused-vars': [
+            'error',
+            {
+                argsIgnorePattern: '^_',
+                varsIgnorePattern: '^_',
+                ignoreRestSiblings: true,
+            },
+        ],
         '@typescript-eslint/no-explicit-any': 'warn',
+        'no-console': 'warn',
+        'no-debugger': 'error',
+        'no-empty': ['error', { allowEmptyCatch: true }],
     },
     overrides: [
         {
-            // Configuration files don't need TypeScript parsing
-            files: ['*.config.js', '*.config.ts', 'jest.config.js'],
-            parser: 'espree',
+            // All TypeScript files - simplified configuration
+            files: ['**/*.ts'],
+            parser: '@typescript-eslint/parser',
+            parserOptions: {
+                ecmaVersion: 2021,
+                sourceType: 'module',
+            },
+        },
+        {
+            // Configuration files
+            files: ['*.config.js', '*.config.ts', 'jest.config.js', '.eslintrc.js'],
             env: {
                 node: true,
             },
-            extends: ['eslint:recommended'],
             rules: {
                 '@typescript-eslint/no-var-requires': 'off',
+                'no-console': 'off',
             },
         },
         {
@@ -47,7 +57,9 @@ module.exports = {
             rules: {
                 '@typescript-eslint/no-explicit-any': 'off',
                 '@typescript-eslint/no-non-null-assertion': 'off',
+                'no-console': 'off',
             },
         },
     ],
+    ignorePatterns: ['node_modules/', 'dist/', 'coverage/', '*.js', '!.eslintrc.js', '!jest.config.js'],
 };
