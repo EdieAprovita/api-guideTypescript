@@ -4,6 +4,7 @@ import { User } from '../../models/User';
 import { HttpError, HttpStatusCode } from '../../types/Errors';
 import { getErrorMessage } from '../../types/modalTypes';
 import generateTokenAndSetCookie from '../../utils/generateToken';
+import { faker } from '@faker-js/faker';
 
 // Mock dependencies
 jest.mock('../../models/User');
@@ -18,6 +19,10 @@ const mockResponse = {
     json: jest.fn(),
 } as unknown as Response;
 
+// Generate random passwords for testing to avoid hard-coded credentials
+const TEST_PASSWORD = faker.internet.password(12);
+const WRONG_PASSWORD = faker.internet.password(12);
+
 describe('UserService', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -28,7 +33,7 @@ describe('UserService', () => {
             const userData = {
                 username: 'testuser',
                 email: 'test@example.com',
-                password: 'password123',
+                password: TEST_PASSWORD,
             };
 
             const mockUser = {
@@ -62,7 +67,7 @@ describe('UserService', () => {
             const userData = {
                 username: 'testuser',
                 email: 'test@example.com',
-                password: 'password123',
+                password: TEST_PASSWORD,
             };
 
             (User.findOne as jest.Mock).mockResolvedValue({ email: userData.email });
@@ -74,7 +79,7 @@ describe('UserService', () => {
     describe('loginUser', () => {
         it('should login user with valid credentials', async () => {
             const email = 'test@example.com';
-            const password = 'password123';
+            const password = TEST_PASSWORD;
 
             const mockUser = {
                 _id: 'user123',
@@ -108,7 +113,7 @@ describe('UserService', () => {
 
         it('should throw error for invalid credentials', async () => {
             const email = 'test@example.com';
-            const password = 'wrongpassword';
+            const password = WRONG_PASSWORD;
 
             const mockUser = {
                 _id: 'user123',
@@ -126,7 +131,7 @@ describe('UserService', () => {
 
         it('should throw error when user not found', async () => {
             const email = 'nonexistent@example.com';
-            const password = 'password123';
+            const password = TEST_PASSWORD;
 
             const mockQuery = {
                 select: jest.fn().mockResolvedValue(null),
