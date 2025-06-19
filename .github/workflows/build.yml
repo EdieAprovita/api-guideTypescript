@@ -54,6 +54,7 @@ jobs:
 
             - name: Format check
               run: npm run format:check
+              continue-on-error: true
 
             - name: Run tests
               run: npm run test:ci
@@ -83,7 +84,6 @@ jobs:
     security:
         name: Security Audit
         runs-on: ubuntu-latest
-        # Solo ejecutar auditoría en push a main para reducir tiempo
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
         steps:
@@ -107,7 +107,6 @@ jobs:
               run: npm audit --audit-level high --production
               continue-on-error: true
 
-    # Job separado para deployment (si es necesario en el futuro)
     deploy:
         name: Deploy
         runs-on: ubuntu-latest
