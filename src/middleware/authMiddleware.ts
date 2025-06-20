@@ -12,7 +12,33 @@ import { errorHandler } from './errorHandler';
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const token = req.cookies.jwt;
+        let token: string | undefined;
+
+        // Check for token in cookies first (existing behavior)
+        if (req.cookies.jwt) {
+            token = req.cookies.jwt;
+        }
+        // Check for token in Authorization header (Bearer token)
+        else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+        // Check for token in Cookie header (for cross-origin requests)
+        else if (req.headers.cookie) {
+            const cookies = req.headers.cookie.split(';').reduce(
+                (acc, cookie) => {
+                    const [key, value] = cookie.trim().split('=');
+                    if (key && value) {
+                        acc[key] = value;
+                    }
+                    return acc;
+                },
+                {} as Record<string, string>
+            );
+
+            if (cookies.jwt) {
+                token = cookies.jwt;
+            }
+        }
 
         if (!token) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Not authorized to access this route');

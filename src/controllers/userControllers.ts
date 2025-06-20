@@ -165,6 +165,30 @@ export const getUserById = asyncHandler(async (req: Request, res: Response, next
 });
 
 /**
+ * @description Get current user profile
+ * @name getCurrentUserProfile
+ * @route GET /api/users/profile
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+
+export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+        const user = await UserServices.findUserById(userId);
+        res.status(200).json(user);
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
+});
+
+/**
  * @description Update user profile
  * @name updateUserProfile
  * @route PUT /api/users/profile
