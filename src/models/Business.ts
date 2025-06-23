@@ -58,6 +58,14 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
             type: String,
             required: true,
         },
+        budget: {
+            type: Number,
+            required: true,
+        },
+        typeBusiness: {
+            type: String,
+            required: true,
+        },
         hours: {
             type: [
                 {
