@@ -17,14 +17,16 @@ dotenv.config();
 
 // Sample Users Data
 if (!process.env.SEED_USER_PASSWORD) {
-    throw new Error('Environment variable SEED_USER_PASSWORD is required but not provided. Please set a secure password.');
+    throw new Error(
+        'Environment variable SEED_USER_PASSWORD is required but not provided. Please set a secure password.'
+    );
 }
 const defaultPassword = process.env.SEED_USER_PASSWORD;
 const sampleUsers = [
     {
         username: 'admin',
         email: 'admin@veganguide.com',
-        password: process.env.ADMIN_PASSWORD || defaultPassword,
+        password: process.env.ADMIN_PASSWORD ?? defaultPassword,
         role: 'user',
         isAdmin: true,
         photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
@@ -32,21 +34,21 @@ const sampleUsers = [
     {
         username: 'chef_sarah',
         email: 'sarah@veganrecipes.com',
-        password: process.env.CHEF_PASSWORD || defaultPassword,
+        password: process.env.CHEF_PASSWORD ?? defaultPassword,
         role: 'user',
         photo: 'https://images.unsplash.com/photo-1494790108755-2616b332c789?w=150',
     },
     {
         username: 'dr_green',
         email: 'drgreen@healthyvegan.com',
-        password: process.env.DOCTOR_PASSWORD || defaultPassword,
+        password: process.env.DOCTOR_PASSWORD ?? defaultPassword,
         role: 'professional',
         photo: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150',
     },
     {
         username: 'restaurant_owner',
         email: 'owner@veganplace.com',
-        password: process.env.OWNER_PASSWORD || defaultPassword,
+        password: process.env.OWNER_PASSWORD ?? defaultPassword,
         role: 'user',
         photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     },
@@ -500,7 +502,7 @@ export const seedDatabase = async () => {
         console.log('Creating sample reviews...');
         const sampleReviews = [
             {
-                username: chefUser?.username || 'chef_sarah',
+                username: chefUser?.username ?? 'chef_sarah',
                 rating: 5,
                 comment: 'Amazing plant-based food! The cashew alfredo was incredible.',
                 user: chefUser?._id,
@@ -508,7 +510,7 @@ export const seedDatabase = async () => {
                 refModel: 'Restaurant',
             },
             {
-                username: adminUser?.username || 'admin',
+                username: adminUser?.username ?? 'admin',
                 rating: 4,
                 comment: 'Great recipe, easy to follow and delicious results!',
                 user: adminUser?._id,
@@ -516,7 +518,7 @@ export const seedDatabase = async () => {
                 refModel: 'Recipe',
             },
             {
-                username: ownerUser?.username || 'restaurant_owner',
+                username: ownerUser?.username ?? 'restaurant_owner',
                 rating: 5,
                 comment: 'Dr. Green provided excellent nutritional guidance for my plant-based journey.',
                 user: ownerUser?._id,
@@ -524,7 +526,7 @@ export const seedDatabase = async () => {
                 refModel: 'Doctor',
             },
             {
-                username: doctorUser?.username || 'dr_green',
+                username: doctorUser?.username ?? 'dr_green',
                 rating: 4,
                 comment: 'Love this Buddha bowl recipe! Perfect for my patients.',
                 user: doctorUser?._id,
@@ -532,7 +534,7 @@ export const seedDatabase = async () => {
                 refModel: 'Recipe',
             },
             {
-                username: adminUser?.username || 'admin',
+                username: adminUser?.username ?? 'admin',
                 rating: 5,
                 comment: 'Plant Power Kitchen has the best vegan burgers in LA!',
                 user: adminUser?._id,
@@ -558,7 +560,7 @@ export const seedDatabase = async () => {
 
         console.log('\n🔑 Admin login credentials:');
         console.log('   Email: admin@veganguide.com');
-        console.log(`   Password: ${process.env.ADMIN_PASSWORD || defaultPassword}`);
+        console.log(`   Password: ${process.env.ADMIN_PASSWORD ?? defaultPassword}`);
 
         console.log(
             '\n🌍 Geographic coverage: Portland, LA, NYC, SF, Austin, Seattle, Denver, Chicago, Miami, Woodstock'
