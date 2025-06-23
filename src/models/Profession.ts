@@ -1,11 +1,15 @@
 import mongoose, { Schema, Types, Document } from 'mongoose';
 
 import { IContact } from '../types/modalTypes';
+import { IGeoJSONPoint } from '../types/GeoJSON';
+import { geoJSONPointSchema } from './GeoJSON';
 
 export interface IProfession extends Document {
     _id: string;
     professionName: string;
     author: Types.ObjectId;
+    address: string;
+    location?: IGeoJSONPoint;
     specialty: string;
     contact: IContact[];
     reviews: Types.ObjectId[];
@@ -27,6 +31,11 @@ const professionSchema: Schema = new mongoose.Schema<IProfession>(
             ref: 'User',
             required: true,
         },
+        address: {
+            type: String,
+            required: true,
+        },
+        location: geoJSONPointSchema,
         specialty: {
             type: String,
             required: true,
@@ -68,5 +77,7 @@ const professionSchema: Schema = new mongoose.Schema<IProfession>(
     },
     { timestamps: true }
 );
+
+professionSchema.index({ location: '2dsphere' });
 
 export const Profession = mongoose.model<IProfession>('Profession', professionSchema);

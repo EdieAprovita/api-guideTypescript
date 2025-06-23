@@ -794,7 +794,7 @@ class BusinessService extends BaseService<IBusiness> {
 export default new BusinessService();
 ```
 
-### **Day 18-21: Enhanced Logging & Error Handling**
+### **Day 18-19: Enhanced Logging & Error Handling**
 
 #### **Structured Logging**
 ```typescript
@@ -938,6 +938,740 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
     
     next();
 };
+```
+
+### **Day 20-21: Mobile & React Native Integration**
+
+#### **Geolocation Service Enhancement**
+```typescript
+// services/LocationService.ts
+import { Model, Document } from 'mongoose';
+
+interface LocationQuery {
+    lat: number;
+    lng: number;
+    radius?: number;
+    limit?: number;
+    filter?: any;
+}
+
+class LocationService {
+    static async findNearby<T extends Document>(
+        model: Model<T>,
+        { lat, lng, radius = 10000, limit = 20, filter = {} }: LocationQuery
+    ): Promise<T[]> {
+        return await model.aggregate([
+            {
+                $geoNear: {
+                    near: { type: 'Point', coordinates: [lng, lat] },
+                    distanceField: 'distance',
+                    maxDistance: radius,
+                    spherical: true,
+                    query: filter
+                }
+            },
+            { $limit: limit },
+            {
+                $addFields: {
+                    distanceKm: { $round: [{ $divide: ['$distance', 1000] }, 2] }
+                }
+            },
+            {
+                $project: {
+                    distance: 1,
+                    distanceKm: 1,
+                    name: 1,
+                    address: 1,
+                    location: 1,
+                    rating: 1,
+                    image: 1,
+                    contact: 1
+                }
+            }
+        ]);
+    }
+
+    static async searchByBounds<T extends Document>(
+        model: Model<T>,
+        bounds: {
+            northEast: { lat: number; lng: number };
+            southWest: { lat: number; lng: number };
+        }
+    ): Promise<T[]> {
+        return await model.find({
+            'location.coordinates': {
+                $geoWithin: {
+                    $box: [
+                        [bounds.southWest.lng, bounds.southWest.lat],
+                        [bounds.northEast.lng, bounds.northEast.lat]
+                    ]
+                }
+            }
+        }).select('name address location rating image contact');
+    }
+
+    static async getHeatmapData<T extends Document>(
+        model: Model<T>,
+        bounds: any
+    ): Promise<Array<{ lat: number; lng: number; weight: number }>> {
+        const results = await model.aggregate([
+            {
+                $match: {
+                    'location.coordinates': {
+                        $geoWithin: { $box: bounds }
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        lat: { $round: [{ $arrayElemAt: ['$location.coordinates', 1] }, 3] },
+                        lng: { $round: [{ $arrayElemAt: ['$location.coordinates', 0] }, 3] }
+                    },
+                    count: { $sum: 1 },
+                    avgRating: { $avg: '$rating' }
+                }
+            },
+            {
+                $project: {
+                    lat: '$_id.lat',
+                    lng: '$_id.lng',
+                    weight: { $multiply: ['$count', '$avgRating'] }
+                }
+            }
+        ]);
+
+        return results.map(r => ({ lat: r.lat, lng: r.lng, weight: r.weight }));
+    }
+}
+
+export default LocationService;
+```
+
+#### **Mobile-Optimized Routes**
+```typescript
+// routes/mobileRoutes.ts
+import express from 'express';
+import { protect } from '../middleware/authMiddleware';
+import LocationService from '../services/LocationService';
+import { Restaurant } from '../models/Restaurant';
+import { Business } from '../models/Business';
+import { Market } from '../models/Market';
+import { Doctor } from '../models/Doctor';
+import { Profession } from '../models/Profession';
+import CacheService from '../services/CacheService';
+
+const router = express.Router();
+
+/**
+ * @swagger
+ * /api/v1/mobile/nearby:
+ *   get:
+ *     summary: Get nearby places for mobile app
+ *     tags: [Mobile]
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Latitude
+ *       - in: query
+ *         name: lng
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Longitude
+ *       - in: query
+ *         name: radius
+ *         schema:
+ *           type: number
+ *           default: 5000
+ *         description: Search radius in meters
+ *       - in: query
+ *         name: types
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of types (restaurant,business,market,doctor,profession)
+ *     responses:
+ *       200:
+ *         description: Nearby places found successfully
+ */
+router.get('/nearby', async (req, res, next) => {
+    try {
+        const { lat, lng, radius = 5000, types = 'restaurant,business,market,doctor,profession' } = req.query;
+        
+        if (!lat || !lng) {
+            return res.status(400).json({
+                success: false,
+                message: 'Latitude and longitude are required'
+            });
+        }
+
+        const typeArray = (types as string).split(',');
+        const cacheKey = CacheService.generateKey('mobile', 'nearby', lat as string, lng as string, radius.toString(), types as string);
+        
+        // Try cache first
+        let results = await CacheService.get(cacheKey);
+        
+        if (!results) {
+            const locationQuery = {
+                lat: parseFloat(lat as string),
+                lng: parseFloat(lng as string),
+                radius: parseInt(radius as string),
+                limit: 50
+            };
+
+            const promises = [];
+            
+            if (typeArray.includes('restaurant')) {
+                promises.push(LocationService.findNearby(Restaurant, locationQuery));
+            }
+            if (typeArray.includes('business')) {
+                promises.push(LocationService.findNearby(Business, locationQuery));
+            }
+            if (typeArray.includes('market')) {
+                promises.push(LocationService.findNearby(Market, locationQuery));
+            }
+            if (typeArray.includes('doctor')) {
+                promises.push(LocationService.findNearby(Doctor, locationQuery));
+            }
+            if (typeArray.includes('profession')) {
+                promises.push(LocationService.findNearby(Profession, locationQuery));
+            }
+
+            const allResults = await Promise.all(promises);
+            
+            results = {
+                restaurants: typeArray.includes('restaurant') ? allResults[typeArray.indexOf('restaurant')] || [] : [],
+                businesses: typeArray.includes('business') ? allResults[typeArray.indexOf('business')] || [] : [],
+                markets: typeArray.includes('market') ? allResults[typeArray.indexOf('market')] || [] : [],
+                doctors: typeArray.includes('doctor') ? allResults[typeArray.indexOf('doctor')] || [] : [],
+                professions: typeArray.includes('profession') ? allResults[typeArray.indexOf('profession')] || [] : [],
+                meta: {
+                    searchCenter: { lat: locationQuery.lat, lng: locationQuery.lng },
+                    searchRadius: locationQuery.radius,
+                    timestamp: new Date().toISOString()
+                }
+            };
+
+            // Cache for 10 minutes
+            await CacheService.set(cacheKey, results, 600);
+        }
+
+        res.json({
+            success: true,
+            message: 'Nearby places retrieved successfully',
+            data: results
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * @swagger
+ * /api/v1/mobile/map-data:
+ *   get:
+ *     summary: Get optimized data for map visualization
+ *     tags: [Mobile]
+ */
+router.get('/map-data', async (req, res, next) => {
+    try {
+        const { bounds, type = 'restaurant', zoom = 10 } = req.query;
+        
+        if (!bounds) {
+            return res.status(400).json({
+                success: false,
+                message: 'Map bounds are required'
+            });
+        }
+
+        const parsedBounds = JSON.parse(bounds as string);
+        const zoomLevel = parseInt(zoom as string);
+        
+        // For high zoom levels, return individual markers
+        // For low zoom levels, return heatmap data
+        let data;
+        
+        if (zoomLevel >= 12) {
+            const model = getModelByType(type as string);
+            data = await LocationService.searchByBounds(model, parsedBounds);
+        } else {
+            const model = getModelByType(type as string);
+            data = await LocationService.getHeatmapData(model, [
+                [parsedBounds.southWest.lng, parsedBounds.southWest.lat],
+                [parsedBounds.northEast.lng, parsedBounds.northEast.lat]
+            ]);
+        }
+
+        res.json({
+            success: true,
+            message: 'Map data retrieved successfully',
+            data: {
+                type: zoomLevel >= 12 ? 'markers' : 'heatmap',
+                items: data,
+                bounds: parsedBounds,
+                zoom: zoomLevel
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * @swagger
+ * /api/v1/mobile/sync:
+ *   post:
+ *     summary: Synchronize offline data with server
+ *     tags: [Mobile]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/sync', protect, async (req, res, next) => {
+    try {
+        const { lastSync, pendingActions = [], deviceId } = req.body;
+        const userId = req.user?._id;
+
+        if (!lastSync) {
+            return res.status(400).json({
+                success: false,
+                message: 'lastSync timestamp is required'
+            });
+        }
+
+        // Process pending actions from client
+        const actionResults = await Promise.allSettled(
+            pendingActions.map((action: any) => processOfflineAction(action, userId))
+        );
+
+        // Get changes since lastSync
+        const changes = await getChangesSince(new Date(lastSync), userId);
+
+        // Update device sync status
+        await updateDeviceSyncStatus(deviceId, userId);
+
+        res.json({
+            success: true,
+            message: 'Sync completed successfully',
+            data: {
+                actionResults: actionResults.map((result, index) => ({
+                    actionId: pendingActions[index].id,
+                    status: result.status,
+                    error: result.status === 'rejected' ? result.reason : null
+                })),
+                changes,
+                serverTime: new Date().toISOString(),
+                nextSyncRecommended: Date.now() + (30 * 60 * 1000) // 30 minutes
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Helper functions
+function getModelByType(type: string) {
+    switch (type) {
+        case 'restaurant': return Restaurant;
+        case 'business': return Business;
+        case 'market': return Market;
+        case 'doctor': return Doctor;
+        case 'profession': return Profession;
+        default: return Restaurant;
+    }
+}
+
+async function processOfflineAction(action: any, userId: string) {
+    // Process different types of offline actions
+    switch (action.type) {
+        case 'CREATE_REVIEW':
+            return await createReviewFromOffline(action.data, userId);
+        case 'UPDATE_FAVORITE':
+            return await updateFavoriteFromOffline(action.data, userId);
+        case 'CREATE_BUSINESS':
+            return await createBusinessFromOffline(action.data, userId);
+        default:
+            throw new Error(`Unknown action type: ${action.type}`);
+    }
+}
+
+async function getChangesSince(lastSync: Date, userId: string) {
+    // Get all changes since lastSync that affect this user
+    const changes = {
+        favorites: await getUserFavoriteChanges(lastSync, userId),
+        reviews: await getUserReviewChanges(lastSync, userId),
+        newPlaces: await getNewPlacesNearUser(lastSync, userId)
+    };
+    
+    return changes;
+}
+
+async function createReviewFromOffline(reviewData: any, userId: string) {
+    // Implementation for creating review from offline data
+    // Include conflict resolution logic
+}
+
+async function updateFavoriteFromOffline(favoriteData: any, userId: string) {
+    // Implementation for updating favorites from offline data
+}
+
+async function createBusinessFromOffline(businessData: any, userId: string) {
+    // Implementation for creating business from offline data
+}
+
+async function getUserFavoriteChanges(lastSync: Date, userId: string) {
+    // Get favorite changes since lastSync
+}
+
+async function getUserReviewChanges(lastSync: Date, userId: string) {
+    // Get review changes since lastSync
+}
+
+async function getNewPlacesNearUser(lastSync: Date, userId: string) {
+    // Get new places added near user's typical locations
+}
+
+async function updateDeviceSyncStatus(deviceId: string, userId: string) {
+    // Update device sync status in database
+}
+
+export default router;
+```
+
+#### **Integration with Main App**
+```typescript
+// app.ts - Add mobile routes
+import mobileRoutes from './routes/mobileRoutes';
+import healthRoutes from './routes/healthRoutes';
+
+// Add after existing routes
+app.use('/api/v1/mobile', mobileRoutes);
+app.use('/api/v1/health', healthRoutes);
+
+// Add metrics endpoint
+app.get('/metrics', metricsEndpoint);
+
+// Add request logging and metrics middleware
+app.use(requestLogger);
+app.use(metricsMiddleware);
+```
+
+#### **Environment Variables for Mobile Features**
+```env
+# Firebase Configuration
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=your-service-account-email
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your-redis-password
+
+# Additional Mobile Settings
+MOBILE_API_VERSION=v1
+PUSH_NOTIFICATION_ENABLED=true
+OFFLINE_SYNC_ENABLED=true
+```
+
+#### **Push Notification Service**
+```typescript
+// services/NotificationService.ts
+import admin from 'firebase-admin';
+import { User } from '../models/User';
+import { logger } from '../utils/logger';
+
+interface NotificationPayload {
+    userId: string;
+    title: string;
+    body: string;
+    data?: Record<string, string>;
+    type: 'new_restaurant' | 'review_response' | 'nearby_event' | 'favorite_update';
+}
+
+interface LocationNotification {
+    lat: number;
+    lng: number;
+    radius: number;
+    title: string;
+    body: string;
+    data?: Record<string, string>;
+}
+
+class NotificationService {
+    private messaging: admin.messaging.Messaging;
+
+    constructor() {
+        // Initialize Firebase Admin SDK
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: process.env.FIREBASE_PROJECT_ID,
+                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+                }),
+            });
+        }
+        this.messaging = admin.messaging();
+    }
+
+    async sendToUser(payload: NotificationPayload): Promise<boolean> {
+        try {
+            const user = await User.findById(payload.userId);
+            if (!user || !user.deviceTokens || user.deviceTokens.length === 0) {
+                logger.warn('No device tokens found for user', { userId: payload.userId });
+                return false;
+            }
+
+            const message = {
+                notification: {
+                    title: payload.title,
+                    body: payload.body,
+                },
+                data: {
+                    type: payload.type,
+                    ...payload.data,
+                },
+                tokens: user.deviceTokens,
+            };
+
+            const response = await this.messaging.sendMulticast(message);
+            
+            // Remove invalid tokens
+            if (response.failureCount > 0) {
+                await this.removeInvalidTokens(user._id, response.responses, user.deviceTokens);
+            }
+
+            logger.info('Push notification sent', {
+                userId: payload.userId,
+                type: payload.type,
+                successCount: response.successCount,
+                failureCount: response.failureCount
+            });
+
+            return response.successCount > 0;
+        } catch (error) {
+            logger.error('Failed to send push notification', {
+                userId: payload.userId,
+                error: error.message
+            });
+            return false;
+        }
+    }
+
+    async sendLocationBasedNotification(notification: LocationNotification): Promise<number> {
+        try {
+            // Find users within the specified radius
+            const usersNearby = await User.find({
+                'location.coordinates': {
+                    $near: {
+                        $geometry: {
+                            type: 'Point',
+                            coordinates: [notification.lng, notification.lat]
+                        },
+                        $maxDistance: notification.radius
+                    }
+                },
+                deviceTokens: { $exists: true, $not: { $size: 0 } },
+                notificationSettings: {
+                    locationBased: true
+                }
+            });
+
+            let sentCount = 0;
+            
+            for (const user of usersNearby) {
+                const success = await this.sendToUser({
+                    userId: user._id,
+                    title: notification.title,
+                    body: notification.body,
+                    data: notification.data,
+                    type: 'nearby_event'
+                });
+                
+                if (success) sentCount++;
+            }
+
+            logger.info('Location-based notifications sent', {
+                totalUsers: usersNearby.length,
+                sentCount,
+                location: { lat: notification.lat, lng: notification.lng },
+                radius: notification.radius
+            });
+
+            return sentCount;
+        } catch (error) {
+            logger.error('Failed to send location-based notifications', {
+                error: error.message,
+                location: { lat: notification.lat, lng: notification.lng }
+            });
+            return 0;
+        }
+    }
+
+    async registerDeviceToken(userId: string, deviceToken: string): Promise<void> {
+        try {
+            await User.findByIdAndUpdate(
+                userId,
+                { $addToSet: { deviceTokens: deviceToken } },
+                { new: true }
+            );
+            
+            logger.info('Device token registered', { userId, deviceToken: deviceToken.substring(0, 20) + '...' });
+        } catch (error) {
+            logger.error('Failed to register device token', {
+                userId,
+                error: error.message
+            });
+        }
+    }
+
+    async unregisterDeviceToken(userId: string, deviceToken: string): Promise<void> {
+        try {
+            await User.findByIdAndUpdate(
+                userId,
+                { $pull: { deviceTokens: deviceToken } }
+            );
+            
+            logger.info('Device token unregistered', { userId, deviceToken: deviceToken.substring(0, 20) + '...' });
+        } catch (error) {
+            logger.error('Failed to unregister device token', {
+                userId,
+                error: error.message
+            });
+        }
+    }
+
+    private async removeInvalidTokens(userId: string, responses: any[], tokens: string[]): Promise<void> {
+        const invalidTokens = [];
+        
+        responses.forEach((response, index) => {
+            if (!response.success && response.error) {
+                const errorCode = response.error.code;
+                if (errorCode === 'messaging/invalid-registration-token' ||
+                    errorCode === 'messaging/registration-token-not-registered') {
+                    invalidTokens.push(tokens[index]);
+                }
+            }
+        });
+
+        if (invalidTokens.length > 0) {
+            await User.findByIdAndUpdate(
+                userId,
+                { $pullAll: { deviceTokens: invalidTokens } }
+            );
+            
+            logger.info('Removed invalid device tokens', {
+                userId,
+                removedCount: invalidTokens.length
+            });
+        }
+    }
+
+    // Predefined notification templates
+    async notifyNewRestaurantNearby(userId: string, restaurantName: string, distance: number): Promise<boolean> {
+        return await this.sendToUser({
+            userId,
+            title: '🍽️ New Vegan Restaurant Nearby!',
+            body: `${restaurantName} just opened ${distance.toFixed(1)}km from you`,
+            type: 'new_restaurant',
+            data: {
+                distance: distance.toString(),
+                restaurantName
+            }
+        });
+    }
+
+    async notifyReviewResponse(userId: string, businessName: string): Promise<boolean> {
+        return await this.sendToUser({
+            userId,
+            title: '💬 Response to Your Review',
+            body: `${businessName} responded to your review`,
+            type: 'review_response',
+            data: {
+                businessName
+            }
+        });
+    }
+}
+
+export default new NotificationService();
+```
+
+#### **User Model Enhancement for Mobile**
+```typescript
+// models/User.ts - Add mobile-specific fields
+export interface IUser extends Document {
+    // ... existing fields
+    deviceTokens: string[];
+    location?: IGeoJSONPoint;
+    notificationSettings: {
+        locationBased: boolean;
+        reviewResponses: boolean;
+        newPlacesNearby: boolean;
+        favorites: boolean;
+    };
+    lastActiveLocation?: {
+        coordinates: [number, number];
+        timestamp: Date;
+    };
+    preferences: {
+        searchRadius: number;
+        favoriteCategories: string[];
+        language: string;
+    };
+}
+
+// Add to schema
+deviceTokens: {
+    type: [String],
+    default: []
+},
+location: geoJSONPointSchema,
+notificationSettings: {
+    locationBased: {
+        type: Boolean,
+        default: true
+    },
+    reviewResponses: {
+        type: Boolean,
+        default: true
+    },
+    newPlacesNearby: {
+        type: Boolean,
+        default: true
+    },
+    favorites: {
+        type: Boolean,
+        default: true
+    }
+},
+lastActiveLocation: {
+    coordinates: {
+        type: [Number],
+        index: '2dsphere'
+    },
+    timestamp: {
+        type: Date,
+        default: Date.now
+    }
+},
+preferences: {
+    searchRadius: {
+        type: Number,
+        default: 5000 // 5km
+    },
+    favoriteCategories: {
+        type: [String],
+        default: []
+    },
+    language: {
+        type: String,
+        default: 'en'
+    }
+}
 ```
 
 ---
@@ -1322,6 +2056,10 @@ export default router;
 - [ ] Redis caching implemented
 - [ ] Database indexes optimized
 - [ ] Structured logging implemented
+- [ ] Mobile endpoints implemented
+- [ ] Push notification system operational
+- [ ] Geolocation service enhanced
+- [ ] Offline sync functionality working
 
 ### **Week 4 Targets**
 - [ ] Monitoring dashboard operational
@@ -1369,3 +2107,416 @@ This improvement plan transforms the API-GuideTypescript project from a solid fo
 **Risk Level**: Low (phased approach with rollback capabilities)
 
 The plan provides a clear roadmap for elevating the project to production standards while maintaining development velocity and code quality.
+
+---
+
+## 📱 **React Native Integration Guide**
+
+### **Mobile App Architecture**
+
+```typescript
+// React Native Project Structure
+VeganCityGuide/
+├── src/
+│   ├── api/           # API client and endpoints
+│   ├── components/    # Reusable components
+│   ├── screens/       # Screen components
+│   ├── navigation/    # Navigation configuration
+│   ├── store/         # Redux store and slices
+│   ├── services/      # Location, notification services
+│   ├── utils/         # Utility functions
+│   └── types/         # TypeScript interfaces
+├── android/           # Android specific code
+├── ios/              # iOS specific code
+└── package.json
+```
+
+### **API Client Configuration**
+
+```typescript
+// src/api/client.ts
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
+
+const API_BASE_URL = __DEV__ 
+  ? 'http://localhost:5001/api/v1' 
+  : 'https://your-production-api.com/api/v1';
+
+class ApiClient {
+  private axiosInstance;
+  private isOnline = true;
+  private offlineQueue: any[] = [];
+
+  constructor() {
+    this.axiosInstance = axios.create({
+      baseURL: API_BASE_URL,
+      timeout: 10000,
+    });
+
+    this.setupInterceptors();
+    this.setupNetworkListener();
+  }
+
+  private setupInterceptors() {
+    // Request interceptor for auth token
+    this.axiosInstance.interceptors.request.use(async (config) => {
+      const token = await AsyncStorage.getItem('auth_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+
+    // Response interceptor for error handling
+    this.axiosInstance.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        if (error.response?.status === 401) {
+          await AsyncStorage.removeItem('auth_token');
+          // Navigate to login screen
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  private setupNetworkListener() {
+    NetInfo.addEventListener(state => {
+      const wasOffline = !this.isOnline;
+      this.isOnline = state.isConnected ?? false;
+      
+      if (wasOffline && this.isOnline) {
+        this.processOfflineQueue();
+      }
+    });
+  }
+
+  // Location-based API calls
+  async getNearbyPlaces(lat: number, lng: number, radius: number = 5000, types?: string[]) {
+    const params = {
+      lat,
+      lng,
+      radius,
+      types: types?.join(',') || 'restaurant,business,market,doctor,profession'
+    };
+
+    if (!this.isOnline) {
+      return this.getCachedNearbyPlaces(lat, lng, radius);
+    }
+
+    try {
+      const response = await this.axiosInstance.get('/mobile/nearby', { params });
+      
+      // Cache successful response
+      await this.cacheNearbyPlaces(lat, lng, radius, response.data);
+      
+      return response.data;
+    } catch (error) {
+      // Fallback to cached data
+      return this.getCachedNearbyPlaces(lat, lng, radius);
+    }
+  }
+
+  async syncOfflineData() {
+    if (!this.isOnline) return;
+
+    try {
+      const lastSync = await AsyncStorage.getItem('lastSync');
+      const pendingActions = JSON.parse(await AsyncStorage.getItem('pendingActions') || '[]');
+      
+      const response = await this.axiosInstance.post('/mobile/sync', {
+        lastSync,
+        pendingActions,
+        deviceId: await this.getDeviceId()
+      });
+
+      // Clear processed actions
+      await AsyncStorage.setItem('pendingActions', '[]');
+      await AsyncStorage.setItem('lastSync', new Date().toISOString());
+
+      return response.data;
+    } catch (error) {
+      console.error('Sync failed:', error);
+      throw error;
+    }
+  }
+
+  private async processOfflineQueue() {
+    while (this.offlineQueue.length > 0) {
+      const request = this.offlineQueue.shift();
+      try {
+        await request();
+      } catch (error) {
+        console.error('Failed to process queued request:', error);
+      }
+    }
+  }
+}
+
+export default new ApiClient();
+```
+
+### **Location Service Integration**
+
+```typescript
+// src/services/LocationService.ts
+import Geolocation from '@react-native-community/geolocation';
+import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { Platform } from 'react-native';
+
+export class LocationService {
+  static async requestLocationPermission(): Promise<boolean> {
+    try {
+      const permission = Platform.OS === 'ios' 
+        ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+        : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+
+      const result = await request(permission);
+      return result === RESULTS.GRANTED;
+    } catch (error) {
+      console.error('Location permission error:', error);
+      return false;
+    }
+  }
+
+  static async getCurrentLocation(): Promise<{lat: number, lng: number} | null> {
+    const hasPermission = await this.requestLocationPermission();
+    if (!hasPermission) return null;
+
+    return new Promise((resolve) => {
+      Geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Location error:', error);
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      );
+    });
+  }
+
+  static watchLocation(callback: (location: {lat: number, lng: number}) => void): number {
+    return Geolocation.watchPosition(
+      (position) => {
+        callback({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      },
+      (error) => console.error('Location watch error:', error),
+      { enableHighAccuracy: true, distanceFilter: 100 }
+    );
+  }
+
+  static clearWatch(watchId: number) {
+    Geolocation.clearWatch(watchId);
+  }
+}
+```
+
+### **Push Notification Setup**
+
+```typescript
+// src/services/NotificationService.ts
+import messaging from '@react-native-firebase/messaging';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+export class NotificationService {
+  static async initialize() {
+    await this.requestPermission();
+    await this.getToken();
+    this.setupMessageHandlers();
+  }
+
+  static async requestPermission(): Promise<boolean> {
+    const authStatus = await messaging().requestPermission();
+    const enabled =
+      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+    return enabled;
+  }
+
+  static async getToken(): Promise<string | null> {
+    try {
+      const token = await messaging().getToken();
+      await AsyncStorage.setItem('fcm_token', token);
+      
+      // Send token to your API
+      await ApiClient.registerDeviceToken(token);
+      
+      return token;
+    } catch (error) {
+      console.error('Failed to get FCM token:', error);
+      return null;
+    }
+  }
+
+  static setupMessageHandlers() {
+    // Handle background messages
+    messaging().setBackgroundMessageHandler(async remoteMessage => {
+      console.log('Message handled in the background!', remoteMessage);
+    });
+
+    // Handle foreground messages
+    messaging().onMessage(async remoteMessage => {
+      console.log('Message handled in the foreground!', remoteMessage);
+      
+      if (remoteMessage.notification) {
+        this.showLocalNotification(remoteMessage.notification);
+      }
+    });
+
+    // Handle notification opened app
+    messaging().onNotificationOpenedApp(remoteMessage => {
+      console.log(
+        'Notification caused app to open from background state:',
+        remoteMessage.notification,
+      );
+      
+      this.handleNotificationNavigation(remoteMessage.data);
+    });
+
+    // Check whether an initial notification is available
+    messaging()
+      .getInitialNotification()
+      .then(remoteMessage => {
+        if (remoteMessage) {
+          console.log(
+            'Notification caused app to open from quit state:',
+            remoteMessage.notification,
+          );
+          
+          this.handleNotificationNavigation(remoteMessage.data);
+        }
+      });
+  }
+
+  static handleNotificationNavigation(data: any) {
+    // Navigate based on notification type
+    switch (data?.type) {
+      case 'new_restaurant':
+        // Navigate to restaurant detail
+        break;
+      case 'review_response':
+        // Navigate to reviews section
+        break;
+      case 'nearby_event':
+        // Navigate to map with location
+        break;
+    }
+  }
+}
+```
+
+### **Redux Store with RTK Query**
+
+```typescript
+// src/store/api.ts
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export const apiSlice = createApi({
+  reducerPath: 'api',
+  baseQuery: fetchBaseQuery({
+    baseUrl: '/api/v1',
+    prepareHeaders: async (headers) => {
+      const token = await AsyncStorage.getItem('auth_token');
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
+  tagTypes: ['Restaurant', 'Business', 'User', 'Review'],
+  endpoints: (builder) => ({
+    getNearbyPlaces: builder.query({
+      query: ({ lat, lng, radius, types }) => ({
+        url: '/mobile/nearby',
+        params: { lat, lng, radius, types: types?.join(',') },
+      }),
+      providesTags: ['Restaurant', 'Business'],
+    }),
+    
+    getMapData: builder.query({
+      query: ({ bounds, type, zoom }) => ({
+        url: '/mobile/map-data',
+        params: { bounds: JSON.stringify(bounds), type, zoom },
+      }),
+    }),
+    
+    syncOfflineData: builder.mutation({
+      query: ({ lastSync, pendingActions, deviceId }) => ({
+        url: '/mobile/sync',
+        method: 'POST',
+        body: { lastSync, pendingActions, deviceId },
+      }),
+    }),
+  }),
+});
+
+export const {
+  useGetNearbyPlacesQuery,
+  useGetMapDataQuery,
+  useSyncOfflineDataMutation,
+} = apiSlice;
+```
+
+### **Key React Native Dependencies**
+
+```json
+{
+  "dependencies": {
+    "@react-navigation/native": "^6.1.0",
+    "@react-navigation/stack": "^6.3.0",
+    "@react-navigation/bottom-tabs": "^6.5.0",
+    "@reduxjs/toolkit": "^1.9.0",
+    "react-redux": "^8.0.0",
+    "@react-native-async-storage/async-storage": "^1.19.0",
+    "@react-native-community/geolocation": "^3.2.0",
+    "@react-native-community/netinfo": "^11.0.0",
+    "react-native-permissions": "^4.0.0",
+    "react-native-maps": "^1.8.0",
+    "@react-native-firebase/app": "^18.0.0",
+    "@react-native-firebase/messaging": "^18.0.0",
+    "react-native-image-picker": "^7.0.0",
+    "react-native-vector-icons": "^10.0.0",
+    "axios": "^1.4.0"
+  }
+}
+```
+
+### **Implementation Checklist**
+
+#### **Week 1: Setup & Basic Integration**
+- [ ] React Native project initialization
+- [ ] API client configuration with offline support
+- [ ] Basic navigation structure
+- [ ] Authentication flow integration
+
+#### **Week 2: Core Features**
+- [ ] Location services implementation
+- [ ] Map integration with markers
+- [ ] Restaurant/business listing screens
+- [ ] Search functionality
+
+#### **Week 3: Advanced Features**
+- [ ] Push notifications setup
+- [ ] Offline data synchronization
+- [ ] Review and rating system
+- [ ] Favorites management
+
+#### **Week 4: Polish & Testing**
+- [ ] Performance optimization
+- [ ] Error handling improvements
+- [ ] User testing and feedback
+- [ ] App store preparation
+
+This integration guide provides a comprehensive roadmap for implementing the React Native mobile application that leverages all the enhanced API endpoints and services.
