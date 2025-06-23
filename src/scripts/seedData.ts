@@ -16,7 +16,10 @@ import connectDB from '../config/db';
 dotenv.config();
 
 // Sample Users Data
-const defaultPassword = process.env.SEED_USER_PASSWORD || 'ChangeMe123!';
+if (!process.env.SEED_USER_PASSWORD) {
+    throw new Error('Environment variable SEED_USER_PASSWORD is required but not provided. Please set a secure password.');
+}
+const defaultPassword = process.env.SEED_USER_PASSWORD;
 const sampleUsers = [
     {
         username: 'admin',
