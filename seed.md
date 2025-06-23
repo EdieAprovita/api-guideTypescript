@@ -79,22 +79,20 @@ After seeding, you can log in with these credentials:
 ### Admin Account
 ```
 Email: admin@veganguide.com
-Password: Admin123!
+Password: $ADMIN_PASSWORD (defaults to $SEED_USER_PASSWORD)
 ```
 
 ### Other Test Accounts
 ```
 Chef Sarah:
 Email: sarah@veganrecipes.com
-Password: Chef123!
-
+Password: $CHEF_PASSWORD (defaults to $SEED_USER_PASSWORD)
 Dr. Green:
 Email: drgreen@healthyvegan.com
-Password: Doctor123!
-
+Password: $DOCTOR_PASSWORD (defaults to $SEED_USER_PASSWORD)
 Restaurant Owner:
 Email: owner@veganplace.com
-Password: Owner123!
+Password: $OWNER_PASSWORD (defaults to $SEED_USER_PASSWORD)
 ```
 
 ## Geographic Coverage
