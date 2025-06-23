@@ -500,7 +500,7 @@ export const seedDatabase = async () => {
         console.log('Creating sample reviews...');
         const sampleReviews = [
             {
-                username: chefUser?.username || 'chef_sarah',
+                username: chefUser?.username ?? 'chef_sarah',
                 rating: 5,
                 comment: 'Amazing plant-based food! The cashew alfredo was incredible.',
                 user: chefUser?._id,
@@ -508,7 +508,7 @@ export const seedDatabase = async () => {
                 refModel: 'Restaurant',
             },
             {
-                username: adminUser?.username || 'admin',
+                username: adminUser?.username ?? 'admin',
                 rating: 4,
                 comment: 'Great recipe, easy to follow and delicious results!',
                 user: adminUser?._id,
@@ -516,7 +516,7 @@ export const seedDatabase = async () => {
                 refModel: 'Recipe',
             },
             {
-                username: ownerUser?.username || 'restaurant_owner',
+                username: ownerUser?.username ?? 'restaurant_owner',
                 rating: 5,
                 comment: 'Dr. Green provided excellent nutritional guidance for my plant-based journey.',
                 user: ownerUser?._id,
@@ -524,7 +524,7 @@ export const seedDatabase = async () => {
                 refModel: 'Doctor',
             },
             {
-                username: doctorUser?.username || 'dr_green',
+                username: doctorUser?.username ?? 'dr_green',
                 rating: 4,
                 comment: 'Love this Buddha bowl recipe! Perfect for my patients.',
                 user: doctorUser?._id,
@@ -532,7 +532,7 @@ export const seedDatabase = async () => {
                 refModel: 'Recipe',
             },
             {
-                username: adminUser?.username || 'admin',
+                username: adminUser?.username ?? 'admin',
                 rating: 5,
                 comment: 'Plant Power Kitchen has the best vegan burgers in LA!',
                 user: adminUser?._id,
