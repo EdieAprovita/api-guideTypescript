@@ -76,9 +76,10 @@ export const sanitizeInput = () => {
   return [
     // MongoDB injection protection
     mongoSanitize(),
-    
+
     // Custom XSS and additional sanitization
     (req: Request, res: Response, next: NextFunction) => {
+      const controlCharsRegex = new RegExp('[\\u0000-\\u001F\\u007F]', 'g');
       const sanitizeValue = (value: any): any => {
         if (typeof value === 'string') {
           // Remove potential XSS patterns
@@ -86,7 +87,7 @@ export const sanitizeInput = () => {
             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
             .replace(/javascript:/gi, '')
             .replace(/on\w+\s*=/gi, '')
-            .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+            .replace(controlCharsRegex, '') // Remove control characters
             .trim();
         }
         
