@@ -4,6 +4,9 @@ import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 import { ValidationSchema, RateLimitConfig } from '../types/validation';
 
+// Regex to match all ASCII control characters (U+0000–U+001F and U+007F)
+export const controlCharsRegex = /[\u0000-\u001F\u007F]/g;
+
 // Validation middleware factory
 export const validate = (schema: ValidationSchema) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -79,7 +82,6 @@ export const sanitizeInput = () => {
 
     // Custom XSS and additional sanitization
     (req: Request, res: Response, next: NextFunction) => {
-      const controlCharsRegex = new RegExp('[\\u0000-\\u001F\\u007F]', 'g');
       const sanitizeValue = (value: any): any => {
         if (typeof value === 'string') {
           // Remove potential XSS patterns
@@ -87,7 +89,8 @@ export const sanitizeInput = () => {
             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
             .replace(/javascript:/gi, '')
             .replace(/on\w+\s*=/gi, '')
-            .replace(controlCharsRegex, '') // Remove control characters
+            // Remove any ASCII control characters
+            .replace(controlCharsRegex, '')
             .trim();
         }
         

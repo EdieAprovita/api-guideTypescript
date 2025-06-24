@@ -5,6 +5,8 @@ const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const phonePattern = /^[+]?[\d\s\-().]{10,}$/;
 const urlPattern = /^https?:\/\/.+/;
+// 24-hour time in HH:MM format
+const timePattern = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
 // Common schemas
 export const commonSchemas = {
@@ -165,11 +167,11 @@ export const reviewSchemas = {
 // Query parameter schemas
 export const querySchemas = {
   geospatial: Joi.object({
-    latitude: Joi.number().min(-90).max(90).when('longitude', { is: Joi.exist(), then: Joi.required() }),
-    longitude: Joi.number().min(-180).max(180).when('latitude', { is: Joi.exist(), then: Joi.required() }),
+    latitude: Joi.number().min(-90).max(90),
+    longitude: Joi.number().min(-180).max(180),
     radius: Joi.number().min(1).max(50000).default(5000),
     ...commonSchemas.pagination
-  }),
+  }).and('latitude', 'longitude'),
 
   search: Joi.object({
     q: Joi.string().trim().min(1).max(100).optional(),
