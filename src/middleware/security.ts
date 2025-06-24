@@ -70,7 +70,7 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
     }
 
     if (req.header('x-forwarded-proto') !== 'https') {
-      const host = req.header('host');
+      const host = req.header('host')?.toLowerCase();
       if (host && allowedHosts.includes(host)) {
         const canonicalHost = allowedHosts[0];
         const redirectUrl = `https://${canonicalHost}${req.originalUrl}`;
