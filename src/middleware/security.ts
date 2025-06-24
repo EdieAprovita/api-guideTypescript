@@ -64,11 +64,6 @@ export const configureHelmet = () => {
  */
 export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) => {
   if (process.env.NODE_ENV === 'production') {
-    const allowedHosts = (process.env.ALLOWED_HOSTS ?? '')
-      .split(',')
-      .map(h => h.trim())
-      .filter(Boolean);
-
     if (allowedHosts.length === 0) {
       console.error('ALLOWED_HOSTS is not set or empty in production. This is a critical security risk.');
       return res.status(500).send('Server misconfiguration: ALLOWED_HOSTS is required.');
