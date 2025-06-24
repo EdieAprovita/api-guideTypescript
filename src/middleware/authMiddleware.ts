@@ -46,7 +46,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 
         // Use TokenService for enhanced security validation
         const payload = await TokenService.verifyAccessToken(token);
-        
+
         // Check if user tokens have been revoked globally
         const areTokensRevoked = await TokenService.isUserTokensRevoked(payload.userId);
         if (areTokensRevoked) {
@@ -87,9 +87,9 @@ export const admin = (req: Request, res: Response, next: NextFunction) => {
     }
 
     if (req.user.role === 'admin') {
-        next();
+        return next();
     } else {
-        res.status(403).json({
+        return res.status(403).json({
             message: 'Forbidden',
             success: false,
             error: 'Admin access required',
@@ -113,9 +113,9 @@ export const professional = (req: Request, res: Response, next: NextFunction) =>
     }
 
     if (req.user.role === 'professional') {
-        next();
+        return next();
     } else {
-        res.status(403).json({
+        return res.status(403).json({
             message: 'Forbidden',
             success: false,
             error: 'Professional access required',
@@ -181,7 +181,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
         res.clearCookie('jwt', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict'
+            sameSite: 'strict',
         });
 
         next();
@@ -201,22 +201,22 @@ export const refreshToken = async (req: Request, res: Response) => {
         if (!refreshToken) {
             return res.status(400).json({
                 success: false,
-                message: 'Refresh token is required'
+                message: 'Refresh token is required',
             });
         }
 
         const tokens = await TokenService.refreshTokens(refreshToken);
 
-        res.json({
+        return res.json({
             success: true,
             message: 'Tokens refreshed successfully',
-            data: tokens
+            data: tokens,
         });
     } catch (error) {
-        res.status(401).json({
+        return res.status(401).json({
             success: false,
             message: 'Invalid refresh token',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 };
@@ -227,24 +227,24 @@ export const refreshToken = async (req: Request, res: Response) => {
  */
 export const revokeAllTokens = async (req: Request, res: Response) => {
     try {
-        if (!req.user) {
+        if (!req.user || !req.user._id) {
             return res.status(401).json({
                 success: false,
-                message: 'User not authenticated'
+                message: 'User not authenticated',
             });
         }
 
         await TokenService.revokeAllUserTokens(req.user._id.toString());
 
-        res.json({
+        return res.json({
             success: true,
-            message: 'All tokens revoked successfully'
+            message: 'All tokens revoked successfully',
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Failed to revoke tokens',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 };
