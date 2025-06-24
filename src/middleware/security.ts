@@ -69,12 +69,13 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
       return res.status(500).send('Server misconfiguration: ALLOWED_HOSTS is required.');
     }
 
-    if (req.header('x-forwarded-proto') !== 'https') {
-      const host = req.header('host')?.toLowerCase();
+    if (req.get('x-forwarded-proto') !== 'https') {
+      const host = req.get('host');
       if (host && allowedHosts.includes(host)) {
         const canonicalHost = allowedHosts[0];
-        const redirectUrl = `https://${canonicalHost}${req.originalUrl}`;
-        return res.redirect(redirectUrl);
+        const redirectURL = new URL(`https://${canonicalHost}`);
+        redirectURL.pathname = req.path;
+        return res.redirect(redirectURL.toString());
       }
 
       return res.status(400).send('Invalid host header');
@@ -279,9 +280,10 @@ export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
  * Request correlation ID middleware for tracing
  */
 export const addCorrelationId = (req: Request, res: Response, next: NextFunction) => {
-  const correlationId = req.get('X-Correlation-ID') || 
-                       req.get('X-Request-ID') ||
-                       `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const RANDOM_ID_LENGTH = 9;
+  const correlationId = req.get('X-Correlation-ID') ??
+                       req.get('X-Request-ID') ??
+                       `req-${Date.now()}-${Math.random().toString(36).substring(2, 2 + RANDOM_ID_LENGTH)}`;
 
   req.correlationId = correlationId;
   res.setHeader('X-Correlation-ID', correlationId);
