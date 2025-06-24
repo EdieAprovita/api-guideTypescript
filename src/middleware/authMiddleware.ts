@@ -167,6 +167,7 @@ export const checkOwnership = (_resourceField: string = 'userId') => {
 
         // For other resources, we'll need to check the database
         // This is a basic implementation - you may need to customize per resource type
+        // Explicitly terminate middleware execution path
         return next();
     };
 };
