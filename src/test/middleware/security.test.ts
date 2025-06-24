@@ -43,7 +43,7 @@ describe('Security Middleware Tests', () => {
       expect(response.status).toBe(200);
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(response.headers['x-frame-options']).toBe('DENY');
-      expect(response.headers['x-xss-protection']).toBe('1; mode=block');
+      expect(response.headers['x-xss-protection']).toBe('0');
       expect(response.headers['strict-transport-security']).toBeDefined();
       expect(response.headers['content-security-policy']).toBeDefined();
       expect(response.headers['x-powered-by']).toBeUndefined();

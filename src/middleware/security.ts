@@ -48,11 +48,7 @@ export const configureHelmet = () => {
     // Referrer Policy
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     
-    // Expect-CT (Certificate Transparency)
-    expectCt: {
-      maxAge: 86400,
-      enforce: process.env.NODE_ENV === 'production'
-    },
+    // Note: expectCt deprecated in newer helmet versions
     
     // Permissions Policy (Feature Policy)
     permittedCrossDomainPolicies: false
@@ -93,8 +89,8 @@ export const createAdvancedRateLimit = (options: {
     legacyHeaders: false,
     skipSuccessfulRequests: options.skipSuccessfulRequests || false,
     skipFailedRequests: options.skipFailedRequests || false,
-    keyGenerator: options.keyGenerator || ((req: Request) => req.ip),
-    handler: (req: Request, res: Response) => {
+    keyGenerator: options.keyGenerator || ((req: Request) => req.ip || 'unknown'),
+    handler: (_req: Request, res: Response) => {
       res.status(429).json({
         success: false,
         message: options.message || 'Rate limit exceeded',
@@ -121,10 +117,10 @@ export const smartRateLimit = createAdvancedRateLimit({
  */
 export const detectSuspiciousActivity = (req: Request, res: Response, next: NextFunction) => {
   const suspiciousPatterns = [
-    // SQL injection patterns
-    /(\b(union|select|insert|update|delete|drop|create|alter|exec|script)\b)/i,
-    // XSS patterns
-    /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
+    // SQL injection patterns - safer regex without nested quantifiers
+    /\b(union|select|insert|update|delete|drop|create|alter|exec|script)\b/i,
+    // XSS patterns - safer regex without nested quantifiers
+    /<script[^>]*>[^<]*<\/script>/gi,
     /javascript:/gi,
     /on\w+\s*=/gi,
     // Path traversal
@@ -269,7 +265,7 @@ export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
 export const addCorrelationId = (req: Request, res: Response, next: NextFunction) => {
   const correlationId = req.get('X-Correlation-ID') || 
                        req.get('X-Request-ID') ||
-                       `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                       `req-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
   req.correlationId = correlationId;
   res.setHeader('X-Correlation-ID', correlationId);
