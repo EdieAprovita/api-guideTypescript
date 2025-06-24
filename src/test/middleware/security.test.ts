@@ -51,9 +51,20 @@ describe('Security Middleware Tests', () => {
   });
 
   describe('HTTPS Enforcement', () => {
-    it('should allow HTTPS in production', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    const originalHosts = process.env.ALLOWED_HOSTS;
+
+    beforeEach(() => {
       process.env.NODE_ENV = 'production';
-      
+      process.env.ALLOWED_HOSTS = 'example.com';
+    });
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalEnv;
+      process.env.ALLOWED_HOSTS = originalHosts;
+    });
+
+    it('should allow HTTPS in production', async () => {
       const response = await request(app)
         .get('/test-https')
         .set('x-forwarded-proto', 'https');
@@ -61,9 +72,7 @@ describe('Security Middleware Tests', () => {
       expect(response.status).toBe(200);
     });
 
-    it('should redirect HTTP to HTTPS in production', async () => {
-      process.env.NODE_ENV = 'production';
-      
+    it('should redirect HTTP to HTTPS in production for allowed host', async () => {
       const response = await request(app)
         .get('/test-https')
         .set('x-forwarded-proto', 'http')
@@ -71,8 +80,15 @@ describe('Security Middleware Tests', () => {
 
       expect(response.status).toBe(302);
       expect(response.headers.location).toBe('https://example.com/test-https');
-      
-      process.env.NODE_ENV = 'test'; // Reset
+    });
+
+    it('should reject request when host is not allowed', async () => {
+      const response = await request(app)
+        .get('/test-https')
+        .set('x-forwarded-proto', 'http')
+        .set('host', 'malicious.com');
+
+      expect(response.status).toBe(400);
     });
   });
 
