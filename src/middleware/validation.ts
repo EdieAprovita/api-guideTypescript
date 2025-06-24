@@ -92,7 +92,7 @@ export const sanitizeInput = () => {
                         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                         .replace(/javascript:/gi, '')
                         .replace(/on\w+\s*=/gi, '')
-                        .replace(/[\u0000-\u001F\u007F]/g, '') // Remove control characters using Unicode escapes
+                        .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII characters (safer approach)
                         .trim();
                 }
 
@@ -138,7 +138,7 @@ export const createRateLimit = (config: any = {}): RateLimitRequestHandler => {
         handler: (_req: Request, res: Response) => {
             res.status(429).json({
                 success: false,
-                message: config.message || 'Too many requests from this IP, please try again later.',
+                message: config.message ?? 'Too many requests from this IP, please try again later.',
             });
         },
         ...config,
