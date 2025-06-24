@@ -1,11 +1,10 @@
 import jwt from 'jsonwebtoken';
 import Redis from 'ioredis';
-import { User } from '../models/User';
 
 interface TokenPayload {
   userId: string;
   email: string;
-  role?: string;
+  role?: string | undefined;
 }
 
 interface TokenPair {
@@ -14,25 +13,24 @@ interface TokenPair {
 }
 
 class TokenService {
-  private redis: Redis;
-  private accessTokenSecret: string;
-  private refreshTokenSecret: string;
-  private accessTokenExpiry: string;
-  private refreshTokenExpiry: string;
+  private readonly redis: Redis;
+  private readonly accessTokenSecret: string;
+  private readonly refreshTokenSecret: string;
+  private readonly accessTokenExpiry: string;
+  private readonly refreshTokenExpiry: string;
 
   constructor() {
     this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      host: process.env.REDIS_HOST ?? 'localhost',
+      port: parseInt(process.env.REDIS_PORT ?? '6379'),
       password: process.env.REDIS_PASSWORD,
-      retryDelayOnFailover: 100,
       lazyConnect: true,
     });
 
-    this.accessTokenSecret = process.env.JWT_SECRET || 'fallback-secret';
-    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret';
-    this.accessTokenExpiry = process.env.JWT_EXPIRES_IN || '15m';
-    this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+    this.accessTokenSecret = process.env.JWT_SECRET ?? 'fallback-secret';
+    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET ?? 'fallback-refresh-secret';
+    this.accessTokenExpiry = process.env.JWT_EXPIRES_IN ?? '15m';
+    this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
   }
 
   async generateTokenPair(payload: TokenPayload): Promise<TokenPair> {
@@ -74,6 +72,9 @@ class TokenService {
 
       return payload;
     } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Invalid or expired access token: ${error.message}`);
+      }
       throw new Error('Invalid or expired access token');
     }
   }
@@ -99,6 +100,9 @@ class TokenService {
 
       return payload;
     } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Invalid or expired refresh token: ${error.message}`);
+      }
       throw new Error('Invalid or expired refresh token');
     }
   }
@@ -134,6 +138,7 @@ class TokenService {
       }
     } catch (error) {
       // Token might be malformed, but we still want to attempt blacklisting
+      console.warn('Error decoding token for blacklist:', error instanceof Error ? error.message : 'Unknown error');
       const blacklistKey = `blacklist:${token}`;
       await this.redis.setex(blacklistKey, 3600, 'revoked'); // 1 hour default
     }
@@ -186,13 +191,13 @@ class TokenService {
     } catch (error) {
       return {
         isValid: false,
-        error: 'Invalid token format',
+        error: error instanceof Error ? error.message : 'Invalid token format',
       };
     }
   }
 
   async disconnect(): Promise<void> {
-    await this.redis.disconnect();
+    this.redis.disconnect();
   }
 }
 

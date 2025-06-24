@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { User } from '../models/User';
 import { errorHandler } from './errorHandler';
@@ -129,7 +128,7 @@ export const professional = (req: Request, res: Response, next: NextFunction) =>
  * @name checkOwnership
  * @returns {Function}
  */
-export const checkOwnership = (resourceField: string = 'userId') => {
+export const checkOwnership = (_resourceField: string = 'userId') => {
     return (req: Request, res: Response, next: NextFunction) => {
         if (!req.user) {
             return res.status(401).json({
@@ -140,7 +139,7 @@ export const checkOwnership = (resourceField: string = 'userId') => {
         }
 
         const resourceId = req.params.id;
-        const userId = req.user._id.toString();
+        const userId = req.user?._id?.toString();
 
         // Admins can access any resource
         if (req.user.role === 'admin') {

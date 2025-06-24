@@ -24,7 +24,7 @@ router.post('/refresh-token',
 router.post('/logout',
   rateLimits.api,
   logout,
-  (req, res) => {
+  (_req, res) => {
     res.json({
       success: true,
       message: 'Logged out successfully'
