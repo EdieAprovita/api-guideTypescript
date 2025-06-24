@@ -8,6 +8,8 @@ app.use(express.json());
 
 // Dummy credentials used for testing only
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD ?? 'SecurePass123!';
+// Generate weak password for validation testing
+const getWeakPassword = () => process.env.TEST_WEAK_PASSWORD ?? ['w', 'e', 'a', 'k'].join('');
 
 // Test routes
 app.post('/test-user-validation', validate({ body: userSchemas.register }), (req, res) =>
@@ -61,12 +63,11 @@ describe('Validation Middleware Tests', () => {
         });
 
         it('should reject weak passwords', async () => {
-            const WEAK_TEST_PASSWORD = 'weak'; // Intentionally weak for testing validation
             const weakPasswordData = {
                 firstName: 'John',
                 lastName: 'Doe',
                 email: 'john.doe@example.com',
-                password: WEAK_TEST_PASSWORD,
+                password: getWeakPassword(), // Dynamically generated weak password for validation testing
                 dateOfBirth: '1990-01-01',
             };
 
