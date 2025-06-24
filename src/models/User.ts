@@ -15,6 +15,8 @@ export interface IUser extends Document {
     passwordResetExpires?: Date;
     role: 'user' | 'professional';
     isAdmin: boolean;
+    isActive: boolean;
+    isDeleted: boolean;
     email: string;
     photo: string;
     timestamps: {
@@ -48,6 +50,16 @@ const userSchema = new Schema<IUser>(
             default: 'user',
         },
         isAdmin: {
+            type: Boolean,
+            required: true,
+            default: false,
+        },
+        isActive: {
+            type: Boolean,
+            required: true,
+            default: true,
+        },
+        isDeleted: {
             type: Boolean,
             required: true,
             default: false,

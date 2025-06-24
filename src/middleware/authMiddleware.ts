@@ -47,7 +47,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 
         // Use TokenService for enhanced security validation
         const payload = await TokenService.verifyAccessToken(token);
-        
+
         // Check if user tokens have been revoked globally
         const areTokensRevoked = await TokenService.isUserTokensRevoked(payload.userId);
         if (areTokensRevoked) {
@@ -74,10 +74,9 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 
 /**
  * @description Check if user is admin
- * @name isAdmin
+ * @name admin
  * @returns {Promise<void>}
  */
-
 export const admin = (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
         return res.status(401).json({
@@ -88,9 +87,9 @@ export const admin = (req: Request, res: Response, next: NextFunction) => {
     }
 
     if (req.user.role === 'admin') {
-        next();
+        return next();
     } else {
-        res.status(403).json({
+        return res.status(403).json({
             message: 'Forbidden',
             success: false,
             error: 'Admin access required',
@@ -103,7 +102,6 @@ export const admin = (req: Request, res: Response, next: NextFunction) => {
  * @name professional
  * @returns {Promise<void>}
  */
-
 export const professional = (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
         return res.status(401).json({
@@ -114,9 +112,9 @@ export const professional = (req: Request, res: Response, next: NextFunction) =>
     }
 
     if (req.user.role === 'professional') {
-        next();
+        return next();
     } else {
-        res.status(403).json({
+        return res.status(403).json({
             message: 'Forbidden',
             success: false,
             error: 'Professional access required',
@@ -129,7 +127,7 @@ export const professional = (req: Request, res: Response, next: NextFunction) =>
  * @name checkOwnership
  * @returns {Function}
  */
-export const checkOwnership = (resourceField: string = 'userId') => {
+export const checkOwnership = (_resourceField: string = 'userId') => {
     return (req: Request, res: Response, next: NextFunction) => {
         if (!req.user) {
             return res.status(401).json({
@@ -140,7 +138,7 @@ export const checkOwnership = (resourceField: string = 'userId') => {
         }
 
         const resourceId = req.params.id;
-        const userId = req.user._id.toString();
+        const userId = req.user?._id?.toString();
 
         // Admins can access any resource
         if (req.user.role === 'admin') {
@@ -154,7 +152,7 @@ export const checkOwnership = (resourceField: string = 'userId') => {
 
         // For other resources, we'll need to check the database
         // This is a basic implementation - you may need to customize per resource type
-        next();
+        return next();
     };
 };
 
@@ -182,7 +180,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
         res.clearCookie('jwt', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict'
+            sameSite: 'strict',
         });
 
         next();
@@ -202,22 +200,22 @@ export const refreshToken = async (req: Request, res: Response) => {
         if (!refreshToken) {
             return res.status(400).json({
                 success: false,
-                message: 'Refresh token is required'
+                message: 'Refresh token is required',
             });
         }
 
         const tokens = await TokenService.refreshTokens(refreshToken);
 
-        res.json({
+        return res.json({
             success: true,
             message: 'Tokens refreshed successfully',
-            data: tokens
+            data: tokens,
         });
     } catch (error) {
-        res.status(401).json({
+        return res.status(401).json({
             success: false,
             message: 'Invalid refresh token',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 };
@@ -228,24 +226,24 @@ export const refreshToken = async (req: Request, res: Response) => {
  */
 export const revokeAllTokens = async (req: Request, res: Response) => {
     try {
-        if (!req.user) {
+        if (!req.user?._id) {
             return res.status(401).json({
                 success: false,
-                message: 'User not authenticated'
+                message: 'User not authenticated',
             });
         }
 
         await TokenService.revokeAllUserTokens(req.user._id.toString());
 
-        res.json({
+        return res.json({
             success: true,
-            message: 'All tokens revoked successfully'
+            message: 'All tokens revoked successfully',
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Failed to revoke tokens',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 };
