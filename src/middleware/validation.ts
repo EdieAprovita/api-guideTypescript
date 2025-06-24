@@ -92,7 +92,7 @@ export const sanitizeInput = () => {
                         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                         .replace(/javascript:/gi, '')
                         .replace(/on\w+\s*=/gi, '')
-                        .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters while preserving valid Unicode characters
+                        .replace(/[^\x20-\x7E]/g, '') // Keep only printable ASCII characters (space to tilde)
                         .trim();
                 }
 

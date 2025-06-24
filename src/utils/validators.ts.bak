@@ -84,8 +84,8 @@ export const businessSchemas = {
             .pattern(
                 Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
                 Joi.object({
-                    open: commonSchemas.time.required(),
-                    close: commonSchemas.time.required(),
+                    open: Joi.string().pattern(timePattern).required(),
+                    close: Joi.string().pattern(timePattern).required(),
                 })
             )
             .optional(),
@@ -112,8 +112,8 @@ export const businessSchemas = {
             .pattern(
                 Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
                 Joi.object({
-                    open: commonSchemas.time.required(),
-                    close: commonSchemas.time.required(),
+                    open: Joi.string().pattern(timePattern).required(),
+                    close: Joi.string().pattern(timePattern).required(),
                 })
             )
             .optional(),
@@ -147,8 +147,8 @@ export const restaurantSchemas = {
             .pattern(
                 Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
                 Joi.object({
-                    open: commonSchemas.time.required(),
-                    close: commonSchemas.time.required(),
+                    open: Joi.string().pattern(timePattern).required(),
+                    close: Joi.string().pattern(timePattern).required(),
                 })
             )
             .optional(),
