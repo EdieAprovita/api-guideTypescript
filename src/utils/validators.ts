@@ -76,8 +76,8 @@ export const businessSchemas = {
     openingHours: Joi.object().pattern(
       Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
       Joi.object({
-        open: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).required(),
-        close: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).required()
+        open: Joi.string().pattern(timePattern).required(),
+        close: Joi.string().pattern(timePattern).required()
       })
     ).optional()
   }),
@@ -102,8 +102,8 @@ export const businessSchemas = {
     openingHours: Joi.object().pattern(
       Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
       Joi.object({
-        open: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).required(),
-        close: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).required()
+        open: Joi.string().pattern(timePattern).required(),
+        close: Joi.string().pattern(timePattern).required()
       })
     ).optional()
   }),
@@ -135,8 +135,8 @@ export const restaurantSchemas = {
     openingHours: Joi.object().pattern(
       Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
       Joi.object({
-        open: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).required(),
-        close: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).required()
+        open: Joi.string().pattern(timePattern).required(),
+        close: Joi.string().pattern(timePattern).required()
       })
     ).optional(),
     features: Joi.array().items(Joi.string().valid(

@@ -6,6 +6,9 @@ import { userSchemas, paramSchemas } from '../../utils/validators';
 const app = express();
 app.use(express.json());
 
+// Dummy credentials used for testing only
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD ?? 'SecurePass123!';
+
 // Test routes
 app.post('/test-user-validation', 
   validate({ body: userSchemas.register }), 
@@ -39,7 +42,7 @@ describe('Validation Middleware Tests', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john.doe@example.com',
-        password: 'SecurePass123!',
+        password: TEST_PASSWORD,
         dateOfBirth: '1990-01-01'
       };
 
@@ -57,7 +60,7 @@ describe('Validation Middleware Tests', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'invalid-email',
-        password: 'SecurePass123!',
+        password: TEST_PASSWORD,
         dateOfBirth: '1990-01-01'
       };
 
@@ -116,6 +119,7 @@ describe('Validation Middleware Tests', () => {
     it('should sanitize XSS attempts', async () => {
       const maliciousData = {
         name: '<script>alert("xss")</script>',
+        // Intentionally includes a javascript: URL to verify sanitization
         description: 'javascript:alert("xss")',
         content: '<img src="x" onerror="alert(1)">'
       };
@@ -131,8 +135,10 @@ describe('Validation Middleware Tests', () => {
     });
 
     it('should remove control characters', async () => {
+      const controlChars = String.fromCharCode(0, 1, 0x1F, 0x7F);
       const dataWithControlChars = {
-        text: 'Normal text\x00\x01\x1F\x7F'
+        // Include non-printable characters via code points
+        text: `Normal text${controlChars}`
       };
 
       const response = await request(app)
