@@ -20,22 +20,11 @@ export const configureHelmet = () => {
                 objectSrc: ["'none'"],
                 mediaSrc: ["'self'"],
                 frameSrc: ["'none'"],
-                frameAncestors: ["'none'"],
                 baseUri: ["'self'"],
                 formAction: ["'self'"],
                 upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
             },
         },
-
-        // HTTP Strict Transport Security
-        hsts: {
-            maxAge: 31536000, // 1 year
-            includeSubDomains: true,
-            preload: true,
-        },
-
-        // Hide X-Powered-By header
-        hidePoweredBy: true,
 
         // X-Content-Type-Options
         noSniff: true,
@@ -45,6 +34,13 @@ export const configureHelmet = () => {
 
         // X-XSS-Protection
         xssFilter: true,
+
+        // HTTP Strict Transport Security
+        hsts: {
+            maxAge: 31536000, // 1 year
+            includeSubDomains: true,
+            preload: true,
+        },
 
         // Referrer Policy
         referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -118,7 +114,7 @@ export const createAdvancedRateLimit = (options: {
         skipSuccessfulRequests: options.skipSuccessfulRequests ?? false,
         skipFailedRequests: options.skipFailedRequests ?? false,
         keyGenerator: options.keyGenerator ?? ((req: Request) => req.ip ?? 'unknown'),
-        handler: (req: Request, res: Response) => {
+        handler: (_req: Request, res: Response) => {
             res.status(429).json({
                 success: false,
                 message: options.message ?? 'Rate limit exceeded',
@@ -145,10 +141,10 @@ export const smartRateLimit = createAdvancedRateLimit({
  */
 export const detectSuspiciousActivity = (req: Request, res: Response, next: NextFunction) => {
     const suspiciousPatterns = [
-        // SQL injection patterns
-        /(\b(union|select|insert|update|delete|drop|create|alter|exec|script)\b)/i,
-        // XSS patterns
-        /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
+        // SQL injection patterns - safer regex without nested quantifiers
+        /\b(union|select|insert|update|delete|drop|create|alter|exec|script)\b/i,
+        // XSS patterns - safer regex without nested quantifiers
+        /<script[^>]*>[^<]*<\/script>/gi,
         /javascript:/gi,
         /on\w+\s*=/gi,
         // Path traversal
@@ -187,7 +183,7 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         });
     }
 
-    next();
+    return next();
 };
 
 /**
@@ -206,7 +202,7 @@ export const limitRequestSize = (maxSize: number = 1024 * 1024) => {
             });
         }
 
-        next();
+        return next();
     };
 };
 
@@ -242,7 +238,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
         });
     }
 
-    next();
+    return next();
 };
 
 /**
@@ -259,7 +255,7 @@ export const geoBlock = (blockedCountries: string[] = []) => {
             });
         }
 
-        next();
+        return next();
     };
 };
 
@@ -277,8 +273,9 @@ export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
                 supportedVersions,
             });
         }
+
         req.apiVersion = version;
-        next();
+        return next();
     };
 };
 

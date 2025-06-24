@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { User } from '../models/User';
 import { errorHandler } from './errorHandler';
@@ -70,6 +69,22 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     } catch (error) {
         errorHandler(error instanceof Error ? error : new Error('Unknown error'), req, res);
     }
+};
+
+/**
+ * @description Common authentication check middleware
+ * @name requireAuth
+ * @returns {Function}
+ */
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+        return res.status(401).json({
+            message: 'Unauthorized',
+            success: false,
+            error: 'User not authenticated',
+        });
+    }
+    return next();
 };
 
 /**
