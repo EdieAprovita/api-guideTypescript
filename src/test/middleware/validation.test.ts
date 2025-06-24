@@ -61,11 +61,12 @@ describe('Validation Middleware Tests', () => {
         });
 
         it('should reject weak passwords', async () => {
+            const WEAK_TEST_PASSWORD = 'weak'; // Intentionally weak for testing validation
             const weakPasswordData = {
                 firstName: 'John',
                 lastName: 'Doe',
                 email: 'john.doe@example.com',
-                password: 'weak',
+                password: WEAK_TEST_PASSWORD,
                 dateOfBirth: '1990-01-01',
             };
 

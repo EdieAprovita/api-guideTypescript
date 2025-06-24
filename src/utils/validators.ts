@@ -5,7 +5,7 @@ const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const phonePattern = /^[+]?[\d\s\-().]{10,}$/;
 const urlPattern = /^https?:\/\/.+/;
-const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/; // HH:MM format (24-hour)
+const timePattern = /^([01]?\d|2[0-3]):[0-5]\d$/; // HH:MM format (24-hour)
 
 // Common schemas
 export const commonSchemas = {
