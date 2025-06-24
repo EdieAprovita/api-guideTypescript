@@ -268,7 +268,6 @@ export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
         supportedVersions
       });
     }
-}
     req.apiVersion = version;
     next();
   };
