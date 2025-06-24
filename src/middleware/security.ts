@@ -118,7 +118,7 @@ export const createAdvancedRateLimit = (options: {
             res.status(429).json({
                 success: false,
                 message: options.message ?? 'Rate limit exceeded',
-                retryAfter: Math.round((options.windowMs ?? 15 * 60 * 1000) / 1000),
+                retryAfter: Math.round((options.windowMs ?? DEFAULT_WINDOW_MS) / 1000),
             });
         },
     });
