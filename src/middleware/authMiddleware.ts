@@ -72,11 +72,26 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 };
 
 /**
+ * @description Common authentication check middleware
+ * @name requireAuth
+ * @returns {Function}
+ */
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+        return res.status(401).json({
+            message: 'Unauthorized',
+            success: false,
+            error: 'User not authenticated',
+        });
+    }
+    return next();
+};
+
+/**
  * @description Check if user is admin
- * @name isAdmin
+ * @name admin
  * @returns {Promise<void>}
  */
-
 export const admin = (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
         return res.status(401).json({
@@ -102,7 +117,6 @@ export const admin = (req: Request, res: Response, next: NextFunction) => {
  * @name professional
  * @returns {Promise<void>}
  */
-
 export const professional = (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
         return res.status(401).json({

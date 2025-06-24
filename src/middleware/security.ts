@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { randomUUID } from 'crypto';
 
 /**
  * Configure Helmet for security headers
@@ -287,14 +288,12 @@ export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
  */
 export const addCorrelationId = (req: Request, res: Response, next: NextFunction) => {
     const correlationId =
-        req.get('X-Correlation-ID') ??
-        req.get('X-Request-ID') ??
-        `req-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+        req.get('X-Correlation-ID') ?? req.get('X-Request-ID') ?? `req-${Date.now()}-${randomUUID().substring(0, 8)}`;
 
     req.correlationId = correlationId;
     res.setHeader('X-Correlation-ID', correlationId);
 
-    next();
+    return next();
 };
 
 // Type augmentation for Request interface
