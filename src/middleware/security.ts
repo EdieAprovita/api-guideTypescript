@@ -283,10 +283,9 @@ export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
 export const addCorrelationId = (req: Request, res: Response, next: NextFunction) => {
   // Use a cryptographically strong ID generator to prevent collisions.
   // The correlation ID is for request tracing only, not authentication.
-  const RANDOM_ID_LENGTH = 9;
   const correlationId = req.get('X-Correlation-ID') ??
                        req.get('X-Request-ID') ??
-                       `req-${Date.now()}-${randomUUID().replace(/-/g, '').substring(0, RANDOM_ID_LENGTH)}`;
+                       `req-${Date.now()}-${randomUUID().replace(/-/g, '')}`;
 
   req.correlationId = correlationId;
   res.setHeader('X-Correlation-ID', correlationId);
