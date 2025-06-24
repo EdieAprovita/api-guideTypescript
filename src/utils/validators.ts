@@ -135,8 +135,8 @@ export const restaurantSchemas = {
     openingHours: Joi.object().pattern(
       Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
       Joi.object({
-        open: Joi.string().pattern(/^([01]?\d|2[0-3]):[0-5]\d$/).required(),
-        close: Joi.string().pattern(/^([01]?\d|2[0-3]):[0-5]\d$/).required()
+        open: Joi.string().pattern(timePattern).required(),
+        close: Joi.string().pattern(timePattern).required()
       })
     ).optional(),
     features: Joi.array().items(Joi.string().valid(
