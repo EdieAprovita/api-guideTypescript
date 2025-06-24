@@ -67,7 +67,11 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
     if (req.header('x-forwarded-proto') !== 'https') {
       const host = req.header('host');
       const allowedHosts = (process.env.ALLOWED_HOSTS ?? '').split(',').map(h => h.trim()).filter(Boolean);
-      if (host && (allowedHosts.length === 0 || allowedHosts.includes(host))) {
+      if (allowedHosts.length === 0) {
+        console.error('ALLOWED_HOSTS is not set or empty in production. This is a critical security risk.');
+        return res.status(500).send('Server misconfiguration: ALLOWED_HOSTS is required.');
+      }
+      if (host && allowedHosts.includes(host)) {
         const redirectUrl = `https://${host}${req.originalUrl}`;
         return res.redirect(redirectUrl);
       }
