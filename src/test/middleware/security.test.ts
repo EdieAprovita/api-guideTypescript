@@ -43,7 +43,7 @@ describe('Security Middleware Tests', () => {
       expect(response.status).toBe(200);
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(response.headers['x-frame-options']).toBe('DENY');
-      expect(response.headers['x-xss-protection']).toBe('1; mode=block');
+      expect(response.headers['x-xss-protection']).toBe('0');
       expect(response.headers['strict-transport-security']).toBeDefined();
       expect(response.headers['content-security-policy']).toBeDefined();
       expect(response.headers['x-powered-by']).toBeUndefined();
@@ -180,11 +180,12 @@ describe('Security Middleware Tests', () => {
 
     it('should block requests over size limit', async () => {
       const largeData = { content: 'a'.repeat(200) }; // Over 100 bytes
+      const body = JSON.stringify(largeData);
 
       const response = await request(app)
         .post('/test-size')
-        .set('content-length', '200')
-        .send(largeData);
+        .set('content-length', String(Buffer.byteLength(body)))
+        .send(body);
 
       expect(response.status).toBe(413);
       expect(response.body.success).toBe(false);

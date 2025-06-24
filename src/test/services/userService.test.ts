@@ -60,6 +60,7 @@ describe('UserService', () => {
                 email: 'test@example.com',
                 role: 'user',
                 photo: 'default.png',
+                token: expect.any(String),
             });
         });
 
@@ -108,6 +109,7 @@ describe('UserService', () => {
                 email,
                 role: 'user',
                 photo: 'default.png',
+                token: expect.any(String),
             });
         });
 
