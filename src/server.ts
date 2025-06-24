@@ -1,7 +1,7 @@
 import app from './app';
 import { colorTheme } from './types/colorTheme';
 
-const PORT = process.env.PORT ?? 5001;
+const PORT = process.env.PORT || 5001;
 
 const server = app.listen(PORT, () => {
     console.log(
