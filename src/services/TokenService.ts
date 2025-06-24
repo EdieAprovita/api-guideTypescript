@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import Redis from 'ioredis';
-import { User } from '../models/User';
 
 interface TokenPayload {
   userId: string;
@@ -14,25 +13,25 @@ interface TokenPair {
 }
 
 class TokenService {
-  private redis: Redis;
-  private accessTokenSecret: string;
-  private refreshTokenSecret: string;
-  private accessTokenExpiry: string;
-  private refreshTokenExpiry: string;
+  private readonly redis: Redis;
+  private readonly accessTokenSecret: string;
+  private readonly refreshTokenSecret: string;
+  private readonly accessTokenExpiry: string;
+  private readonly refreshTokenExpiry: string;
 
   constructor() {
     this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      host: process.env.REDIS_HOST ?? 'localhost',
+      port: parseInt(process.env.REDIS_PORT ?? '6379'),
       password: process.env.REDIS_PASSWORD,
       retryDelayOnFailover: 100,
       lazyConnect: true,
     });
 
-    this.accessTokenSecret = process.env.JWT_SECRET || 'fallback-secret';
-    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret';
-    this.accessTokenExpiry = process.env.JWT_EXPIRES_IN || '15m';
-    this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+    this.accessTokenSecret = process.env.JWT_SECRET ?? 'fallback-secret';
+    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET ?? 'fallback-refresh-secret';
+    this.accessTokenExpiry = process.env.JWT_EXPIRES_IN ?? '15m';
+    this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
   }
 
   async generateTokenPair(payload: TokenPayload): Promise<TokenPair> {
@@ -60,47 +59,39 @@ class TokenService {
   }
 
   async verifyAccessToken(token: string): Promise<TokenPayload> {
-    try {
-      // Check if token is blacklisted
-      const isBlacklisted = await this.isTokenBlacklisted(token);
-      if (isBlacklisted) {
-        throw new Error('Token has been revoked');
-      }
-
-      const payload = jwt.verify(token, this.accessTokenSecret, {
-        issuer: 'vegan-guide-api',
-        audience: 'vegan-guide-client',
-      }) as TokenPayload;
-
-      return payload;
-    } catch (error) {
-      throw new Error('Invalid or expired access token');
+    // Check if token is blacklisted
+    const isBlacklisted = await this.isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      throw new Error('Token has been revoked');
     }
+
+    const payload = jwt.verify(token, this.accessTokenSecret, {
+      issuer: 'vegan-guide-api',
+      audience: 'vegan-guide-client',
+    }) as TokenPayload;
+
+    return payload;
   }
 
   async verifyRefreshToken(token: string): Promise<TokenPayload> {
-    try {
-      const payload = jwt.verify(token, this.refreshTokenSecret, {
-        issuer: 'vegan-guide-api',
-        audience: 'vegan-guide-client',
-      }) as TokenPayload & { type: string };
+    const payload = jwt.verify(token, this.refreshTokenSecret, {
+      issuer: 'vegan-guide-api',
+      audience: 'vegan-guide-client',
+    }) as TokenPayload & { type: string };
 
-      if (payload.type !== 'refresh') {
-        throw new Error('Invalid token type');
-      }
-
-      // Check if refresh token exists in Redis
-      const refreshTokenKey = `refresh_token:${payload.userId}`;
-      const storedToken = await this.redis.get(refreshTokenKey);
-      
-      if (!storedToken || storedToken !== token) {
-        throw new Error('Refresh token not found or invalid');
-      }
-
-      return payload;
-    } catch (error) {
-      throw new Error('Invalid or expired refresh token');
+    if (payload.type !== 'refresh') {
+      throw new Error('Invalid token type');
     }
+
+    // Check if refresh token exists in Redis
+    const refreshTokenKey = `refresh_token:${payload.userId}`;
+    const storedToken = await this.redis.get(refreshTokenKey);
+
+    if (!storedToken || storedToken !== token) {
+      throw new Error('Refresh token not found or invalid');
+    }
+
+    return payload;
   }
 
   async refreshTokens(refreshToken: string): Promise<TokenPair> {

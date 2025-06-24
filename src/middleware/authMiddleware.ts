@@ -20,7 +20,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
             token = req.cookies.jwt;
         }
         // Check for token in Authorization header (Bearer token)
-        else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        else if (req.headers.authorization?.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
         }
         // Check for token in Cookie header (for cross-origin requests)
@@ -169,7 +169,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
         // Extract token using same logic as protect middleware
         if (req.cookies.jwt) {
             token = req.cookies.jwt;
-        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        } else if (req.headers.authorization?.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
         }
 

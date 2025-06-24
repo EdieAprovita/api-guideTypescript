@@ -65,7 +65,13 @@ export const configureHelmet = () => {
 export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) => {
   if (process.env.NODE_ENV === 'production') {
     if (req.header('x-forwarded-proto') !== 'https') {
-      return res.redirect(`https://${req.header('host')}${req.url}`);
+      const host = req.header('host');
+      const allowedHosts = (process.env.ALLOWED_HOSTS ?? '').split(',').map(h => h.trim()).filter(Boolean);
+      if (host && (allowedHosts.length === 0 || allowedHosts.includes(host))) {
+        const redirectUrl = `https://${host}${req.originalUrl}`;
+        return res.redirect(redirectUrl);
+      }
+      return res.status(400).send('Invalid host header');
     }
   }
   next();
@@ -83,22 +89,22 @@ export const createAdvancedRateLimit = (options: {
   keyGenerator?: (req: Request) => string;
 }) => {
   return rateLimit({
-    windowMs: options.windowMs || 15 * 60 * 1000, // 15 minutes
-    max: options.max || 100,
+    windowMs: options.windowMs ?? 15 * 60 * 1000, // 15 minutes
+    max: options.max ?? 100,
     message: {
       success: false,
-      message: options.message || 'Too many requests from this IP, please try again later.',
+      message: options.message ?? 'Too many requests from this IP, please try again later.',
     },
     standardHeaders: true,
     legacyHeaders: false,
-    skipSuccessfulRequests: options.skipSuccessfulRequests || false,
-    skipFailedRequests: options.skipFailedRequests || false,
-    keyGenerator: options.keyGenerator || ((req: Request) => req.ip),
+    skipSuccessfulRequests: options.skipSuccessfulRequests ?? false,
+    skipFailedRequests: options.skipFailedRequests ?? false,
+    keyGenerator: options.keyGenerator ?? ((req: Request) => req.ip),
     handler: (req: Request, res: Response) => {
       res.status(429).json({
         success: false,
-        message: options.message || 'Rate limit exceeded',
-        retryAfter: Math.round(options.windowMs! / 1000) || 900
+        message: options.message ?? 'Rate limit exceeded',
+        retryAfter: Math.round((options.windowMs ?? 15 * 60 * 1000) / 1000)
       });
     }
   });
@@ -228,7 +234,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
  */
 export const geoBlock = (blockedCountries: string[] = []) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const country = req.get('CF-IPCountry') || req.get('X-Country-Code');
+    const country = req.get('CF-IPCountry') ?? req.get('X-Country-Code');
     
     if (country && blockedCountries.includes(country.toUpperCase())) {
       return res.status(403).json({
@@ -246,8 +252,8 @@ export const geoBlock = (blockedCountries: string[] = []) => {
  */
 export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const version = req.headers['api-version'] as string || 
-                   req.query.version as string ||
+    const version = (req.headers['api-version'] as string) ??
+                   (req.query.version as string) ??
                    'v1'; // default version
 
     if (!supportedVersions.includes(version)) {
@@ -267,9 +273,9 @@ export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
  * Request correlation ID middleware for tracing
  */
 export const addCorrelationId = (req: Request, res: Response, next: NextFunction) => {
-  const correlationId = req.get('X-Correlation-ID') || 
-                       req.get('X-Request-ID') ||
-                       `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const correlationId = req.get('X-Correlation-ID') ??
+                       req.get('X-Request-ID') ??
+                       `req-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
   req.correlationId = correlationId;
   res.setHeader('X-Correlation-ID', correlationId);
