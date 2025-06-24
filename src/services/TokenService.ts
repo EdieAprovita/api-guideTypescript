@@ -20,12 +20,17 @@ class TokenService {
   private readonly refreshTokenExpiry: string;
 
   constructor() {
-    this.redis = new Redis({
+    const redisConfig: any = {
       host: process.env.REDIS_HOST ?? 'localhost',
       port: parseInt(process.env.REDIS_PORT ?? '6379'),
-      password: process.env.REDIS_PASSWORD,
       lazyConnect: true,
-    });
+    };
+    
+    if (process.env.REDIS_PASSWORD) {
+      redisConfig.password = process.env.REDIS_PASSWORD;
+    }
+    
+    this.redis = new Redis(redisConfig);
 
     this.accessTokenSecret = process.env.JWT_SECRET ?? 'fallback-secret';
     this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET ?? 'fallback-refresh-secret';
