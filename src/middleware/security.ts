@@ -65,10 +65,15 @@ export const configureHelmet = () => {
 export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) => {
   if (process.env.NODE_ENV === 'production') {
     if (req.header('x-forwarded-proto') !== 'https') {
-      const host = req.header('host');
       const allowedHosts = (process.env.ALLOWED_HOSTS ?? '').split(',').map(h => h.trim()).filter(Boolean);
       if (allowedHosts.length === 0) {
         console.error('ALLOWED_HOSTS is not set or empty in production. This is a critical security risk.');
+        return res.status(500).send('Server misconfiguration: ALLOWED_HOSTS is required.');
+      }
+      const host = req.header('host');
+      if (host && allowedHosts.includes(host)) {
+        const canonicalHost = allowedHosts[0];
+        const redirectUrl = `https://${canonicalHost}${req.originalUrl}`;
         return res.status(500).send('Server misconfiguration: ALLOWED_HOSTS is required.');
       }
       if (host && allowedHosts.includes(host)) {
@@ -267,7 +272,7 @@ export const requireAPIVersion = (supportedVersions: string[] = ['v1']) => {
         supportedVersions
       });
     }
-
+}
     req.apiVersion = version;
     next();
   };
