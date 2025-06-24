@@ -74,10 +74,6 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
       if (host && allowedHosts.includes(host)) {
         const canonicalHost = allowedHosts[0];
         const redirectUrl = `https://${canonicalHost}${req.originalUrl}`;
-        return res.status(500).send('Server misconfiguration: ALLOWED_HOSTS is required.');
-      }
-      if (host && allowedHosts.includes(host)) {
-        const redirectUrl = `https://${host}${req.originalUrl}`;
         return res.redirect(redirectUrl);
       }
       return res.status(400).send('Invalid host header');
