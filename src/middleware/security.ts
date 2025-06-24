@@ -74,8 +74,7 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
       const host = req.get('host');
       if (host && allowedHosts.includes(host)) {
         const canonicalHost = allowedHosts[0];
-        const redirectURL = new URL(`https://${canonicalHost}`);
-        redirectURL.href = req.url;
+        const redirectURL = new URL(req.url, `https://${canonicalHost}`);
         return res.redirect(redirectURL.toString());
       }
 
