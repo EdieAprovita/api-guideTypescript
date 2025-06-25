@@ -144,11 +144,11 @@ export const addComment = asyncHandler(async (req: Request, res: Response, next:
     try {
         const { id } = req.params;
         const userId = req.user?._id;
-        if (!id ?? !userId) {
+        if (!id || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
         const { text, name, avatar } = req.body;
-        const comments = await PostService.addComment(id, userId, text, name, avatar);
+        const comments = await PostService.addComment(id, userId.toString(), text, name, avatar);
         res.status(201).json({
             success: true,
             message: 'Comment added successfully',
@@ -176,10 +176,10 @@ export const likePost = asyncHandler(async (req: Request, res: Response, next: N
     try {
         const postId = req.params.id;
         const userId = req.user?._id;
-        if (!postId ?? !userId) {
+        if (!postId || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
-        const likes = await PostService.likePost(postId, userId);
+        const likes = await PostService.likePost(postId, userId.toString());
         res.status(200).json({
             success: true,
             message: 'Post liked successfully',
@@ -207,10 +207,10 @@ export const unlikePost = asyncHandler(async (req: Request, res: Response, next:
     try {
         const postId = req.params.id;
         const userId = req.user?._id;
-        if (!postId ?? !userId) {
+        if (!postId || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
-        const likes = await PostService.unlikePost(postId, userId);
+        const likes = await PostService.unlikePost(postId, userId.toString());
         res.status(200).json({
             success: true,
             message: 'Post unliked successfully',

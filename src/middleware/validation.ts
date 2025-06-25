@@ -87,12 +87,12 @@ export const sanitizeInput = () => {
         (req: Request, _res: Response, next: NextFunction) => {
             const sanitizeValue = (value: unknown): unknown => {
                 if (typeof value === 'string') {
-                    // Enhanced XSS protection patterns
+                    // Enhanced XSS protection patterns - using non-backtracking regex
                     return (
                         value
-                            // Remove script tags (all variations)
-                            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                            .replace(/<\/?\s*script\s*>/gi, '')
+                            // Remove script tags (all variations) - non-backtracking pattern
+                            .replace(/<script[^>]*>/gi, '')
+                            .replace(/<\/script>/gi, '')
 
                             // Remove javascript: protocol (all encoded variations)
                             .replace(/javascript\s*:/gi, '')
@@ -109,12 +109,14 @@ export const sanitizeInput = () => {
                             .replace(/data\s*:/gi, '')
                             .replace(/data%3A/gi, '')
 
-                            // Remove event handlers
+                            // Remove event handlers - non-backtracking pattern
                             .replace(/on\w+\s*=/gi, '')
                             .replace(/on[a-z]+\s*=/gi, '')
+
                             // Remove HTML tags safely - use non-backtracking pattern
-                            .replace(/<[^>]*?>/g, '')
-                            // Remove HTML entities that could be used for XSS
+                            .replace(/<[^>]*>/g, '')
+
+                            // Remove HTML entities that could be used for XSS - non-backtracking
                             .replace(/&[#x]?[a-zA-Z0-9]{1,8};/g, '')
 
                             // Remove potential CSS expressions

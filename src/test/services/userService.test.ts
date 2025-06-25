@@ -12,10 +12,7 @@ import { generateTestPassword } from '../utils/testHelpers';
 jest.mock('../../models/User');
 jest.mock('../../utils/generateToken');
 jest.mock('../../utils/logger');
-jest.mock('bcryptjs', () => ({
-    hash: jest.fn().mockResolvedValue('hashed-password'),
-    compare: jest.fn().mockResolvedValue(true),
-}));
+jest.mock('bcryptjs');
 
 // Mock Response object for testing
 const mockResponse = {
@@ -42,14 +39,14 @@ describe('UserService', () => {
                 password: TEST_PASSWORD,
             };
 
-            (User.findOne as jest.Mock).mockResolvedValue(null);
-            (User.create as jest.Mock).mockResolvedValue({
+            (User.findOne as any).mockResolvedValue(null);
+            (User.create as any).mockResolvedValue({
                 _id: 'user123',
                 ...userData,
                 role: 'user',
                 photo: 'default.png',
             });
-            (generateTokenAndSetCookie as jest.Mock).mockImplementation(() => {});
+            (generateTokenAndSetCookie as any).mockImplementation(() => {});
 
             const result = await UserService.registerUser(userData, mockResponse);
 
@@ -73,7 +70,7 @@ describe('UserService', () => {
                 password: TEST_PASSWORD,
             };
 
-            (User.findOne as jest.Mock).mockResolvedValue({ email: userData.email });
+            (User.findOne as any).mockResolvedValue({ _id: 'existing', email: userData.email });
 
             await expect(UserService.registerUser(userData, mockResponse)).rejects.toThrow(HttpError);
         });
@@ -96,8 +93,8 @@ describe('UserService', () => {
             const mockQuery = {
                 select: jest.fn().mockResolvedValue(mockUser),
             };
-            (User.findOne as jest.Mock).mockReturnValue(mockQuery);
-            (generateTokenAndSetCookie as jest.Mock).mockImplementation(() => {});
+            (User.findOne as any).mockReturnValue(mockQuery);
+            (generateTokenAndSetCookie as any).mockImplementation(() => {});
 
             const result = await UserService.loginUser(email, password, mockResponse);
 
@@ -128,7 +125,7 @@ describe('UserService', () => {
             const mockQuery = {
                 select: jest.fn().mockResolvedValue(mockUser),
             };
-            (User.findOne as jest.Mock).mockReturnValue(mockQuery);
+            (User.findOne as any).mockReturnValue(mockQuery);
 
             await expect(UserService.loginUser(email, password, mockResponse)).rejects.toThrow(HttpError);
         });
@@ -140,7 +137,7 @@ describe('UserService', () => {
             const mockQuery = {
                 select: jest.fn().mockResolvedValue(null),
             };
-            (User.findOne as jest.Mock).mockReturnValue(mockQuery);
+            (User.findOne as any).mockReturnValue(mockQuery);
 
             await expect(UserService.loginUser(email, password, mockResponse)).rejects.toThrow(HttpError);
         });
@@ -165,7 +162,7 @@ describe('UserService', () => {
                 }),
             };
 
-            (User.findById as jest.Mock).mockResolvedValue(mockUser);
+            (User.findById as any).mockResolvedValue(mockUser);
 
             const result = await UserService.updateUserById(userId, updateData);
 
@@ -182,7 +179,7 @@ describe('UserService', () => {
             const userId = '1';
             const updateData = { username: 'newusername' };
 
-            (User.findById as jest.Mock).mockResolvedValue(null);
+            (User.findById as any).mockResolvedValue(null);
 
             await expect(UserService.updateUserById(userId, updateData)).rejects.toThrow(HttpError);
         });
@@ -192,7 +189,7 @@ describe('UserService', () => {
         it('should delete user successfully', async () => {
             const userId = '1';
 
-            (User.findByIdAndDelete as jest.Mock).mockResolvedValue({ _id: userId });
+            (User.findByIdAndDelete as any).mockResolvedValue({ _id: userId, email: 'deleted@example.com' });
 
             const result = await UserService.deleteUserById(userId);
 
@@ -208,7 +205,7 @@ describe('UserService', () => {
                 { _id: '2', username: 'user2', email: 'user2@example.com', role: 'user', photo: 'default.png' },
             ];
 
-            (User.find as jest.Mock).mockResolvedValue(mockUsers);
+            (User.find as any).mockResolvedValue(mockUsers);
 
             const result = await UserService.findAllUsers();
 
@@ -223,9 +220,9 @@ describe('UserService', () => {
     describe('findUserById', () => {
         it('should return user by id', async () => {
             const userId = '1';
-            const mockUser = { _id: userId, username: 'testuser' };
+            const mockUser = { _id: userId, username: 'testuser', email: 'test@example.com' };
 
-            (User.findById as jest.Mock).mockResolvedValue(mockUser);
+            (User.findById as any).mockResolvedValue(mockUser);
 
             const result = await UserService.findUserById(userId);
 
@@ -236,7 +233,7 @@ describe('UserService', () => {
         it('should return null when user not found', async () => {
             const userId = '1';
 
-            (User.findById as jest.Mock).mockResolvedValue(null);
+            (User.findById as any).mockResolvedValue(null);
 
             const result = await UserService.findUserById(userId);
 
