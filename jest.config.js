@@ -21,6 +21,9 @@ module.exports = {
     testTimeout: 15000,
     clearMocks: true,
     restoreMocks: true,
-    resetMocks: true,
-    resetModules: true,
+    resetMocks: false,      // Cambiar a false para evitar conflictos con mocks globales
+    resetModules: false,    // Cambiar a false para mantener mocks globales
+    // Configuración adicional para manejar mocks de manera más estable
+    maxWorkers: 1,          // Usar un solo worker para evitar problemas de concurrencia
+    verbose: false,         // Reducir verbosidad a menos que sea necesario para debugging
 };
