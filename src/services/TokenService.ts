@@ -20,20 +20,50 @@ class TokenService {
     private readonly refreshTokenExpiry: string;
 
     constructor() {
-        const redisConfig: any = {
-            host: process.env.REDIS_HOST ?? 'localhost',
-            port: parseInt(process.env.REDIS_PORT ?? '6379'),
-            lazyConnect: true,
-        };
+        // Only connect to Redis if not in test environment
+        if (process.env.NODE_ENV !== 'test') {
+            const redisConfig: {
+                host: string;
+                port: number;
+                lazyConnect: boolean;
+                retryDelayOnFailover: number;
+                maxRetriesPerRequest: number;
+                password?: string;
+            } = {
+                host: process.env.REDIS_HOST ?? 'localhost',
+                port: parseInt(process.env.REDIS_PORT ?? '6379'),
+                lazyConnect: true,
+                retryDelayOnFailover: 100,
+                maxRetriesPerRequest: 1,
+            };
 
-        if (process.env.REDIS_PASSWORD) {
-            redisConfig.password = process.env.REDIS_PASSWORD;
+            if (process.env.REDIS_PASSWORD) {
+                redisConfig.password = process.env.REDIS_PASSWORD;
+            }
+
+            this.redis = new Redis(redisConfig);
+        } else {
+            // Mock Redis for tests
+            this.redis = {
+                setex: () => Promise.resolve('OK'),
+                get: () => Promise.resolve(null),
+                del: () => Promise.resolve(0),
+                keys: () => Promise.resolve([]),
+                ttl: () => Promise.resolve(-1),
+                disconnect: () => {},
+            } as unknown as Redis;
         }
 
-        this.redis = new Redis(redisConfig);
-
-        this.accessTokenSecret = process.env.JWT_SECRET ?? 'fallback-secret';
-        this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET ?? 'fallback-refresh-secret';
+        this.accessTokenSecret =
+            process.env.JWT_SECRET ??
+            (() => {
+                throw new Error('JWT_SECRET environment variable is required');
+            })();
+        this.refreshTokenSecret =
+            process.env.JWT_REFRESH_SECRET ??
+            (() => {
+                throw new Error('JWT_REFRESH_SECRET environment variable is required');
+            })();
         this.accessTokenExpiry = process.env.JWT_EXPIRES_IN ?? '15m';
         this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
     }
@@ -77,9 +107,9 @@ class TokenService {
             const payload = jwt.verify(token, this.accessTokenSecret, {
                 issuer: 'vegan-guide-api',
                 audience: 'vegan-guide-client',
-            }) as TokenPayload;
+            });
 
-            return payload;
+            return payload as TokenPayload;
         } catch (error) {
             if (error instanceof Error) {
                 throw new Error(`Invalid or expired access token: ${error.message}`);
@@ -137,8 +167,8 @@ class TokenService {
 
     async blacklistToken(token: string): Promise<void> {
         try {
-            const decoded = jwt.decode(token) as any;
-            if (decoded && decoded.exp) {
+            const decoded = jwt.decode(token);
+            if (decoded && typeof decoded === 'object' && 'exp' in decoded && decoded.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
                 if (expirationTime > 0) {
                     const blacklistKey = `blacklist:${token}`;
@@ -192,13 +222,27 @@ class TokenService {
         }
     }
 
-    async getTokenInfo(token: string): Promise<any> {
+    async getTokenInfo(token: string): Promise<{
+        header?: jwt.JwtHeader;
+        payload?: jwt.JwtPayload;
+        isValid: boolean;
+        error?: string;
+    }> {
         try {
             const decoded = jwt.decode(token, { complete: true });
+            if (decoded && typeof decoded === 'object' && 'header' in decoded && 'payload' in decoded) {
+                const payload = decoded.payload;
+                if (typeof payload === 'object' && payload !== null) {
+                    return {
+                        header: decoded.header,
+                        payload: payload as jwt.JwtPayload,
+                        isValid: true,
+                    };
+                }
+            }
             return {
-                header: decoded?.header,
-                payload: decoded?.payload,
-                isValid: true,
+                isValid: false,
+                error: 'Invalid token format',
             };
         } catch (error) {
             return {

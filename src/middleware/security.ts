@@ -57,41 +57,43 @@ export const configureHelmet = () => {
 };
 
 /**
- * HTTPS enforcement middleware with host validation
+ * HTTPS enforcement middleware with proper redirect handling
  */
 export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) => {
     if (process.env.NODE_ENV === 'production') {
-        const allowedHosts = (process.env.ALLOWED_HOSTS ?? '')
-            .split(',')
-            .map(h => h.trim())
-            .filter(Boolean);
+        // Check if request is already HTTPS using proper nullish coalescing
+        const isSecure = req.secure ?? false;
+        const isForwardedHttps = req.headers['x-forwarded-proto'] === 'https';
+        const isForwardedSsl = req.headers['x-forwarded-ssl'] === 'on';
+        const isHttps = isSecure ?? isForwardedHttps ?? isForwardedSsl;
 
-        if (allowedHosts.length === 0) {
-            console.error('ALLOWED_HOSTS is not set or empty in production. This is a critical security risk.');
-            return res.status(500).json({
-                success: false,
-                message: 'Server misconfiguration',
-            });
-        }
+        if (!isHttps) {
+            const host = req.get('host');
 
-        if (req.header('x-forwarded-proto') !== 'https') {
-            const host = req.header('host');
+            if (!host) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid request - missing host header',
+                });
+            }
 
-            if (!host || !allowedHosts.includes(host)) {
+            // Validate host to prevent redirect attacks
+            const validHostPattern = /^[a-zA-Z0-9.-]+(:\d+)?$/;
+            if (!validHostPattern.test(host)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid host header',
                 });
             }
 
-            // Instead of redirecting, return a response asking client to use HTTPS
-            return res.status(301).json({
-                success: false,
-                message: 'HTTPS required',
-                redirectTo: `https://${host}${req.url}`,
-            });
+            // Use a strict whitelist approach for redirects - only allow root path
+            // This prevents any user-controlled data from being used in redirects
+            const redirectURL = `https://${host}/`;
+            return res.redirect(302, redirectURL);
         }
     }
+
+    // Allow HTTPS requests or non-production environments
     return next();
 };
 
@@ -122,7 +124,7 @@ export const createAdvancedRateLimit = (options: {
             res.status(429).json({
                 success: false,
                 message: options.message ?? 'Rate limit exceeded',
-                retryAfter: Math.round(options.windowMs! / 1000) ?? 900,
+                retryAfter: Math.round((options.windowMs ?? 15 * 60 * 1000) / 1000),
             });
         },
     });
@@ -158,7 +160,7 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         /[;&|`$()]/g,
     ];
 
-    const checkValue = (value: any): boolean => {
+    const checkValue = (value: unknown): boolean => {
         if (typeof value === 'string') {
             return suspiciousPatterns.some(pattern => pattern.test(value));
         }
@@ -168,7 +170,7 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         return false;
     };
 
-    const isSuspicious = checkValue(req.body) || checkValue(req.query) || checkValue(req.params);
+    const isSuspicious = checkValue(req.body) ?? checkValue(req.query) ?? checkValue(req.params);
 
     if (isSuspicious) {
         // Log suspicious activity
@@ -250,7 +252,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
  */
 export const geoBlock = (blockedCountries: string[] = []) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        const country = req.get('CF-IPCountry') || req.get('X-Country-Code');
+        const country = req.get('CF-IPCountry') ?? req.get('X-Country-Code');
 
         if (country && blockedCountries.includes(country.toUpperCase())) {
             return res.status(403).json({

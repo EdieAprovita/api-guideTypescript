@@ -75,7 +75,7 @@ export const createProfession = asyncHandler(async (req: Request, res: Response,
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
 
     try {
@@ -107,7 +107,7 @@ export const updateProfession = asyncHandler(async (req: Request, res: Response,
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
 
     try {

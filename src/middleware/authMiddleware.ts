@@ -60,7 +60,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         }
 
         // Check if user account is still active
-        if (currentUser.isDeleted || !currentUser.isActive) {
+        if (currentUser.isDeleted ?? !currentUser.isActive) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User account is inactive');
         }
 

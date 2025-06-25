@@ -73,7 +73,7 @@ export const createPost = asyncHandler(async (req: Request, res: Response, next:
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
         const post = await PostService.create(req.body);
@@ -104,7 +104,7 @@ export const updatePost = asyncHandler(async (req: Request, res: Response, next:
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
         const { id } = req.params;
@@ -139,16 +139,16 @@ export const addComment = asyncHandler(async (req: Request, res: Response, next:
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
         const { id } = req.params;
-        const userId = (req as any).user?._id;
+        const userId = req.user?._id;
         if (!id || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
         const { text, name, avatar } = req.body;
-        const comments = await PostService.addComment(id, userId, text, name, avatar);
+        const comments = await PostService.addComment(id, userId.toString(), text, name, avatar);
         res.status(201).json({
             success: true,
             message: 'Comment added successfully',
@@ -175,11 +175,11 @@ export const addComment = asyncHandler(async (req: Request, res: Response, next:
 export const likePost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const postId = req.params.id;
-        const userId = (req as any).user?._id;
+        const userId = req.user?._id;
         if (!postId || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
-        const likes = await PostService.likePost(postId, userId);
+        const likes = await PostService.likePost(postId, userId.toString());
         res.status(200).json({
             success: true,
             message: 'Post liked successfully',
@@ -206,11 +206,11 @@ export const likePost = asyncHandler(async (req: Request, res: Response, next: N
 export const unlikePost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const postId = req.params.id;
-        const userId = (req as any).user?._id;
+        const userId = req.user?._id;
         if (!postId || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
-        const likes = await PostService.unlikePost(postId, userId);
+        const likes = await PostService.unlikePost(postId, userId.toString());
         res.status(200).json({
             success: true,
             message: 'Post unliked successfully',

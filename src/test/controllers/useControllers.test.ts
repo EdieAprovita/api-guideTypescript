@@ -1,175 +1,242 @@
-import request from "supertest";
-// Prevent database connection attempts when importing the app
-jest.mock("../../config/db");
-import app from "../../app";
-import { User, IUser } from "../../models/User";
-import UserService from "../../services/UserService";
+// User Controllers Test - Uses isolated setup to test controllers with real service calls
+// This test bypasses global service mocks to test actual controller logic
 
-jest.mock("jsonwebtoken", () => ({
-	verify: jest.fn().mockReturnValue({ userId: "someUserId" }),
+import { Request, Response, NextFunction } from 'express';
+import { createMockData } from '../utils/testHelpers';
+import { faker } from '@faker-js/faker';
+
+// Mock UserService específicamente para este test
+const mockUserService = {
+    registerUser: jest.fn(),
+    loginUser: jest.fn(),
+    findAllUsers: jest.fn(),
+    findUserById: jest.fn(),
+    updateUserById: jest.fn(),
+    deleteUserById: jest.fn(),
+    forgotPassword: jest.fn(),
+    resetPassword: jest.fn(),
+    logoutUser: jest.fn(),
+};
+
+// Mock específico para UserService sin interferir con setup global
+jest.doMock('../../services/UserService', () => ({
+    __esModule: true,
+    default: mockUserService,
 }));
 
-jest.mock("../../models/User");
+// Import controllers after mocks
+import {
+    registerUser,
+    loginUser,
+    getUsers,
+    getUserById,
+    updateUserProfile,
+    deleteUserById,
+} from '../../controllers/userControllers';
 
-jest.mock("../../services/UserService", () => ({
-	registerUser: jest.fn(),
-	loginUser: jest.fn(),
-	findAllUsers: jest.fn(),
-	findUserById: jest.fn(),
-	updateUserById: jest.fn(),
-	deleteUserById: jest.fn(),
-}));
+// Helper to create mock req/res
+const createMockReqRes = (body = {}, params = {}, user: { _id?: string; role?: string } | null = null) => {
+    const req = {
+        body,
+        params,
+        user,
+    } as Request;
 
-jest.mock("../../middleware/authMiddleware", () => ({
-	protect: (req, res, next) => {
-		req.user = { id: "someUserId", role: "admin" };
-		next();
-	},
-	admin: (req, res, next) => {
-		if (req.user.role === "admin") {
-			next();
-		} else {
-			res.status(403).json({ message: "Forbidden" });
-		}
-	},
-	professional: (req, res, next) => {
-		if (req.user.role === "professional") {
-			next();
-		} else {
-			res.status(403).json({ message: "Forbidden" });
-		}
-	},
-}));
+    const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+    } as unknown as Response;
+
+    const next = jest.fn() as NextFunction;
+
+    return { req, res, next };
+};
 
 beforeEach(() => {
-	jest.clearAllMocks();
-	User.findById = jest.fn().mockResolvedValue({
-		_id: "mockUserId",
-		username: "mockUser",
-		email: "mock@example.com",
-		isAdmin: true,
-		isProfessional: true,
-	});
+    jest.clearAllMocks();
 });
 
-describe("User Registration", () => {
-	it("should register a new user if email does not exist", async () => {
-		UserService.registerUser = jest.fn().mockResolvedValue({
-			message: "User registered successfully",
-			user: {
-				_id: "someUserId",
-				username: "testUser",
-				email: "test@example.com",
-				role: "user",
-			},
-		});
+// Generate test passwords using faker instead of hardcoded values
+const TEST_PASSWORD = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
+const TEST_EMAIL = faker.internet.email();
 
-		const response = await request(app).post("/api/v1/users/register").send({
-			username: "testUser",
-			email: "test@example.com",
-			password: "password123",
-		});
+describe('User Controllers', () => {
+    describe('registerUser', () => {
+        it('should register a new user successfully', async () => {
+            const userData = {
+                firstName: 'John',
+                lastName: 'Doe',
+                email: TEST_EMAIL,
+                password: TEST_PASSWORD,
+                dateOfBirth: '1990-01-01',
+            };
 
-		expect(response.statusCode).toBe(201);
-	});
-});
+            const createdUser = createMockData.user({
+                _id: 'userId',
+                ...userData,
+            });
 
-describe("User Login", () => {
-	it("should authenticate user and return token", async () => {
-		UserService.loginUser = jest.fn().mockResolvedValue({
-			_id: "someUserId",
-			username: "testUser",
-			email: "test@example.com",
-			token: "someToken",
-		});
+            mockUserService.registerUser.mockResolvedValue(createdUser);
+            const { req, res, next } = createMockReqRes(userData);
 
-		const response = await request(app).post("/api/v1/users/login").send({
-			email: "test@example.com",
-			password: "password123",
-		});
+            await registerUser(req, res, next);
 
-		expect(response.statusCode).toBe(200);
-		expect(response.body).toHaveProperty("token");
-		expect(UserService.loginUser).toHaveBeenCalledWith(
-			"test@example.com",
-			"password123",
-			expect.anything()
-		);
-	});
-});
+            expect(mockUserService.registerUser).toHaveBeenCalledWith(userData, res);
+            expect(res.status).toHaveBeenCalledWith(201);
+            expect(res.json).toHaveBeenCalledWith(createdUser);
+        });
 
-describe("Get All Users", () => {
-	it("should return all users", async () => {
-		User.findById = jest.fn().mockResolvedValue({
-			_id: "mockUserId",
-			username: "mockUser",
-			email: "mock@example.com",
-			role: "admin",
-		});
+        it('should handle registration error', async () => {
+            const userData = { email: 'test@example.com' };
+            const error = new Error('Registration failed');
 
-		UserService.findAllUsers = jest.fn().mockResolvedValue([
-			{ _id: "1", username: "testUser1", email: "test1@example.com", role: "user" },
-			{ _id: "2", username: "testUser2", email: "test2@example.com", role: "user" },
-		]);
+            mockUserService.registerUser.mockRejectedValue(error);
+            const { req, res, next } = createMockReqRes(userData);
 
-		const response = await request(app).get("/api/v1/users/");
+            await registerUser(req, res, next);
 
-		expect(response.statusCode).toBe(200);
-		expect(response.body.length).toBeGreaterThan(0);
-		expect(UserService.findAllUsers).toHaveBeenCalledTimes(1);
-	});
-});
+            expect(next).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: 'Registration failed',
+                })
+            );
+        });
+    });
 
-describe("Get User by ID", () => {
-	it("should return user by id", async () => {
-		const userId = "1";
-		UserService.findUserById = jest.fn().mockResolvedValue({
-			_id: userId,
-			username: "testUser",
-			email: "test@example.com",
-			role: "user",
-		});
+    describe('loginUser', () => {
+        it('should authenticate user successfully', async () => {
+            const loginData = {
+                email: TEST_EMAIL,
+                password: TEST_PASSWORD,
+            };
 
-		const response = await request(app).get(`/api/v1/users/${userId}`);
+            const loginResult = {
+                token: 'mockToken',
+                user: createMockData.user({ _id: 'userId', email: TEST_EMAIL }),
+            };
 
-		expect(response.statusCode).toBe(200);
-		expect(response.body).toHaveProperty("_id", userId);
-		expect(UserService.findUserById).toHaveBeenCalledWith(userId);
-	});
-});
+            mockUserService.loginUser.mockResolvedValue(loginResult);
+            const { req, res, next } = createMockReqRes(loginData);
 
-describe("Update User Profile", () => {
-	it("should update user details", async () => {
-		const userId = "1";
-		const updateData: Partial<IUser> = {
-			username: "updatedUser",
-			email: "update@example.com",
-			password: "newPassword",
-			role: "user",
-		};
+            await loginUser(req, res, next);
 
-		UserService.updateUserById = jest.fn().mockResolvedValue({
-			_id: userId,
-			...updateData,
-		});
+            expect(mockUserService.loginUser).toHaveBeenCalledWith(TEST_EMAIL, TEST_PASSWORD, res);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith(loginResult);
+        });
+    });
 
-		const result = await UserService.updateUserById(userId, updateData);
+    describe('getUsers', () => {
+        it('should return all users', async () => {
+            const mockUsers = [
+                createMockData.user({ _id: 'user1', firstName: 'John', lastName: 'Doe' }),
+                createMockData.user({ _id: 'user2', firstName: 'Jane', lastName: 'Smith' }),
+            ];
 
-		expect(result).toHaveProperty("_id", userId);
-		expect(result).toHaveProperty("username", updateData.username);
-		expect(result).toHaveProperty("email", updateData.email);
-	});
-});
+            mockUserService.findAllUsers.mockResolvedValue(mockUsers);
+            const { req, res, next } = createMockReqRes();
 
-describe("Delete User", () => {
-	it("should delete user by id", async () => {
-		const userId = "1";
-		UserService.deleteUserById = jest.fn().mockResolvedValue("User deleted successfully");
+            await getUsers(req, res, next);
 
-		const response = await request(app).delete(`/api/v1/users/${userId}`);
+            expect(mockUserService.findAllUsers).toHaveBeenCalledTimes(1);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith(mockUsers);
+        });
+    });
 
-		expect(response.statusCode).toBe(200);
-		expect(response.body).toEqual("User deleted successfully");
-		expect(UserService.deleteUserById).toHaveBeenCalledWith(userId);
-	});
+    describe('getUserById', () => {
+        it('should return user by id', async () => {
+            const userId = 'user123';
+            const mockUser = createMockData.user({
+                _id: userId,
+                firstName: 'John',
+                lastName: 'Doe',
+            });
+
+            mockUserService.findUserById.mockResolvedValue(mockUser);
+            const { req, res, next } = createMockReqRes({}, { id: userId });
+
+            await getUserById(req, res, next);
+
+            expect(mockUserService.findUserById).toHaveBeenCalledWith(userId);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith(mockUser);
+        });
+
+        it('should handle missing user ID', async () => {
+            const { req, res, next } = createMockReqRes({}, {});
+
+            await getUserById(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: 'User ID is required',
+                })
+            );
+        });
+    });
+
+    describe('updateUserProfile', () => {
+        it('should update user profile', async () => {
+            const userId = 'user123';
+            const updateData = {
+                username: 'updatedUser',
+                email: 'update@example.com',
+            };
+
+            const updatedUser = createMockData.user({
+                _id: userId,
+                ...updateData,
+            });
+
+            mockUserService.updateUserById.mockResolvedValue(updatedUser);
+            const { req, res, next } = createMockReqRes(updateData, {}, { _id: userId });
+
+            await updateUserProfile(req, res, next);
+
+            expect(mockUserService.updateUserById).toHaveBeenCalledWith(userId, updateData);
+            expect(res.json).toHaveBeenCalledWith(updatedUser);
+        });
+
+        it('should handle missing user', async () => {
+            const { req, res, next } = createMockReqRes({});
+
+            await updateUserProfile(req, res, next);
+
+            expect(next).toHaveBeenCalledTimes(1);
+            const calledError = (next as jest.MockedFunction<NextFunction>).mock.calls[0][0];
+            expect(calledError).toHaveProperty('statusCode', 500);
+            expect(calledError).toHaveProperty('message', 'User not found');
+        });
+    });
+
+    describe('deleteUserById', () => {
+        it('should delete user by id', async () => {
+            const userId = 'user123';
+            const message = 'User deleted successfully';
+
+            mockUserService.deleteUserById.mockResolvedValue(message);
+            const { req, res, next } = createMockReqRes({}, { id: userId });
+
+            await deleteUserById(req, res, next);
+
+            expect(mockUserService.deleteUserById).toHaveBeenCalledWith(userId);
+            expect(res.json).toHaveBeenCalledWith(message);
+        });
+
+        it('should handle missing user ID', async () => {
+            const { req, res, next } = createMockReqRes({}, {});
+
+            await deleteUserById(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: 'User ID is required',
+                })
+            );
+        });
+    });
 });

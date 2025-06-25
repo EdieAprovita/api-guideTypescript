@@ -75,7 +75,7 @@ export const createDoctor = asyncHandler(async (req: Request, res: Response, nex
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
         await geocodeAndAssignLocation(req.body);
@@ -107,7 +107,7 @@ export const updateDoctor = asyncHandler(async (req: Request, res: Response, nex
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
         const { id } = req.params;
