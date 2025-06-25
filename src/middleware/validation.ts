@@ -91,7 +91,7 @@ export const sanitizeInput = () => {
                     return (
                         value
                             // Remove script tags (all variations) - non-backtracking pattern
-                            .replace(/<script[^>]*>/gi, '')
+                            .replace(/<script[^>]*?>/gi, '')
                             .replace(/<\/script>/gi, '')
 
                             // Remove javascript: protocol (all encoded variations)
@@ -114,7 +114,7 @@ export const sanitizeInput = () => {
                             .replace(/on[a-z]+\s*=/gi, '')
 
                             // Remove HTML tags safely - use non-backtracking pattern
-                            .replace(/<[^>]*>/g, '')
+                            .replace(/<[^>]*?>/g, '')
 
                             // Remove HTML entities that could be used for XSS - non-backtracking
                             .replace(/&[#x]?[a-zA-Z0-9]{1,8};/g, '')
