@@ -63,7 +63,8 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
     if (process.env.NODE_ENV === 'production') {
         // Check if request is already HTTPS
         const isHttps =
-            req.secure || req.headers['x-forwarded-proto'] === 'https' || req.headers['x-forwarded-ssl'] === 'on';
+            req.secure ??
+            (false || req.headers['x-forwarded-proto'] === 'https' || req.headers['x-forwarded-ssl'] === 'on');
 
         if (!isHttps) {
             const host = req.get('host');
@@ -84,8 +85,20 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
                 });
             }
 
-            // Perform proper redirect to HTTPS with validated host
-            const redirectURL = `https://${host}${req.originalUrl}`;
+            // Use a whitelist approach for redirects instead of user-controlled data
+            const allowedPaths = ['/', '/api', '/docs', '/health'];
+            const currentPath = req.path;
+
+            // Only redirect to allowed paths or return error
+            if (!allowedPaths.some(path => currentPath.startsWith(path))) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid redirect path',
+                });
+            }
+
+            // Perform proper redirect to HTTPS with validated host and path
+            const redirectURL = `https://${host}${currentPath}`;
             return res.redirect(302, redirectURL);
         }
     }

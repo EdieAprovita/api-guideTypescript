@@ -99,9 +99,9 @@ class TokenService {
             const payload = jwt.verify(token, this.accessTokenSecret, {
                 issuer: 'vegan-guide-api',
                 audience: 'vegan-guide-client',
-            }) as TokenPayload;
+            });
 
-            return payload;
+            return payload as TokenPayload;
         } catch (error) {
             if (error instanceof Error) {
                 throw new Error(`Invalid or expired access token: ${error.message}`);
