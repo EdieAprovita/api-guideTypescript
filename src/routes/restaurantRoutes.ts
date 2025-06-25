@@ -19,62 +19,47 @@ router.use(securityHeaders);
 router.use(...sanitizeInput());
 
 // Public routes with rate limiting and search validation
-router.get('/', 
-    rateLimits.search,
-    validate({ query: querySchemas.geospatial }),
-    getRestaurants
-);
+router.get('/', rateLimits.search, validate({ query: querySchemas.geospatial }), getRestaurants);
 
-router.get('/top-rated', 
-    rateLimits.api,
-    validate({ query: querySchemas.search }),
-    getTopRatedRestaurants
-);
+router.get('/top-rated', rateLimits.api, validate({ query: querySchemas.search }), getTopRatedRestaurants);
 
-router.get('/:id', 
-    rateLimits.api,
-    validate({ params: paramSchemas.id }),
-    getRestaurantById
-);
+router.get('/:id', rateLimits.api, validate({ params: paramSchemas.id }), getRestaurantById);
 
 // Protected routes with validation
-router.post('/', 
+router.post(
+    '/',
     rateLimits.api,
     validateInputLength(8192), // 8KB limit for restaurant creation
-    protect, 
+    protect,
     validate({ body: restaurantSchemas.create }),
     createRestaurant
 );
 
-router.post('/add-review/:id', 
+router.post(
+    '/add-review/:id',
     rateLimits.api,
     validateInputLength(2048), // 2KB limit for reviews
-    protect, 
-    validate({ 
+    protect,
+    validate({
         params: paramSchemas.id,
-        body: reviewSchemas.create 
+        body: reviewSchemas.create,
     }),
     addReviewToRestaurant
 );
 
-router.put('/:id', 
+router.put(
+    '/:id',
     rateLimits.api,
     validateInputLength(8192), // 8KB limit for restaurant updates
-    protect, 
-    admin, 
-    validate({ 
+    protect,
+    admin,
+    validate({
         params: paramSchemas.id,
-        body: restaurantSchemas.create 
+        body: restaurantSchemas.create,
     }),
     updateRestaurant
 );
 
-router.delete('/:id', 
-    rateLimits.api,
-    protect, 
-    admin, 
-    validate({ params: paramSchemas.id }),
-    deleteRestaurant
-);
+router.delete('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), deleteRestaurant);
 
 export default router;
