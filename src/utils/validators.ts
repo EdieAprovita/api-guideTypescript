@@ -21,27 +21,82 @@ export const commonSchemas = {
     },
 };
 
+// Reusable schema factories to reduce duplication
+const createLocationSchema = (required = false) => {
+    const schema = Joi.object({
+        type: Joi.string().valid('Point').required(),
+        coordinates: commonSchemas.coordinates.required(),
+    });
+    return required ? schema.required() : schema.optional();
+};
+
+const createSocialMediaSchema = () => Joi.object({
+    facebook: commonSchemas.url.optional(),
+    instagram: commonSchemas.url.optional(),
+    twitter: commonSchemas.url.optional(),
+}).optional();
+
+const createOpeningHoursSchema = () => Joi.object()
+    .pattern(
+        Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
+        Joi.object({
+            open: commonSchemas.time.required(),
+            close: commonSchemas.time.required(),
+        })
+    )
+    .optional();
+
+const createBusinessBaseSchema = (isRequired = true) => {
+    const schema = {
+        name: Joi.string().trim().min(2).max(100),
+        description: Joi.string().trim().max(1000).optional(),
+        address: Joi.string().trim().max(200),
+        phoneNumber: commonSchemas.phone,
+        email: commonSchemas.email.optional(),
+        website: commonSchemas.url.optional(),
+        socialMedia: createSocialMediaSchema(),
+        location: createLocationSchema(isRequired),
+        openingHours: createOpeningHoursSchema(),
+    };
+    
+    if (isRequired) {
+        schema.name = schema.name.required();
+        schema.address = schema.address.required();
+        schema.phoneNumber = schema.phoneNumber.required();
+    } else {
+        schema.name = schema.name.optional();
+        schema.address = schema.address.optional();
+        schema.phoneNumber = schema.phoneNumber.optional();
+    }
+    
+    return schema;
+};
+
 // User validation schemas
+const createPasswordSchema = () => Joi.string()
+    .min(8)
+    .max(128)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .required()
+    .messages({
+        'string.pattern.base':
+            'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
+    });
+
+const createNameSchema = (required = true) => {
+    const schema = Joi.string().trim().min(2).max(50);
+    return required ? schema.required() : schema.optional();
+};
+
 export const userSchemas = {
     register: Joi.object({
-        firstName: Joi.string().trim().min(2).max(50).required(),
-        lastName: Joi.string().trim().min(2).max(50).required(),
+        firstName: createNameSchema(true),
+        lastName: createNameSchema(true),
         email: commonSchemas.email.required(),
-        password: Joi.string()
-            .min(8)
-            .max(128)
-            .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-            .required()
-            .messages({
-                'string.pattern.base':
-                    'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
-            }),
+        password: createPasswordSchema(),
         dateOfBirth: Joi.date().max('now').required(),
         phoneNumber: commonSchemas.phone.optional(),
-        location: Joi.object({
-            type: Joi.string().valid('Point').required(),
-            coordinates: commonSchemas.coordinates.required(),
-        }).optional(),
+        location: createLocationSchema(false),
     }),
 
     login: Joi.object({
@@ -50,73 +105,24 @@ export const userSchemas = {
     }),
 
     updateProfile: Joi.object({
-        firstName: Joi.string().trim().min(2).max(50).optional(),
-        lastName: Joi.string().trim().min(2).max(50).optional(),
+        firstName: createNameSchema(false),
+        lastName: createNameSchema(false),
         phoneNumber: commonSchemas.phone.optional(),
         dateOfBirth: Joi.date().max('now').optional(),
-        location: Joi.object({
-            type: Joi.string().valid('Point').required(),
-            coordinates: commonSchemas.coordinates.required(),
-        }).optional(),
+        location: createLocationSchema(false),
     }),
 };
 
 // Business validation schemas
 export const businessSchemas = {
     create: Joi.object({
-        name: Joi.string().trim().min(2).max(100).required(),
-        description: Joi.string().trim().max(1000).optional(),
+        ...createBusinessBaseSchema(true),
         category: Joi.string().trim().required(),
-        address: Joi.string().trim().max(200).required(),
-        phoneNumber: commonSchemas.phone.required(),
-        email: commonSchemas.email.optional(),
-        website: commonSchemas.url.optional(),
-        socialMedia: Joi.object({
-            facebook: commonSchemas.url.optional(),
-            instagram: commonSchemas.url.optional(),
-            twitter: commonSchemas.url.optional(),
-        }).optional(),
-        location: Joi.object({
-            type: Joi.string().valid('Point').required(),
-            coordinates: commonSchemas.coordinates.required(),
-        }).required(),
-        openingHours: Joi.object()
-            .pattern(
-                Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
-                Joi.object({
-                    open: commonSchemas.time.required(),
-                    close: commonSchemas.time.required(),
-                })
-            )
-            .optional(),
     }),
 
     update: Joi.object({
-        name: Joi.string().trim().min(2).max(100).optional(),
-        description: Joi.string().trim().max(1000).optional(),
+        ...createBusinessBaseSchema(false),
         category: Joi.string().trim().optional(),
-        address: Joi.string().trim().max(200).optional(),
-        phoneNumber: commonSchemas.phone.optional(),
-        email: commonSchemas.email.optional(),
-        website: commonSchemas.url.optional(),
-        socialMedia: Joi.object({
-            facebook: commonSchemas.url.optional(),
-            instagram: commonSchemas.url.optional(),
-            twitter: commonSchemas.url.optional(),
-        }).optional(),
-        location: Joi.object({
-            type: Joi.string().valid('Point').required(),
-            coordinates: commonSchemas.coordinates.required(),
-        }).optional(),
-        openingHours: Joi.object()
-            .pattern(
-                Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
-                Joi.object({
-                    open: commonSchemas.time.required(),
-                    close: commonSchemas.time.required(),
-                })
-            )
-            .optional(),
     }),
 
     search: Joi.object({
@@ -124,34 +130,17 @@ export const businessSchemas = {
         latitude: Joi.number().min(-90).max(90).optional(),
         longitude: Joi.number().min(-180).max(180).optional(),
         radius: Joi.number().min(1).max(50000).default(5000),
-        ...commonSchemas.pagination,
+        page: commonSchemas.pagination.page,
+        limit: commonSchemas.pagination.limit,
     }),
 };
 
 // Restaurant validation schemas
 export const restaurantSchemas = {
     create: Joi.object({
-        name: Joi.string().trim().min(2).max(100).required(),
-        description: Joi.string().trim().max(1000).optional(),
+        ...createBusinessBaseSchema(true),
         cuisine: Joi.array().items(Joi.string().trim()).min(1).required(),
         priceRange: Joi.string().valid('$', '$$', '$$$', '$$$$').required(),
-        address: Joi.string().trim().max(200).required(),
-        phoneNumber: commonSchemas.phone.required(),
-        email: commonSchemas.email.optional(),
-        website: commonSchemas.url.optional(),
-        location: Joi.object({
-            type: Joi.string().valid('Point').required(),
-            coordinates: commonSchemas.coordinates.required(),
-        }).required(),
-        openingHours: Joi.object()
-            .pattern(
-                Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
-                Joi.object({
-                    open: commonSchemas.time.required(),
-                    close: commonSchemas.time.required(),
-                })
-            )
-            .optional(),
         features: Joi.array()
             .items(
                 Joi.string().valid(
@@ -188,18 +177,20 @@ export const reviewSchemas = {
 // Query parameter schemas
 export const querySchemas = {
     geospatial: Joi.object({
-        latitude: Joi.number().min(-90).max(90).when('longitude', { is: Joi.exist(), then: Joi.required() }),
-        longitude: Joi.number().min(-180).max(180).when('latitude', { is: Joi.exist(), then: Joi.required() }),
+        latitude: Joi.number().min(-90).max(90).optional(),
+        longitude: Joi.number().min(-180).max(180).optional(),
         radius: Joi.number().min(1).max(50000).default(5000),
-        ...commonSchemas.pagination,
-    }),
+        page: commonSchemas.pagination.page,
+        limit: commonSchemas.pagination.limit,
+    }).and('latitude', 'longitude'), // Both latitude and longitude must be present together
 
     search: Joi.object({
         q: Joi.string().trim().min(1).max(100).optional(),
         category: Joi.string().trim().optional(),
         sortBy: Joi.string().valid('name', 'rating', 'distance', 'createdAt').default('name'),
         sortOrder: Joi.string().valid('asc', 'desc').default('asc'),
-        ...commonSchemas.pagination,
+        page: commonSchemas.pagination.page,
+        limit: commonSchemas.pagination.limit,
     }),
 };
 
