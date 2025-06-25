@@ -20,17 +20,32 @@ class TokenService {
     private readonly refreshTokenExpiry: string;
 
     constructor() {
-        const redisConfig: any = {
-            host: process.env.REDIS_HOST ?? 'localhost',
-            port: parseInt(process.env.REDIS_PORT ?? '6379'),
-            lazyConnect: true,
-        };
+        // Only connect to Redis if not in test environment
+        if (process.env.NODE_ENV !== 'test') {
+            const redisConfig: any = {
+                host: process.env.REDIS_HOST ?? 'localhost',
+                port: parseInt(process.env.REDIS_PORT ?? '6379'),
+                lazyConnect: true,
+                retryDelayOnFailover: 100,
+                maxRetriesPerRequest: 1,
+            };
 
-        if (process.env.REDIS_PASSWORD) {
-            redisConfig.password = process.env.REDIS_PASSWORD;
+            if (process.env.REDIS_PASSWORD) {
+                redisConfig.password = process.env.REDIS_PASSWORD;
+            }
+
+            this.redis = new Redis(redisConfig);
+        } else {
+            // Mock Redis for tests
+            this.redis = {
+                setex: () => Promise.resolve('OK'),
+                get: () => Promise.resolve(null),
+                del: () => Promise.resolve(0),
+                keys: () => Promise.resolve([]),
+                ttl: () => Promise.resolve(-1),
+                disconnect: () => {},
+            } as any;
         }
-
-        this.redis = new Redis(redisConfig);
 
         this.accessTokenSecret = process.env.JWT_SECRET ?? 'fallback-secret';
         this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET ?? 'fallback-refresh-secret';

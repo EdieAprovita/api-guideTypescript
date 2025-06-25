@@ -57,41 +57,31 @@ export const configureHelmet = () => {
 };
 
 /**
- * HTTPS enforcement middleware with host validation
+ * HTTPS enforcement middleware with proper redirect handling
  */
 export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) => {
     if (process.env.NODE_ENV === 'production') {
-        const allowedHosts = (process.env.ALLOWED_HOSTS ?? '')
-            .split(',')
-            .map(h => h.trim())
-            .filter(Boolean);
+        // Check if request is already HTTPS
+        const isHttps =
+            req.secure || req.headers['x-forwarded-proto'] === 'https' || req.headers['x-forwarded-ssl'] === 'on';
 
-        if (allowedHosts.length === 0) {
-            console.error('ALLOWED_HOSTS is not set or empty in production. This is a critical security risk.');
-            return res.status(500).json({
-                success: false,
-                message: 'Server misconfiguration',
-            });
-        }
+        if (!isHttps) {
+            const host = req.get('host');
 
-        if (req.header('x-forwarded-proto') !== 'https') {
-            const host = req.header('host');
-
-            if (!host || !allowedHosts.includes(host)) {
+            if (!host) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Invalid host header',
+                    message: 'Invalid request - missing host header',
                 });
             }
 
-            // Instead of redirecting, return a response asking client to use HTTPS
-            return res.status(301).json({
-                success: false,
-                message: 'HTTPS required',
-                redirectTo: `https://${host}${req.url}`,
-            });
+            // Perform proper redirect to HTTPS
+            const redirectURL = `https://${host}${req.originalUrl}`;
+            return res.redirect(302, redirectURL);
         }
     }
+
+    // Allow HTTPS requests or non-production environments
     return next();
 };
 

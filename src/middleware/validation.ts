@@ -83,17 +83,53 @@ export const sanitizeInput = () => {
         // MongoDB injection protection
         mongoSanitize(),
 
-        // Custom XSS and additional sanitization
+        // Enhanced XSS and injection protection
         (req: Request, _res: Response, next: NextFunction) => {
             const sanitizeValue = (value: any): any => {
                 if (typeof value === 'string') {
-                    // Remove potential XSS patterns
-                    return value
-                        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                        .replace(/javascript:/gi, '')
-                        .replace(/on\w+\s*=/gi, '')
-                        .replace(/[^\x20-\x7E]/g, '') // Keep only printable ASCII characters (space to tilde)
-                        .trim();
+                    // Enhanced XSS protection patterns
+                    return (
+                        value
+                            // Remove script tags (all variations)
+                            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                            .replace(/<\/?\s*script\s*>/gi, '')
+
+                            // Remove javascript: protocol (all encoded variations)
+                            .replace(/javascript\s*:/gi, '')
+                            .replace(/j\s*a\s*v\s*a\s*s\s*c\s*r\s*i\s*p\s*t\s*:/gi, '')
+                            .replace(/javascript%3A/gi, '')
+                            .replace(/javascript&#x3A;/gi, '')
+                            .replace(/javascript&#58;/gi, '')
+
+                            // Remove vbscript: protocol
+                            .replace(/vbscript\s*:/gi, '')
+                            .replace(/vbscript%3A/gi, '')
+
+                            // Remove data: protocol for potential data URLs
+                            .replace(/data\s*:/gi, '')
+                            .replace(/data%3A/gi, '')
+
+                            // Remove event handlers
+                            .replace(/on\w+\s*=/gi, '')
+                            .replace(/on[a-z]+\s*=/gi, '')
+
+                            // Remove HTML tags (comprehensive)
+                            .replace(/<[^>]*>/g, '')
+
+                            // Remove HTML entities that could be used for XSS
+                            .replace(/&[#x]?[a-zA-Z0-9]{1,8};/g, '')
+
+                            // Remove potential CSS expressions
+                            .replace(/expression\s*\(/gi, '')
+                            .replace(/behaviour\s*:/gi, '')
+
+                            // Remove URL encoded characters that could bypass filters
+                            .replace(/%[0-9a-fA-F]{2}/g, '')
+
+                            // Keep only safe characters (letters, numbers, basic punctuation)
+                            .replace(/[<>'"&]/g, '')
+                            .trim()
+                    );
                 }
 
                 if (Array.isArray(value)) {
