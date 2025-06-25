@@ -75,7 +75,16 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
                 });
             }
 
-            // Perform proper redirect to HTTPS
+            // Validate host to prevent redirect attacks
+            const validHostPattern = /^[a-zA-Z0-9.-]+(:\d+)?$/;
+            if (!validHostPattern.test(host)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid host header',
+                });
+            }
+
+            // Perform proper redirect to HTTPS with validated host
             const redirectURL = `https://${host}${req.originalUrl}`;
             return res.redirect(302, redirectURL);
         }
@@ -112,7 +121,7 @@ export const createAdvancedRateLimit = (options: {
             res.status(429).json({
                 success: false,
                 message: options.message ?? 'Rate limit exceeded',
-                retryAfter: Math.round(options.windowMs! / 1000) ?? 900,
+                retryAfter: Math.round((options.windowMs ?? 15 * 60 * 1000) / 1000),
             });
         },
     });

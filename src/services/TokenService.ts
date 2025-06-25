@@ -223,17 +223,19 @@ class TokenService {
         try {
             const decoded = jwt.decode(token, { complete: true });
             if (decoded && typeof decoded === 'object' && 'header' in decoded && 'payload' in decoded) {
-                return {
-                    header: decoded.header,
-                    payload: decoded.payload as jwt.JwtPayload,
-                    isValid: true,
-                };
-            } else {
-                return {
-                    isValid: false,
-                    error: 'Invalid token format',
-                };
+                const payload = decoded.payload;
+                if (typeof payload === 'object' && payload !== null) {
+                    return {
+                        header: decoded.header,
+                        payload: payload as jwt.JwtPayload,
+                        isValid: true,
+                    };
+                }
             }
+            return {
+                isValid: false,
+                error: 'Invalid token format',
+            };
         } catch (error) {
             return {
                 isValid: false,

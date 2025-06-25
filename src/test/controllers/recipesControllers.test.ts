@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { geoService } from './controllerTestSetup';
-import type { Request, Response, NextFunction } from 'express';
+
 jest.resetModules();
 jest.mock('../../middleware/authMiddleware', () => ({
     protect: (_req, _res, next) => next(),
@@ -47,7 +47,6 @@ jest.mock('../../controllers/restaurantControllers', () => ({
 
 import app from '../../app';
 import { recipeService } from '../../services/RecipesService';
-import { reviewService } from '../../services/ReviewService';
 
 jest.mock('../../services/RecipesService', () => ({
     recipeService: {
@@ -56,13 +55,6 @@ jest.mock('../../services/RecipesService', () => ({
         create: jest.fn(),
         updateById: jest.fn(),
         deleteById: jest.fn(),
-    },
-}));
-
-jest.mock('../../services/ReviewService', () => ({
-    reviewService: {
-        addReview: jest.fn(),
-        getTopRatedReviews: jest.fn(),
     },
 }));
 

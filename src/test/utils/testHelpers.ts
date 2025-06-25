@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { Application } from 'express';
-import { TestUser, MockRestaurant, MockDoctor, MockMarket, MockSanctuary, MockReview } from '../types';
+import { TestUser, MockRestaurant, MockDoctor, MockMarket, MockSanctuary } from '../types';
 
 /**
  * Create a test user with default values
@@ -168,7 +168,7 @@ export const createMockData = {
         isDeleted: false,
         ...overrides,
     }),
-    
+
     post: (overrides = {}) => ({
         _id: 'post-id',
         title: 'Test Post',
@@ -178,7 +178,7 @@ export const createMockData = {
         comments: [],
         ...overrides,
     }),
-    
+
     business: (overrides = {}) => ({
         _id: 'business-id',
         name: 'Test Business',
@@ -186,7 +186,7 @@ export const createMockData = {
         location: { type: 'Point', coordinates: [0, 0] },
         ...overrides,
     }),
-    
+
     restaurant: (overrides = {}): MockRestaurant => ({
         _id: 'restaurant-id',
         restaurantName: 'Test Restaurant',

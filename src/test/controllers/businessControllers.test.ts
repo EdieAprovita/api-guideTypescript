@@ -97,7 +97,6 @@ import app from '../../app';
 import { businessService } from '../../services/BusinessService';
 import geoService from '../../services/GeoService';
 import { reviewService } from '../../services/ReviewService';
-import logger from '../../utils/logger';
 
 beforeEach(() => {
     jest.clearAllMocks();

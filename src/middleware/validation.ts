@@ -20,7 +20,7 @@ export const validate = (schema: ValidationSchema) => {
                             convert: true,
                         })
                         .then((value: Record<string, unknown>) => {
-                            req.body = value as Record<string, unknown>;
+                            req.body = value;
                         })
                 );
             }
@@ -113,7 +113,7 @@ export const sanitizeInput = () => {
                             .replace(/on\w+\s*=/gi, '')
                             .replace(/on[a-z]+\s*=/gi, '')
 
-                            // Remove HTML tags (comprehensive)
+                            // Remove HTML tags (comprehensive) - safer regex
                             .replace(/<[^>]*>/g, '')
 
                             // Remove HTML entities that could be used for XSS
@@ -168,7 +168,9 @@ export const sanitizeInput = () => {
 };
 
 // Rate limiting factory
-export const createRateLimit = (config: Partial<{ windowMs: number; max: number; message: string }> = {}): RateLimitRequestHandler => {
+export const createRateLimit = (
+    config: Partial<{ windowMs: number; max: number; message: string }> = {}
+): RateLimitRequestHandler => {
     return rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 100,

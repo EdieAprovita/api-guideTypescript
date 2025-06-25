@@ -3,13 +3,12 @@ import request from 'supertest';
 import app from '../../app';
 import { restaurantService } from '../../services/RestaurantService';
 import { reviewService } from '../../services/ReviewService';
-import { geoService } from './controllerTestSetup';
-import { 
-    expectSuccessResponse, 
-    expectResourceCreated, 
-    expectResourceUpdated, 
+import {
+    expectSuccessResponse,
+    expectResourceCreated,
+    expectResourceUpdated,
     expectResourceDeleted,
-    createMockData 
+    createMockData,
 } from '../utils/testHelpers';
 import { MockRestaurantService, MockReviewService } from '../types';
 
@@ -53,9 +52,9 @@ describe('Restaurant Controllers', () => {
     describe('GET /api/v1/restaurants/:id', () => {
         it('should get restaurant by id', async () => {
             const restaurantId = 'restaurant-123';
-            const mockRestaurant = createMockData.restaurant({ 
-                _id: restaurantId, 
-                restaurantName: 'Specific Restaurant' 
+            const mockRestaurant = createMockData.restaurant({
+                _id: restaurantId,
+                restaurantName: 'Specific Restaurant',
             });
             mockRestaurantService.findById.mockResolvedValue(mockRestaurant);
 
@@ -72,18 +71,16 @@ describe('Restaurant Controllers', () => {
             const newRestaurantData = {
                 restaurantName: 'New Restaurant',
                 cuisine: ['Italian'],
-                location: { type: 'Point', coordinates: [40.7128, -74.0060] },
+                location: { type: 'Point', coordinates: [40.7128, -74.006] },
                 address: 'A great new restaurant address',
             };
-            const createdRestaurant = createMockData.restaurant({ 
-                ...newRestaurantData, 
-                _id: 'new-restaurant-id' 
+            const createdRestaurant = createMockData.restaurant({
+                ...newRestaurantData,
+                _id: 'new-restaurant-id',
             });
             mockRestaurantService.create.mockResolvedValue(createdRestaurant);
 
-            const response = await request(app)
-                .post('/api/v1/restaurants')
-                .send(newRestaurantData);
+            const response = await request(app).post('/api/v1/restaurants').send(newRestaurantData);
 
             expectResourceCreated(response);
             expect(mockRestaurantService.create).toHaveBeenCalledWith(newRestaurantData);
@@ -94,19 +91,17 @@ describe('Restaurant Controllers', () => {
     describe('PUT /api/v1/restaurants/:id', () => {
         it('should update a restaurant', async () => {
             const restaurantId = 'restaurant-123';
-            const updateData = { 
+            const updateData = {
                 restaurantName: 'Updated Restaurant Name',
-                cuisine: ['Updated Cuisine']
+                cuisine: ['Updated Cuisine'],
             };
-            const updatedRestaurant = createMockData.restaurant({ 
-                ...updateData, 
-                _id: restaurantId 
+            const updatedRestaurant = createMockData.restaurant({
+                ...updateData,
+                _id: restaurantId,
             });
             mockRestaurantService.updateById.mockResolvedValue(updatedRestaurant);
 
-            const response = await request(app)
-                .put(`/api/v1/restaurants/${restaurantId}`)
-                .send(updateData);
+            const response = await request(app).put(`/api/v1/restaurants/${restaurantId}`).send(updateData);
 
             expectResourceUpdated(response);
             expect(mockRestaurantService.updateById).toHaveBeenCalledWith(restaurantId, updateData);
@@ -129,13 +124,13 @@ describe('Restaurant Controllers', () => {
     describe('Restaurant with Reviews Integration', () => {
         it('should handle restaurant with reviews', async () => {
             const restaurantId = 'restaurant-with-reviews';
-            const mockRestaurant = createMockData.restaurant({ 
+            const mockRestaurant = createMockData.restaurant({
                 _id: restaurantId,
-                restaurantName: 'Restaurant with Reviews'
+                restaurantName: 'Restaurant with Reviews',
             });
             const mockReviews = [
                 { _id: 'review1', rating: 5, comment: 'Excellent!' },
-                { _id: 'review2', rating: 4, comment: 'Very good!' }
+                { _id: 'review2', rating: 4, comment: 'Very good!' },
             ];
 
             mockRestaurantService.findById.mockResolvedValue(mockRestaurant);
@@ -152,10 +147,10 @@ describe('Restaurant Controllers', () => {
     describe('Geolocation Integration', () => {
         it('should handle restaurants with location data', async () => {
             const mockRestaurants = [
-                createMockData.restaurant({ 
+                createMockData.restaurant({
                     restaurantName: 'Location Restaurant',
-                    location: { type: 'Point', coordinates: [40.7128, -74.0060] }
-                })
+                    location: { type: 'Point', coordinates: [40.7128, -74.006] },
+                }),
             ];
             mockRestaurantService.getAll.mockResolvedValue(mockRestaurants);
 

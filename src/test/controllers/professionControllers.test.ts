@@ -40,7 +40,6 @@ jest.mock('../../middleware/authMiddleware', () => ({
 
 import app from '../../app';
 import { professionService } from '../../services/ProfessionService';
-import { reviewService } from '../../services/ReviewService';
 
 jest.mock('../../services/ProfessionService', () => ({
     professionService: {
