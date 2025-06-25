@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 
-export const protect = jest.fn((req: any, res: Response, next: NextFunction) => {
-    req.user = { _id: 'test-user-id', role: 'user' };
+export const protect = jest.fn((req: Request, res: Response, next: NextFunction) => {
+    const reqWithUser = req as Request & { user?: { _id: string; role: string } };
+    reqWithUser.user = { _id: 'test-user-id', role: 'user' };
     next();
 });
 
@@ -13,7 +14,12 @@ export const requireAuth = jest.fn((req: Request, res: Response, next: NextFunct
 
 export const checkOwnership = jest.fn(() => (req: Request, res: Response, next: NextFunction) => next());
 
-export const logout = jest.fn((req: Request, res: Response, next: NextFunction) => next());
+export const logout = jest.fn((req: Request, res: Response) => {
+    res.json({
+        success: true,
+        message: 'Logged out successfully',
+    });
+});
 
 export const refreshToken = jest.fn((req: Request, res: Response) => {
     res.json({

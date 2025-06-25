@@ -60,6 +60,7 @@ describe('UserService', () => {
                 email: 'test@example.com',
                 role: 'user',
                 photo: 'default.png',
+                token: expect.any(String),
             });
         });
 
@@ -108,6 +109,7 @@ describe('UserService', () => {
                 email,
                 role: 'user',
                 photo: 'default.png',
+                token: expect.any(String),
             });
         });
 
@@ -244,10 +246,8 @@ describe('UserService', () => {
         it('should logout user successfully', async () => {
             const result = await UserService.logoutUser(mockResponse);
 
-
             expect(mockResponse.clearCookie).toHaveBeenCalledWith('jwt');
             expect(result).toEqual({ message: 'User logged out successfully' });
-        
         });
     });
 });

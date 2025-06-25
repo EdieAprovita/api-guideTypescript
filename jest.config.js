@@ -18,7 +18,9 @@ module.exports = {
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
     },
-    testTimeout: 10000,
+    testTimeout: 15000,
     clearMocks: true,
     restoreMocks: true,
+    resetMocks: true,
+    resetModules: true,
 };

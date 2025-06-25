@@ -1,5 +1,7 @@
 // Global test setup
 import { jest } from '@jest/globals';
+import { Request, Response, NextFunction } from 'express';
+import { TestUser } from './types';
 
 // Mock environment variables
 process.env.NODE_ENV = 'development'; // Changed to development to see real error messages
@@ -15,23 +17,29 @@ jest.mock('../config/db', () => ({
 // Mock auth middleware to prevent callback undefined errors
 jest.mock('../middleware/authMiddleware', () => ({
     __esModule: true,
-    protect: jest.fn((req: any, res: any, next: any) => {
-        req.user = { _id: 'test-user-id', role: 'user' };
+    protect: jest.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: TestUser };
+        reqWithUser.user = { _id: 'test-user-id', role: 'user' };
         next();
     }),
-    admin: jest.fn((req: any, res: any, next: any) => next()),
-    professional: jest.fn((req: any, res: any, next: any) => next()),
-    requireAuth: jest.fn((req: any, res: any, next: any) => next()),
-    checkOwnership: jest.fn(() => (req: any, res: any, next: any) => next()),
-    logout: jest.fn((req: any, res: any, next: any) => next()),
-    refreshToken: jest.fn((req: any, res: any) => {
+    admin: jest.fn((req: Request, res: Response, next: NextFunction) => next()),
+    professional: jest.fn((req: Request, res: Response, next: NextFunction) => next()),
+    requireAuth: jest.fn((req: Request, res: Response, next: NextFunction) => next()),
+    checkOwnership: jest.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
+    logout: jest.fn((req: Request, res: Response) => {
+        res.json({
+            success: true,
+            message: 'Logged out successfully',
+        });
+    }),
+    refreshToken: jest.fn((req: Request, res: Response) => {
         res.json({
             success: true,
             message: 'Tokens refreshed successfully',
             data: { accessToken: 'mock-token', refreshToken: 'mock-refresh-token' },
         });
     }),
-    revokeAllTokens: jest.fn((req: any, res: any) => {
+    revokeAllTokens: jest.fn((req: Request, res: Response) => {
         res.json({
             success: true,
             message: 'All tokens revoked successfully',
