@@ -27,7 +27,7 @@ describe('User model email validation', () => {
 
     it('validates password requirements', () => {
         // Test password validation logic
-        const strongPassword = 'Password123!';
+        const strongPassword = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
         const weakPassword = '123';
 
         // Basic password validation - at least 8 characters

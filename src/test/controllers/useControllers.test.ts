@@ -3,6 +3,9 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { createMockData } from '../utils/testHelpers';
+import request from 'supertest';
+import { faker } from '@faker-js/faker';
+import app from '../../app';
 
 // Mock UserService específicamente para este test
 const mockUserService = {
@@ -40,14 +43,14 @@ const createMockReqRes = (body = {}, params = {}, user: { _id?: string; role?: s
         params,
         user,
     } as Request;
-    
+
     const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn().mockReturnThis(),
     } as unknown as Response;
-    
+
     const next = jest.fn() as NextFunction;
-    
+
     return { req, res, next };
 };
 
@@ -55,14 +58,18 @@ beforeEach(() => {
     jest.clearAllMocks();
 });
 
+// Generate test passwords using faker instead of hardcoded values
+const TEST_PASSWORD = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
+const TEST_EMAIL = faker.internet.email();
+
 describe('User Controllers', () => {
     describe('registerUser', () => {
         it('should register a new user successfully', async () => {
             const userData = {
                 firstName: 'John',
                 lastName: 'Doe',
-                email: 'test@example.com',
-                password: 'Password123!',
+                email: TEST_EMAIL,
+                password: TEST_PASSWORD,
                 dateOfBirth: '1990-01-01',
             };
 
@@ -84,29 +91,31 @@ describe('User Controllers', () => {
         it('should handle registration error', async () => {
             const userData = { email: 'test@example.com' };
             const error = new Error('Registration failed');
-            
+
             mockUserService.registerUser.mockRejectedValue(error);
             const { req, res, next } = createMockReqRes(userData);
 
             await registerUser(req, res, next);
 
-            expect(next).toHaveBeenCalledWith(expect.objectContaining({
-                statusCode: 400,
-                message: 'Registration failed'
-            }));
+            expect(next).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: 'Registration failed',
+                })
+            );
         });
     });
 
     describe('loginUser', () => {
         it('should authenticate user successfully', async () => {
             const loginData = {
-                email: 'test@example.com',
-                password: 'Password123!',
+                email: TEST_EMAIL,
+                password: TEST_PASSWORD,
             };
 
             const loginResult = {
                 token: 'mockToken',
-                user: createMockData.user({ _id: 'userId', email: 'test@example.com' }),
+                user: createMockData.user({ _id: 'userId', email: TEST_EMAIL }),
             };
 
             mockUserService.loginUser.mockResolvedValue(loginResult);
@@ -114,7 +123,7 @@ describe('User Controllers', () => {
 
             await loginUser(req, res, next);
 
-            expect(mockUserService.loginUser).toHaveBeenCalledWith('test@example.com', 'Password123!', res);
+            expect(mockUserService.loginUser).toHaveBeenCalledWith(TEST_EMAIL, TEST_PASSWORD, res);
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith(loginResult);
         });
@@ -162,10 +171,12 @@ describe('User Controllers', () => {
 
             await getUserById(req, res, next);
 
-            expect(next).toHaveBeenCalledWith(expect.objectContaining({
-                statusCode: 400,
-                message: 'User ID is required'
-            }));
+            expect(next).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: 'User ID is required',
+                })
+            );
         });
     });
 
@@ -222,10 +233,12 @@ describe('User Controllers', () => {
 
             await deleteUserById(req, res, next);
 
-            expect(next).toHaveBeenCalledWith(expect.objectContaining({
-                statusCode: 400,
-                message: 'User ID is required'
-            }));
+            expect(next).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: 'User ID is required',
+                })
+            );
         });
     });
 });

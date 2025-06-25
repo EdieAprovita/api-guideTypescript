@@ -1,17 +1,13 @@
 // Global test setup - Centralized and optimized
 import { jest } from '@jest/globals';
-import { 
-    authMiddlewareMocks, 
-    validationMocks, 
-    securityMocks, 
-    userControllerMocks 
-} from './__mocks__/middleware';
+import { faker } from '@faker-js/faker';
+import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from './__mocks__/middleware';
 import { serviceMocks, modelMocks, externalMocks } from './__mocks__/services';
 import { dbConfigMocks } from './__mocks__/database';
 
-// Mock environment variables
+// Mock environment variables with faker-generated values
 process.env.NODE_ENV = 'test'; // Cambiar a 'test' para mejor rendimiento
-process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.JWT_SECRET = faker.string.alphanumeric(32);
 process.env.BCRYPT_SALT_ROUNDS = '10';
 
 // === CRITICAL: Mocks must be defined BEFORE any imports that use them ===

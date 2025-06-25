@@ -14,18 +14,26 @@ This document outlines all the SonarCloud issues that were identified and fixed 
 - **Fix:** Replaced `||` with `??` for safer null/undefined handling
 - **Lines:** 66, 113
 
-### 2. **Redirect Vulnerability (Security)**
+### 2. **Boolean Literal and Constant Truthiness Issues**
+
+**Files:** `src/middleware/security.ts`
+
+- **Issue:** Unexpected constant truthiness on the left-hand side of a `||` expression
+- **Fix:** Refactored to use proper variable assignments and avoid boolean literals
+- **Lines:** 67
+
+### 3. **Redirect Vulnerability (Security)**
 
 **Files:** `src/middleware/security.ts`
 
 - **Issue:** Potential redirect attacks based on user-controlled data
 - **Fix:**
     - Added host validation with regex pattern before redirect
-    - Implemented whitelist approach for allowed redirect paths
-    - Removed dependency on user-controlled `req.originalUrl`
-- **Lines:** 80-95
+    - Implemented strict whitelist approach - only allow root path redirects
+    - Completely removed dependency on user-controlled data (`req.path`, `req.originalUrl`)
+- **Lines:** 80-102
 
-### 3. **Unnecessary Type Assertions**
+### 4. **Unnecessary Type Assertions**
 
 **Files:** `src/middleware/validation.ts`, `src/services/TokenService.ts`
 
@@ -33,7 +41,7 @@ This document outlines all the SonarCloud issues that were identified and fixed 
 - **Fix:** Removed unnecessary type assertions and added proper type checking
 - **Lines:** 23, 95
 
-### 4. **Regex Vulnerabilities (DoS)**
+### 5. **Regex Vulnerabilities (DoS)**
 
 **Files:** `src/middleware/validation.ts`, `src/test/models/userModel.test.ts`
 
@@ -44,7 +52,7 @@ This document outlines all the SonarCloud issues that were identified and fixed 
     - Fixed control character removal using Unicode escape sequences
 - **Lines:** 130, 15, 25
 
-### 5. **Control Character Issues**
+### 6. **Control Character Issues**
 
 **Files:** `src/middleware/validation.ts`
 
@@ -52,7 +60,18 @@ This document outlines all the SonarCloud issues that were identified and fixed 
 - **Fix:** Replaced hex escape sequences with Unicode escape sequences
 - **Lines:** 130
 
-### 6. **Unused Imports**
+### 7. **Hardcoded Passwords and Secrets**
+
+**Files:** `src/services/TokenService.ts`, `src/test/controllers/useControllers.test.ts`, `src/test/models/userModel.test.ts`, `src/test/setup.ts`
+
+- **Issue:** Hardcoded passwords and secrets in code
+- **Fix:**
+    - Removed fallback secrets from TokenService - now fails gracefully if env vars missing
+    - Replaced hardcoded passwords in tests with faker-generated ones
+    - Used faker for JWT secrets in test setup
+- **Lines:** 56-59, 64, 103, 13, 15
+
+### 8. **Unused Imports**
 
 **Files:** Multiple test files
 
@@ -83,16 +102,18 @@ This document outlines all the SonarCloud issues that were identified and fixed 
 
 ### Security Improvements
 
-1. **Redirect Protection:** Added host validation and whitelist approach to prevent redirect attacks
+1. **Redirect Protection:** Complete elimination of user-controlled data in redirects
 2. **Regex Security:** Fixed potential DoS vulnerabilities in regex patterns
 3. **Control Character Safety:** Used Unicode escape sequences instead of hex escapes
 4. **Type Safety:** Improved type checking and removed unsafe assertions
+5. **Secret Management:** Eliminated hardcoded passwords and secrets
 
 ### Code Quality Improvements
 
 1. **Modern JavaScript:** Used nullish coalescing operator for better null handling
 2. **Clean Imports:** Removed unused imports to reduce bundle size
 3. **Maintainability:** Cleaner, more readable code
+4. **Boolean Logic:** Improved boolean expressions without literals
 
 ### Performance Improvements
 
@@ -101,52 +122,51 @@ This document outlines all the SonarCloud issues that were identified and fixed 
 
 ## 🔍 Technical Details
 
-### Nullish Coalescing Fix
+### Boolean Literal Fix
 
 ```typescript
-// Before
-const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
-
-// After
+// Before (problematic)
 const isHttps = req.secure ?? (false || req.headers['x-forwarded-proto'] === 'https');
+
+// After (clean)
+const isSecure = req.secure ?? false;
+const isForwardedHttps = req.headers['x-forwarded-proto'] === 'https';
+const isForwardedSsl = req.headers['x-forwarded-ssl'] === 'on';
+const isHttps = isSecure || isForwardedHttps || isForwardedSsl;
 ```
 
 ### Redirect Security Fix
 
 ```typescript
-// Added whitelist approach for redirects
-const allowedPaths = ['/', '/api', '/docs', '/health'];
-const currentPath = req.path;
+// Before (vulnerable)
+const redirectURL = `https://${host}${req.originalUrl}`;
 
-if (!allowedPaths.some(path => currentPath.startsWith(path))) {
-    return res.status(400).json({
-        success: false,
-        message: 'Invalid redirect path',
-    });
-}
-
-const redirectURL = `https://${host}${currentPath}`;
+// After (secure)
+const redirectURL = `https://${host}/`;
 ```
 
-### Control Character Fix
+### Hardcoded Password Fix
 
 ```typescript
-// Before (using hex escapes)
-.replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+// Before (insecure)
+this.accessTokenSecret = process.env.JWT_SECRET ?? 'fallback-secret';
 
-// After (using Unicode escapes)
-.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+// After (secure)
+this.accessTokenSecret =
+    process.env.JWT_SECRET ??
+    (() => {
+        throw new Error('JWT_SECRET environment variable is required');
+    })();
 ```
 
-### Type Assertion Fix
+### Test Password Fix
 
 ```typescript
-// Before
-const payload = jwt.verify(token, secret, options) as TokenPayload;
+// Before (hardcoded)
+const password = 'Password123!';
 
-// After
-const payload = jwt.verify(token, secret, options);
-return payload as TokenPayload;
+// After (dynamic)
+const TEST_PASSWORD = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
 ```
 
 ## ✅ Quality Gates
@@ -158,6 +178,7 @@ All SonarCloud quality gates should now pass:
 - ✅ No minor code smells (imports cleaned)
 - ✅ Maintained test coverage
 - ✅ No new technical debt
+- ✅ No hardcoded secrets or passwords
 
 ## 🚀 Next Steps
 
@@ -175,3 +196,5 @@ All SonarCloud quality gates should now pass:
 - Security posture significantly enhanced
 - Redirect vulnerability completely resolved
 - Regex vulnerabilities eliminated
+- Hardcoded secrets completely removed
+- Boolean logic improved for better maintainability

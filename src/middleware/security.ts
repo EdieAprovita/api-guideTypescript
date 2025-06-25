@@ -61,10 +61,11 @@ export const configureHelmet = () => {
  */
 export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) => {
     if (process.env.NODE_ENV === 'production') {
-        // Check if request is already HTTPS
-        const isHttps =
-            req.secure ??
-            (false || req.headers['x-forwarded-proto'] === 'https' || req.headers['x-forwarded-ssl'] === 'on');
+        // Check if request is already HTTPS using proper nullish coalescing
+        const isSecure = req.secure ?? false;
+        const isForwardedHttps = req.headers['x-forwarded-proto'] === 'https';
+        const isForwardedSsl = req.headers['x-forwarded-ssl'] === 'on';
+        const isHttps = isSecure || isForwardedHttps || isForwardedSsl;
 
         if (!isHttps) {
             const host = req.get('host');
@@ -85,20 +86,9 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
                 });
             }
 
-            // Use a whitelist approach for redirects instead of user-controlled data
-            const allowedPaths = ['/', '/api', '/docs', '/health'];
-            const currentPath = req.path;
-
-            // Only redirect to allowed paths or return error
-            if (!allowedPaths.some(path => currentPath.startsWith(path))) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid redirect path',
-                });
-            }
-
-            // Perform proper redirect to HTTPS with validated host and path
-            const redirectURL = `https://${host}${currentPath}`;
+            // Use a strict whitelist approach for redirects - only allow root path
+            // This prevents any user-controlled data from being used in redirects
+            const redirectURL = `https://${host}/`;
             return res.redirect(302, redirectURL);
         }
     }

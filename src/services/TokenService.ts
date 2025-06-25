@@ -54,8 +54,16 @@ class TokenService {
             } as unknown as Redis;
         }
 
-        this.accessTokenSecret = process.env.JWT_SECRET ?? 'fallback-secret';
-        this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET ?? 'fallback-refresh-secret';
+        this.accessTokenSecret =
+            process.env.JWT_SECRET ??
+            (() => {
+                throw new Error('JWT_SECRET environment variable is required');
+            })();
+        this.refreshTokenSecret =
+            process.env.JWT_REFRESH_SECRET ??
+            (() => {
+                throw new Error('JWT_REFRESH_SECRET environment variable is required');
+            })();
         this.accessTokenExpiry = process.env.JWT_EXPIRES_IN ?? '15m';
         this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
     }
