@@ -19,8 +19,8 @@ export const validate = (schema: ValidationSchema) => {
                             stripUnknown: true,
                             convert: true,
                         })
-                        .then((value: any) => {
-                            req.body = value;
+                        .then((value: Record<string, unknown>) => {
+                            req.body = value as Record<string, unknown>;
                         })
                 );
             }
@@ -34,8 +34,8 @@ export const validate = (schema: ValidationSchema) => {
                             stripUnknown: true,
                             convert: true,
                         })
-                        .then((value: any) => {
-                            req.query = value;
+                        .then((value: Record<string, unknown>) => {
+                            (req.query as Record<string, unknown>) = value;
                         })
                 );
             }
@@ -49,8 +49,8 @@ export const validate = (schema: ValidationSchema) => {
                             stripUnknown: true,
                             convert: true,
                         })
-                        .then((value: any) => {
-                            req.params = value;
+                        .then((value: Record<string, unknown>) => {
+                            (req.params as Record<string, unknown>) = value;
                         })
                 );
             }
@@ -85,7 +85,7 @@ export const sanitizeInput = () => {
 
         // Enhanced XSS and injection protection
         (req: Request, _res: Response, next: NextFunction) => {
-            const sanitizeValue = (value: any): any => {
+            const sanitizeValue = (value: unknown): unknown => {
                 if (typeof value === 'string') {
                     // Enhanced XSS protection patterns
                     return (
@@ -140,7 +140,7 @@ export const sanitizeInput = () => {
                 }
 
                 if (value && typeof value === 'object') {
-                    const sanitized: any = {};
+                    const sanitized: Record<string, unknown> = {};
                     for (const [key, val] of Object.entries(value)) {
                         sanitized[key] = sanitizeValue(val);
                     }
@@ -155,11 +155,11 @@ export const sanitizeInput = () => {
             }
 
             if (req.query) {
-                req.query = sanitizeValue(req.query);
+                (req.query as Record<string, unknown>) = sanitizeValue(req.query) as Record<string, unknown>;
             }
 
             if (req.params) {
-                req.params = sanitizeValue(req.params);
+                (req.params as Record<string, unknown>) = sanitizeValue(req.params) as Record<string, unknown>;
             }
 
             next();
@@ -168,7 +168,7 @@ export const sanitizeInput = () => {
 };
 
 // Rate limiting factory
-export const createRateLimit = (config: any = {}): RateLimitRequestHandler => {
+export const createRateLimit = (config: Partial<{ windowMs: number; max: number; message: string }> = {}): RateLimitRequestHandler => {
     return rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 100,
@@ -223,7 +223,7 @@ export const rateLimits = {
 };
 
 // Validation error handler
-export const handleValidationError = (error: any, _req: Request, res: Response, next: NextFunction) => {
+export const handleValidationError = (error: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (error instanceof Joi.ValidationError) {
         const validationErrors = error.details.map(detail => ({
             field: detail.path.join('.'),

@@ -1,5 +1,5 @@
 import express from 'express';
-import { refreshToken, revokeAllTokens, logout } from '../middleware/authMiddleware';
+import { refreshToken, revokeAllTokens, logout, protect } from '../middleware/authMiddleware';
 import { validate, rateLimits, securityHeaders, validateInputLength } from '../middleware/validation';
 import Joi from 'joi';
 
@@ -23,6 +23,7 @@ router.post('/refresh-token',
 // Logout endpoint (blacklist current token)
 router.post('/logout',
   rateLimits.api,
+  protect,
   logout,
   (_req, res) => {
     res.json({
@@ -35,6 +36,7 @@ router.post('/logout',
 // Revoke all tokens (logout from all devices)
 router.post('/revoke-all-tokens',
   rateLimits.auth,
+  protect,
   revokeAllTokens
 );
 

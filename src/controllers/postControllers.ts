@@ -143,7 +143,7 @@ export const addComment = asyncHandler(async (req: Request, res: Response, next:
     }
     try {
         const { id } = req.params;
-        const userId = (req as any).user?._id;
+        const userId = req.user?._id;
         if (!id || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
@@ -175,7 +175,7 @@ export const addComment = asyncHandler(async (req: Request, res: Response, next:
 export const likePost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const postId = req.params.id;
-        const userId = (req as any).user?._id;
+        const userId = req.user?._id;
         if (!postId || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
@@ -206,7 +206,7 @@ export const likePost = asyncHandler(async (req: Request, res: Response, next: N
 export const unlikePost = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const postId = req.params.id;
-        const userId = (req as any).user?._id;
+        const userId = req.user?._id;
         if (!postId || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }

@@ -1,5 +1,6 @@
 import request from "supertest";
 import { geoService } from "./controllerTestSetup";
+jest.mock("../../middleware/validation");
 import app from "../../app";
 import { professionService } from "../../services/ProfessionService";
 import { reviewService } from "../../services/ReviewService";

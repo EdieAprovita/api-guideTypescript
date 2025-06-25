@@ -14,14 +14,11 @@ export const requireAuth = jest.fn((req: Request, res: Response, next: NextFunct
 
 export const checkOwnership = jest.fn(() => (req: Request, res: Response, next: NextFunction) => next());
 
-export const logout = jest.fn((req: Request, res: Response) => {
-    res.json({
-        success: true,
-        message: 'Logged out successfully',
-    });
+export const logout = jest.fn(async (req: Request, res: Response, next: NextFunction) => {
+    next();
 });
 
-export const refreshToken = jest.fn((req: Request, res: Response) => {
+export const refreshToken = jest.fn(async (req: Request, res: Response) => {
     res.json({
         success: true,
         message: 'Tokens refreshed successfully',
@@ -29,7 +26,7 @@ export const refreshToken = jest.fn((req: Request, res: Response) => {
     });
 });
 
-export const revokeAllTokens = jest.fn((req: Request, res: Response) => {
+export const revokeAllTokens = jest.fn(async (req: Request, res: Response) => {
     res.json({
         success: true,
         message: 'All tokens revoked successfully',

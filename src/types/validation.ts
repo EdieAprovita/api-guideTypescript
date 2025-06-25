@@ -1,7 +1,9 @@
+import { Schema } from 'joi';
+
 export interface ValidationError {
   field: string;
   message: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface ValidationResult {
@@ -18,9 +20,9 @@ export interface RateLimitConfig {
 }
 
 export interface ValidationSchema {
-  body?: any;
-  query?: any;
-  params?: any;
+  body?: Schema;
+  query?: Schema;
+  params?: Schema;
 }
 
 export interface SanitizeOptions {

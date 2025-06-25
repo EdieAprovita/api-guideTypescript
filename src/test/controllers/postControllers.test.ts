@@ -1,4 +1,5 @@
 import request from "supertest";
+jest.mock("../../middleware/validation");
 import app from "../../app";
 import { postService } from "../../services/PostService";
 

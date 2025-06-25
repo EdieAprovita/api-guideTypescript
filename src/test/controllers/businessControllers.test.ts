@@ -1,6 +1,7 @@
 import request from "supertest";
 // Prevent database connection attempts when importing the app
 jest.mock("../../config/db");
+jest.mock("../../middleware/validation");
 import app from "../../app";
 import { businessService } from "../../services/BusinessService";
 import geoService from "../../services/GeoService";

@@ -22,7 +22,14 @@ class TokenService {
     constructor() {
         // Only connect to Redis if not in test environment
         if (process.env.NODE_ENV !== 'test') {
-            const redisConfig: any = {
+            const redisConfig: {
+                host: string;
+                port: number;
+                lazyConnect: boolean;
+                retryDelayOnFailover: number;
+                maxRetriesPerRequest: number;
+                password?: string;
+            } = {
                 host: process.env.REDIS_HOST ?? 'localhost',
                 port: parseInt(process.env.REDIS_PORT ?? '6379'),
                 lazyConnect: true,
@@ -44,7 +51,7 @@ class TokenService {
                 keys: () => Promise.resolve([]),
                 ttl: () => Promise.resolve(-1),
                 disconnect: () => {},
-            } as any;
+            } as unknown as Redis;
         }
 
         this.accessTokenSecret = process.env.JWT_SECRET ?? 'fallback-secret';
@@ -152,7 +159,7 @@ class TokenService {
 
     async blacklistToken(token: string): Promise<void> {
         try {
-            const decoded = jwt.decode(token) as any;
+            const decoded = jwt.decode(token) as (jwt.JwtPayload & { exp?: number }) | null;
             if (decoded && decoded.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
                 if (expirationTime > 0) {
@@ -207,14 +214,26 @@ class TokenService {
         }
     }
 
-    async getTokenInfo(token: string): Promise<any> {
+    async getTokenInfo(token: string): Promise<{
+        header?: jwt.JwtHeader;
+        payload?: jwt.JwtPayload;
+        isValid: boolean;
+        error?: string;
+    }> {
         try {
             const decoded = jwt.decode(token, { complete: true });
-            return {
-                header: decoded?.header,
-                payload: decoded?.payload,
-                isValid: true,
-            };
+            if (decoded && typeof decoded === 'object' && 'header' in decoded && 'payload' in decoded) {
+                return {
+                    header: decoded.header,
+                    payload: decoded.payload as jwt.JwtPayload,
+                    isValid: true,
+                };
+            } else {
+                return {
+                    isValid: false,
+                    error: 'Invalid token format',
+                };
+            }
         } catch (error) {
             return {
                 isValid: false,

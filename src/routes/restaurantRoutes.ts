@@ -16,7 +16,7 @@ const router = express.Router();
 
 // Apply security headers and sanitization to all routes
 router.use(securityHeaders);
-router.use(sanitizeInput());
+router.use(...sanitizeInput());
 
 // Public routes with rate limiting and search validation
 router.get('/', 

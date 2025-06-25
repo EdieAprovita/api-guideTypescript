@@ -22,7 +22,7 @@ const router = express.Router();
 router.use(securityHeaders);
 
 // Apply input sanitization to all routes
-router.use(sanitizeInput());
+router.use(...sanitizeInput());
 
 // Routes with validation and rate limiting
 router.get('/', 

@@ -47,9 +47,10 @@ const connectDB = async (): Promise<void> => {
             console.log(colorTheme.info.bold('MongoDB connection closed through app termination'));
             process.exit(0);
         });
-    } catch (error: any) {
-        console.error(colorTheme.danger.bold(`Database connection error: ${error.message}`));
-        throw new DataBaseError(`Error connecting to the database: ${error.message}`);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
+        console.error(colorTheme.danger.bold(`Database connection error: ${errorMessage}`));
+        throw new DataBaseError(`Error connecting to the database: ${errorMessage}`);
     }
 };
 

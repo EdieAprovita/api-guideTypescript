@@ -148,7 +148,7 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         /[;&|`$()]/g,
     ];
 
-    const checkValue = (value: any): boolean => {
+    const checkValue = (value: unknown): boolean => {
         if (typeof value === 'string') {
             return suspiciousPatterns.some(pattern => pattern.test(value));
         }
