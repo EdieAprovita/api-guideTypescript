@@ -10,15 +10,15 @@ This document outlines all the SonarCloud issues that were identified and fixed 
 
 **Files:** `src/middleware/security.ts`
 
-- **Issue:** Using logical OR (`||`) instead of nullish coalescing operator (`??`)
-- **Fix:** Replaced `||` with `??` for safer null/undefined handling
+- **Issue:** Using logical OR (`??`) instead of nullish coalescing operator (`??`)
+- **Fix:** Replaced `??` with `??` for safer null/undefined handling
 - **Lines:** 66, 113
 
 ### 2. **Boolean Literal and Constant Truthiness Issues**
 
 **Files:** `src/middleware/security.ts`
 
-- **Issue:** Unexpected constant truthiness on the left-hand side of a `||` expression
+- **Issue:** Unexpected constant truthiness on the left-hand side of a `??` expression
 - **Fix:** Refactored to use proper variable assignments and avoid boolean literals
 - **Lines:** 67
 
@@ -126,13 +126,13 @@ This document outlines all the SonarCloud issues that were identified and fixed 
 
 ```typescript
 // Before (problematic)
-const isHttps = req.secure ?? (false || req.headers['x-forwarded-proto'] === 'https');
+const isHttps = req.secure ?? false ?? req.headers['x-forwarded-proto'] === 'https';
 
 // After (clean)
 const isSecure = req.secure ?? false;
 const isForwardedHttps = req.headers['x-forwarded-proto'] === 'https';
 const isForwardedSsl = req.headers['x-forwarded-ssl'] === 'on';
-const isHttps = isSecure || isForwardedHttps || isForwardedSsl;
+const isHttps = isSecure ?? isForwardedHttps ?? isForwardedSsl;
 ```
 
 ### Redirect Security Fix

@@ -65,7 +65,7 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
         const isSecure = req.secure ?? false;
         const isForwardedHttps = req.headers['x-forwarded-proto'] === 'https';
         const isForwardedSsl = req.headers['x-forwarded-ssl'] === 'on';
-        const isHttps = isSecure || isForwardedHttps || isForwardedSsl;
+        const isHttps = isSecure ?? isForwardedHttps ?? isForwardedSsl;
 
         if (!isHttps) {
             const host = req.get('host');
@@ -170,7 +170,7 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         return false;
     };
 
-    const isSuspicious = checkValue(req.body) || checkValue(req.query) || checkValue(req.params);
+    const isSuspicious = checkValue(req.body) ?? checkValue(req.query) ?? checkValue(req.params);
 
     if (isSuspicious) {
         // Log suspicious activity
@@ -252,7 +252,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
  */
 export const geoBlock = (blockedCountries: string[] = []) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        const country = req.get('CF-IPCountry') || req.get('X-Country-Code');
+        const country = req.get('CF-IPCountry') ?? req.get('X-Country-Code');
 
         if (country && blockedCountries.includes(country.toUpperCase())) {
             return res.status(403).json({

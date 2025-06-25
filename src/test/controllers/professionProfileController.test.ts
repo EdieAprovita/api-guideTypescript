@@ -1,45 +1,10 @@
 import request from 'supertest';
-import type { Request, Response, NextFunction } from 'express';
-jest.resetModules();
-jest.mock('../../middleware/validation', () => ({
-    sanitizeInput: () => [(_req: Request, _res: Response, next: NextFunction) => next()],
-    securityHeaders: (_req: Request, _res: Response, next: NextFunction) => next(),
-    validateInputLength: () => (_req: Request, _res: Response, next: NextFunction) => next(),
-    validate: () => (_req: Request, _res: Response, next: NextFunction) => next(),
-    rateLimits: {
-        api: (_req: Request, _res: Response, next: NextFunction) => next(),
-        auth: (_req: Request, _res: Response, next: NextFunction) => next(),
-        register: (_req: Request, _res: Response, next: NextFunction) => next(),
-        search: (_req: Request, _res: Response, next: NextFunction) => next(),
-    },
-}));
+import { setupCommonMocks, resetMocks } from '../utils/testHelpers';
 
-jest.mock('../../middleware/security', () => ({
-    securityHeaders: (_req: Request, _res: Response, next: NextFunction) => next(),
-    enforceHTTPS: (_req: Request, _res: Response, next: NextFunction) => next(),
-    configureHelmet: () => (_req: Request, _res: Response, next: NextFunction) => next(),
-    addCorrelationId: (_req: Request, _res: Response, next: NextFunction) => next(),
-    requireAPIVersion: () => (_req: Request, _res: Response, next: NextFunction) => next(),
-    validateUserAgent: (_req: Request, _res: Response, next: NextFunction) => next(),
-    limitRequestSize: () => (_req: Request, _res: Response, next: NextFunction) => next(),
-    detectSuspiciousActivity: (_req: Request, _res: Response, next: NextFunction) => next(),
-}));
+// === CRITICAL: Mocks must be defined BEFORE any imports ===
+setupCommonMocks();
 
-jest.mock('../../middleware/authMiddleware', () => ({
-    protect: (req, res, next) => {
-        req.user = { id: 'user', role: 'admin' };
-        next();
-    },
-    admin: (req, res, next) => next(),
-    professional: (req, res, next) => next(),
-    refreshToken: (_req, res) => res.status(200).json({ success: true }),
-    logout: (_req, res) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req, res) => res.status(200).json({ success: true }),
-}));
-
-import app from '../../app';
-import { professionProfileService } from '../../services/ProfessionProfileService';
-
+// Mock services with proper structure
 jest.mock('../../services/ProfessionProfileService', () => ({
     professionProfileService: {
         getAll: jest.fn(),
@@ -50,18 +15,116 @@ jest.mock('../../services/ProfessionProfileService', () => ({
     },
 }));
 
+// Now import the app after all mocks are set up
+import app from '../../app';
+import { professionProfileService } from '../../services/ProfessionProfileService';
+
+beforeEach(() => {
+    resetMocks();
+});
+
 describe('ProfessionProfile Controllers', () => {
-    it('lists profession profiles', async () => {
-        (professionProfileService.getAll as jest.Mock).mockResolvedValue([]);
-        const res = await request(app).get('/api/v1/professionalProfile');
-        expect(res.status).toBe(200);
-        expect(professionProfileService.getAll).toHaveBeenCalled();
+    describe('Get all profession profiles', () => {
+        it('should get all profession profiles', async () => {
+            const mockProfiles = [
+                { _id: 'profile1', userId: 'user1', profession: 'Doctor', experience: 5 },
+                { _id: 'profile2', userId: 'user2', profession: 'Engineer', experience: 3 },
+            ];
+
+            (professionProfileService.getAll as jest.Mock).mockResolvedValueOnce(mockProfiles);
+
+            const response = await request(app).get('/api/v1/professionalProfile');
+
+            expect(response.status).toBe(200);
+            expect(professionProfileService.getAll).toHaveBeenCalled();
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Professions fetched successfully',
+                data: mockProfiles,
+            });
+        });
     });
 
-    it('deletes a profession profile', async () => {
-        (professionProfileService.deleteById as jest.Mock).mockResolvedValue(undefined);
-        const res = await request(app).delete('/api/v1/professionalProfile/1');
-        expect(res.status).toBe(200);
-        expect(professionProfileService.deleteById).toHaveBeenCalledWith('1');
+    describe('Get profession profile by id', () => {
+        it('should get profession profile by id', async () => {
+            const mockProfile = { _id: 'profile1', userId: 'user1', profession: 'Doctor', experience: 5 };
+
+            (professionProfileService.findById as jest.Mock).mockResolvedValueOnce(mockProfile);
+
+            const response = await request(app).get(`/api/v1/professionalProfile/${mockProfile._id}`);
+
+            expect(response.status).toBe(200);
+            expect(professionProfileService.findById).toHaveBeenCalledWith(mockProfile._id);
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Profession fetched successfully',
+                data: mockProfile,
+            });
+        });
+    });
+
+    describe('Create profession profile', () => {
+        it('should create a new profession profile', async () => {
+            const profileData = {
+                userId: 'user123',
+                profession: 'Doctor',
+                experience: 5,
+                specialties: ['Cardiology'],
+                education: ['Medical School'],
+            };
+
+            const createdProfile = { ...profileData, _id: 'profile123' };
+            (professionProfileService.create as jest.Mock).mockResolvedValueOnce(createdProfile);
+
+            const response = await request(app).post('/api/v1/professionalProfile').send(profileData);
+
+            expect(response.status).toBe(201);
+            expect(professionProfileService.create).toHaveBeenCalledWith(profileData);
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Profession created successfully',
+                data: createdProfile,
+            });
+        });
+    });
+
+    describe('Update profession profile', () => {
+        it('should update profession profile by id', async () => {
+            const profileId = 'profile123';
+            const updateData = {
+                experience: 7,
+                specialties: ['Cardiology', 'Neurology'],
+            };
+
+            const updatedProfile = { ...updateData, _id: profileId };
+            (professionProfileService.updateById as jest.Mock).mockResolvedValueOnce(updatedProfile);
+
+            const response = await request(app).put(`/api/v1/professionalProfile/${profileId}`).send(updateData);
+
+            expect(response.status).toBe(200);
+            expect(professionProfileService.updateById).toHaveBeenCalledWith(profileId, updateData);
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Profession updated successfully',
+                data: updatedProfile,
+            });
+        });
+    });
+
+    describe('Delete profession profile', () => {
+        it('should delete profession profile by id', async () => {
+            const profileId = 'profile123';
+
+            (professionProfileService.deleteById as jest.Mock).mockResolvedValueOnce(undefined);
+
+            const response = await request(app).delete(`/api/v1/professionalProfile/${profileId}`);
+
+            expect(response.status).toBe(200);
+            expect(professionProfileService.deleteById).toHaveBeenCalledWith(profileId);
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Profession deleted successfully',
+            });
+        });
     });
 });

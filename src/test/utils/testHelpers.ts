@@ -1,6 +1,8 @@
 import request from 'supertest';
 import { Application } from 'express';
 import { TestUser, MockRestaurant, MockDoctor, MockMarket, MockSanctuary } from '../types';
+import { Request, Response, NextFunction } from 'express';
+import { faker } from '@faker-js/faker';
 
 /**
  * Create a test user with default values
@@ -276,3 +278,200 @@ export const expectMockToHaveBeenCalledWith = (mockFn: jest.Mock, ...expectedArg
 export const expectMockToHaveBeenCalledTimes = (mockFn: jest.Mock, times: number) => {
     expect(mockFn).toHaveBeenCalledTimes(times);
 };
+
+// === SHARED MOCK SETUP ===
+export const createMockMiddleware = () => ({
+    rateLimits: {
+        api: (_req: Request, _res: Response, next: NextFunction) => next(),
+        auth: (_req: Request, _res: Response, next: NextFunction) => next(),
+        search: (_req: Request, _res: Response, next: NextFunction) => next(),
+        register: (_req: Request, _res: Response, next: NextFunction) => next(),
+    },
+    securityHeaders: (_req: Request, _res: Response, next: NextFunction) => next(),
+    enforceHTTPS: (_req: Request, _res: Response, next: NextFunction) => next(),
+    configureHelmet: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    addCorrelationId: (_req: Request, _res: Response, next: NextFunction) => next(),
+    requireAPIVersion: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    validateUserAgent: (_req: Request, _res: Response, next: NextFunction) => next(),
+    limitRequestSize: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    detectSuspiciousActivity: (_req: Request, _res: Response, next: NextFunction) => next(),
+    sanitizeInput: () => [(_req: Request, _res: Response, next: NextFunction) => next()],
+    validateInputLength: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    validate: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+});
+
+export const createMockAuthMiddleware = () => ({
+    protect: (_req: Request, _res: Response, next: NextFunction) => next(),
+    admin: (_req: Request, _res: Response, next: NextFunction) => next(),
+    professional: (_req: Request, _res: Response, next: NextFunction) => next(),
+    refreshToken: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+    logout: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+    revokeAllTokens: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+});
+
+export const createMockDatabase = () => ({
+    connectDB: jest.fn().mockResolvedValue(undefined),
+    disconnectDB: jest.fn().mockResolvedValue(undefined),
+    isConnected: jest.fn().mockReturnValue(true),
+});
+
+export const createMockLogger = () => ({
+    __esModule: true,
+    default: {
+        error: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+    },
+});
+
+export const createMockExpressValidator = () => ({
+    validationResult: jest.fn().mockReturnValue({
+        isEmpty: () => true,
+        array: () => [],
+    }),
+});
+
+// === TEST DATA GENERATORS ===
+export const createMockUser = (overrides = {}) => ({
+    _id: faker.string.alphanumeric(24),
+    username: faker.internet.userName(),
+    email: faker.internet.email(),
+    role: 'user',
+    photo: 'default.png',
+    isActive: true,
+    isDeleted: false,
+    ...overrides,
+});
+
+export const createMockBusiness = (overrides = {}) => ({
+    _id: faker.string.alphanumeric(24),
+    namePlace: faker.company.name(),
+    address: faker.location.streetAddress(),
+    contact: {
+        phone: faker.phone.number(),
+        email: faker.internet.email(),
+    },
+    image: faker.image.url(),
+    hours: [
+        {
+            dayOfWeek: 'Monday',
+            openTime: '8:00',
+            closeTime: '18:00',
+        },
+    ],
+    ...overrides,
+});
+
+export const createMockRestaurant = (overrides = {}) => ({
+    _id: faker.string.alphanumeric(24),
+    name: faker.company.name(),
+    description: faker.lorem.sentence(),
+    address: faker.location.streetAddress(),
+    category: 'restaurant',
+    phone: faker.phone.number(),
+    ...overrides,
+});
+
+export const createMockDoctor = (overrides = {}) => ({
+    _id: faker.string.alphanumeric(24),
+    name: faker.person.fullName(),
+    specialty: faker.helpers.arrayElement(['Cardiology', 'Neurology', 'Pediatrics']),
+    license: faker.string.alphanumeric(10),
+    phone: faker.phone.number(),
+    email: faker.internet.email(),
+    ...overrides,
+});
+
+export const createMockRecipe = (overrides = {}) => ({
+    _id: faker.string.alphanumeric(24),
+    title: faker.lorem.words(3),
+    description: faker.lorem.sentence(),
+    ingredients: [faker.lorem.word(), faker.lorem.word()],
+    instructions: [faker.lorem.sentence()],
+    cookingTime: faker.number.int({ min: 10, max: 120 }),
+    difficulty: faker.helpers.arrayElement(['Easy', 'Medium', 'Hard']),
+    ...overrides,
+});
+
+export const createMockPost = (overrides = {}) => ({
+    _id: faker.string.alphanumeric(24),
+    title: faker.lorem.words(3),
+    content: faker.lorem.paragraph(),
+    author: faker.string.alphanumeric(24),
+    tags: [faker.lorem.word()],
+    ...overrides,
+});
+
+export const createMockReview = (overrides = {}) => ({
+    _id: faker.string.alphanumeric(24),
+    rating: faker.number.int({ min: 1, max: 5 }),
+    comment: faker.lorem.sentence(),
+    businessId: faker.string.alphanumeric(24),
+    userId: faker.string.alphanumeric(24),
+    ...overrides,
+});
+
+// === TEST UTILITIES ===
+export const createMockRequest = (body = {}, params = {}, user = null) =>
+    ({
+        body,
+        params,
+        user,
+        headers: {},
+        cookies: {},
+    }) as unknown as Request;
+
+export const createMockResponse = () =>
+    ({
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+        send: jest.fn().mockReturnThis(),
+        clearCookie: jest.fn().mockReturnThis(),
+        cookie: jest.fn().mockReturnThis(),
+    }) as unknown as Response;
+
+export const createMockNext = () => jest.fn() as NextFunction;
+
+// === COMMON TEST SETUP ===
+export const setupCommonMocks = () => {
+    // Mock database connection
+    jest.mock('../../config/db', () => createMockDatabase());
+
+    // Mock middleware
+    jest.mock('../../middleware/security', () => createMockMiddleware());
+    jest.mock('../../middleware/validation', () => createMockMiddleware());
+    jest.mock('../../middleware/authMiddleware', () => createMockAuthMiddleware());
+
+    // Mock logger
+    jest.mock('../../utils/logger', () => createMockLogger());
+
+    // Mock express-validator
+    jest.mock('express-validator', () => createMockExpressValidator());
+};
+
+export const resetMocks = () => {
+    jest.clearAllMocks();
+
+    // Reset validation result mock
+    const { validationResult } = require('express-validator');
+    validationResult.mockReturnValue({
+        isEmpty: () => true,
+        array: () => [],
+    });
+};
+
+// === VALIDATION ERROR HELPERS ===
+export const createValidationError = (field: string, message: string) => ({
+    isEmpty: () => false,
+    array: () => [{ field, msg: message }],
+});
+
+// === PASSWORD HELPERS ===
+export const generateTestPassword = () =>
+    faker.internet.password({
+        length: 12,
+        pattern: /[A-Za-z0-9!@#$%^&*]/,
+    });
+
+export const generateWeakPassword = () => faker.string.alphanumeric(3);

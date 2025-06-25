@@ -60,7 +60,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         }
 
         // Check if user account is still active
-        if (currentUser.isDeleted || !currentUser.isActive) {
+        if (currentUser.isDeleted ?? !currentUser.isActive) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User account is inactive');
         }
 
@@ -241,7 +241,7 @@ export const refreshToken = async (req: Request, res: Response) => {
  */
 export const revokeAllTokens = async (req: Request, res: Response) => {
     try {
-        if (!req.user || !req.user._id) {
+        if (!req.user ?? !req.user._id) {
             return res.status(401).json({
                 success: false,
                 message: 'User not authenticated',

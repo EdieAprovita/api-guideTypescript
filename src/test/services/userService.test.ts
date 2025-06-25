@@ -5,11 +5,17 @@ import { HttpError, HttpStatusCode } from '../../types/Errors';
 import { getErrorMessage } from '../../types/modalTypes';
 import generateTokenAndSetCookie from '../../utils/generateToken';
 import { faker } from '@faker-js/faker';
+import { jest } from '@jest/globals';
+import { generateTestPassword } from '../utils/testHelpers';
 
 // Mock dependencies
 jest.mock('../../models/User');
 jest.mock('../../utils/generateToken');
 jest.mock('../../utils/logger');
+jest.mock('bcryptjs', () => ({
+    hash: jest.fn().mockResolvedValue('hashed-password'),
+    compare: jest.fn().mockResolvedValue(true),
+}));
 
 // Mock Response object for testing
 const mockResponse = {
@@ -20,8 +26,8 @@ const mockResponse = {
 } as unknown as Response;
 
 // Generate random passwords for testing to avoid hard-coded credentials
-const TEST_PASSWORD = faker.internet.password(12);
-const WRONG_PASSWORD = faker.internet.password(12);
+const TEST_PASSWORD = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
+const WRONG_PASSWORD = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
 
 describe('UserService', () => {
     beforeEach(() => {
@@ -29,24 +35,20 @@ describe('UserService', () => {
     });
 
     describe('registerUser', () => {
-        it('should register a new user successfully', async () => {
+        it('should register user successfully', async () => {
             const userData = {
                 username: 'testuser',
                 email: 'test@example.com',
                 password: TEST_PASSWORD,
             };
 
-            const mockUser = {
+            (User.findOne as jest.Mock).mockResolvedValue(null);
+            (User.create as jest.Mock).mockResolvedValue({
                 _id: 'user123',
-                username: 'testuser',
-                email: 'test@example.com',
+                ...userData,
                 role: 'user',
                 photo: 'default.png',
-                save: jest.fn(),
-            };
-
-            (User.findOne as jest.Mock).mockResolvedValue(null);
-            (User.create as jest.Mock).mockResolvedValue(mockUser);
+            });
             (generateTokenAndSetCookie as jest.Mock).mockImplementation(() => {});
 
             const result = await UserService.registerUser(userData, mockResponse);

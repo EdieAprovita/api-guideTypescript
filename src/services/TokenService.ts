@@ -133,7 +133,7 @@ class TokenService {
             const refreshTokenKey = `refresh_token:${payload.userId}`;
             const storedToken = await this.redis.get(refreshTokenKey);
 
-            if (!storedToken || storedToken !== token) {
+            if (!storedToken ?? storedToken !== token) {
                 throw new Error('Refresh token not found or invalid');
             }
 

@@ -3,7 +3,7 @@ import Joi from 'joi';
 // Common validation patterns
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const phonePattern = /^[+]?[\d\s\-().]{10,}$/;
+const phonePattern = /^\+?[\d\s\-().]{10,}$/;
 const urlPattern = /^https?:\/\/.+/;
 const timePattern = /^([01]?\d|2[0-3]):[0-5]\d$/; // HH:MM format (24-hour)
 
@@ -30,21 +30,23 @@ const createLocationSchema = (required = false) => {
     return required ? schema.required() : schema.optional();
 };
 
-const createSocialMediaSchema = () => Joi.object({
-    facebook: commonSchemas.url.optional(),
-    instagram: commonSchemas.url.optional(),
-    twitter: commonSchemas.url.optional(),
-}).optional();
+const createSocialMediaSchema = () =>
+    Joi.object({
+        facebook: commonSchemas.url.optional(),
+        instagram: commonSchemas.url.optional(),
+        twitter: commonSchemas.url.optional(),
+    }).optional();
 
-const createOpeningHoursSchema = () => Joi.object()
-    .pattern(
-        Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
-        Joi.object({
-            open: commonSchemas.time.required(),
-            close: commonSchemas.time.required(),
-        })
-    )
-    .optional();
+const createOpeningHoursSchema = () =>
+    Joi.object()
+        .pattern(
+            Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
+            Joi.object({
+                open: commonSchemas.time.required(),
+                close: commonSchemas.time.required(),
+            })
+        )
+        .optional();
 
 const createBusinessBaseSchema = (isRequired = true) => {
     const schema = {
@@ -58,7 +60,7 @@ const createBusinessBaseSchema = (isRequired = true) => {
         location: createLocationSchema(isRequired),
         openingHours: createOpeningHoursSchema(),
     };
-    
+
     if (isRequired) {
         schema.name = schema.name.required();
         schema.address = schema.address.required();
@@ -68,20 +70,21 @@ const createBusinessBaseSchema = (isRequired = true) => {
         schema.address = schema.address.optional();
         schema.phoneNumber = schema.phoneNumber.optional();
     }
-    
+
     return schema;
 };
 
 // User validation schemas
-const createPasswordSchema = () => Joi.string()
-    .min(8)
-    .max(128)
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .required()
-    .messages({
-        'string.pattern.base':
-            'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
-    });
+const createPasswordSchema = () =>
+    Joi.string()
+        .min(8)
+        .max(128)
+        .pattern(/^(?=[^\n]{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).*$/)
+        .required()
+        .messages({
+            'string.pattern.base':
+                'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
+        });
 
 const createNameSchema = (required = true) => {
     const schema = Joi.string().trim().min(2).max(50);

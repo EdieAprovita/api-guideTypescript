@@ -1,53 +1,10 @@
 import request from 'supertest';
-import { geoService } from './controllerTestSetup';
+import { setupCommonMocks, resetMocks, createMockRecipe } from '../utils/testHelpers';
 
-jest.resetModules();
-jest.mock('../../middleware/authMiddleware', () => ({
-    protect: (_req, _res, next) => next(),
-    admin: (_req, _res, next) => next(),
-    professional: (_req, _res, next) => next(),
-    refreshToken: (_req, res) => res.status(200).json({ success: true }),
-    logout: (_req, res) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req, res) => res.status(200).json({ success: true }),
-}));
+// === CRITICAL: Mocks must be defined BEFORE any imports ===
+setupCommonMocks();
 
-jest.mock('../../middleware/validation', () => ({
-    sanitizeInput: () => [(_req, _res, next) => next()],
-    securityHeaders: (_req, _res, next) => next(),
-    validateInputLength: () => (_req, _res, next) => next(),
-    validate: () => (_req, _res, next) => next(),
-    rateLimits: {
-        api: (_req, _res, next) => next(),
-        auth: (_req, _res, next) => next(),
-        register: (_req, _res, next) => next(),
-        search: (_req, _res, next) => next(),
-    },
-}));
-
-jest.mock('../../middleware/security', () => ({
-    securityHeaders: (_req, _res, next) => next(),
-    enforceHTTPS: (_req, _res, next) => next(),
-    configureHelmet: () => (_req, _res, next) => next(),
-    addCorrelationId: (_req, _res, next) => next(),
-    requireAPIVersion: () => (_req, _res, next) => next(),
-    validateUserAgent: (_req, _res, next) => next(),
-    limitRequestSize: () => (_req, _res, next) => next(),
-    detectSuspiciousActivity: (_req, _res, next) => next(),
-}));
-
-jest.mock('../../controllers/restaurantControllers', () => ({
-    getRestaurants: (_req, res) => res.status(200).json({ success: true }),
-    getRestaurantById: (_req, res) => res.status(200).json({ success: true }),
-    createRestaurant: (_req, res) => res.status(201).json({ success: true }),
-    updateRestaurant: (_req, res) => res.status(200).json({ success: true }),
-    addReviewToRestaurant: (_req, res) => res.status(200).json({ success: true }),
-    deleteRestaurant: (_req, res) => res.status(200).json({ success: true }),
-    getTopRatedRestaurants: (_req, res) => res.status(200).json({ success: true }),
-}));
-
-import app from '../../app';
-import { recipeService } from '../../services/RecipesService';
-
+// Mock services with proper structure
 jest.mock('../../services/RecipesService', () => ({
     recipeService: {
         getAll: jest.fn(),
@@ -58,11 +15,108 @@ jest.mock('../../services/RecipesService', () => ({
     },
 }));
 
+// Now import the app after all mocks are set up
+import app from '../../app';
+import { recipeService } from '../../services/RecipesService';
+
+beforeEach(() => {
+    resetMocks();
+});
+
 describe('Recipes Controllers', () => {
-    it('lists recipes', async () => {
-        (recipeService.getAll as jest.Mock).mockResolvedValue([]);
-        const res = await request(app).get('/api/v1/recipes');
-        expect(res.status).toBe(200);
-        expect(recipeService.getAll).toHaveBeenCalled();
+    describe('Get all recipes', () => {
+        it('should get all recipes', async () => {
+            const mockRecipes = [createMockRecipe(), createMockRecipe()];
+
+            (recipeService.getAll as jest.Mock).mockResolvedValueOnce(mockRecipes);
+
+            const response = await request(app).get('/api/v1/recipes');
+
+            expect(response.status).toBe(200);
+            expect(recipeService.getAll).toHaveBeenCalled();
+            expect(response.body).toEqual({
+                success: true,
+                data: mockRecipes,
+            });
+        });
+    });
+
+    describe('Get recipe by id', () => {
+        it('should get recipe by id', async () => {
+            const mockRecipe = createMockRecipe();
+
+            (recipeService.findById as jest.Mock).mockResolvedValueOnce(mockRecipe);
+
+            const response = await request(app).get(`/api/v1/recipes/${mockRecipe._id}`);
+
+            expect(response.status).toBe(200);
+            expect(recipeService.findById).toHaveBeenCalledWith(mockRecipe._id);
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Recipe fetched successfully',
+                data: mockRecipe,
+            });
+        });
+    });
+
+    describe('Create recipe', () => {
+        it('should create a new recipe', async () => {
+            const recipeData = {
+                title: 'Test Recipe',
+                ingredients: ['ingredient1', 'ingredient2'],
+                instructions: ['step1', 'step2'],
+                author: 'user123',
+                cookingTime: 30,
+                difficulty: 'medium',
+            };
+
+            const createdRecipe = { ...recipeData, _id: 'recipe123' };
+            (recipeService.create as jest.Mock).mockResolvedValueOnce(createdRecipe);
+
+            const response = await request(app).post('/api/v1/recipes').send(recipeData);
+
+            expect(response.status).toBe(201);
+            expect(recipeService.create).toHaveBeenCalledWith(recipeData);
+            expect(response.body).toEqual({
+                success: true,
+                data: createdRecipe,
+            });
+        });
+    });
+
+    describe('Update recipe', () => {
+        it('should update recipe by id', async () => {
+            const recipeId = 'recipe123';
+            const updateData = {
+                title: 'Updated Recipe',
+                cookingTime: 45,
+            };
+
+            const updatedRecipe = { ...updateData, _id: recipeId };
+            (recipeService.updateById as jest.Mock).mockResolvedValueOnce(updatedRecipe);
+
+            const response = await request(app).put(`/api/v1/recipes/${recipeId}`).send(updateData);
+
+            expect(response.status).toBe(200);
+            expect(recipeService.updateById).toHaveBeenCalledWith(recipeId, updateData);
+            expect(response.body).toEqual({
+                success: true,
+                data: updatedRecipe,
+            });
+        });
+    });
+
+    describe('Delete recipe', () => {
+        it('should delete recipe by id', async () => {
+            const recipeId = 'recipe123';
+
+            (recipeService.deleteById as jest.Mock).mockResolvedValueOnce(undefined);
+
+            const response = await request(app).delete(`/api/v1/recipes/${recipeId}`);
+
+            expect(response.status).toBe(204);
+            expect(recipeService.deleteById).toHaveBeenCalledWith(recipeId);
+            expect(response.body).toEqual({});
+        });
     });
 });

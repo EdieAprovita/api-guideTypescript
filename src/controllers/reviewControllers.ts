@@ -12,7 +12,7 @@ import { getErrorMessage } from '../types/modalTypes';
 export const listReviews = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { refId, refModel } = req.params;
-        if (!refId || !refModel) {
+        if (!refId ?? !refModel) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Reference ID and model are required'));
         }
         const reviews = await ReviewService.listReviewsForModel(refId, refModel);

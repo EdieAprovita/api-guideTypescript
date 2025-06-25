@@ -112,25 +112,27 @@ export const sanitizeInput = () => {
                             // Remove event handlers
                             .replace(/on\w+\s*=/gi, '')
                             .replace(/on[a-z]+\s*=/gi, '')
-
-                            // Remove HTML tags (comprehensive) - safer regex without backtracking
-                            .replace(/<[^>]*>/g, '')
-
+                            // Remove HTML tags safely - use non-backtracking pattern
+                            .replace(/<[^>]*?>/g, '')
                             // Remove HTML entities that could be used for XSS
                             .replace(/&[#x]?[a-zA-Z0-9]{1,8};/g, '')
 
                             // Remove potential CSS expressions
                             .replace(/expression\s*\(/gi, '')
-                            .replace(/behaviour\s*:/gi, '')
+                            .replace(/behaviour:/gi, '')
 
                             // Remove URL encoded characters that could bypass filters
                             .replace(/%[0-9a-fA-F]{2}/g, '')
 
                             // Remove control characters safely using Unicode property escapes
-                            .replace(/[\p{C}]/gu, '')
+                            .replace(/\p{C}/gu, '')
 
-                            // Keep only safe characters (letters, numbers, basic punctuation)
-                            .replace(/[<>'"&]/g, '')
+                            // Remove dangerous single characters directly (no character class)
+                            .replace(/</g, '')
+                            .replace(/>/g, '')
+                            .replace(/'/g, '')
+                            .replace(/"/g, '')
+                            .replace(/&/g, '')
                             .trim()
                     );
                 }

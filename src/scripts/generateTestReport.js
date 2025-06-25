@@ -21,9 +21,9 @@ function generateTestExecutionReport() {
             const testResults = testFile.testResults.map(test => ({
                 name: test.fullName,
                 status: test.status === 'passed' ? 'OK' : 'FAIL',
-                duration: test.duration || 0,
-                startedAt: new Date(test.startTime || Date.now()).toISOString(),
-                endedAt: new Date((test.startTime || Date.now()) + (test.duration || 0)).toISOString(),
+                duration: test.duration ?? 0,
+                startedAt: new Date(test.startTime ?? Date.now()).toISOString(),
+                endedAt: new Date((test.startTime ?? Date.now()) + (test.duration ?? 0)).toISOString(),
             }));
 
             return {

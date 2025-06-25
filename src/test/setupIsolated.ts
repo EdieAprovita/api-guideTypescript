@@ -34,7 +34,7 @@ jest.mock('mongoose', () => ({
     },
     model: jest.fn(),
     Types: {
-        ObjectId: jest.fn().mockImplementation((id?: string) => id || 'mock-object-id'),
+        ObjectId: jest.fn().mockImplementation((id?: string) => id ?? 'mock-object-id'),
     },
 }));
 
