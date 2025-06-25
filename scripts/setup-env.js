@@ -70,7 +70,7 @@ try {
     if (fs.existsSync(envPath)) {
         console.log('⚠️  .env file already exists. Skipping creation.');
         console.log('If you need to regenerate it, delete the existing .env file first.');
-        return;
+        process.exit(0);
     }
 
     // Create .env file
