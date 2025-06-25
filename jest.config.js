@@ -3,6 +3,11 @@ module.exports = {
     testEnvironment: 'node',
     roots: ['<rootDir>/src'],
     testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+    testPathIgnorePatterns: [
+        '/node_modules/',
+        '<rootDir>/src/test/middleware/', // Excluir middleware tests - usar config aislado
+        '<rootDir>/src/test/controllers/useControllers.test.ts', // Excluir useControllers - usar config aislado
+    ],
     transform: {
         '^.+\\.ts$': [
             'ts-jest',

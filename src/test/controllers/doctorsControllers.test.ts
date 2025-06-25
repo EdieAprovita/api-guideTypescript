@@ -1,115 +1,165 @@
-// Prevent database connection attempts when importing the app
-jest.mock('../../config/db');
-jest.mock('../../middleware/authMiddleware', () => ({
-    protect: (_req, _res, next) => next(),
-    admin: (_req, _res, next) => next(),
-    professional: (_req, _res, next) => next(),
-    refreshToken: (_req, res) => res.status(200).json({ success: true }),
-    logout: (_req, res) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req, res) => res.status(200).json({ success: true }),
-}));
-jest.mock('../../middleware/validation', () => ({
-    sanitizeInput: () => [(_req, _res, next) => next()],
-    securityHeaders: (_req, _res, next) => next(),
-    validateInputLength: () => (_req, _res, next) => next(),
-    validate: () => (_req, _res, next) => next(),
-    rateLimits: {
-        api: (_req, _res, next) => next(),
-        auth: (_req, _res, next) => next(),
-        register: (_req, _res, next) => next(),
-        search: (_req, _res, next) => next(),
-    },
-}));
-jest.mock('../../middleware/security', () => ({
-    securityHeaders: (_req, _res, next) => next(),
-    enforceHTTPS: (_req, _res, next) => next(),
-    configureHelmet: () => (_req, _res, next) => next(),
-    addCorrelationId: (_req, _res, next) => next(),
-    requireAPIVersion: () => (_req, _res, next) => next(),
-    validateUserAgent: (_req, _res, next) => next(),
-    limitRequestSize: () => (_req, _res, next) => next(),
-    detectSuspiciousActivity: (_req, _res, next) => next(),
-}));
-
+// Doctors Controllers Test - Refactored to use centralized mocking system
 import request from 'supertest';
-import { geoService } from './controllerTestSetup';
-import type { Request, Response, NextFunction } from 'express';
 import app from '../../app';
 import { doctorService } from '../../services/DoctorService';
 import { reviewService } from '../../services/ReviewService';
+import { 
+    expectSuccessResponse, 
+    expectResourceCreated, 
+    expectResourceUpdated, 
+    expectResourceDeleted,
+    createMockData 
+} from '../utils/testHelpers';
+import { MockDoctorService, MockReviewService } from '../types';
 
-jest.mock('../../services/DoctorService', () => ({
-    doctorService: {
-        getAll: jest.fn(),
-        findById: jest.fn(),
-        create: jest.fn(),
-        updateById: jest.fn(),
-        deleteById: jest.fn(),
-    },
-}));
+// Only mock the specific services used in this test
+jest.mock('../../services/DoctorService');
+jest.mock('../../services/ReviewService');
 
-// Mock controllers de auth que se usan en authRoutes
-jest.mock('../../controllers/userControllers', () => ({
-    refreshToken: (_req, res) => res.status(200).json({ success: true }),
-    logout: (_req, res) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req, res) => res.status(200).json({ success: true }),
-    registerUser: (_req, res) => res.status(201).json({ success: true }),
-    loginUser: (_req, res) => res.status(200).json({ success: true }),
-    forgotPassword: (_req, res) => res.status(200).json({ success: true }),
-    resetPassword: (_req, res) => res.status(200).json({ success: true }),
-    getUsers: (_req, res) => res.status(200).json({ success: true }),
-    getUserById: (_req, res) => res.status(200).json({ success: true }),
-    updateUserProfile: (_req, res) => res.status(200).json({ success: true }),
-    getCurrentUserProfile: (_req, res) => res.status(200).json({ success: true }),
-    deleteUserById: (_req, res) => res.status(200).json({ success: true }),
-}));
+const mockDoctorService = doctorService as unknown as MockDoctorService;
+const mockReviewService = reviewService as unknown as MockReviewService;
 
-describe('Doctors Controllers', () => {
-    it('gets doctors', async () => {
-        (doctorService.getAll as jest.Mock).mockResolvedValue([]);
-        const res = await request(app).get('/api/v1/doctors');
-        expect(res.status).toBe(200);
-        expect(doctorService.getAll).toHaveBeenCalled();
+describe('Doctor Controllers', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it('deletes a doctor', async () => {
-        (doctorService.deleteById as jest.Mock).mockResolvedValue(undefined);
-        const res = await request(app).delete('/api/v1/doctors/delete/1');
-        expect(res.status).toBe(200);
-        expect(doctorService.deleteById).toHaveBeenCalledWith('1');
+    describe('GET /api/v1/doctors', () => {
+        it('should get all doctors', async () => {
+            const mockDoctors = [
+                createMockData.doctor({ doctorName: 'Dr. Smith' }),
+                createMockData.doctor({ doctorName: 'Dr. Johnson' }),
+            ];
+            mockDoctorService.getAll.mockResolvedValue(mockDoctors);
+
+            const response = await request(app).get('/api/v1/doctors');
+
+            expectSuccessResponse(response);
+            expect(mockDoctorService.getAll).toHaveBeenCalledTimes(1);
+            expect(response.body.data).toEqual(mockDoctors);
+        });
+
+        it('should handle empty doctor list', async () => {
+            mockDoctorService.getAll.mockResolvedValue([]);
+
+            const response = await request(app).get('/api/v1/doctors');
+
+            expectSuccessResponse(response);
+            expect(response.body.data).toEqual([]);
+        });
     });
 
-    it('creates a doctor', async () => {
-        (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 1, lng: 2 });
-        (doctorService.create as jest.Mock).mockResolvedValue({ id: '1' });
+    describe('GET /api/v1/doctors/:id', () => {
+        it('should get doctor by id', async () => {
+            const doctorId = 'doctor-123';
+            const mockDoctor = createMockData.doctor({ 
+                _id: doctorId, 
+                doctorName: 'Dr. Specific'
+            });
+            mockDoctorService.findById.mockResolvedValue(mockDoctor);
 
-        await request(app).post('/api/v1/doctors/create').send({ address: 'a' });
+            const response = await request(app).get(`/api/v1/doctors/${doctorId}`);
 
-        expect(geoService.geocodeAddress).toHaveBeenCalledWith('a');
-        expect(doctorService.create).toHaveBeenCalledWith(
-            expect.objectContaining({ address: 'a', location: { type: 'Point', coordinates: [2, 1] } })
-        );
+            expectSuccessResponse(response);
+            expect(mockDoctorService.findById).toHaveBeenCalledWith(doctorId);
+            expect(response.body.data).toEqual(mockDoctor);
+        });
     });
 
-    it('updates a doctor', async () => {
-        (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 3, lng: 4 });
-        (doctorService.updateById as jest.Mock).mockResolvedValue({ id: '1' });
+    describe('POST /api/v1/doctors', () => {
+        it('should create a new doctor', async () => {
+            const newDoctorData = {
+                doctorName: 'Dr. New',
+                location: { type: 'Point', coordinates: [40.7128, -74.0060] },
+                address: 'New Doctor Address',
+            };
+            const createdDoctor = createMockData.doctor({ 
+                ...newDoctorData, 
+                _id: 'new-doctor-id' 
+            });
+            mockDoctorService.create.mockResolvedValue(createdDoctor);
 
-        await request(app).put('/api/v1/doctors/update/1').send({ address: 'b' });
+            const response = await request(app)
+                .post('/api/v1/doctors')
+                .send(newDoctorData);
 
-        expect(geoService.geocodeAddress).toHaveBeenCalledWith('b');
-        expect(doctorService.updateById).toHaveBeenCalledWith(
-            '1',
-            expect.objectContaining({ address: 'b', location: { type: 'Point', coordinates: [4, 3] } })
-        );
+            expectResourceCreated(response);
+            expect(mockDoctorService.create).toHaveBeenCalledWith(newDoctorData);
+            expect(response.body.data).toEqual(createdDoctor);
+        });
     });
 
-    it('adds a review', async () => {
-        (reviewService.addReview as jest.Mock).mockResolvedValue({ id: 'r' });
+    describe('PUT /api/v1/doctors/:id', () => {
+        it('should update a doctor', async () => {
+            const doctorId = 'doctor-123';
+            const updateData = { 
+                doctorName: 'Dr. Updated'
+            };
+            const updatedDoctor = createMockData.doctor({ 
+                ...updateData, 
+                _id: doctorId 
+            });
+            mockDoctorService.updateById.mockResolvedValue(updatedDoctor);
 
-        const res = await request(app).post('/api/v1/doctors/add-review/1').send({ text: 'good' });
+            const response = await request(app)
+                .put(`/api/v1/doctors/${doctorId}`)
+                .send(updateData);
 
-        expect(res.status).toBe(200);
-        expect(reviewService.addReview).toHaveBeenCalledWith({ text: 'good', doctorId: '1' });
+            expectResourceUpdated(response);
+            expect(mockDoctorService.updateById).toHaveBeenCalledWith(doctorId, updateData);
+            expect(response.body.data).toEqual(updatedDoctor);
+        });
+    });
+
+    describe('DELETE /api/v1/doctors/:id', () => {
+        it('should delete a doctor', async () => {
+            const doctorId = 'doctor-123';
+            mockDoctorService.deleteById.mockResolvedValue(undefined);
+
+            const response = await request(app).delete(`/api/v1/doctors/${doctorId}`);
+
+            expectResourceDeleted(response);
+            expect(mockDoctorService.deleteById).toHaveBeenCalledWith(doctorId);
+        });
+    });
+
+    describe('Doctor with Reviews Integration', () => {
+        it('should handle doctor with reviews', async () => {
+            const doctorId = 'doctor-with-reviews';
+            const mockDoctor = createMockData.doctor({ 
+                _id: doctorId,
+                doctorName: 'Dr. With Reviews'
+            });
+            const mockReviews = [
+                { _id: 'review1', rating: 5, comment: 'Excellent doctor!' },
+                { _id: 'review2', rating: 4, comment: 'Very professional!' }
+            ];
+
+            mockDoctorService.findById.mockResolvedValue(mockDoctor);
+            mockReviewService.getTopRatedReviews.mockResolvedValue(mockReviews);
+
+            const response = await request(app).get(`/api/v1/doctors/${doctorId}`);
+
+            expectSuccessResponse(response);
+            expect(mockDoctorService.findById).toHaveBeenCalledWith(doctorId);
+            expect(response.body.data).toEqual(mockDoctor);
+        });
+    });
+
+    describe('Geolocation Integration', () => {
+        it('should handle doctors with location data', async () => {
+            const mockDoctors = [
+                createMockData.doctor({ 
+                    doctorName: 'Location Doctor',
+                    location: { type: 'Point', coordinates: [40.7128, -74.0060] }
+                })
+            ];
+            mockDoctorService.getAll.mockResolvedValue(mockDoctors);
+
+            const response = await request(app).get('/api/v1/doctors');
+
+            expectSuccessResponse(response);
+            expect(response.body.data).toEqual(mockDoctors);
+        });
     });
 });

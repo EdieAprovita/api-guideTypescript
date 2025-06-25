@@ -1,3 +1,6 @@
+// Validation Middleware Test - Uses isolated setup to test actual middleware functionality
+// This test uses real validation middleware without global mocks interfering
+
 import request from 'supertest';
 import express from 'express';
 import { validate, sanitizeInput, rateLimits, securityHeaders } from '../../middleware/validation';
@@ -186,7 +189,9 @@ describe('Validation Middleware Tests', () => {
             const response = await request(app).post('/test-user-validation').send({});
 
             expect(response.status).toBe(400);
-            expect(response.body.success).toBe(false);
+            expect(response.body).toHaveProperty('success', false);
+            expect(response.body).toHaveProperty('errors');
+            expect(Array.isArray(response.body.errors)).toBe(true);
             expect(response.body.errors.length).toBeGreaterThan(0);
         });
 

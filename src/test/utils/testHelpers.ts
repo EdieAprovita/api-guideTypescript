@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { Application } from 'express';
-import { TestUser } from '../types';
+import { TestUser, MockRestaurant, MockDoctor, MockMarket, MockSanctuary, MockReview } from '../types';
 
 /**
  * Create a test user with default values
@@ -142,7 +142,20 @@ export const createServiceMocks = (serviceName: string) => ({
 });
 
 /**
+ * Helper to create consistent date strings for testing
+ * Avoids Date object serialization issues in JSON responses
+ */
+const createTestTimestamp = () => {
+    const now = new Date('2025-01-01T00:00:00.000Z');
+    return {
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+    };
+};
+
+/**
  * Helper to create mock data for different entities
+ * Uses custom mock types to avoid Mongoose Document interface requirements
  */
 export const createMockData = {
     user: (overrides = {}) => ({
@@ -174,11 +187,73 @@ export const createMockData = {
         ...overrides,
     }),
     
-    restaurant: (overrides = {}) => ({
+    restaurant: (overrides = {}): MockRestaurant => ({
         _id: 'restaurant-id',
-        name: 'Test Restaurant',
-        cuisine: 'Test Cuisine',
+        restaurantName: 'Test Restaurant',
+        author: 'author-id',
+        typePlace: 'restaurant',
+        address: 'Test Address',
         location: { type: 'Point', coordinates: [0, 0] },
+        image: 'test-image.jpg',
+        budget: 'medium',
+        contact: [],
+        cuisine: ['Test Cuisine'],
+        reviews: [],
+        rating: 4.5,
+        numReviews: 0,
+        timestamps: createTestTimestamp(),
+        ...overrides,
+    }),
+
+    doctor: (overrides = {}): MockDoctor => ({
+        _id: 'doctor-id',
+        doctorName: 'Dr. Test',
+        author: 'author-id',
+        address: 'Test Address',
+        location: { type: 'Point', coordinates: [0, 0] },
+        image: 'test-doctor.jpg',
+        budget: 'medium',
+        contact: [],
+        expertise: ['General Medicine'],
+        reviews: [],
+        rating: 4.5,
+        numReviews: 0,
+        timestamps: createTestTimestamp(),
+        ...overrides,
+    }),
+
+    market: (overrides = {}): MockMarket => ({
+        _id: 'market-id',
+        marketName: 'Test Market',
+        author: 'author-id',
+        address: 'Test Market Address',
+        location: { type: 'Point', coordinates: [0, 0] },
+        image: 'test-market.jpg',
+        typeMarket: 'supermarket',
+        contact: [],
+        reviews: [],
+        rating: 4.0,
+        numReviews: 0,
+        timestamps: createTestTimestamp(),
+        ...overrides,
+    }),
+
+    sanctuary: (overrides = {}): MockSanctuary => ({
+        _id: 'sanctuary-id',
+        sanctuaryName: 'Test Sanctuary',
+        author: 'author-id',
+        address: 'Test Sanctuary Address',
+        location: { type: 'Point', coordinates: [0, 0] },
+        image: 'test-sanctuary.jpg',
+        typeofSanctuary: 'wildlife',
+        animals: [],
+        capacity: 100,
+        caretakers: ['Test Caretaker'],
+        contact: [],
+        reviews: [],
+        rating: 4.8,
+        numReviews: 0,
+        timestamps: createTestTimestamp(),
         ...overrides,
     }),
 };

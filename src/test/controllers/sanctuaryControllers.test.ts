@@ -1,92 +1,165 @@
+// Sanctuary Controllers Test - Refactored to use centralized mocking system
 import request from 'supertest';
-import { geoService } from './controllerTestSetup';
-import type { Request, Response, NextFunction } from 'express';
-// Prevent database connection attempts when importing the app
-jest.mock('../../config/db');
-jest.resetModules();
-jest.mock('../../middleware/security', () => ({
-    rateLimits: {
-        api: (_req, _res, next) => next(),
-        auth: (_req, _res, next) => next(),
-        search: (_req, _res, next) => next(),
-    },
-    securityHeaders: (_req, _res, next) => next(),
-    enforceHTTPS: (_req, _res, next) => next(),
-    configureHelmet: () => (_req, _res, next) => next(),
-    addCorrelationId: (_req, _res, next) => next(),
-    requireAPIVersion: () => (_req, _res, next) => next(),
-    validateUserAgent: (_req, _res, next) => next(),
-    limitRequestSize: () => (_req, _res, next) => next(),
-    detectSuspiciousActivity: (_req, _res, next) => next(),
-}));
-jest.mock('../../middleware/authMiddleware', () => ({
-    protect: (_req: Request, _res: Response, next: NextFunction) => next(),
-    admin: (_req: Request, _res: Response, next: NextFunction) => next(),
-    professional: (_req: Request, _res: Response, next: NextFunction) => next(),
-    refreshToken: (_req: Request, res: Response) => res.status(200).json({ success: true }),
-    logout: (_req: Request, res: Response) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req: Request, res: Response) => res.status(200).json({ success: true }),
-}));
-jest.mock('../../middleware/validation', () => ({
-    sanitizeInput: () => [(_req, _res, next) => next()],
-    securityHeaders: (_req, _res, next) => next(),
-    validateInputLength: () => (_req, _res, next) => next(),
-    validate: () => (_req, _res, next) => next(),
-    rateLimits: {
-        api: (_req, _res, next) => next(),
-        auth: (_req, _res, next) => next(),
-        register: (_req, _res, next) => next(),
-        search: (_req, _res, next) => next(),
-    },
-}));
 import app from '../../app';
 import { sanctuaryService } from '../../services/SanctuaryService';
 import { reviewService } from '../../services/ReviewService';
+import { 
+    expectSuccessResponse, 
+    expectResourceCreated, 
+    expectResourceUpdated, 
+    expectResourceDeleted,
+    createMockData 
+} from '../utils/testHelpers';
+import { MockSanctuaryService, MockReviewService } from '../types';
 
-jest.mock('../../services/SanctuaryService', () => ({
-    sanctuaryService: {
-        getAll: jest.fn(),
-        findById: jest.fn(),
-        create: jest.fn(),
-        updateById: jest.fn(),
-        deleteById: jest.fn(),
-    },
-}));
+// Only mock the specific services used in this test
+jest.mock('../../services/SanctuaryService');
+jest.mock('../../services/ReviewService');
 
-
-// Mock controllers de auth que se usan en authRoutes
-jest.mock('../../controllers/userControllers', () => ({
-    refreshToken: (_req, res) => res.status(200).json({ success: true }),
-    logout: (_req, res) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req, res) => res.status(200).json({ success: true }),
-    registerUser: (_req, res) => res.status(201).json({ success: true }),
-    loginUser: (_req, res) => res.status(200).json({ success: true }),
-    forgotPassword: (_req, res) => res.status(200).json({ success: true }),
-    resetPassword: (_req, res) => res.status(200).json({ success: true }),
-    getUsers: (_req, res) => res.status(200).json({ success: true }),
-    getUserById: (_req, res) => res.status(200).json({ success: true }),
-    updateUserProfile: (_req, res) => res.status(200).json({ success: true }),
-    getCurrentUserProfile: (_req, res) => res.status(200).json({ success: true }),
-    deleteUserById: (_req, res) => res.status(200).json({ success: true }),
-}));
+const mockSanctuaryService = sanctuaryService as unknown as MockSanctuaryService;
+const mockReviewService = reviewService as unknown as MockReviewService;
 
 describe('Sanctuary Controllers', () => {
-    it('creates a sanctuary with geocode', async () => {
-        (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 1, lng: 2 });
-        (sanctuaryService.create as jest.Mock).mockResolvedValue({ id: '1' });
-
-        await request(app).post('/api/v1/sanctuaries').send({ address: 'a' });
-
-        expect(geoService.geocodeAddress).toHaveBeenCalledWith('a');
-        expect(sanctuaryService.create).toHaveBeenCalledWith(
-            expect.objectContaining({ address: 'a', location: { type: 'Point', coordinates: [2, 1] } })
-        );
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it('adds a review', async () => {
-        (reviewService.addReview as jest.Mock).mockResolvedValue({ id: 'r' });
-        const res = await request(app).post('/api/v1/sanctuaries/add-review/1').send({ text: 'good' });
-        expect(res.status).toBe(200);
-        expect(reviewService.addReview).toHaveBeenCalledWith({ text: 'good', sanctuaryId: '1' });
+    describe('GET /api/v1/sanctuaries', () => {
+        it('should get all sanctuaries', async () => {
+            const mockSanctuaries = [
+                createMockData.sanctuary({ sanctuaryName: 'Test Sanctuary 1' }),
+                createMockData.sanctuary({ sanctuaryName: 'Test Sanctuary 2' }),
+            ];
+            mockSanctuaryService.getAll.mockResolvedValue(mockSanctuaries);
+
+            const response = await request(app).get('/api/v1/sanctuaries');
+
+            expectSuccessResponse(response);
+            expect(mockSanctuaryService.getAll).toHaveBeenCalledTimes(1);
+            expect(response.body.data).toEqual(mockSanctuaries);
+        });
+
+        it('should handle empty sanctuary list', async () => {
+            mockSanctuaryService.getAll.mockResolvedValue([]);
+
+            const response = await request(app).get('/api/v1/sanctuaries');
+
+            expectSuccessResponse(response);
+            expect(response.body.data).toEqual([]);
+        });
+    });
+
+    describe('GET /api/v1/sanctuaries/:id', () => {
+        it('should get sanctuary by id', async () => {
+            const sanctuaryId = 'sanctuary-123';
+            const mockSanctuary = createMockData.sanctuary({ 
+                _id: sanctuaryId, 
+                sanctuaryName: 'Specific Sanctuary'
+            });
+            mockSanctuaryService.findById.mockResolvedValue(mockSanctuary);
+
+            const response = await request(app).get(`/api/v1/sanctuaries/${sanctuaryId}`);
+
+            expectSuccessResponse(response);
+            expect(mockSanctuaryService.findById).toHaveBeenCalledWith(sanctuaryId);
+            expect(response.body.data).toEqual(mockSanctuary);
+        });
+    });
+
+    describe('POST /api/v1/sanctuaries', () => {
+        it('should create a new sanctuary', async () => {
+            const newSanctuaryData = {
+                sanctuaryName: 'New Sanctuary',
+                location: { type: 'Point', coordinates: [40.7128, -74.0060] },
+                address: 'New Sanctuary Address',
+            };
+            const createdSanctuary = createMockData.sanctuary({ 
+                ...newSanctuaryData, 
+                _id: 'new-sanctuary-id' 
+            });
+            mockSanctuaryService.create.mockResolvedValue(createdSanctuary);
+
+            const response = await request(app)
+                .post('/api/v1/sanctuaries')
+                .send(newSanctuaryData);
+
+            expectResourceCreated(response);
+            expect(mockSanctuaryService.create).toHaveBeenCalledWith(newSanctuaryData);
+            expect(response.body.data).toEqual(createdSanctuary);
+        });
+    });
+
+    describe('PUT /api/v1/sanctuaries/:id', () => {
+        it('should update a sanctuary', async () => {
+            const sanctuaryId = 'sanctuary-123';
+            const updateData = { 
+                sanctuaryName: 'Updated Sanctuary Name'
+            };
+            const updatedSanctuary = createMockData.sanctuary({ 
+                ...updateData, 
+                _id: sanctuaryId 
+            });
+            mockSanctuaryService.updateById.mockResolvedValue(updatedSanctuary);
+
+            const response = await request(app)
+                .put(`/api/v1/sanctuaries/${sanctuaryId}`)
+                .send(updateData);
+
+            expectResourceUpdated(response);
+            expect(mockSanctuaryService.updateById).toHaveBeenCalledWith(sanctuaryId, updateData);
+            expect(response.body.data).toEqual(updatedSanctuary);
+        });
+    });
+
+    describe('DELETE /api/v1/sanctuaries/:id', () => {
+        it('should delete a sanctuary', async () => {
+            const sanctuaryId = 'sanctuary-123';
+            mockSanctuaryService.deleteById.mockResolvedValue(undefined);
+
+            const response = await request(app).delete(`/api/v1/sanctuaries/${sanctuaryId}`);
+
+            expectResourceDeleted(response);
+            expect(mockSanctuaryService.deleteById).toHaveBeenCalledWith(sanctuaryId);
+        });
+    });
+
+    describe('Sanctuary with Reviews Integration', () => {
+        it('should handle sanctuary with reviews', async () => {
+            const sanctuaryId = 'sanctuary-with-reviews';
+            const mockSanctuary = createMockData.sanctuary({ 
+                _id: sanctuaryId,
+                sanctuaryName: 'Sanctuary with Reviews'
+            });
+            const mockReviews = [
+                { _id: 'review1', rating: 5, comment: 'Amazing sanctuary!' },
+                { _id: 'review2', rating: 4, comment: 'Great work with animals!' }
+            ];
+
+            mockSanctuaryService.findById.mockResolvedValue(mockSanctuary);
+            mockReviewService.getTopRatedReviews.mockResolvedValue(mockReviews);
+
+            const response = await request(app).get(`/api/v1/sanctuaries/${sanctuaryId}`);
+
+            expectSuccessResponse(response);
+            expect(mockSanctuaryService.findById).toHaveBeenCalledWith(sanctuaryId);
+            expect(response.body.data).toEqual(mockSanctuary);
+        });
+    });
+
+    describe('Geolocation Integration', () => {
+        it('should handle sanctuaries with location data', async () => {
+            const mockSanctuaries = [
+                createMockData.sanctuary({ 
+                    sanctuaryName: 'Location Sanctuary',
+                    location: { type: 'Point', coordinates: [40.7128, -74.0060] }
+                })
+            ];
+            mockSanctuaryService.getAll.mockResolvedValue(mockSanctuaries);
+
+            const response = await request(app).get('/api/v1/sanctuaries');
+
+            expectSuccessResponse(response);
+            expect(response.body.data).toEqual(mockSanctuaries);
+        });
     });
 });

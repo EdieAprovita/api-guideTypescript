@@ -59,7 +59,12 @@ jest.mock('../models/User', () => ({
 // Mock external libraries
 jest.mock('jsonwebtoken', () => ({
     __esModule: true,
-    ...externalMocks.jsonwebtoken,
+    default: {
+        sign: jest.fn().mockReturnValue('mock-token'),
+        verify: jest.fn().mockReturnValue({ userId: 'someUserId' }),
+    },
+    sign: jest.fn().mockReturnValue('mock-token'),
+    verify: jest.fn().mockReturnValue({ userId: 'someUserId' }),
 }));
 
 jest.mock('bcryptjs', () => ({

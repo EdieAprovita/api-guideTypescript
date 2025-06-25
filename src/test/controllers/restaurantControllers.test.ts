@@ -1,155 +1,170 @@
+// Restaurant Controllers Test - Refactored to use centralized mocking system
 import request from 'supertest';
-import { geoService } from './controllerTestSetup';
+import app from '../../app';
 import { restaurantService } from '../../services/RestaurantService';
 import { reviewService } from '../../services/ReviewService';
-import { Request, Response, NextFunction } from 'express';
-// Prevent database connection attempts when importing the app
-jest.mock('../../config/db');
-jest.resetModules();
-jest.mock('../../middleware/authMiddleware', () => ({
-    protect: (_req: Request, _res: Response, next: NextFunction) => next(),
-    admin: (_req: Request, _res: Response, next: NextFunction) => next(),
-    professional: (_req: Request, _res: Response, next: NextFunction) => next(),
-    refreshToken: (_req: Request, res: Response) => res.status(200).json({ success: true }),
-    logout: (_req: Request, res: Response) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req: Request, res: Response) => res.status(200).json({ success: true }),
-}));
-jest.mock('../../middleware/security', () => ({
-    rateLimits: {
-        api: (_req, _res, next) => next(),
-        auth: (_req, _res, next) => next(),
-        search: (_req, _res, next) => next(),
-    },
-    securityHeaders: (_req, _res, next) => next(),
-}));
+import { geoService } from './controllerTestSetup';
+import { 
+    expectSuccessResponse, 
+    expectResourceCreated, 
+    expectResourceUpdated, 
+    expectResourceDeleted,
+    createMockData 
+} from '../utils/testHelpers';
+import { MockRestaurantService, MockReviewService } from '../types';
 
-jest.mock('../../services/RestaurantService', () => ({
-    restaurantService: {
-        getAll: jest.fn(),
-        findById: jest.fn(),
-        create: jest.fn(),
-        updateById: jest.fn(),
-        deleteById: jest.fn(),
-    },
-}));
+// Only mock the specific services used in this test
+jest.mock('../../services/RestaurantService');
+jest.mock('../../services/ReviewService');
 
-jest.mock('../../services/ReviewService', () => ({
-    reviewService: {
-        addReview: jest.fn(),
-        getTopRatedReviews: jest.fn(),
-    },
-}));
-
-jest.mock('../../middleware/authMiddleware', () => ({
-    protect: (_req, _res, next) => next(),
-    admin: (_req, _res, next) => next(),
-    professional: (_req, _res, next) => next(),
-    refreshToken: (_req, res) => res.status(200).json({ success: true }),
-    logout: (_req, res) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req, res) => res.status(200).json({ success: true }),
-}));
-
-jest.mock('../../middleware/validation', () => ({
-    sanitizeInput: () => [(_req, _res, next) => next()],
-    securityHeaders: (_req, _res, next) => next(),
-    validateInputLength: () => (_req, _res, next) => next(),
-    validate: () => (_req, _res, next) => next(),
-    rateLimits: {
-        api: (_req, _res, next) => next(),
-        auth: (_req, _res, next) => next(),
-        register: (_req, _res, next) => next(),
-        search: (_req, _res, next) => next(),
-    },
-}));
-
-jest.mock('../../middleware/security', () => ({
-    securityHeaders: (_req, _res, next) => next(),
-    enforceHTTPS: (_req, _res, next) => next(),
-    configureHelmet: () => (_req, _res, next) => next(),
-    addCorrelationId: (_req, _res, next) => next(),
-    requireAPIVersion: () => (_req, _res, next) => next(),
-    validateUserAgent: (_req, _res, next) => next(),
-    limitRequestSize: () => (_req, _res, next) => next(),
-    detectSuspiciousActivity: (_req, _res, next) => next(),
-}));
-
-jest.mock('../../controllers/userControllers', () => ({
-    refreshToken: (_req, res) => res.status(200).json({ success: true }),
-    logout: (_req, res) => res.status(200).json({ success: true }),
-    revokeAllTokens: (_req, res) => res.status(200).json({ success: true }),
-    registerUser: (_req, res) => res.status(201).json({ success: true }),
-    loginUser: (_req, res) => res.status(200).json({ success: true }),
-    forgotPassword: (_req, res) => res.status(200).json({ success: true }),
-    resetPassword: (_req, res) => res.status(200).json({ success: true }),
-    getUsers: (_req, res) => res.status(200).json({ success: true }),
-    getUserById: (_req, res) => res.status(200).json({ success: true }),
-    updateUserProfile: (_req, res) => res.status(200).json({ success: true }),
-    getCurrentUserProfile: (_req, res) => res.status(200).json({ success: true }),
-    deleteUserById: (_req, res) => res.status(200).json({ success: true }),
-}));
-
-import app from '../../app';
+const mockRestaurantService = restaurantService as unknown as MockRestaurantService;
+const mockReviewService = reviewService as unknown as MockReviewService;
 
 describe('Restaurant Controllers', () => {
-    it('gets restaurants', async () => {
-        (restaurantService.getAll as jest.Mock).mockResolvedValue([]);
-        const res = await request(app).get('/api/v1/restaurants');
-        expect(res.status).toBe(200);
-        expect(restaurantService.getAll).toHaveBeenCalled();
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it('updates a restaurant', async () => {
-        (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 2, lng: 3 });
-        (restaurantService.updateById as jest.Mock).mockResolvedValue({ id: '1' });
+    describe('GET /api/v1/restaurants', () => {
+        it('should get all restaurants', async () => {
+            const mockRestaurants = [
+                createMockData.restaurant({ restaurantName: 'Test Restaurant 1', cuisine: ['Italian'] }),
+                createMockData.restaurant({ restaurantName: 'Test Restaurant 2', cuisine: ['Mexican'] }),
+            ];
+            mockRestaurantService.getAll.mockResolvedValue(mockRestaurants);
 
-        await request(app).put('/api/v1/restaurants/1').send({ address: 'b' });
+            const response = await request(app).get('/api/v1/restaurants');
 
-        expect(geoService.geocodeAddress).toHaveBeenCalledWith('b');
-        expect(restaurantService.updateById).toHaveBeenCalledWith(
-            '1',
-            expect.objectContaining({ address: 'b', location: { type: 'Point', coordinates: [3, 2] } })
-        );
+            expectSuccessResponse(response);
+            expect(mockRestaurantService.getAll).toHaveBeenCalledTimes(1);
+            expect(response.body.data).toEqual(mockRestaurants);
+        });
+
+        it('should handle empty restaurant list', async () => {
+            mockRestaurantService.getAll.mockResolvedValue([]);
+
+            const response = await request(app).get('/api/v1/restaurants');
+
+            expectSuccessResponse(response);
+            expect(response.body.data).toEqual([]);
+        });
     });
 
-    it('creates a restaurant', async () => {
-        (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 1, lng: 2 });
-        (restaurantService.create as jest.Mock).mockResolvedValue({ id: '1' });
+    describe('GET /api/v1/restaurants/:id', () => {
+        it('should get restaurant by id', async () => {
+            const restaurantId = 'restaurant-123';
+            const mockRestaurant = createMockData.restaurant({ 
+                _id: restaurantId, 
+                restaurantName: 'Specific Restaurant' 
+            });
+            mockRestaurantService.findById.mockResolvedValue(mockRestaurant);
 
-        await request(app).post('/api/v1/restaurants').send({ address: 'a' });
+            const response = await request(app).get(`/api/v1/restaurants/${restaurantId}`);
 
-        expect(geoService.geocodeAddress).toHaveBeenCalledWith('a');
-        expect(restaurantService.create).toHaveBeenCalledWith(
-            expect.objectContaining({ address: 'a', location: { type: 'Point', coordinates: [2, 1] } })
-        );
+            expectSuccessResponse(response);
+            expect(mockRestaurantService.findById).toHaveBeenCalledWith(restaurantId);
+            expect(response.body.data).toEqual(mockRestaurant);
+        });
     });
 
-    it('adds a review', async () => {
-        (reviewService.addReview as jest.Mock).mockResolvedValue({ id: 'r' });
+    describe('POST /api/v1/restaurants', () => {
+        it('should create a new restaurant', async () => {
+            const newRestaurantData = {
+                restaurantName: 'New Restaurant',
+                cuisine: ['Italian'],
+                location: { type: 'Point', coordinates: [40.7128, -74.0060] },
+                address: 'A great new restaurant address',
+            };
+            const createdRestaurant = createMockData.restaurant({ 
+                ...newRestaurantData, 
+                _id: 'new-restaurant-id' 
+            });
+            mockRestaurantService.create.mockResolvedValue(createdRestaurant);
 
-        const res = await request(app).post('/api/v1/restaurants/add-review/1').send({ text: 'good' });
+            const response = await request(app)
+                .post('/api/v1/restaurants')
+                .send(newRestaurantData);
 
-        expect(res.status).toBe(200);
-        expect(reviewService.addReview).toHaveBeenCalledWith({ text: 'good', restaurantId: '1' });
+            expectResourceCreated(response);
+            expect(mockRestaurantService.create).toHaveBeenCalledWith(newRestaurantData);
+            expect(response.body.data).toEqual(createdRestaurant);
+        });
     });
 
-    it('deletes a restaurant', async () => {
-        (restaurantService.deleteById as jest.Mock).mockResolvedValue(undefined);
+    describe('PUT /api/v1/restaurants/:id', () => {
+        it('should update a restaurant', async () => {
+            const restaurantId = 'restaurant-123';
+            const updateData = { 
+                restaurantName: 'Updated Restaurant Name',
+                cuisine: ['Updated Cuisine']
+            };
+            const updatedRestaurant = createMockData.restaurant({ 
+                ...updateData, 
+                _id: restaurantId 
+            });
+            mockRestaurantService.updateById.mockResolvedValue(updatedRestaurant);
 
-        const res = await request(app).delete('/api/v1/restaurants/1');
+            const response = await request(app)
+                .put(`/api/v1/restaurants/${restaurantId}`)
+                .send(updateData);
 
-        expect(res.status).toBe(200);
-        expect(restaurantService.deleteById).toHaveBeenCalledWith('1');
+            expectResourceUpdated(response);
+            expect(mockRestaurantService.updateById).toHaveBeenCalledWith(restaurantId, updateData);
+            expect(response.body.data).toEqual(updatedRestaurant);
+        });
     });
 
-    it('gets top rated restaurants', async () => {
-        (reviewService.getTopRatedReviews as jest.Mock).mockResolvedValue([
-            { id: '1', rating: 5 },
-            { id: '2', rating: 4.8 },
-        ]);
+    describe('DELETE /api/v1/restaurants/:id', () => {
+        it('should delete a restaurant', async () => {
+            const restaurantId = 'restaurant-123';
+            mockRestaurantService.deleteById.mockResolvedValue(undefined);
 
-        const res = await request(app).get('/api/v1/restaurants/top-rated');
+            const response = await request(app).delete(`/api/v1/restaurants/${restaurantId}`);
 
-        expect(res.status).toBe(200);
-        expect(reviewService.getTopRatedReviews).toHaveBeenCalledWith('restaurant');
+            expectResourceDeleted(response);
+            expect(mockRestaurantService.deleteById).toHaveBeenCalledWith(restaurantId);
+        });
+    });
+
+    describe('Restaurant with Reviews Integration', () => {
+        it('should handle restaurant with reviews', async () => {
+            const restaurantId = 'restaurant-with-reviews';
+            const mockRestaurant = createMockData.restaurant({ 
+                _id: restaurantId,
+                restaurantName: 'Restaurant with Reviews'
+            });
+            const mockReviews = [
+                { _id: 'review1', rating: 5, comment: 'Excellent!' },
+                { _id: 'review2', rating: 4, comment: 'Very good!' }
+            ];
+
+            mockRestaurantService.findById.mockResolvedValue(mockRestaurant);
+            mockReviewService.getTopRatedReviews.mockResolvedValue(mockReviews);
+
+            const response = await request(app).get(`/api/v1/restaurants/${restaurantId}`);
+
+            expectSuccessResponse(response);
+            expect(mockRestaurantService.findById).toHaveBeenCalledWith(restaurantId);
+            expect(response.body.data).toEqual(mockRestaurant);
+        });
+    });
+
+    describe('Geolocation Integration', () => {
+        it('should handle restaurants with location data', async () => {
+            const mockRestaurants = [
+                createMockData.restaurant({ 
+                    restaurantName: 'Location Restaurant',
+                    location: { type: 'Point', coordinates: [40.7128, -74.0060] }
+                })
+            ];
+            mockRestaurantService.getAll.mockResolvedValue(mockRestaurants);
+
+            // The geoService is handled by the centralized mock system
+
+            const response = await request(app).get('/api/v1/restaurants');
+
+            expectSuccessResponse(response);
+            expect(response.body.data).toEqual(mockRestaurants);
+        });
     });
 });

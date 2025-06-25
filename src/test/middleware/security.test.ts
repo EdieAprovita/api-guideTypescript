@@ -1,3 +1,6 @@
+// Security Middleware Test - Uses isolated setup to test actual security middleware functionality
+// This test uses real security middleware without global mocks interfering
+
 import request from 'supertest';
 import express from 'express';
 import {
