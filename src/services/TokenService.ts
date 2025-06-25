@@ -167,8 +167,8 @@ class TokenService {
 
     async blacklistToken(token: string): Promise<void> {
         try {
-            const decoded = jwt.decode(token) as (jwt.JwtPayload & { exp?: number }) | null;
-            if (decoded && decoded.exp) {
+            const decoded = jwt.decode(token);
+            if (decoded && typeof decoded === 'object' && 'exp' in decoded && decoded.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
                 if (expirationTime > 0) {
                     const blacklistKey = `blacklist:${token}`;

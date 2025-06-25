@@ -3,9 +3,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { createMockData } from '../utils/testHelpers';
-import request from 'supertest';
 import { faker } from '@faker-js/faker';
-import app from '../../app';
 
 // Mock UserService específicamente para este test
 const mockUserService = {

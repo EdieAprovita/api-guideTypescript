@@ -126,8 +126,8 @@ export const sanitizeInput = () => {
                             // Remove URL encoded characters that could bypass filters
                             .replace(/%[0-9a-fA-F]{2}/g, '')
 
-                            // Remove control characters safely using char codes
-                            .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+                            // Remove control characters safely using Unicode property escapes
+                            .replace(/[\p{C}]/gu, '')
 
                             // Keep only safe characters (letters, numbers, basic punctuation)
                             .replace(/[<>'"&]/g, '')
