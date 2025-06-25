@@ -113,9 +113,6 @@ export const sanitizeInput = () => {
                             .replace(/on\w+\s*=/gi, '')
                             .replace(/on[a-z]+\s*=/gi, '')
 
-                            // Remove HTML tags safely - use non-backtracking pattern
-                            .replace(/<[^>]*?>/g, '')
-
                             // Remove HTML entities that could be used for XSS - non-backtracking
                             .replace(/&[#x]?[a-zA-Z0-9]{1,8};/g, '')
 
