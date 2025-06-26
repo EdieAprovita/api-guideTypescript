@@ -29,7 +29,7 @@ services:
         networks:
             - vegan-city-guide-network
         healthcheck:
-            test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
+            test: ['CMD', 'redis-cli', 'ping']
             interval: 30s
             timeout: 10s
             retries: 3
