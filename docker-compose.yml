@@ -1,83 +1,130 @@
-version: '3.8'
-
 services:
-  # MongoDB Database
-  mongodb:
-    image: mongo:6.0
-    container_name: vegan-city-guide-db
-    restart: unless-stopped
-    ports:
-      - '27017:27017'
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
-      MONGO_INITDB_DATABASE: vegan-city-guide
-    volumes:
-      - mongodb_data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    networks:
-      - vegan-city-guide-network
+    # MongoDB Database
+    mongodb:
+        image: mongo:6.0
+        container_name: vegan-city-guide-db
+        restart: unless-stopped
+        ports:
+            - '27017:27017'
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
+            MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-vegan-city-guide}
+        volumes:
+            - mongodb_data:/data/db
+            - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+        networks:
+            - vegan-city-guide-network
+        healthcheck:
+            test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
 
-  # API Application
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-    container_name: vegan-city-guide-api
-    restart: unless-stopped
-    ports:
-      - '5001:5001'
-    environment:
-      NODE_ENV: production
-      PORT: 5001
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/vegan-city-guide?authSource=admin
-      JWT_SECRET: your-super-secret-jwt-key-for-docker
-      JWT_EXPIRE: 30d
-    depends_on:
-      - mongodb
-    volumes:
-      - ./logs:/app/logs
-      - ./uploads:/app/public/uploads
-    networks:
-      - vegan-city-guide-network
-    healthcheck:
-      test: ['CMD', 'node', 'dist/healthcheck.js']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    # Redis Cache
+    redis:
+        image: redis:8.0-alpine
+        container_name: vegan-city-guide-redis
+        restart: unless-stopped
+        ports:
+            - '6379:6379'
+        command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123} --maxmemory 512mb --maxmemory-policy allkeys-lru
+        environment:
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+        volumes:
+            - redis_data:/data
+            - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+        networks:
+            - vegan-city-guide-network
+        healthcheck:
+            test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-redis123}', 'ping']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 10s
 
-  # Development API (for development with hot reload)
-  api-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: vegan-city-guide-api-dev
-    restart: unless-stopped
-    ports:
-      - '5002:5001'
-    environment:
-      NODE_ENV: development
-      PORT: 5001
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/vegan-city-guide?authSource=admin
-      JWT_SECRET: your-super-secret-jwt-key-for-docker-dev
-      JWT_EXPIRE: 30d
-    depends_on:
-      - mongodb
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - ./logs:/app/logs
-    networks:
-      - vegan-city-guide-network
-    profiles:
-      - dev
+    # API Application
+    api:
+        build:
+            context: .
+            dockerfile: dockerfile
+            target: production
+        container_name: vegan-city-guide-api
+        restart: unless-stopped
+        ports:
+            - '5001:5001'
+        environment:
+            NODE_ENV: ${NODE_ENV:-production}
+            PORT: ${PORT:-5001}
+            MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/${MONGO_DATABASE:-vegan-city-guide}?authSource=admin
+            REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379
+            JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-for-docker}
+            JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-jwt-refresh-key-for-docker}
+            JWT_EXPIRE: ${JWT_EXPIRE:-30d}
+            JWT_REFRESH_EXPIRE: ${JWT_REFRESH_EXPIRE:-7d}
+            REDIS_HOST: redis
+            REDIS_PORT: 6379
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+        depends_on:
+            mongodb:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        volumes:
+            - ./logs:/app/logs
+            - ./uploads:/app/public/uploads
+        networks:
+            - vegan-city-guide-network
+        healthcheck:
+            test: ['CMD', 'node', 'healthcheck.js']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+
+    # Development API (for development with hot reload)
+    api-dev:
+        build:
+            context: .
+            dockerfile: dockerfile
+            target: builder
+        container_name: vegan-city-guide-api-dev
+        restart: unless-stopped
+        ports:
+            - '5002:5001'
+        environment:
+            NODE_ENV: development
+            PORT: 5001
+            MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/${MONGO_DATABASE:-vegan-city-guide}?authSource=admin
+            REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379
+            JWT_SECRET: ${JWT_SECRET_DEV:-your-super-secret-jwt-key-for-docker-dev}
+            JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET_DEV:-your-super-secret-jwt-refresh-key-for-docker-dev}
+            JWT_EXPIRE: ${JWT_EXPIRE:-30d}
+            JWT_REFRESH_EXPIRE: ${JWT_REFRESH_EXPIRE:-7d}
+            REDIS_HOST: redis
+            REDIS_PORT: 6379
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+        depends_on:
+            mongodb:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        volumes:
+            - .:/app
+            - /app/node_modules
+            - ./logs:/app/logs
+        networks:
+            - vegan-city-guide-network
+        profiles:
+            - dev
 
 volumes:
-  mongodb_data:
-    driver: local
+    mongodb_data:
+        driver: local
+    redis_data:
+        driver: local
 
 networks:
-  vegan-city-guide-network:
-    driver: bridge
+    vegan-city-guide-network:
+        driver: bridge

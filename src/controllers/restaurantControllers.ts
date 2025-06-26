@@ -17,7 +17,8 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
 export const getRestaurants = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
-        const restaurants = await RestaurantService.getAll();
+        // Usar método con cache para mejor rendimiento
+        const restaurants = await RestaurantService.getAllCached();
         res.status(200).json({
             success: true,
             message: 'Restaurants fetched successfully',
@@ -47,7 +48,8 @@ export const getRestaurantById = asyncHandler(async (req: Request, res: Response
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
         }
-        const restaurant = await RestaurantService.findById(id);
+        // Usar método con cache para mejor rendimiento
+        const restaurant = await RestaurantService.findByIdCached(id);
 
         res.status(200).json({
             success: true,
@@ -80,7 +82,8 @@ export const createRestaurant = asyncHandler(async (req: Request, res: Response,
     }
     try {
         await geocodeAndAssignLocation(req.body);
-        const restaurant = await RestaurantService.create(req.body);
+        // Usar método con invalidación automática de cache
+        const restaurant = await RestaurantService.createCached(req.body);
         res.status(201).json({
             success: true,
             message: 'Restaurant created successfully',
@@ -116,7 +119,8 @@ export const updateRestaurant = asyncHandler(async (req: Request, res: Response,
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
         }
         await geocodeAndAssignLocation(req.body);
-        const restaurant = await RestaurantService.updateById(id, req.body);
+        // Usar método con invalidación automática de cache
+        const restaurant = await RestaurantService.updateByIdCached(id, req.body);
         res.status(200).json({
             success: true,
             message: 'Restaurant updated successfully',
@@ -173,6 +177,11 @@ export const addReviewToRestaurant = asyncHandler(async (req: Request, res: Resp
     try {
         const reviewData = { ...req.body, restaurantId: req.params.id };
         const newReview = await ReviewService.addReview(reviewData);
+
+        // Invalidar cache del restaurante específico después de agregar review
+        if (req.params.id) {
+            await RestaurantService.invalidateCache(req.params.id);
+        }
 
         res.status(200).json({
             success: true,
