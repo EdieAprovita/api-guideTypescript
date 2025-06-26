@@ -43,8 +43,8 @@ RUN npm update -g npm && \
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/swagger.yaml ./
 
-# Create healthcheck script
-RUN echo 'const http = require("http"); const options = { hostname: "localhost", port: 5001, path: "/api/v1/health", timeout: 2000 }; const req = http.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on("error", () => process.exit(1)); req.end();' > healthcheck.js
+# Copy healthcheck script
+COPY healthcheck.js ./
 
 # Switch to non-root user
 USER nodejs
