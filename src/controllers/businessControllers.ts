@@ -17,7 +17,8 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
 export const getBusinesses = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
-        const businesses = await BusinessService.getAll();
+        // Usar método con cache para mejor rendimiento
+        const businesses = await BusinessService.getAllCached();
         res.status(200).json({
             success: true,
             message: 'Businesses fetched successfully',
@@ -47,7 +48,8 @@ export const getBusinessById = asyncHandler(async (req: Request, res: Response, 
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Business ID is required'));
         }
-        const business = await BusinessService.findById(id);
+        // Usar método con cache para mejor rendimiento
+        const business = await BusinessService.findByIdCached(id);
 
         res.status(200).json({
             success: true,
