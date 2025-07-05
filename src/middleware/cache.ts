@@ -13,6 +13,35 @@ export interface CacheableResponse extends Response {
 }
 
 /**
+ * Determinar estado del cache basado en hit ratio
+ */
+function getStatusFromHitRatio(hitRatio: number): string {
+    if (hitRatio > 70) return 'excellent';
+    if (hitRatio > 50) return 'good';
+    if (hitRatio > 30) return 'fair';
+    return 'poor';
+}
+
+/**
+ * Serializar valor de forma segura para cache key
+ */
+function safeStringify(value: unknown): string {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+    if (Array.isArray(value)) {
+        return value.map(safeStringify).join(',');
+    }
+    if (typeof value === 'object') {
+        return JSON.stringify(value);
+    }
+    return String(value);
+}
+
+/**
  * Generar clave de cache basada en la request
  */
 function generateCacheKey(req: Request): string {
@@ -24,8 +53,8 @@ function generateCacheKey(req: Request): string {
     // Agregar parámetros de query si existen
     if (Object.keys(query).length > 0) {
         const sortedQuery = Object.keys(query)
-            .sort()
-            .map(k => `${k}=${query[k]}`)
+            .sort((a, b) => a.localeCompare(b))
+            .map(k => `${k}=${safeStringify(query[k])}`)
             .join('&');
         key += `?${sortedQuery}`;
     }
@@ -33,8 +62,8 @@ function generateCacheKey(req: Request): string {
     // Agregar parámetros de ruta
     if (Object.keys(params).length > 0) {
         const sortedParams = Object.keys(params)
-            .sort()
-            .map(k => `${k}=${params[k]}`)
+            .sort((a, b) => a.localeCompare(b))
+            .map(k => `${k}=${safeStringify(params[k])}`)
             .join('&');
         key += `|${sortedParams}`;
     }
@@ -63,7 +92,7 @@ export function cacheMiddleware(
         }
         
         // Verificar si se debe saltar cache
-        if (options.skipIf && options.skipIf(req)) {
+        if (options.skipIf?.(req)) {
             req.skipCache = true;
             return next();
         }
@@ -123,7 +152,7 @@ export function geoLocationCacheMiddleware(radiusKm: number = 5) {
         tags: ['geolocation', 'location'],
         keyGenerator: (req) => {
             const { lat, lng, radius = radiusKm } = req.query;
-            return `geo:${lat}:${lng}:${radius}`;
+            return `geo:${safeStringify(lat)}:${safeStringify(lng)}:${safeStringify(radius)}`;
         },
         skipIf: (req) => {
             // Saltar cache si faltan coordenadas
@@ -143,6 +172,7 @@ export function restaurantCacheMiddleware() {
             const { category, city, rating, price } = req.query;
             const filters = [category, city, rating, price]
                 .filter(Boolean)
+                .map(safeStringify)
                 .join(':');
             return `restaurants:${req.path}:${filters}`;
         }
@@ -157,8 +187,8 @@ export function userProfileCacheMiddleware() {
         ttl: 900, // 15 minutos
         tags: ['users', 'profiles'],
         keyGenerator: (req) => {
-            const userId = req.params.id || req.user?._id;
-            return `user:profile:${userId}`;
+            const userId = req.params.id ?? req.user?._id;
+            return `user:profile:${safeStringify(userId)}`;
         },
         skipIf: (req) => {
             // Saltar cache si no hay ID de usuario
@@ -176,7 +206,7 @@ export function searchCacheMiddleware() {
         tags: ['search'],
         keyGenerator: (req) => {
             const { q, type, limit = 10, offset = 0 } = req.query;
-            return `search:${q}:${type}:${limit}:${offset}`;
+            return `search:${safeStringify(q)}:${safeStringify(type)}:${safeStringify(limit)}:${safeStringify(offset)}`;
         },
         skipIf: (req) => {
             // Saltar cache si no hay query
@@ -221,9 +251,7 @@ export function cacheStatsMiddleware() {
                 data: {
                     ...stats,
                     hitRatio: `${stats.hitRatio}%`,
-                    status: stats.hitRatio > 70 ? 'excellent' : 
-                           stats.hitRatio > 50 ? 'good' : 
-                           stats.hitRatio > 30 ? 'fair' : 'poor'
+                    status: getStatusFromHitRatio(stats.hitRatio)
                 }
             });
         } catch (error) {
