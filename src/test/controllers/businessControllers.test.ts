@@ -5,13 +5,17 @@ import { setupCommonMocks, resetMocks, createMockBusiness } from '../utils/testH
 // === CRITICAL: Mocks must be defined BEFORE any imports ===
 setupCommonMocks();
 
-// Mock services with proper structure
+// Mock services with proper structure - including cache methods
 jest.mock('../../services/BusinessService', () => ({
     businessService: {
         getAll: jest.fn(),
+        getAllCached: jest.fn(),
         findById: jest.fn(),
+        findByIdCached: jest.fn(),
         create: jest.fn(),
+        createCached: jest.fn(),
         updateById: jest.fn(),
+        updateByIdCached: jest.fn(),
         deleteById: jest.fn(),
     },
 }));
@@ -44,12 +48,12 @@ describe('Business Controllers Tests', () => {
         it('should get all businesses', async () => {
             const mockBusinesses = [createMockBusiness()];
 
-            (businessService.getAll as jest.Mock).mockResolvedValueOnce(mockBusinesses);
+            (businessService.getAllCached as jest.Mock).mockResolvedValueOnce(mockBusinesses);
 
             const response = await request(app).get('/api/v1/businesses');
 
             expect(response.status).toBe(200);
-            expect(businessService.getAll).toHaveBeenCalled();
+            expect(businessService.getAllCached).toHaveBeenCalled();
             expect(response.body).toEqual({
                 success: true,
                 message: 'Businesses fetched successfully',
@@ -62,12 +66,12 @@ describe('Business Controllers Tests', () => {
         it('should get business by id', async () => {
             const mockBusiness = createMockBusiness();
 
-            (businessService.findById as jest.Mock).mockResolvedValueOnce(mockBusiness);
+            (businessService.findByIdCached as jest.Mock).mockResolvedValueOnce(mockBusiness);
 
             const response = await request(app).get(`/api/v1/businesses/${mockBusiness._id}`);
 
             expect(response.status).toBe(200);
-            expect(businessService.findById).toHaveBeenCalledWith(mockBusiness._id);
+            expect(businessService.findByIdCached).toHaveBeenCalledWith(mockBusiness._id);
             expect(response.body).toEqual({
                 success: true,
                 message: 'Business fetched successfully',

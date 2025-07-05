@@ -14,6 +14,7 @@ describe('BaseService', () => {
             create: jest.fn(),
             findByIdAndUpdate: jest.fn(),
             deleteOne: jest.fn(),
+            modelName: 'User'
         } as unknown as Model<IUser>;
         service = new BaseService<IUser>(model);
     });

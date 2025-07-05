@@ -30,17 +30,17 @@ describe('Restaurant Controllers', () => {
                 createMockData.restaurant({ restaurantName: 'Test Restaurant 1', cuisine: ['Italian'] }),
                 createMockData.restaurant({ restaurantName: 'Test Restaurant 2', cuisine: ['Mexican'] }),
             ];
-            mockRestaurantService.getAll.mockResolvedValue(mockRestaurants);
+            mockRestaurantService.getAllCached.mockResolvedValue(mockRestaurants);
 
             const response = await request(app).get('/api/v1/restaurants');
 
             expectSuccessResponse(response);
-            expect(mockRestaurantService.getAll).toHaveBeenCalledTimes(1);
+            expect(mockRestaurantService.getAllCached).toHaveBeenCalledTimes(1);
             expect(response.body.data).toEqual(mockRestaurants);
         });
 
         it('should handle empty restaurant list', async () => {
-            mockRestaurantService.getAll.mockResolvedValue([]);
+            mockRestaurantService.getAllCached.mockResolvedValue([]);
 
             const response = await request(app).get('/api/v1/restaurants');
 
@@ -56,12 +56,12 @@ describe('Restaurant Controllers', () => {
                 _id: restaurantId,
                 restaurantName: 'Specific Restaurant',
             });
-            mockRestaurantService.findById.mockResolvedValue(mockRestaurant);
+            mockRestaurantService.findByIdCached.mockResolvedValue(mockRestaurant);
 
             const response = await request(app).get(`/api/v1/restaurants/${restaurantId}`);
 
             expectSuccessResponse(response);
-            expect(mockRestaurantService.findById).toHaveBeenCalledWith(restaurantId);
+            expect(mockRestaurantService.findByIdCached).toHaveBeenCalledWith(restaurantId);
             expect(response.body.data).toEqual(mockRestaurant);
         });
     });
@@ -78,12 +78,12 @@ describe('Restaurant Controllers', () => {
                 ...newRestaurantData,
                 _id: 'new-restaurant-id',
             });
-            mockRestaurantService.create.mockResolvedValue(createdRestaurant);
+            mockRestaurantService.createCached.mockResolvedValue(createdRestaurant);
 
             const response = await request(app).post('/api/v1/restaurants').send(newRestaurantData);
 
             expectResourceCreated(response);
-            expect(mockRestaurantService.create).toHaveBeenCalledWith(newRestaurantData);
+            expect(mockRestaurantService.createCached).toHaveBeenCalledWith(newRestaurantData);
             expect(response.body.data).toEqual(createdRestaurant);
         });
     });
@@ -99,12 +99,12 @@ describe('Restaurant Controllers', () => {
                 ...updateData,
                 _id: restaurantId,
             });
-            mockRestaurantService.updateById.mockResolvedValue(updatedRestaurant);
+            mockRestaurantService.updateByIdCached.mockResolvedValue(updatedRestaurant);
 
             const response = await request(app).put(`/api/v1/restaurants/${restaurantId}`).send(updateData);
 
             expectResourceUpdated(response);
-            expect(mockRestaurantService.updateById).toHaveBeenCalledWith(restaurantId, updateData);
+            expect(mockRestaurantService.updateByIdCached).toHaveBeenCalledWith(restaurantId, updateData);
             expect(response.body.data).toEqual(updatedRestaurant);
         });
     });
@@ -133,13 +133,13 @@ describe('Restaurant Controllers', () => {
                 { _id: 'review2', rating: 4, comment: 'Very good!' },
             ];
 
-            mockRestaurantService.findById.mockResolvedValue(mockRestaurant);
+            mockRestaurantService.findByIdCached.mockResolvedValue(mockRestaurant);
             mockReviewService.getTopRatedReviews.mockResolvedValue(mockReviews);
 
             const response = await request(app).get(`/api/v1/restaurants/${restaurantId}`);
 
             expectSuccessResponse(response);
-            expect(mockRestaurantService.findById).toHaveBeenCalledWith(restaurantId);
+            expect(mockRestaurantService.findByIdCached).toHaveBeenCalledWith(restaurantId);
             expect(response.body.data).toEqual(mockRestaurant);
         });
     });
@@ -152,7 +152,7 @@ describe('Restaurant Controllers', () => {
                     location: { type: 'Point', coordinates: [40.7128, -74.006] },
                 }),
             ];
-            mockRestaurantService.getAll.mockResolvedValue(mockRestaurants);
+            mockRestaurantService.getAllCached.mockResolvedValue(mockRestaurants);
 
             // The geoService is handled by the centralized mock system
 
