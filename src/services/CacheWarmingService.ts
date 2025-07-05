@@ -173,15 +173,17 @@ export class CacheWarmingService {
 
             // 2. Top 20 restaurantes individuales (más consultados)
             const topRestaurants = allRestaurants.slice(0, 20);
-            for (const restaurant of topRestaurants) {
-                await cacheService.set(
-                    `restaurant:${restaurant._id}`, 
-                    restaurant, 
-                    'restaurants',
-                    { ttl: 600, tags: ['restaurants'] }
-                );
-                warmed++;
-            }
+            await Promise.all(
+                topRestaurants.map(async (restaurant) => {
+                    await cacheService.set(
+                        `restaurant:${restaurant._id}`, 
+                        restaurant, 
+                        'restaurants',
+                        { ttl: 600, tags: ['restaurants'] }
+                    );
+                    warmed++;
+                })
+            );
 
             // 3. Búsquedas populares simuladas
             const popularFilters = [
