@@ -181,7 +181,13 @@ export class CacheService {
      */
     async invalidatePattern(pattern: string): Promise<void> {
         try {
-            const keys = await this.redis.keys(pattern);
+            const keys: string[] = [];
+            let cursor = '0';
+            do {
+                const [nextCursor, batchKeys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+                cursor = nextCursor;
+                keys.push(...batchKeys);
+            } while (cursor !== '0');
             if (keys.length > 0) {
                 await this.redis.del(...keys);
                 logger.info(`🧹 Cache PATTERN INVALIDATED: ${pattern} (${keys.length} keys)`);
