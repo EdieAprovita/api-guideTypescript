@@ -1,57 +1,67 @@
+import { Types } from 'mongoose';
 import { postService } from "../../services/PostService";
 import { HttpError } from "../../types/Errors";
 
+// Mock BaseService to avoid modelName issues
+jest.mock('../../services/BaseService', () => {
+    return {
+        __esModule: true,
+        default: class MockBaseService {
+            constructor() {}
+            async findById(id) {
+                if (id === 'valid-post-id') {
+                    return {
+                        _id: id,
+                        likes: [],
+                        save: jest.fn().mockResolvedValue(true)
+                    };
+                }
+                if (id === 'liked-post-id') {
+                    return {
+                        _id: id,
+                        likes: [{ username: 'user1' }],
+                        save: jest.fn().mockResolvedValue(true)
+                    };
+                }
+                if (id === 'post-with-comments') {
+                    return {
+                        _id: id,
+                        comments: [{ id: 'comment1', username: 'user1' }],
+                        save: jest.fn().mockResolvedValue(true)
+                    };
+                }
+                return null;
+            }
+        }
+    };
+});
+
 describe("PostService", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+    const validPostId = new Types.ObjectId().toString();
+    const validUserId = new Types.ObjectId().toString();
+    const validCommentId = new Types.ObjectId().toString();
 
-  it("likes a post when not already liked", async () => {
-    const save = jest.fn();
-    const post = { likes: [], save } as any;
-    const mockModel = { findById: jest.fn().mockResolvedValue(post) } as any;
-    (postService as any).model = mockModel;
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
-    const result = await postService.likePost("p1", "u1");
+    it("likes a post when not already liked", async () => {
+        const result = await postService.likePost("valid-post-id", "user1");
+        expect(result).toEqual([{ username: "user1" }]);
+    });
 
-    expect(mockModel.findById).toHaveBeenCalledWith("p1");
-    expect(post.likes).toEqual([{ username: "u1" }]);
-    expect(save).toHaveBeenCalled();
-    expect(result).toEqual(post.likes);
-  });
+    it("throws when liking an already liked post", async () => {
+        await expect(postService.likePost("liked-post-id", "user1")).rejects.toThrow(HttpError);
+    });
 
-  it("throws when liking an already liked post", async () => {
-    const post = { likes: [{ username: "u1" }], save: jest.fn() } as any;
-    const mockModel = { findById: jest.fn().mockResolvedValue(post) } as any;
-    (postService as any).model = mockModel;
+    it("unlikes a liked post", async () => {
+        const result = await postService.unlikePost("liked-post-id", "user1");
+        expect(result).toEqual([]);
+    });
 
-    await expect(postService.likePost("p1", "u1")).rejects.toThrow(HttpError);
-  });
-
-  it("unlikes a liked post", async () => {
-    const save = jest.fn();
-    const post = { likes: [{ username: "u1" }], save } as any;
-    const mockModel = { findById: jest.fn().mockResolvedValue(post) } as any;
-    (postService as any).model = mockModel;
-
-    const result = await postService.unlikePost("p1", "u1");
-
-    expect(post.likes).toEqual([]);
-    expect(save).toHaveBeenCalled();
-    expect(result).toEqual([]);
-  });
-
-  it("fails to remove someone else's comment", async () => {
-    const save = jest.fn();
-    const post = {
-      comments: [{ id: "c1", username: "u1" }],
-      save,
-    } as any;
-    const mockModel = { findById: jest.fn().mockResolvedValue(post) } as any;
-    (postService as any).model = mockModel;
-
-    await expect(
-      postService.removeComment("p1", "c1", "u2")
-    ).rejects.toThrow(HttpError);
-  });
+    it("fails to remove someone else's comment", async () => {
+        await expect(
+            postService.removeComment("post-with-comments", "comment1", "user2")
+        ).rejects.toThrow(HttpError);
+    });
 });

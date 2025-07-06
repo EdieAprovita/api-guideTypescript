@@ -22,8 +22,8 @@ export interface Alert {
     type: 'hit_ratio' | 'memory' | 'response_time' | 'cache_size' | 'redis_down';
     severity: 'warning' | 'critical';
     message: string;
-    currentValue: any;
-    threshold: any;
+    currentValue: number | string;
+    threshold: number | string;
     timestamp: Date;
     resolved: boolean;
 }
@@ -237,7 +237,7 @@ export class CacheAlertService {
             return;
         }
         
-        const alert: Alert = {
+        const alert: AlertData = {
             id,
             ...alertData,
             timestamp: new Date(),
@@ -278,14 +278,19 @@ export class CacheAlertService {
     /**
      * Auto-resolver alertas basado en métricas actuales
      */
-    private async autoResolveAlerts(stats: any): Promise<void> {
+    private async autoResolveAlerts(stats: { 
+        hitRatio: number; 
+        avgResponseTime: number; 
+        errorRate: number; 
+        memoryUsage: number; 
+    }): Promise<void> {
         // Resolver alerta de hit ratio si mejoró
         if (stats.hitRatio >= this.config.thresholds.minHitRatio) {
             await this.resolveAlert('hit_ratio_low');
         }
         
         // Resolver alerta de memoria si bajó
-        const memoryMB = this.parseMemoryToMB(stats.memoryUsage);
+        const memoryMB = this.parseMemoryToMB(stats.memoryUsage.toString());
         const thresholdMB = this.parseMemoryToMB(this.config.thresholds.maxMemoryUsage);
         if (memoryMB <= thresholdMB) {
             await this.resolveAlert('memory_high');
@@ -300,7 +305,7 @@ export class CacheAlertService {
     /**
      * Enviar notificaciones
      */
-    private async sendNotifications(alert: Alert): Promise<void> {
+    private async sendNotifications(alert: AlertData): Promise<void> {
         try {
             // Webhook
             if (this.config.webhookUrl) {
@@ -325,7 +330,7 @@ export class CacheAlertService {
     /**
      * Enviar notificación de resolución
      */
-    private async sendResolutionNotification(alert: Alert): Promise<void> {
+    private async sendResolutionNotification(alert: AlertData): Promise<void> {
         // Implementación similar a sendNotifications pero para resolución
         logger.info(`📧 Resolution notification sent for alert: ${alert.id}`);
     }
@@ -333,7 +338,7 @@ export class CacheAlertService {
     /**
      * Enviar webhook
      */
-    private async sendWebhookNotification(_alert: Alert): Promise<void> {
+    private async sendWebhookNotification(_alert: AlertData): Promise<void> {
         // En producción, aquí harías un HTTP POST al webhook
         logger.info('🔗 Webhook notification sent');
     }
@@ -341,7 +346,7 @@ export class CacheAlertService {
     /**
      * Enviar email
      */
-    private async sendEmailNotification(_alert: Alert): Promise<void> {
+    private async sendEmailNotification(_alert: AlertData): Promise<void> {
         // En producción, integrarías con servicio de email
         logger.info(`📧 Email notification sent to ${this.config.emailRecipients?.join(', ')}`);
     }
@@ -349,7 +354,7 @@ export class CacheAlertService {
     /**
      * Enviar Slack
      */
-    private async sendSlackNotification(_alert: Alert): Promise<void> {
+    private async sendSlackNotification(_alert: AlertData): Promise<void> {
         // En producción, integrarías con Slack API
         logger.info(`💬 Slack notification sent to ${this.config.slackChannel || 'default'}`);
     }
@@ -375,14 +380,14 @@ export class CacheAlertService {
     /**
      * Obtener alertas activas
      */
-    getActiveAlerts(): Alert[] {
+    getActiveAlerts(): AlertData[] {
         return Array.from(this.activeAlerts.values()).filter(alert => !alert.resolved);
     }
 
     /**
      * Obtener todas las alertas (incluidas resueltas)
      */
-    getAllAlerts(): Alert[] {
+    getAllAlerts(): AlertData[] {
         return Array.from(this.activeAlerts.values());
     }
 

@@ -3,6 +3,8 @@ import { Application } from 'express';
 import { TestUser, MockRestaurant, MockDoctor, MockMarket, MockSanctuary } from '../types';
 import { Request, Response, NextFunction } from 'express';
 import { faker } from '@faker-js/faker';
+import { Response as SupertestResponse } from 'supertest';
+import { MockedFunction } from 'jest-mock';
 
 /**
  * Create a test user with default values
@@ -46,90 +48,106 @@ export const createAuthenticatedRequest = (app: Application, user: TestUser = cr
 /**
  * Helper to expect a successful response
  */
-export const expectSuccessResponse = (response: any, expectedStatus = 200) => {
+export const expectSuccessResponse = (response: SupertestResponse, expectedStatus = 200) => {
     expect(response.status).toBe(expectedStatus);
-    expect(response.body).toHaveProperty('success', true);
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
 };
 
 /**
  * Helper to expect an error response
  */
-export const expectErrorResponse = (response: any, expectedStatus = 400) => {
+export const expectErrorResponse = (response: SupertestResponse, expectedStatus = 400) => {
     expect(response.status).toBe(expectedStatus);
-    if (response.body.success !== undefined) {
-        expect(response.body).toHaveProperty('success', false);
-    }
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBeDefined();
+    expect(typeof response.body.message).toBe('string');
 };
 
 /**
  * Helper to expect a validation error
  */
-export const expectValidationError = (response: any) => {
+export const expectValidationError = (response: SupertestResponse) => {
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty('message');
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('validation');
 };
 
 /**
  * Helper to expect an unauthorized error
  */
-export const expectUnauthorizedError = (response: any) => {
+export const expectUnauthorizedError = (response: SupertestResponse) => {
     expect(response.status).toBe(401);
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('Unauthorized');
 };
 
 /**
  * Helper to expect a forbidden error
  */
-export const expectForbiddenError = (response: any) => {
+export const expectForbiddenError = (response: SupertestResponse) => {
     expect(response.status).toBe(403);
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('Forbidden');
 };
 
 /**
  * Helper to expect a not found error
  */
-export const expectNotFoundError = (response: any) => {
+export const expectNotFoundError = (response: SupertestResponse) => {
     expect(response.status).toBe(404);
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('not found');
 };
 
 /**
  * Helper to test pagination responses
  */
-export const expectPaginatedResponse = (response: any) => {
-    expectSuccessResponse(response);
-    expect(response.body.data).toBeInstanceOf(Array);
-    // Add more pagination checks if needed
-    return response.body;
+export const expectPaginatedResponse = (response: SupertestResponse) => {
+    expect(response.status).toBe(200);
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toBeDefined();
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.pagination).toBeDefined();
+    expect(typeof response.body.pagination.total).toBe('number');
 };
 
 /**
  * Helper to test resource creation
  */
-export const expectResourceCreated = (response: any) => {
-    expectSuccessResponse(response, 201);
-    expect(response.body.data).toHaveProperty('_id');
-    return response.body.data;
+export const expectResourceCreated = (response: SupertestResponse) => {
+    expect(response.status).toBe(201);
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toBeDefined();
+    expect(response.body.data._id).toBeDefined();
 };
 
 /**
  * Helper to test resource update
  */
-export const expectResourceUpdated = (response: any) => {
-    expectSuccessResponse(response);
-    expect(response.body.data).toHaveProperty('_id');
-    return response.body.data;
+export const expectResourceUpdated = (response: SupertestResponse) => {
+    expect(response.status).toBe(200);
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toBeDefined();
+    expect(response.body.data._id).toBeDefined();
 };
 
 /**
  * Helper to test resource deletion
  */
-export const expectResourceDeleted = (response: any) => {
-    expectSuccessResponse(response);
-    return response.body;
+export const expectResourceDeleted = (response: SupertestResponse) => {
+    expect(response.status).toBe(200);
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toContain('deleted');
 };
 
 /**
@@ -268,7 +286,10 @@ export const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve
 /**
  * Helper to assert that a mock was called with specific parameters
  */
-export const expectMockToHaveBeenCalledWith = (mockFn: jest.Mock, ...expectedArgs: any[]) => {
+export const expectMockToHaveBeenCalledWith = <T extends unknown[]>(
+    mockFn: MockedFunction<(...args: T) => unknown>, 
+    ...expectedArgs: T
+) => {
     expect(mockFn).toHaveBeenCalledWith(...expectedArgs);
 };
 
