@@ -497,6 +497,100 @@ export const generateTestPassword = () =>
 
 export const generateWeakPassword = () => faker.string.alphanumeric(3);
 
+// === TOKEN SERVICE TEST HELPERS ===
+
+/**
+ * Create standard mock payload for token tests
+ */
+export const createMockTokenPayload = (overrides: any = {}) => ({
+    userId: 'user123',
+    email: 'test@example.com',
+    role: 'user',
+    ...overrides
+});
+
+/**
+ * Create mock JWT setup for tests
+ */
+export const setupJWTMocks = (mockJwt: any, options: { accessToken?: string; refreshToken?: string } = {}) => {
+    const accessToken = options.accessToken || 'mock-access-token';
+    const refreshToken = options.refreshToken || 'mock-refresh-token';
+    
+    mockJwt.sign
+        .mockReturnValueOnce(accessToken)
+        .mockReturnValueOnce(refreshToken);
+        
+    return { accessToken, refreshToken };
+};
+
+/**
+ * Create Redis mock setup for token tests
+ */
+export const setupRedisMocks = (mockRedis: any) => {
+    mockRedis.setex.mockResolvedValue('OK');
+    mockRedis.get.mockResolvedValue(null);
+    mockRedis.del.mockResolvedValue(1);
+    mockRedis.keys.mockResolvedValue([]);
+    mockRedis.ttl.mockResolvedValue(-1);
+};
+
+/**
+ * Create JWT verification expectations
+ */
+export const expectJWTVerification = (mockJwt: any, payload: any, tokenType: 'access' | 'refresh') => {
+    const secretKey = tokenType === 'access' ? 'test-access-secret' : 'test-refresh-secret';
+    const expiresIn = tokenType === 'access' ? '15m' : '7d';
+    
+    expect(mockJwt.sign).toHaveBeenCalledWith(
+        payload,
+        secretKey,
+        {
+            expiresIn,
+            issuer: 'vegan-guide-api',
+            audience: 'vegan-guide-client',
+        }
+    );
+};
+
+/**
+ * Create error test helper
+ */
+export const testTokenError = async (
+    mockJwt: any,
+    errorMessage: string,
+    testFunction: () => Promise<any>,
+    expectedError: string
+) => {
+    mockJwt.verify.mockImplementation(() => {
+        throw new Error(errorMessage);
+    });
+
+    await expect(testFunction()).rejects.toThrow(expectedError);
+};
+
+/**
+ * Create Redis key expectation helper
+ */
+export const expectRedisKeyOperation = (mockRedis: any, operation: 'get' | 'del' | 'setex', key: string, value?: any) => {
+    if (operation === 'setex' && value !== undefined) {
+        expect(mockRedis[operation]).toHaveBeenCalledWith(key, expect.any(Number), value);
+    } else {
+        expect(mockRedis[operation]).toHaveBeenCalledWith(key);
+    }
+};
+
+/**
+ * Environment setup helper for tests
+ */
+export const setupTestEnvironment = (envVars: Record<string, string>) => {
+    const originalEnv = process.env;
+    process.env = { ...originalEnv, ...envVars };
+    
+    return () => {
+        process.env = originalEnv;
+    };
+};
+
 // === SERVICE TEST HELPERS ===
 
 /**

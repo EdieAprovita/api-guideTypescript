@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers';
 
 // Mock jwt module completely
 jest.mock('jsonwebtoken', () => ({
@@ -281,16 +282,10 @@ describe('TokenService', () => {
     });
 
     describe('generateTokenPair', () => {
-        const mockPayload = {
-            userId: 'user123',
-            email: 'test@example.com',
-            role: 'user'
-        };
+        const mockPayload = createMockTokenPayload();
 
         beforeEach(() => {
-            mockJwt.sign
-                .mockReturnValueOnce('mock-access-token')
-                .mockReturnValueOnce('mock-refresh-token');
+            setupJWTMocks(mockJwt);
         });
 
         it('should generate access and refresh tokens', async () => {
@@ -341,11 +336,7 @@ describe('TokenService', () => {
 
     describe('verifyAccessToken', () => {
         const mockToken = 'valid-access-token';
-        const mockPayload = {
-            userId: 'user123',
-            email: 'test@example.com',
-            role: 'user'
-        };
+        const mockPayload = createMockTokenPayload();
 
         beforeEach(() => {
             // Mock isTokenBlacklisted to return false by default
@@ -396,12 +387,7 @@ describe('TokenService', () => {
 
     describe('verifyRefreshToken', () => {
         const mockToken = 'valid-refresh-token';
-        const mockPayload = {
-            userId: 'user123',
-            email: 'test@example.com',
-            role: 'user',
-            type: 'refresh'
-        };
+        const mockPayload = createMockTokenPayload({ type: 'refresh' });
 
         it('should verify valid refresh token', async () => {
             mockJwt.verify.mockReturnValue(mockPayload);

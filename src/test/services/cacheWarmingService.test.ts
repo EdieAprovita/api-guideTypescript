@@ -633,9 +633,3 @@ const mockBusinesses: MockBusiness[] = [
     { _id: '1', name: 'Test Business', description: 'Test', address: 'Test Address', location: { type: 'Point', coordinates: [0, 0] }, contact: [], category: 'market', reviews: [], rating: 5, isVerified: true }
 ];
 
-const mockRestaurants2: MockRestaurant[] = [
-    { _id: '1', name: 'Test Restaurant', description: 'Test', address: 'Test Address', location: { type: 'Point', coordinates: [0, 0] }, contact: [], cuisine: 'Vegan', reviews: [], rating: 5, isVerified: true }
-];
-const mockBusinesses2: MockBusiness[] = [
-    { _id: '1', name: 'Test Business', description: 'Test', address: 'Test Address', location: { type: 'Point', coordinates: [0, 0] }, contact: [], category: 'market', reviews: [], rating: 5, isVerified: true }
-];
