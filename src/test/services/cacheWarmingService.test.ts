@@ -4,6 +4,7 @@ import { restaurantService } from '../../services/RestaurantService';
 import { businessService } from '../../services/BusinessService';
 import logger from '../../utils/logger';
 import { MockRestaurant, MockBusiness } from '../types';
+import { mockRestaurants, mockBusinesses } from '../mockData';
 
 // Mock dependencies
 jest.mock('../../services/CacheService');
@@ -281,11 +282,7 @@ describe('CacheWarmingService', () => {
 
     describe('Restaurant warming logic', () => {
         it('should cache all restaurants list', async () => {
-            const mockRestaurants = [
-                { _id: '1', name: 'Restaurant 1' },
-                { _id: '2', name: 'Restaurant 2' }
-            ];
-            mockedRestaurantService.getAllCached.mockResolvedValue(mockRestaurants as any);
+            mockedRestaurantService.getAllCached.mockResolvedValue(mockRestaurants);
             mockedCacheService.set.mockResolvedValue();
 
             const result = await warmingService.warmSpecificData('restaurants');
@@ -300,11 +297,12 @@ describe('CacheWarmingService', () => {
         });
 
         it('should cache individual top restaurants', async () => {
-            const mockRestaurants = Array.from({ length: 25 }, (_, i) => ({ 
+            const extendedMockRestaurants = Array.from({ length: 25 }, (_, i) => ({ 
+                ...mockRestaurants[0],
                 _id: `${i + 1}`, 
                 name: `Restaurant ${i + 1}` 
             }));
-            mockedRestaurantService.getAllCached.mockResolvedValue(mockRestaurants as any);
+            mockedRestaurantService.getAllCached.mockResolvedValue(extendedMockRestaurants as any);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('restaurants');
@@ -312,15 +310,14 @@ describe('CacheWarmingService', () => {
             // Should cache top 20 restaurants individually
             expect(mockedCacheService.set).toHaveBeenCalledWith(
                 'restaurant:1',
-                mockRestaurants[0],
+                extendedMockRestaurants[0],
                 'restaurants',
                 { ttl: 600, tags: ['restaurants'] }
             );
         });
 
         it('should cache popular restaurant searches', async () => {
-            const mockRestaurants = [{ _id: '1', name: 'Restaurant 1' }];
-            mockedRestaurantService.getAllCached.mockResolvedValue(mockRestaurants as any);
+            mockedRestaurantService.getAllCached.mockResolvedValue([mockRestaurants[0]]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('restaurants');
@@ -346,11 +343,7 @@ describe('CacheWarmingService', () => {
 
     describe('Business warming logic', () => {
         it('should cache all businesses list', async () => {
-            const mockBusinesses = [
-                { _id: '1', name: 'Business 1', category: 'market' },
-                { _id: '2', name: 'Business 2', category: 'shop' }
-            ];
-            mockedBusinessService.getAllCached.mockResolvedValue(mockBusinesses as any);
+            mockedBusinessService.getAllCached.mockResolvedValue(mockBusinesses);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('businesses');
@@ -364,11 +357,7 @@ describe('CacheWarmingService', () => {
         });
 
         it('should cache businesses by categories', async () => {
-            const mockBusinesses = [
-                { _id: '1', name: 'Market Business', category: 'market' },
-                { _id: '2', name: 'Shop Business', category: 'shop' }
-            ];
-            mockedBusinessService.getAllCached.mockResolvedValue(mockBusinesses as any);
+            mockedBusinessService.getAllCached.mockResolvedValue(mockBusinesses);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('businesses');
@@ -625,11 +614,4 @@ describe('CacheWarmingService', () => {
         });
     });
 });
-
-const mockRestaurants: MockRestaurant[] = [
-    { _id: '1', name: 'Test Restaurant', description: 'Test', address: 'Test Address', location: { type: 'Point', coordinates: [0, 0] }, contact: [], cuisine: 'Vegan', reviews: [], rating: 5, isVerified: true }
-];
-const mockBusinesses: MockBusiness[] = [
-    { _id: '1', name: 'Test Business', description: 'Test', address: 'Test Address', location: { type: 'Point', coordinates: [0, 0] }, contact: [], category: 'market', reviews: [], rating: 5, isVerified: true }
-];
 

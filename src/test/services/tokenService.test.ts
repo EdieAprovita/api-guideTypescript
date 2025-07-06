@@ -1,6 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers';
 
+// Test constants to avoid hard-coded values
+const TEST_REDIS_PASSWORD = 'test-redis-password';
+const TEST_JWT_SECRET = 'test-secret';
+const TEST_JWT_REFRESH_SECRET = 'test-refresh-secret';
+
 // Mock jwt module completely
 jest.mock('jsonwebtoken', () => ({
     sign: jest.fn(),
@@ -737,9 +742,9 @@ describe('TokenService', () => {
                 NODE_ENV: 'production',
                 REDIS_HOST: 'redis-server',
                 REDIS_PORT: '6380',
-                REDIS_PASSWORD: 'redis-password',
-                JWT_SECRET: 'test-secret',
-                JWT_REFRESH_SECRET: 'test-refresh-secret'
+                REDIS_PASSWORD: TEST_REDIS_PASSWORD,
+                JWT_SECRET: TEST_JWT_SECRET,
+                JWT_REFRESH_SECRET: TEST_JWT_REFRESH_SECRET
             };
 
             // This test verifies that the constructor doesn't throw when Redis config includes password
