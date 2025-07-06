@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import asyncHandler from '../middleware/asyncHandler';
 import { reviewService as ReviewService } from '../services/ReviewService';
 import { HttpError, HttpStatusCode } from '../types/Errors';
@@ -8,7 +8,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
  * @name listReviews
  */
 
-export const listReviews = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const listReviews = asyncHandler(async (req: Request, res: Response) => {
     const { refId, refModel } = req.params;
     if (!refId || !refModel) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Reference ID and model are required');
@@ -22,7 +22,7 @@ export const listReviews = asyncHandler(async (req: Request, res: Response, next
  * @name addReview
  */
 
-export const addReview = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const addReview = asyncHandler(async (req: Request, res: Response) => {
     const reviewData = req.body;
     const newReview = await ReviewService.addReview(reviewData);
     res.status(201).json(newReview);
@@ -33,7 +33,7 @@ export const addReview = asyncHandler(async (req: Request, res: Response, next: 
  * @name getReviewById
  */
 
-export const getReviewById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getReviewById = asyncHandler(async (req: Request, res: Response) => {
     const { reviewId } = req.params;
     if (!reviewId) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
@@ -47,7 +47,7 @@ export const getReviewById = asyncHandler(async (req: Request, res: Response, ne
  * @name updateReview
  */
 
-export const updateReview = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const updateReview = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!id) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
@@ -61,7 +61,7 @@ export const updateReview = asyncHandler(async (req: Request, res: Response, nex
  * @name deleteReview
  */
 
-export const deleteReview = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const deleteReview = asyncHandler(async (req: Request, res: Response) => {
     const { reviewId } = req.params;
     if (!reviewId) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');

@@ -5,6 +5,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { businessService as BusinessService } from '../services/BusinessService';
 import { reviewService as ReviewService } from '../services/ReviewService';
+import { sendSuccessResponse, sendCreatedResponse } from '../utils/responseHelpers';
 import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
 /**
@@ -19,11 +20,7 @@ export const getBusinesses = asyncHandler(async (_req: Request, res: Response, n
     try {
         // Usar método con cache para mejor rendimiento
         const businesses = await BusinessService.getAllCached();
-        res.status(200).json({
-            success: true,
-            message: 'Businesses fetched successfully',
-            data: businesses,
-        });
+        sendSuccessResponse(res, businesses, 'Businesses fetched successfully');
     } catch (error) {
         next(
             new HttpError(
@@ -50,12 +47,7 @@ export const getBusinessById = asyncHandler(async (req: Request, res: Response, 
         }
         // Usar método con cache para mejor rendimiento
         const business = await BusinessService.findByIdCached(id);
-
-        res.status(200).json({
-            success: true,
-            message: 'Business fetched successfully',
-            data: business,
-        });
+        sendSuccessResponse(res, business, 'Business fetched successfully');
     } catch (error) {
         next(
             new HttpError(
@@ -84,11 +76,7 @@ export const createBusiness = asyncHandler(async (req: Request, res: Response, n
     try {
         await geocodeAndAssignLocation(req.body);
         const business = await BusinessService.create(req.body);
-        res.status(201).json({
-            success: true,
-            message: 'Business created successfully',
-            data: business,
-        });
+        sendCreatedResponse(res, business, 'Business created successfully');
     } catch (error) {
         next(
             new HttpError(

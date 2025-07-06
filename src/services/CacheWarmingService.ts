@@ -246,9 +246,11 @@ export class CacheWarmingService {
             for (const category of popularCategories) {
                 const cacheKey = `businesses:category:${category}`;
                 // Filtrar negocios por categoría
-                        const categoryResults = allBusinesses.filter((b) =>
-            b.typeBusiness && b.typeBusiness.toLowerCase() === 'market'
-        );
+                const categoryResults = allBusinesses
+                    .filter((b) =>
+                        b.typeBusiness?.toLowerCase().includes(category)
+                    )
+                    .slice(0, 10);
                 
                 await cacheService.set(cacheKey, categoryResults, 'businesses', {
                     ttl: 900,
@@ -323,11 +325,7 @@ export class CacheWarmingService {
             }
 
             // Generar perfiles de usuario específicos
-            const userProfiles = adminUsers.map((user: { _id: string; username: string; role: string }) => ({
-                _id: user._id,
-                username: user.username,
-                role: user.role,
-            }));
+            logger.info(`Warmed ${adminUsers.length} admin users`);
 
         } catch (error) {
             logger.error('Error warming users:', error);

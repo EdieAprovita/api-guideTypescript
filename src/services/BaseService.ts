@@ -228,7 +228,7 @@ class BaseService<T extends Document> {
     }
 
     protected async findAll(): Promise<T[]> {
-        return this.model.find({}) as Promise<T[]>;
+        return this.model.find({}).exec() as Promise<T[]>;
     }
 
     protected async findWithPagination(query: FilterQuery<T>, page: number = 1, limit: number = 10): Promise<T[]> {
@@ -236,9 +236,9 @@ class BaseService<T extends Document> {
         let results: T[];
         
         if (limit > 0) {
-            results = await this.model.find(query).skip(skip).limit(limit) as T[];
+            results = await this.model.find(query).skip(skip).limit(limit).exec() as T[];
         } else {
-            results = await this.model.find(query) as T[];
+            results = await this.model.find(query).exec() as T[];
         }
 
         return results;

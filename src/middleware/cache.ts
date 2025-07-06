@@ -125,13 +125,15 @@ export function cacheMiddleware(
             // Interceptar el método json() para cachear la respuesta
             const originalJson = res.json;
             res.json = function(data: unknown) {
-                // Store in cache
-                const cacheOptions: CacheMiddlewareOptions = {};
-                if (options.ttl !== undefined) cacheOptions.ttl = options.ttl;
-                if (options.tags !== undefined) cacheOptions.tags = options.tags;
-                cacheService.set(cacheKey, data, type, cacheOptions).catch(error => {
-                    logger.error(`Error caching response for ${cacheKey}:`, error);
-                });
+                // Store in cache only for successful responses
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    const cacheOptions: CacheMiddlewareOptions = {};
+                    if (options.ttl !== undefined) cacheOptions.ttl = options.ttl;
+                    if (options.tags !== undefined) cacheOptions.tags = options.tags;
+                    cacheService.set(cacheKey, data, type, cacheOptions).catch(error => {
+                        logger.error(`Error caching response for ${cacheKey}:`, error);
+                    });
+                }
                 
                 // Llamar al método original
                 return originalJson.call(this, data);
