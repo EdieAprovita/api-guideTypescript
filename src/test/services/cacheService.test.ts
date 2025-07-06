@@ -66,10 +66,10 @@ describe('CacheService', () => {
         });
 
         it('should use environment variables for Redis configuration', () => {
-            const testPassword = process.env.TEST_REDIS_PASSWORD || 'test-redis-pwd';
+            const { TEST_REDIS_CONFIG } = require('../testConfig');
             process.env.REDIS_HOST = 'test-host';
             process.env.REDIS_PORT = '6380';
-            process.env.REDIS_PASSWORD = testPassword;
+            process.env.REDIS_PASSWORD = TEST_REDIS_CONFIG.password;
 
             const testService = new CacheService();
             expect(testService).toBeDefined();
@@ -78,7 +78,7 @@ describe('CacheService', () => {
                 expect.objectContaining({
                     host: 'test-host',
                     port: 6380,
-                    password: testPassword,
+                    password: TEST_REDIS_CONFIG.password,
                 })
             );
 
