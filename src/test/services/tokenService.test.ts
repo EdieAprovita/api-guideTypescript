@@ -271,9 +271,8 @@ describe('TokenService', () => {
             delete process.env.JWT_REFRESH_EXPIRES_IN;
             
             // Should not throw error when using defaults
-            expect(() => {
-                new TestTokenService();
-            }).not.toThrow();
+            const testService = new TestTokenService();
+            expect(testService).toBeDefined();
             
             // Restore for other tests
             process.env.JWT_EXPIRES_IN = '15m';
@@ -758,9 +757,8 @@ describe('TokenService', () => {
             };
 
             // This test verifies that the constructor doesn't throw when Redis config includes password
-            expect(() => {
-                new TestTokenService();
-            }).not.toThrow();
+            const testService = new TestTokenService();
+            expect(testService).toBeDefined();
 
             process.env = originalEnv;
         });

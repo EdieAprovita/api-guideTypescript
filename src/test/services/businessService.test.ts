@@ -1,29 +1,20 @@
-// Mock BaseService to avoid modelName issues
-jest.mock('../../services/BaseService', () => {
-    return {
-        __esModule: true,
-        default: class MockBaseService {
-            constructor() {}
-            async getAll() {
-                return [
-                    { _id: '1', namePlace: 'Test Business 1' },
-                    { _id: '2', namePlace: 'Test Business 2' }
-                ];
-            }
-        }
-    };
-});
+import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
+
+// Mock BaseService with shared utility
+const mockData = [
+    { _id: '1', namePlace: 'Test Business 1' },
+    { _id: '2', namePlace: 'Test Business 2' }
+];
+
+jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
 
 import { businessService } from "../../services/BusinessService";
 
 describe("BusinessService", () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+    const testUtils = setupServiceTest('BusinessService');
 
     it("delegates getAll to the model", async () => {
-        const result = await businessService.getAll();
-        expect(result).toHaveLength(2);
+        const result = await testUtils.testGetAll(businessService, 2);
         expect(result[0].namePlace).toBe('Test Business 1');
     });
 });

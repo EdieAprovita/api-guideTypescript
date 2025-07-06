@@ -496,3 +496,99 @@ export const generateTestPassword = () =>
     });
 
 export const generateWeakPassword = () => faker.string.alphanumeric(3);
+
+// === SERVICE TEST HELPERS ===
+
+/**
+ * Create BaseService mock with standard CRUD operations
+ */
+export const createBaseServiceMock = (mockData: any[] = []) => {
+    return {
+        __esModule: true,
+        default: class MockBaseService {
+            async getAll() {
+                return mockData;
+            }
+            async updateById(id: string, data: any) {
+                return { _id: id, ...data };
+            }
+            async create(data: any) {
+                return { _id: 'new-id', ...data };
+            }
+            async findById(id: string) {
+                return mockData.find(item => item._id === id) || null;
+            }
+            async deleteById(_id: string): Promise<void> {
+                // Mock delete operation
+            }
+        }
+    };
+};
+
+/**
+ * Setup common service test environment
+ */
+export const setupServiceTest = (_serviceName: string) => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    return {
+        testGetAll: async (service: any, expectedLength: number = 2) => {
+            const result = await service.getAll();
+            expect(result).toBeDefined();
+            expect(Array.isArray(result)).toBe(true);
+            if (expectedLength > 0) {
+                expect(result).toHaveLength(expectedLength);
+            }
+            return result;
+        },
+
+        testCreate: async (service: any, testData: any) => {
+            const result = await service.create(testData);
+            expect(result).toBeDefined();
+            expect(result._id).toBeDefined();
+            return result;
+        },
+
+        testUpdate: async (service: any, id: string, updateData: any) => {
+            const result = await service.updateById(id, updateData);
+            expect(result).toBeDefined();
+            expect(result._id).toBe(id);
+            return result;
+        }
+    };
+};
+
+/**
+ * Create standard service test data
+ */
+export const createServiceTestData = (entityName: string, count: number = 2) => {
+    return Array.from({ length: count }, (_, index) => ({
+        _id: `${entityName}-${index + 1}`,
+        [`${entityName}Name`]: `Test ${entityName} ${index + 1}`,
+        author: 'author-id',
+        address: `Test Address ${index + 1}`,
+        rating: 4.5,
+        numReviews: 0,
+        reviews: [],
+        contact: [],
+        timestamps: createTestTimestamp()
+    }));
+};
+
+/**
+ * Standard service test suite generator
+ */
+export const createServiceTestSuite = (serviceName: string, ServiceClass: any, mockData: any[]) => {
+    return () => {
+        const testUtils = setupServiceTest(serviceName);
+        
+        return {
+            'should delegate getAll to the model': async () => {
+                const service = new ServiceClass();
+                await testUtils.testGetAll(service, mockData.length);
+            }
+        };
+    };
+};

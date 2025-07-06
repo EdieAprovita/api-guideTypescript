@@ -1,44 +1,22 @@
-// Mock BaseService to avoid modelName issues
-jest.mock('../../services/BaseService', () => {
-    return {
-        __esModule: true,
-        default: class MockBaseService {
-            constructor() {}
-            async getAll() {
-                return [
-          {
-                    "_id": "1",
-                    "profileName": "Profile 1"
-          },
-          {
-                    "_id": "2",
-                    "profileName": "Profile 2"
-          }
+import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
+
+const mockData = [
+    { "_id": "1", "profileName": "Profile 1" },
+    { "_id": "2", "profileName": "Profile 2" }
 ];
-            }
-            async updateById(id, data) {
-                return { _id: id, ...data };
-            }
-            async create(data) {
-                return { _id: 'new-id', ...data };
-            }
-        }
-    };
-});
+
+jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
 
 import { professionProfileService } from "../../services/ProfessionProfileService";
 
 describe("ProfessionProfileService", () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+    const testUtils = setupServiceTest('ProfessionProfileService');
 
     it("delegates getAll to the model", async () => {
-        const result = await professionProfileService.getAll();
-        expect(result).toHaveLength(2);
+        const result = await testUtils.testGetAll(professionProfileService, 2);
         expect(result[0]).toMatchObject({
-        "_id": "1",
-        "profileName": "Profile 1"
-});
+            "_id": "1",
+            "profileName": "Profile 1"
+        });
     });
 });

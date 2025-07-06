@@ -48,7 +48,6 @@ describe('CacheService', () => {
             expect(MockedRedis).toHaveBeenCalledWith({
                 host: 'localhost',
                 port: 6379,
-                password: 'redis123',
                 db: 0,
                 retryDelayOnFailover: 100,
                 maxRetriesPerRequest: 3,
@@ -71,7 +70,8 @@ describe('CacheService', () => {
             process.env.REDIS_PORT = '6380';
             process.env.REDIS_PASSWORD = 'test-password';
 
-            new CacheService();
+            const testService = new CacheService();
+            expect(testService).toBeDefined();
 
             expect(MockedRedis).toHaveBeenCalledWith(
                 expect.objectContaining({

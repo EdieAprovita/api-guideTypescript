@@ -1,22 +1,11 @@
-// Mock BaseService to avoid modelName issues
-jest.mock('../../services/BaseService', () => {
-    return {
-        __esModule: true,
-        default: class MockBaseService {
-            constructor() {}
-            async create(data) {
-                return { _id: 'new-recipe-id', ...data };
-            }
-        }
-    };
-});
+import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
+
+jest.mock('../../services/BaseService', () => createBaseServiceMock());
 
 import { recipeService } from "../../services/RecipesService";
 
 describe("RecipesService", () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+    const testUtils = setupServiceTest('RecipesService');
 
     it("calls model on create", async () => {
         const validRecipeData = {
@@ -26,8 +15,7 @@ describe("RecipesService", () => {
             cookingTime: 30
         };
 
-        const result = await recipeService.create(validRecipeData);
-        expect(result._id).toBe('new-recipe-id');
+        const result = await testUtils.testCreate(recipeService, validRecipeData);
         expect(result.title).toBe('Test Recipe');
     });
 });
