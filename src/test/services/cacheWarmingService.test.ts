@@ -122,8 +122,8 @@ describe('CacheWarmingService', () => {
             ]);
             
             mockedBusinessService.getAllCached.mockResolvedValue([
-                { _id: '1', name: 'Test Business 1', category: 'market' },
-                { _id: '2', name: 'Test Business 2', category: 'shop' }
+                { _id: '1', name: 'Test Business 1', typeBusiness: 'market' },
+                { _id: '2', name: 'Test Business 2', typeBusiness: 'shop' }
             ]);
             
             mockedCacheService.set.mockResolvedValue();

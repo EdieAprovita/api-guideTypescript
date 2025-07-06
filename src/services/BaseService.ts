@@ -253,7 +253,7 @@ class BaseService<T extends Document> {
                 },
             },
         };
-        return this.model.find(query) as Promise<T[]>;
+        return this.model.find(query).exec() as Promise<T[]>;
     }
 }
 export default BaseService;

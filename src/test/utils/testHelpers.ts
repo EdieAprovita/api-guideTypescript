@@ -389,7 +389,7 @@ export const createMockRestaurant = (overrides = {}) => ({
     name: faker.company.name(),
     description: faker.lorem.sentence(),
     address: faker.location.streetAddress(),
-    category: 'restaurant',
+            typeBusiness: 'restaurant',
     phone: faker.phone.number(),
     ...overrides,
 });

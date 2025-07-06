@@ -48,7 +48,7 @@ export interface MockBusiness {
         email?: string;
         website?: string;
     }[];
-    category: string;
+    typeBusiness: string;
     reviews: {
         _id: string;
         rating: number;

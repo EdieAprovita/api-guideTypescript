@@ -88,7 +88,7 @@ export const mockBusinesses: MockBusiness[] = [
                 website: 'https://testbusiness1.com'
             }
         ],
-        category: 'market',
+        typeBusiness: 'market',
         reviews: [
             {
                 _id: 'breview1',
@@ -115,7 +115,7 @@ export const mockBusinesses: MockBusiness[] = [
                 email: 'test2@business.com'
             }
         ],
-        category: 'shop',
+        typeBusiness: 'shop',
         reviews: [
             {
                 _id: 'breview2',
