@@ -9,7 +9,14 @@ export interface CacheableRequest extends Request {
 }
 
 export interface CacheableResponse extends Response {
-    sendCached?: (data: any) => void;
+    sendCached?: (data: unknown) => void;
+}
+
+interface CacheMiddlewareOptions {
+    ttl?: number;
+    tags?: string[];
+    keyGenerator?: (req: Request) => string;
+    sendCached?: (data: unknown) => void;
 }
 
 /**
@@ -117,11 +124,10 @@ export function cacheMiddleware(
             
             // Interceptar el método json() para cachear la respuesta
             const originalJson = res.json;
-            res.json = function(data: any) {
-                // Solo cachear respuestas exitosas
+            res.json = function(data: unknown) {
+                // Store in cache only for successful responses
                 if (res.statusCode >= 200 && res.statusCode < 300) {
-                    // Cachear de forma asíncrona (no bloquear respuesta)
-                    const cacheOptions: any = {};
+                    const cacheOptions: CacheMiddlewareOptions = {};
                     if (options.ttl !== undefined) cacheOptions.ttl = options.ttl;
                     if (options.tags !== undefined) cacheOptions.tags = options.tags;
                     cacheService.set(cacheKey, data, type, cacheOptions).catch(error => {
@@ -222,7 +228,7 @@ export function cacheInvalidationMiddleware(tags: string[]) {
     return async (_req: Request, res: Response, next: NextFunction) => {
         // Interceptar respuestas exitosas de escritura
         const originalJson = res.json;
-        res.json = function(data: any) {
+        res.json = function(data: unknown) {
             // Solo invalidar en operaciones exitosas
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 // Invalidar de forma asíncrona

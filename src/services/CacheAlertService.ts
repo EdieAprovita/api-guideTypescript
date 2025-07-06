@@ -22,8 +22,8 @@ export interface Alert {
     type: 'hit_ratio' | 'memory' | 'response_time' | 'cache_size' | 'redis_down';
     severity: 'warning' | 'critical';
     message: string;
-    currentValue: any;
-    threshold: any;
+    currentValue: number | string;
+    threshold: number | string;
     timestamp: Date;
     resolved: boolean;
 }
@@ -116,7 +116,12 @@ export class CacheAlertService {
             await this.checkRedisConnectivity();
             
             // Auto-resolver alertas si las métricas mejoraron
-            await this.autoResolveAlerts(stats);
+            await this.autoResolveAlerts({
+                hitRatio: stats.hitRatio,
+                avgResponseTime: 0,
+                errorRate: 0,
+                memoryUsage: this.parseMemoryToMB(stats.memoryUsage)
+            });
             
         } catch (error) {
             logger.error('Error checking cache metrics:', error);
@@ -278,22 +283,22 @@ export class CacheAlertService {
     /**
      * Auto-resolver alertas basado en métricas actuales
      */
-    private async autoResolveAlerts(stats: any): Promise<void> {
+    private async autoResolveAlerts(stats: { 
+        hitRatio: number; 
+        avgResponseTime: number; 
+        errorRate: number; 
+        memoryUsage: number; 
+    }): Promise<void> {
         // Resolver alerta de hit ratio si mejoró
         if (stats.hitRatio >= this.config.thresholds.minHitRatio) {
             await this.resolveAlert('hit_ratio_low');
         }
         
         // Resolver alerta de memoria si bajó
-        const memoryMB = this.parseMemoryToMB(stats.memoryUsage);
+        const memoryMB = stats.memoryUsage;
         const thresholdMB = this.parseMemoryToMB(this.config.thresholds.maxMemoryUsage);
         if (memoryMB <= thresholdMB) {
             await this.resolveAlert('memory_high');
-        }
-        
-        // Resolver alerta de cache size si aumentó
-        if (stats.cacheSize >= this.config.thresholds.minCacheSize) {
-            await this.resolveAlert('cache_size_low');
         }
     }
 

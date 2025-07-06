@@ -3,6 +3,8 @@ import { Application } from 'express';
 import { TestUser, MockRestaurant, MockDoctor, MockMarket, MockSanctuary } from '../types';
 import { Request, Response, NextFunction } from 'express';
 import { faker } from '@faker-js/faker';
+import { Response as SupertestResponse } from 'supertest';
+import { MockedFunction } from 'jest-mock';
 
 /**
  * Create a test user with default values
@@ -46,90 +48,106 @@ export const createAuthenticatedRequest = (app: Application, user: TestUser = cr
 /**
  * Helper to expect a successful response
  */
-export const expectSuccessResponse = (response: any, expectedStatus = 200) => {
+export const expectSuccessResponse = (response: SupertestResponse, expectedStatus = 200) => {
     expect(response.status).toBe(expectedStatus);
-    expect(response.body).toHaveProperty('success', true);
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
 };
 
 /**
  * Helper to expect an error response
  */
-export const expectErrorResponse = (response: any, expectedStatus = 400) => {
+export const expectErrorResponse = (response: SupertestResponse, expectedStatus = 400) => {
     expect(response.status).toBe(expectedStatus);
-    if (response.body.success !== undefined) {
-        expect(response.body).toHaveProperty('success', false);
-    }
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBeDefined();
+    expect(typeof response.body.message).toBe('string');
 };
 
 /**
  * Helper to expect a validation error
  */
-export const expectValidationError = (response: any) => {
+export const expectValidationError = (response: SupertestResponse) => {
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty('message');
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('validation');
 };
 
 /**
  * Helper to expect an unauthorized error
  */
-export const expectUnauthorizedError = (response: any) => {
+export const expectUnauthorizedError = (response: SupertestResponse) => {
     expect(response.status).toBe(401);
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('Unauthorized');
 };
 
 /**
  * Helper to expect a forbidden error
  */
-export const expectForbiddenError = (response: any) => {
+export const expectForbiddenError = (response: SupertestResponse) => {
     expect(response.status).toBe(403);
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('Forbidden');
 };
 
 /**
  * Helper to expect a not found error
  */
-export const expectNotFoundError = (response: any) => {
+export const expectNotFoundError = (response: SupertestResponse) => {
     expect(response.status).toBe(404);
-    return response.body;
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('not found');
 };
 
 /**
  * Helper to test pagination responses
  */
-export const expectPaginatedResponse = (response: any) => {
-    expectSuccessResponse(response);
-    expect(response.body.data).toBeInstanceOf(Array);
-    // Add more pagination checks if needed
-    return response.body;
+export const expectPaginatedResponse = (response: SupertestResponse) => {
+    expect(response.status).toBe(200);
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toBeDefined();
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.pagination).toBeDefined();
+    expect(typeof response.body.pagination.total).toBe('number');
 };
 
 /**
  * Helper to test resource creation
  */
-export const expectResourceCreated = (response: any) => {
-    expectSuccessResponse(response, 201);
-    expect(response.body.data).toHaveProperty('_id');
-    return response.body.data;
+export const expectResourceCreated = (response: SupertestResponse) => {
+    expect(response.status).toBe(201);
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toBeDefined();
+    expect(response.body.data._id).toBeDefined();
 };
 
 /**
  * Helper to test resource update
  */
-export const expectResourceUpdated = (response: any) => {
-    expectSuccessResponse(response);
-    expect(response.body.data).toHaveProperty('_id');
-    return response.body.data;
+export const expectResourceUpdated = (response: SupertestResponse) => {
+    expect(response.status).toBe(200);
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toBeDefined();
+    expect(response.body.data._id).toBeDefined();
 };
 
 /**
  * Helper to test resource deletion
  */
-export const expectResourceDeleted = (response: any) => {
-    expectSuccessResponse(response);
-    return response.body;
+export const expectResourceDeleted = (response: SupertestResponse) => {
+    expect(response.status).toBe(200);
+    expect(response.body).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toContain('deleted');
 };
 
 /**
@@ -268,7 +286,10 @@ export const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve
 /**
  * Helper to assert that a mock was called with specific parameters
  */
-export const expectMockToHaveBeenCalledWith = (mockFn: jest.Mock, ...expectedArgs: any[]) => {
+export const expectMockToHaveBeenCalledWith = <T extends unknown[]>(
+    mockFn: MockedFunction<(...args: T) => unknown>, 
+    ...expectedArgs: T
+) => {
     expect(mockFn).toHaveBeenCalledWith(...expectedArgs);
 };
 
@@ -368,7 +389,7 @@ export const createMockRestaurant = (overrides = {}) => ({
     name: faker.company.name(),
     description: faker.lorem.sentence(),
     address: faker.location.streetAddress(),
-    category: 'restaurant',
+            typeBusiness: 'restaurant',
     phone: faker.phone.number(),
     ...overrides,
 });
@@ -475,3 +496,193 @@ export const generateTestPassword = () =>
     });
 
 export const generateWeakPassword = () => faker.string.alphanumeric(3);
+
+// === TOKEN SERVICE TEST HELPERS ===
+
+/**
+ * Create standard mock payload for token tests
+ */
+export const createMockTokenPayload = (overrides: any = {}) => ({
+    userId: 'user123',
+    email: 'test@example.com',
+    role: 'user',
+    ...overrides
+});
+
+/**
+ * Create mock JWT setup for tests
+ */
+export const setupJWTMocks = (mockJwt: any, options: { accessToken?: string; refreshToken?: string } = {}) => {
+    const accessToken = options.accessToken || 'mock-access-token';
+    const refreshToken = options.refreshToken || 'mock-refresh-token';
+    
+    mockJwt.sign
+        .mockReturnValueOnce(accessToken)
+        .mockReturnValueOnce(refreshToken);
+        
+    return { accessToken, refreshToken };
+};
+
+/**
+ * Create Redis mock setup for token tests
+ */
+export const setupRedisMocks = (mockRedis: any) => {
+    mockRedis.setex.mockResolvedValue('OK');
+    mockRedis.get.mockResolvedValue(null);
+    mockRedis.del.mockResolvedValue(1);
+    mockRedis.keys.mockResolvedValue([]);
+    mockRedis.ttl.mockResolvedValue(-1);
+};
+
+/**
+ * Create JWT verification expectations
+ */
+export const expectJWTVerification = (mockJwt: any, payload: any, tokenType: 'access' | 'refresh') => {
+    const secretKey = tokenType === 'access' ? 'test-access-secret' : 'test-refresh-secret';
+    const expiresIn = tokenType === 'access' ? '15m' : '7d';
+    
+    expect(mockJwt.sign).toHaveBeenCalledWith(
+        payload,
+        secretKey,
+        {
+            expiresIn,
+            issuer: 'vegan-guide-api',
+            audience: 'vegan-guide-client',
+        }
+    );
+};
+
+/**
+ * Create error test helper
+ */
+export const testTokenError = async (
+    mockJwt: any,
+    errorMessage: string,
+    testFunction: () => Promise<any>,
+    expectedError: string
+) => {
+    mockJwt.verify.mockImplementation(() => {
+        throw new Error(errorMessage);
+    });
+
+    await expect(testFunction()).rejects.toThrow(expectedError);
+};
+
+/**
+ * Create Redis key expectation helper
+ */
+export const expectRedisKeyOperation = (mockRedis: any, operation: 'get' | 'del' | 'setex', key: string, value?: any) => {
+    if (operation === 'setex' && value !== undefined) {
+        expect(mockRedis[operation]).toHaveBeenCalledWith(key, expect.any(Number), value);
+    } else {
+        expect(mockRedis[operation]).toHaveBeenCalledWith(key);
+    }
+};
+
+/**
+ * Environment setup helper for tests
+ */
+export const setupTestEnvironment = (envVars: Record<string, string>) => {
+    const originalEnv = process.env;
+    process.env = { ...originalEnv, ...envVars };
+    
+    return () => {
+        process.env = originalEnv;
+    };
+};
+
+// === SERVICE TEST HELPERS ===
+
+/**
+ * Create BaseService mock with standard CRUD operations
+ */
+export const createBaseServiceMock = (mockData: any[] = []) => {
+    return {
+        __esModule: true,
+        default: class MockBaseService {
+            async getAll() {
+                return mockData;
+            }
+            async updateById(id: string, data: any) {
+                return { _id: id, ...data };
+            }
+            async create(data: any) {
+                return { _id: 'new-id', ...data };
+            }
+            async findById(id: string) {
+                return mockData.find(item => item._id === id) || null;
+            }
+            async deleteById(_id: string): Promise<void> {
+                // Mock delete operation
+            }
+        }
+    };
+};
+
+/**
+ * Setup common service test environment
+ */
+export const setupServiceTest = (_serviceName: string) => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    return {
+        testGetAll: async (service: any, expectedLength: number = 2) => {
+            const result = await service.getAll();
+            expect(result).toBeDefined();
+            expect(Array.isArray(result)).toBe(true);
+            if (expectedLength > 0) {
+                expect(result).toHaveLength(expectedLength);
+            }
+            return result;
+        },
+
+        testCreate: async (service: any, testData: any) => {
+            const result = await service.create(testData);
+            expect(result).toBeDefined();
+            expect(result._id).toBeDefined();
+            return result;
+        },
+
+        testUpdate: async (service: any, id: string, updateData: any) => {
+            const result = await service.updateById(id, updateData);
+            expect(result).toBeDefined();
+            expect(result._id).toBe(id);
+            return result;
+        }
+    };
+};
+
+/**
+ * Create standard service test data
+ */
+export const createServiceTestData = (entityName: string, count: number = 2) => {
+    return Array.from({ length: count }, (_, index) => ({
+        _id: `${entityName}-${index + 1}`,
+        [`${entityName}Name`]: `Test ${entityName} ${index + 1}`,
+        author: 'author-id',
+        address: `Test Address ${index + 1}`,
+        rating: 4.5,
+        numReviews: 0,
+        reviews: [],
+        contact: [],
+        timestamps: createTestTimestamp()
+    }));
+};
+
+/**
+ * Standard service test suite generator
+ */
+export const createServiceTestSuite = (serviceName: string, ServiceClass: any, mockData: any[]) => {
+    return () => {
+        const testUtils = setupServiceTest(serviceName);
+        
+        return {
+            'should delegate getAll to the model': async () => {
+                const service = new ServiceClass();
+                await testUtils.testGetAll(service, mockData.length);
+            }
+        };
+    };
+};

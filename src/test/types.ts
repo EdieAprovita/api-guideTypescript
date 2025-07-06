@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Types } from 'mongoose';
 
 // Tipos específicos para testing
 export interface TestUser {
@@ -8,89 +9,153 @@ export interface TestUser {
 }
 
 // Mock data types that avoid Mongoose Document interface requirements
-export type MockRestaurant = {
+export interface MockRestaurant {
     _id: string;
-    restaurantName: string;
-    author: string;
-    typePlace: string;
+    name: string;
+    description: string;
     address: string;
-    location: { type: string; coordinates: number[] };
-    image: string;
-    budget: string;
-    contact: any[];
-    cuisine: string[];
-    reviews: any[];
-    rating: number;
-    numReviews: number;
-    timestamps: {
-        createdAt: string;
-        updatedAt: string;
+    location: {
+        type: string;
+        coordinates: [number, number];
     };
-};
+    contact: {
+        phone?: string;
+        email?: string;
+        website?: string;
+    }[];
+    cuisine: string;
+    reviews: {
+        _id: string;
+        rating: number;
+        comment: string;
+        username: string;
+    }[];
+    rating: number;
+    isVerified: boolean;
+}
 
-export type MockDoctor = {
+export interface MockBusiness {
     _id: string;
-    doctorName: string;
-    author: string;
+    name: string;
+    description: string;
     address: string;
-    location: { type: string; coordinates: number[] };
-    image: string;
-    budget: string;
-    contact: any[];
-    expertise: string[];
-    reviews: any[];
-    rating: number;
-    numReviews: number;
-    timestamps: {
-        createdAt: string;
-        updatedAt: string;
+    location: {
+        type: string;
+        coordinates: [number, number];
     };
-};
+    contact: {
+        phone?: string;
+        email?: string;
+        website?: string;
+    }[];
+    typeBusiness: string;
+    reviews: {
+        _id: string;
+        rating: number;
+        comment: string;
+        username: string;
+    }[];
+    rating: number;
+    isVerified: boolean;
+}
 
-export type MockMarket = {
+export interface MockMarket {
     _id: string;
-    marketName: string;
-    author: string;
+    name: string;
+    description: string;
     address: string;
-    location: { type: string; coordinates: number[] };
-    image: string;
-    typeMarket: string;
-    contact: any[];
-    reviews: any[];
-    rating: number;
-    numReviews: number;
-    timestamps: {
-        createdAt: string;
-        updatedAt: string;
+    location: {
+        type: string;
+        coordinates: [number, number];
     };
-};
+    contact: {
+        phone?: string;
+        email?: string;
+        website?: string;
+    }[];
+    reviews: {
+        _id: string;
+        rating: number;
+        comment: string;
+        username: string;
+    }[];
+    rating: number;
+    isVerified: boolean;
+}
 
-export type MockSanctuary = {
+export interface MockSanctuary {
     _id: string;
-    sanctuaryName: string;
-    author: string;
+    name: string;
+    description: string;
     address: string;
-    location: { type: string; coordinates: number[] };
-    image: string;
-    typeofSanctuary: string;
-    animals: any[];
-    capacity: number;
-    caretakers: string[];
-    contact: any[];
-    reviews: any[];
-    rating: number;
-    numReviews: number;
-    timestamps: {
-        createdAt: string;
-        updatedAt: string;
+    location: {
+        type: string;
+        coordinates: [number, number];
     };
-};
+    animals: {
+        type: string;
+        count: number;
+        description?: string;
+    }[];
+    website: string;
+    contact: {
+        phone?: string;
+        email?: string;
+        website?: string;
+    }[];
+    reviews: {
+        _id: string;
+        rating: number;
+        comment: string;
+        username: string;
+    }[];
+    rating: number;
+    isVerified: boolean;
+}
 
-export type MockReview = {
+export interface MockUser {
     _id: string;
+    username: string;
+    email: string;
+    role: 'user' | 'professional';
+    isAdmin: boolean;
+    isActive: boolean;
+    isDeleted: boolean;
+    photo: string;
+    timestamps: {
+        createdAt: Date;
+        updatedAt: Date;
+    };
+}
+
+export interface MockReview {
+    _id: string;
+    username: string;
     rating: number;
     comment: string;
-};
+    user: Types.ObjectId;
+    refId: Types.ObjectId;
+    refModel: string;
+    timestamps: {
+        createdAt: Date;
+        updatedAt: Date;
+    };
+}
+
+export interface MockPost {
+    _id: string;
+    title: string;
+    content: string;
+    author: Types.ObjectId;
+    likes: {
+        username: string;
+        user: Types.ObjectId;
+    }[];
+    timestamps: {
+        createdAt: Date;
+        updatedAt: Date;
+    };
+}
 
 // Service mock interfaces
 export interface MockServiceMethods<T> {
@@ -106,7 +171,7 @@ export interface MockServiceMethods<T> {
 }
 
 export interface MockRestaurantService extends MockServiceMethods<MockRestaurant> {}
-export interface MockDoctorService extends MockServiceMethods<MockDoctor> {}
+export interface MockDoctorService extends MockServiceMethods<MockBusiness> {}
 export interface MockMarketService extends MockServiceMethods<MockMarket> {}
 export interface MockSanctuaryService extends MockServiceMethods<MockSanctuary> {}
 
@@ -135,3 +200,14 @@ export interface AuthMock {
     refreshToken: jest.MockedFunction<TestController>;
     revokeAllTokens: jest.MockedFunction<TestController>;
 }
+
+// Type guards para validación de tipos
+export const isValidMockRestaurant = (obj: unknown): obj is MockRestaurant => {
+    return typeof obj === 'object' && obj !== null && 
+           '_id' in obj && 'name' in obj && 'location' in obj;
+};
+
+export const isValidMockUser = (obj: unknown): obj is MockUser => {
+    return typeof obj === 'object' && obj !== null && 
+           '_id' in obj && 'username' in obj && 'email' in obj;
+};

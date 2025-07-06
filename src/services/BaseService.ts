@@ -3,6 +3,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { cacheService, CacheOptions } from './CacheService';
 import logger from '../utils/logger';
+import { FilterQuery } from 'mongoose';
 
 /**
  * @description Base service class
@@ -161,14 +162,14 @@ class BaseService<T extends Document> {
         options?: CacheOptions
     ): Promise<U[]> {
         if (!this.cacheEnabled) {
-            return this.model.find(query) as any;
+            return this.model.find(query).exec() as Promise<U[]>;
         }
 
         try {
             let results = await cacheService.get<U[]>(cacheKey);
             
             if (!results || results === null) {
-                results = await this.model.find(query) as any;
+                results = await this.model.find(query).exec() as U[];
                 await cacheService.set(cacheKey, results, this.modelName, {
                     ttl: options?.ttl || this.cacheTTL,
                     tags: options?.tags || [this.modelName]
@@ -178,7 +179,7 @@ class BaseService<T extends Document> {
             return results || [] as U[];
         } catch (error) {
             logger.error(`Cache error in findWithCache for ${this.modelName}:`, error);
-            return this.model.find(query) as any;
+            return this.model.find(query).exec() as Promise<U[]>;
         }
     }
 
@@ -224,6 +225,35 @@ class BaseService<T extends Document> {
      */
     protected generateCacheKey(...parts: (string | number)[]): string {
         return [this.modelName, ...parts].join(':');
+    }
+
+    protected async findAll(): Promise<T[]> {
+        return this.model.find({}).exec() as Promise<T[]>;
+    }
+
+    protected async findWithPagination(query: FilterQuery<T>, page: number = 1, limit: number = 10): Promise<T[]> {
+        const skip = (page - 1) * limit;
+        let results: T[];
+        
+        if (limit > 0) {
+            results = await this.model.find(query).skip(skip).limit(limit).exec() as T[];
+        } else {
+            results = await this.model.find(query).exec() as T[];
+        }
+
+        return results;
+    }
+
+    protected async findNearby(coordinates: [number, number], maxDistance: number = 10000): Promise<T[]> {
+        const query = {
+            location: {
+                $near: {
+                    $geometry: { type: 'Point', coordinates },
+                    $maxDistance: maxDistance,
+                },
+            },
+        };
+        return this.model.find(query).exec() as Promise<T[]>;
     }
 }
 export default BaseService;

@@ -245,10 +245,12 @@ export class CacheWarmingService {
             const popularCategories = ['market', 'shop', 'service', 'organic'];
             for (const category of popularCategories) {
                 const cacheKey = `businesses:category:${category}`;
-                // Simular filtrado por categoría
-                const categoryResults = allBusinesses.filter((b: any) => 
-                    b.category?.toLowerCase().includes(category)
-                ).slice(0, 10);
+                // Filtrar negocios por categoría
+                const categoryResults = allBusinesses
+                    .filter((b) =>
+                        b.typeBusiness?.toLowerCase().includes(category)
+                    )
+                    .slice(0, 10);
                 
                 await cacheService.set(cacheKey, categoryResults, 'businesses', {
                     ttl: 900,
@@ -277,10 +279,17 @@ export class CacheWarmingService {
 
             // 1. Estadísticas de usuarios (agregadas)
             const userStats = {
-                totalUsers: 1000, // En producción sería una query real
-                activeUsers: 750,
-                newUsersThisMonth: 50,
-                topContributors: 25
+                totalUsers: 0,
+                activeUsers: 0,
+                professionalUsers: 0,
+                recentSignups: 0,
+                usersByRole: {
+                    user: 0,
+                    professional: 0,
+                    admin: 0
+                },
+                lastUpdated: new Date(),
+                cacheGenerated: true
             };
 
             await cacheService.set('users:stats', userStats, 'users', {
@@ -300,8 +309,8 @@ export class CacheWarmingService {
                 for (const user of adminUsers.slice(0, 5)) {
                     const publicProfile = {
                         _id: user._id,
-                        username: (user as any).username,
-                        role: (user as any).role,
+                        username: user.username,
+                        role: user.role,
                         // No incluir email, password, etc.
                     };
                     
@@ -314,6 +323,9 @@ export class CacheWarmingService {
                     warmed++;
                 }
             }
+
+            // Generar perfiles de usuario específicos
+            logger.info(`Warmed ${adminUsers.length} admin users`);
 
         } catch (error) {
             logger.error('Error warming users:', error);

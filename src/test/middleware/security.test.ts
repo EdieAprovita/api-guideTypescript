@@ -162,7 +162,7 @@ describe('Security Middleware Tests', () => {
             const largeData = {
                 title: 'Valid Restaurant',
                 description: largeDescription,
-                category: 'vegan',
+                typeBusiness: 'vegan',
                 tags: ['healthy', 'organic', 'plantbased'],
             };
 

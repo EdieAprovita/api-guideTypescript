@@ -48,10 +48,9 @@ export class CacheService {
      * Inicializar conexión Redis con configuración resiliente
      */
     private initializeRedis(): void {
-        const redisConfig = {
+        const redisConfig: any = {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379'),
-            password: process.env.REDIS_PASSWORD || 'redis123',
             db: 0,
             retryDelayOnFailover: 100,
             maxRetriesPerRequest: 3,
@@ -61,6 +60,11 @@ export class CacheService {
             connectTimeout: 10000,
             commandTimeout: 5000,
         };
+
+        // Solo agregar password si está definida
+        if (process.env.REDIS_PASSWORD) {
+            redisConfig.password = process.env.REDIS_PASSWORD;
+        }
 
         this.redis = new Redis(redisConfig);
 

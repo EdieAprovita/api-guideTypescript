@@ -89,7 +89,7 @@ describe('Business Controllers Tests', () => {
                 name: 'My Shop',
                 description: 'A great shop',
                 address: '123 st',
-                category: 'retail',
+                typeBusiness: 'retail',
                 phone: '1234567890',
             };
 
@@ -113,7 +113,7 @@ describe('Business Controllers Tests', () => {
                 name: 'Shop',
                 description: 'Another shop',
                 address: 'bad',
-                category: 'retail',
+                typeBusiness: 'retail',
                 phone: '1234567890',
             };
 
@@ -132,7 +132,7 @@ describe('Business Controllers Tests', () => {
                 name: 'BoomCo',
                 description: 'A company',
                 address: 'explode',
-                category: 'retail',
+                typeBusiness: 'retail',
                 phone: '1234567890',
             };
 
@@ -153,7 +153,7 @@ describe('Business Controllers Tests', () => {
                 name: 'Updated Shop',
                 description: 'Updated description',
                 address: '456 road',
-                category: 'retail',
+                typeBusiness: 'retail',
                 phone: '1234567890',
             };
 
@@ -178,7 +178,7 @@ describe('Business Controllers Tests', () => {
                 name: 'Shop',
                 description: 'Description',
                 address: 'no',
-                category: 'retail',
+                typeBusiness: 'retail',
                 phone: '1234567890',
             };
 

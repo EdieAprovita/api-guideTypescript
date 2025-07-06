@@ -46,7 +46,7 @@ describe('UserService', () => {
                 role: 'user',
                 photo: 'default.png',
             });
-            (generateTokenAndSetCookie as any).mockImplementation(() => {});
+            (generateTokenAndSetCookie as jest.MockedFunction<typeof generateTokenAndSetCookie>).mockImplementation(() => {});
 
             const result = await UserService.registerUser(userData, mockResponse);
 
@@ -94,7 +94,7 @@ describe('UserService', () => {
                 select: jest.fn().mockResolvedValue(mockUser),
             };
             (User.findOne as any).mockReturnValue(mockQuery);
-            (generateTokenAndSetCookie as any).mockImplementation(() => {});
+            (generateTokenAndSetCookie as jest.MockedFunction<typeof generateTokenAndSetCookie>).mockImplementation(() => {});
 
             const result = await UserService.loginUser(email, password, mockResponse);
 
