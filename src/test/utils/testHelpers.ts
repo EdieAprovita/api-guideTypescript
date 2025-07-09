@@ -5,6 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 import { faker } from '@faker-js/faker';
 import { Response as SupertestResponse } from 'supertest';
 import { MockedFunction } from 'jest-mock';
+import jwt from 'jsonwebtoken';
 
 /**
  * Create a test user with default values
@@ -513,8 +514,8 @@ export const createMockTokenPayload = (overrides: any = {}) => ({
  * Create mock JWT setup for tests
  */
 export const setupJWTMocks = (mockJwt: any, options: { accessToken?: string; refreshToken?: string } = {}) => {
-    const accessToken = options.accessToken || 'mock-access-token';
-    const refreshToken = options.refreshToken || 'mock-refresh-token';
+    const accessToken = options.accessToken || generateMockToken('access');
+    const refreshToken = options.refreshToken || generateMockToken('refresh');
     
     mockJwt.sign
         .mockReturnValueOnce(accessToken)
@@ -538,7 +539,9 @@ export const setupRedisMocks = (mockRedis: any) => {
  * Create JWT verification expectations
  */
 export const expectJWTVerification = (mockJwt: any, payload: any, tokenType: 'access' | 'refresh') => {
-    const secretKey = tokenType === 'access' ? 'test-access-secret' : 'test-refresh-secret';
+    const secretKey = tokenType === 'access' ? 
+        (process.env.JWT_ACCESS_SECRET || 'test-access-secret') : 
+        (process.env.JWT_REFRESH_SECRET || 'test-refresh-secret');
     const expiresIn = tokenType === 'access' ? '15m' : '7d';
     
     expect(mockJwt.sign).toHaveBeenCalledWith(
@@ -550,6 +553,38 @@ export const expectJWTVerification = (mockJwt: any, payload: any, tokenType: 'ac
             audience: 'vegan-guide-client',
         }
     );
+};
+
+/**
+ * Generate a mock token for testing
+ */
+export const generateMockToken = (type: 'access' | 'refresh' = 'access'): string => {
+    const payload = {
+        userId: faker.string.uuid(),
+        type,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + (type === 'access' ? 900 : 604800), // 15 min or 7 days
+    };
+    
+    const secret = type === 'access' ? 
+        (process.env.JWT_ACCESS_SECRET || 'test-access-secret') : 
+        (process.env.JWT_REFRESH_SECRET || 'test-refresh-secret');
+    
+    return jwt.sign(payload, secret);
+};
+
+/**
+ * Generate an expired token for testing
+ */
+export const generateExpiredToken = (): string => {
+    const payload = {
+        userId: faker.string.uuid(),
+        iat: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+        exp: Math.floor(Date.now() / 1000) - 1800, // 30 minutes ago (expired)
+    };
+    
+    const secret = process.env.JWT_SECRET || 'test-jwt-secret';
+    return jwt.sign(payload, secret);
 };
 
 /**

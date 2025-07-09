@@ -7,6 +7,7 @@ import { User } from '../../models/User';
 import TokenService from '../../services/TokenService';
 import bcrypt from 'bcryptjs';
 import { testConfig } from '../config/testConfig';
+import { generateExpiredToken } from '../utils/testHelpers';
 
 // Helper functions to reduce duplication
 const expectUnauthorizedResponse = (response: any) => {
@@ -396,8 +397,8 @@ describe('Authentication Flow Integration Tests', () => {
     });
 
     it('should deny access with expired token', async () => {
-      // Create an expired token
-      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3ODkwIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.4Adcj3UFYzPUVaVF43FmMab6RlaQD8A9V8wFzzht-KQ';
+      // Create an expired token using the helper function
+      const expiredToken = generateExpiredToken();
 
       const response = await request(app)
         .get('/api/v1/users/profile')
