@@ -4,9 +4,10 @@ import { User } from '../../../models/User';
 import { Restaurant } from '../../../models/Restaurant';
 import { Business } from '../../../models/Business';
 import TokenService from '../../../services/TokenService';
+import { testConfig } from '../../config/testConfig';
 
 export const createTestUser = async (overrides: any = {}) => {
-  const hashedPassword = await bcrypt.hash('testpassword123', 10);
+  const hashedPassword = await bcrypt.hash(testConfig.passwords.fixturePassword, 10);
   
   const userData = {
     username: faker.internet.userName(),
@@ -58,8 +59,8 @@ export const createTestRestaurant = async (authorId: string, overrides: any = {}
     location: {
       type: 'Point',
       coordinates: [
-        faker.location.longitude().toString(),
-        faker.location.latitude().toString()
+        faker.location.longitude(),
+        faker.location.latitude()
       ]
     },
     image: faker.image.url(),
@@ -90,8 +91,8 @@ export const createTestBusiness = async (authorId: string, overrides: any = {}) 
     location: {
       type: 'Point',
       coordinates: [
-        faker.location.longitude().toString(),
-        faker.location.latitude().toString()
+        faker.location.longitude(),
+        faker.location.latitude()
       ]
     },
     image: faker.image.url(),
@@ -124,8 +125,8 @@ export const createTestBusiness = async (authorId: string, overrides: any = {}) 
 
 export const generateLocationQuery = (lat?: number, lng?: number, radius?: number) => {
   return {
-    lat: lat ?? faker.location.latitude().toString(),
-    lng: lng ?? faker.location.longitude().toString(),
+    lat: lat ?? faker.location.latitude(),
+    lng: lng ?? faker.location.longitude(),
     radius: radius ?? 5000
   };
 };

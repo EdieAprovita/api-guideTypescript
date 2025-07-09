@@ -3,6 +3,27 @@ import express from 'express';
 import { errorHandler } from '../../middleware/errorHandler';
 import { HttpError, HttpStatusCode } from '../../types/Errors';
 import logger from '../../utils/logger';
+import { testConfig } from '../config/testConfig';
+
+// Helper functions to reduce duplication
+const expectErrorResponse = (response: any, expectedStatus: number, expectedMessage: string, expectedError: string) => {
+  expect(response.status).toBe(expectedStatus);
+  expect(response.body).toEqual({
+    success: false,
+    message: expectedMessage,
+    error: expectedError
+  });
+};
+
+const expectValidationErrorResponse = (response: any, expectedMessage: string, expectedError: string, errors: any) => {
+  expect(response.status).toBe(400);
+  expect(response.body).toEqual({
+    success: false,
+    message: expectedMessage,
+    error: expectedError,
+    errors
+  });
+};
 
 // Mock logger
 jest.mock('../../utils/logger', () => ({
@@ -32,7 +53,7 @@ app.get('/validation-error', (_req, _res, next) => {
   error.name = 'ValidationError';
   error.errors = {
     email: { message: 'Invalid email format' },
-    password: { message: 'Password too short' }
+    password: { message: testConfig.validationErrors.shortPassword }
   };
   next(error);
 });
@@ -96,24 +117,14 @@ describe('Error Handler Middleware Tests', () => {
     it('should handle HttpError with correct status and message', async () => {
       const response = await request(app).get('/http-error');
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({
-        success: false,
-        message: 'Bad request error',
-        error: 'Bad request error'
-      });
+      expectErrorResponse(response, 400, 'Bad request error', 'Bad request error');
       expect(mockedLogger.error).toHaveBeenCalled();
     });
 
     it('should handle HttpError with unauthorized status', async () => {
       const response = await request(app).get('/http-error-unauthorized');
 
-      expect(response.status).toBe(401);
-      expect(response.body).toEqual({
-        success: false,
-        message: 'Unauthorized access',
-        error: 'Unauthorized access'
-      });
+      expectErrorResponse(response, 401, 'Unauthorized access', 'Unauthorized access');
     });
   });
 
@@ -121,15 +132,9 @@ describe('Error Handler Middleware Tests', () => {
     it('should handle ValidationError with field details', async () => {
       const response = await request(app).get('/validation-error');
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({
-        success: false,
-        message: 'Validation Error',
-        error: 'Invalid input data',
-        errors: {
-          email: 'Invalid email format',
-          password: 'Password too short'
-        }
+      expectValidationErrorResponse(response, 'Validation Error', 'Invalid input data', {
+        email: 'Invalid email format',
+        password: testConfig.validationErrors.shortPassword
       });
     });
 

@@ -6,6 +6,23 @@ import app from '../../app';
 import { User } from '../../models/User';
 import TokenService from '../../services/TokenService';
 import bcrypt from 'bcryptjs';
+import { testConfig } from '../config/testConfig';
+
+// Helper functions to reduce duplication
+const expectUnauthorizedResponse = (response: any) => {
+  expect(response.status).toBe(401);
+  expect(response.body.success).toBe(false);
+};
+
+const expectBadRequestResponse = (response: any) => {
+  expect(response.status).toBe(400);
+  expect(response.body.success).toBe(false);
+};
+
+const expectSuccessResponse = (response: any, expectedStatus: number = 200) => {
+  expect(response.status).toBe(expectedStatus);
+  expect(response.body.success).toBe(true);
+};
 
 describe('Authentication Flow Integration Tests', () => {
   beforeAll(async () => {
@@ -25,7 +42,7 @@ describe('Authentication Flow Integration Tests', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'StrongPassword123!',
+        password: testConfig.passwords.validPassword,
         role: 'user'
       };
 
@@ -33,8 +50,7 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/users/register')
         .send(userData);
 
-      expect(response.status).toBe(201);
-      expect(response.body.success).toBe(true);
+      expectSuccessResponse(response, 201);
       expect(response.body.data).toHaveProperty('accessToken');
       expect(response.body.data).toHaveProperty('refreshToken');
       expect(response.body.data).toHaveProperty('user');
@@ -56,7 +72,7 @@ describe('Authentication Flow Integration Tests', () => {
       const userData = {
         username: 'testuser',
         email: 'duplicate@example.com',
-        password: 'StrongPassword123!',
+        password: testConfig.passwords.validPassword,
         role: 'user'
       };
 
@@ -73,8 +89,7 @@ describe('Authentication Flow Integration Tests', () => {
           username: 'different'
         });
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expectBadRequestResponse(response);
       expect(response.body.message).toContain('already exists');
     });
 
@@ -82,7 +97,7 @@ describe('Authentication Flow Integration Tests', () => {
       const userData = {
         username: 'testuser',
         email: 'invalid-email',
-        password: 'StrongPassword123!',
+        password: testConfig.passwords.validPassword,
         role: 'user'
       };
 
@@ -90,8 +105,7 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/users/register')
         .send(userData);
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expectBadRequestResponse(response);
       expect(response.body.error).toContain('email');
     });
 
@@ -99,7 +113,7 @@ describe('Authentication Flow Integration Tests', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'weak',
+        password: testConfig.passwords.weakPassword,
         role: 'user'
       };
 
@@ -107,15 +121,14 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/users/register')
         .send(userData);
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expectBadRequestResponse(response);
       expect(response.body.error).toContain('password');
     });
   });
 
   describe('POST /api/v1/users/login', () => {
     let testUser: any;
-    const password = 'StrongPassword123!';
+    const password = testConfig.passwords.validPassword;
 
     beforeEach(async () => {
       testUser = await createTestUser({
@@ -128,11 +141,10 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/users/login')
         .send({
           email: testUser.email,
-          password: 'testpassword123' // Default password from fixture
+          password: password
         });
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      expectSuccessResponse(response);
       expect(response.body.data).toHaveProperty('accessToken');
       expect(response.body.data).toHaveProperty('refreshToken');
       expect(response.body.data).toHaveProperty('user');
@@ -144,7 +156,7 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/users/login')
         .send({
           email: testUser.email,
-          password: 'testpassword123'
+          password: password
         });
 
       expect(response.status).toBe(200);
@@ -165,11 +177,10 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/users/login')
         .send({
           email: testUser.email,
-          password: 'wrongpassword'
+          password: testConfig.passwords.wrongPassword
         });
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
       expect(response.body.message).toContain('Invalid credentials');
     });
 
@@ -178,11 +189,10 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/users/login')
         .send({
           email: 'nonexistent@example.com',
-          password: 'anypassword'
+          password: testConfig.passwords.validPassword
         });
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
       expect(response.body.message).toContain('Invalid credentials');
     });
 
@@ -193,7 +203,7 @@ describe('Authentication Flow Integration Tests', () => {
           .post('/api/v1/users/login')
           .send({
             email: testUser.email,
-            password: 'wrongpassword'
+            password: testConfig.passwords.wrongPassword
           })
       );
 
@@ -225,8 +235,7 @@ describe('Authentication Flow Integration Tests', () => {
           refreshToken: tokens.refreshToken
         });
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      expectSuccessResponse(response);
       expect(response.body.data).toHaveProperty('accessToken');
       expect(response.body.data).toHaveProperty('refreshToken');
       
@@ -249,8 +258,7 @@ describe('Authentication Flow Integration Tests', () => {
           refreshToken: tokens.refreshToken
         });
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
       expect(response.body.message).toContain('Invalid refresh token');
     });
 
@@ -264,8 +272,7 @@ describe('Authentication Flow Integration Tests', () => {
           refreshToken: tokens.refreshToken
         });
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
     });
 
     it('should reject invalid refresh token format', async () => {
@@ -275,8 +282,7 @@ describe('Authentication Flow Integration Tests', () => {
           refreshToken: 'invalid.token.format'
         });
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
       expect(response.body.message).toContain('Invalid refresh token');
     });
   });
@@ -299,8 +305,7 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/auth/logout')
         .set('Authorization', `Bearer ${tokens.accessToken}`);
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      expectSuccessResponse(response);
       expect(response.body.message).toBe('Logged out successfully');
 
       // Verify token is blacklisted
@@ -312,8 +317,7 @@ describe('Authentication Flow Integration Tests', () => {
       const response = await request(app)
         .post('/api/v1/auth/logout');
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
     });
   });
 
@@ -335,8 +339,7 @@ describe('Authentication Flow Integration Tests', () => {
         .post('/api/v1/auth/revoke-all-tokens')
         .set('Authorization', `Bearer ${tokens.accessToken}`);
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      expectSuccessResponse(response);
       expect(response.body.message).toBe('All tokens revoked successfully');
 
       // Verify user tokens are revoked
@@ -344,12 +347,11 @@ describe('Authentication Flow Integration Tests', () => {
       expect(areRevoked).toBe(true);
     });
 
-    it('should require authentication', async () => {
+    it('should require authentication for token revocation', async () => {
       const response = await request(app)
         .post('/api/v1/auth/revoke-all-tokens');
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
     });
   });
 
@@ -381,8 +383,7 @@ describe('Authentication Flow Integration Tests', () => {
         .get('/api/v1/users/profile')
         .set('Authorization', `Bearer ${userTokens.accessToken}`);
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      expectSuccessResponse(response);
       expect(response.body.data._id).toBe(testUser._id.toString());
     });
 
@@ -390,8 +391,7 @@ describe('Authentication Flow Integration Tests', () => {
       const response = await request(app)
         .get('/api/v1/users/profile');
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
       expect(response.body.message).toContain('Not authorized');
     });
 
@@ -403,8 +403,7 @@ describe('Authentication Flow Integration Tests', () => {
         .get('/api/v1/users/profile')
         .set('Authorization', `Bearer ${expiredToken}`);
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
+      expectUnauthorizedResponse(response);
     });
 
     it('should enforce admin role requirements', async () => {
@@ -423,8 +422,7 @@ describe('Authentication Flow Integration Tests', () => {
         .get('/api/v1/users') // Admin only route
         .set('Authorization', `Bearer ${adminTokens.accessToken}`);
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      expectSuccessResponse(response);
     });
   });
 });
