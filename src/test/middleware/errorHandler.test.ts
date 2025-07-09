@@ -300,7 +300,7 @@ describe('Error Handler Middleware Tests', () => {
 
     it('should handle null errors', async () => {
       app.get('/null-error', (_req, _res, next) => {
-        next(null);
+        next();
       });
 
       // This should pass through to the next middleware (none in this case)
