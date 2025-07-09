@@ -2,10 +2,12 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
+import { faker } from '@faker-js/faker';
+
 // Set up environment variables
 process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test_secret_very_long_string_for_jwt';
-process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_very_long_string_for_jwt';
+process.env.JWT_SECRET = faker.string.alphanumeric(64);
+process.env.JWT_REFRESH_SECRET = faker.string.alphanumeric(64);
 process.env.JWT_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 process.env.BCRYPT_SALT_ROUNDS = '10';
@@ -34,7 +36,7 @@ async function test() {
     const userData = {
       username: 'testuser',
       email: 'test@example.com',
-      password: 'TestPassword123!'
+      password: faker.internet.password({ length: 12 }) + 'A1!'
     };
 
     console.log('Sending request with data:', userData);

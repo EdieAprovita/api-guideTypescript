@@ -4,8 +4,10 @@
 import { jest } from '@jest/globals';
 
 // Mock environment variables básicas
+import { testConfig } from './config/testConfig';
+
 process.env.NODE_ENV = 'development'; // Usar development para obtener mensajes de error reales
-process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.JWT_SECRET = testConfig.generateTestPassword();
 process.env.BCRYPT_SALT_ROUNDS = '10';
 
 // Solo mockear dependencias externas críticas que no podemos evitar
@@ -40,7 +42,7 @@ jest.mock('mongoose', () => ({
 
 // Mock bcryptjs para evitar operaciones costosas
 jest.mock('bcryptjs', () => ({
-    hash: jest.fn().mockResolvedValue('hashed-password'),
+    hash: jest.fn().mockResolvedValue(testConfig.generateTestPassword()),
     compare: jest.fn().mockResolvedValue(true),
     genSalt: jest.fn().mockResolvedValue('salt'),
 }));
@@ -49,10 +51,10 @@ jest.mock('bcryptjs', () => ({
 jest.mock('jsonwebtoken', () => ({
     __esModule: true,
     default: {
-        sign: jest.fn().mockReturnValue('mock-token'),
+        sign: jest.fn().mockReturnValue(testConfig.generateTestPassword()),
         verify: jest.fn().mockReturnValue({ userId: 'mock-user-id' }),
     },
-    sign: jest.fn().mockReturnValue('mock-token'),
+    sign: jest.fn().mockReturnValue(testConfig.generateTestPassword()),
     verify: jest.fn().mockReturnValue({ userId: 'mock-user-id' }),
 }));
 

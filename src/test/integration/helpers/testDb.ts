@@ -15,7 +15,7 @@ export const connect = async (): Promise<void> => {
   // Create mongo memory server instance with timeout
   mongoServer = await MongoMemoryServer.create({
     instance: {
-      storageEngine: 'ephemeralForTest',
+      storageEngine: 'wiredTiger',
     },
   });
   

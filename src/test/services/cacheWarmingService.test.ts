@@ -3,8 +3,7 @@ import { cacheService } from '../../services/CacheService';
 import { restaurantService } from '../../services/RestaurantService';
 import { businessService } from '../../services/BusinessService';
 import logger from '../../utils/logger';
-import { MockRestaurant, MockBusiness } from '../types';
-import { mockRestaurants, mockBusinesses } from '../mockData';
+import { createMockData } from '../utils/testHelpers';
 
 // Mock dependencies
 jest.mock('../../services/CacheService');
@@ -44,10 +43,10 @@ describe('CacheWarmingService', () => {
     describe('startAutoWarming', () => {
         it('should start automatic warming with default interval', async () => {
             mockedRestaurantService.getAllCached.mockResolvedValue([
-                mockRestaurants[0]
+                createMockData.restaurant()
             ]);
             mockedBusinessService.getAllCached.mockResolvedValue([
-                mockBusinesses[0]
+                createMockData.business()
             ]);
             mockedCacheService.set.mockResolvedValue();
 
@@ -75,10 +74,10 @@ describe('CacheWarmingService', () => {
 
         it('should perform initial warming when started', async () => {
             mockedRestaurantService.getAllCached.mockResolvedValue([
-                mockRestaurants[0]
+                createMockData.restaurant()
             ]);
             mockedBusinessService.getAllCached.mockResolvedValue([
-                mockBusinesses[0]
+                createMockData.business()
             ]);
             mockedCacheService.set.mockResolvedValue();
 
@@ -200,10 +199,10 @@ describe('CacheWarmingService', () => {
     describe('warmSpecificData', () => {
         beforeEach(() => {
             mockedRestaurantService.getAllCached.mockResolvedValue([
-                mockRestaurants[0]
+                createMockData.restaurant()
             ]);
             mockedBusinessService.getAllCached.mockResolvedValue([
-                mockBusinesses[0]
+                createMockData.business()
             ]);
             mockedCacheService.set.mockResolvedValue();
         });
@@ -282,14 +281,14 @@ describe('CacheWarmingService', () => {
 
     describe('Restaurant warming logic', () => {
         it('should cache all restaurants list', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue(mockRestaurants);
+            mockedRestaurantService.getAllCached.mockResolvedValue([createMockData.restaurant(), createMockData.restaurant({ _id: 'restaurant-2' })]);
             mockedCacheService.set.mockResolvedValue();
 
             const result = await warmingService.warmSpecificData('restaurants');
 
             expect(mockedCacheService.set).toHaveBeenCalledWith(
                 'restaurants:all',
-                mockRestaurants,
+                [createMockData.restaurant(), createMockData.restaurant({ _id: 'restaurant-2' })],
                 'restaurants',
                 { ttl: 300, tags: ['restaurants', 'listings'] }
             );
@@ -298,7 +297,7 @@ describe('CacheWarmingService', () => {
 
         it('should cache individual top restaurants', async () => {
             const extendedMockRestaurants = Array.from({ length: 25 }, (_, i) => ({ 
-                ...mockRestaurants[0],
+                ...createMockData.restaurant(),
                 _id: `${i + 1}`, 
                 name: `Restaurant ${i + 1}` 
             }));
@@ -317,7 +316,7 @@ describe('CacheWarmingService', () => {
         });
 
         it('should cache popular restaurant searches', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([mockRestaurants[0]]);
+            mockedRestaurantService.getAllCached.mockResolvedValue([createMockData.restaurant()]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('restaurants');
@@ -343,21 +342,21 @@ describe('CacheWarmingService', () => {
 
     describe('Business warming logic', () => {
         it('should cache all businesses list', async () => {
-            mockedBusinessService.getAllCached.mockResolvedValue(mockBusinesses);
+            mockedBusinessService.getAllCached.mockResolvedValue([createMockData.business(), createMockData.business({ _id: 'business-2' })]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('businesses');
 
             expect(mockedCacheService.set).toHaveBeenCalledWith(
                 'businesses:all',
-                mockBusinesses,
+                [createMockData.business(), createMockData.business({ _id: 'business-2' })],
                 'businesses',
                 { ttl: 600, tags: ['businesses', 'listings'] }
             );
         });
 
         it('should cache businesses by categories', async () => {
-            mockedBusinessService.getAllCached.mockResolvedValue(mockBusinesses);
+            mockedBusinessService.getAllCached.mockResolvedValue([createMockData.business(), createMockData.business({ _id: 'business-2' })]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('businesses');

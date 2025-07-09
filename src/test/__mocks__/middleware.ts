@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { RateLimitRequestHandler } from 'express-rate-limit';
+import { testConfig } from '../config/testConfig';
 
 export interface TestUser {
     _id: string;
@@ -29,7 +30,7 @@ export const authMiddlewareMocks = {
         res.json({
             success: true,
             message: 'Tokens refreshed successfully',
-            data: { accessToken: 'mock-token', refreshToken: 'mock-refresh-token' },
+            data: { accessToken: testConfig.generateTestPassword(), refreshToken: testConfig.generateTestPassword() },
         });
     }),
     revokeAllTokens: jest.fn(async (req: Request, res: Response) => {
@@ -81,7 +82,7 @@ export const userControllerMocks = {
         res.status(201).json({ _id: 'userId', firstName: 'John', lastName: 'Doe', email: 'test@example.com' })
     ),
     loginUser: jest.fn((req: Request, res: Response) => 
-        res.status(200).json({ token: 'mockToken', user: { _id: 'userId', email: 'test@example.com' } })
+        res.status(200).json({ token: testConfig.generateTestPassword(), user: { _id: 'userId', email: 'test@example.com' } })
     ),
     forgotPassword: jest.fn((req: Request, res: Response) => res.status(200).json({ success: true })),
     resetPassword: jest.fn((req: Request, res: Response) => res.status(200).json({ success: true })),

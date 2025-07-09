@@ -6,6 +6,7 @@ import { faker } from '@faker-js/faker';
 import { Response as SupertestResponse } from 'supertest';
 import { MockedFunction } from 'jest-mock';
 import jwt from 'jsonwebtoken';
+import { testConfig } from '../config/testConfig';
 
 /**
  * Create a test user with default values
@@ -503,7 +504,7 @@ export const generateWeakPassword = () => faker.string.alphanumeric(3);
 /**
  * Create standard mock payload for token tests
  */
-export const createMockTokenPayload = (overrides: any = {}) => ({
+export const createMockTokenPayload = (overrides: Record<string, unknown> = {}) => ({
     userId: 'user123',
     email: 'test@example.com',
     role: 'user',
@@ -513,7 +514,7 @@ export const createMockTokenPayload = (overrides: any = {}) => ({
 /**
  * Create mock JWT setup for tests
  */
-export const setupJWTMocks = (mockJwt: any, options: { accessToken?: string; refreshToken?: string } = {}) => {
+export const setupJWTMocks = (mockJwt: jest.Mocked<typeof jwt>, options: { accessToken?: string; refreshToken?: string } = {}) => {
     const accessToken = options.accessToken || generateMockToken('access');
     const refreshToken = options.refreshToken || generateMockToken('refresh');
     
@@ -527,7 +528,7 @@ export const setupJWTMocks = (mockJwt: any, options: { accessToken?: string; ref
 /**
  * Create Redis mock setup for token tests
  */
-export const setupRedisMocks = (mockRedis: any) => {
+export const setupRedisMocks = (mockRedis: jest.Mocked<{ setex: jest.Mock; get: jest.Mock; del: jest.Mock; keys: jest.Mock; ttl: jest.Mock }>) => {
     mockRedis.setex.mockResolvedValue('OK');
     mockRedis.get.mockResolvedValue(null);
     mockRedis.del.mockResolvedValue(1);
@@ -538,10 +539,10 @@ export const setupRedisMocks = (mockRedis: any) => {
 /**
  * Create JWT verification expectations
  */
-export const expectJWTVerification = (mockJwt: any, payload: any, tokenType: 'access' | 'refresh') => {
+export const expectJWTVerification = (mockJwt: jest.Mocked<typeof jwt>, payload: Record<string, unknown>, tokenType: 'access' | 'refresh') => {
     const secretKey = tokenType === 'access' ? 
-        (process.env.JWT_ACCESS_SECRET || 'test-access-secret') : 
-        (process.env.JWT_REFRESH_SECRET || 'test-refresh-secret');
+        (process.env.JWT_ACCESS_SECRET || testConfig.generateTestPassword()) : 
+        (process.env.JWT_REFRESH_SECRET || testConfig.generateTestPassword());
     const expiresIn = tokenType === 'access' ? '15m' : '7d';
     
     expect(mockJwt.sign).toHaveBeenCalledWith(
@@ -567,8 +568,8 @@ export const generateMockToken = (type: 'access' | 'refresh' = 'access'): string
     };
     
     const secret = type === 'access' ? 
-        (process.env.JWT_ACCESS_SECRET || 'test-access-secret') : 
-        (process.env.JWT_REFRESH_SECRET || 'test-refresh-secret');
+        (process.env.JWT_ACCESS_SECRET || testConfig.generateTestPassword()) : 
+        (process.env.JWT_REFRESH_SECRET || testConfig.generateTestPassword());
     
     return jwt.sign(payload, secret);
 };
@@ -583,7 +584,7 @@ export const generateExpiredToken = (): string => {
         exp: Math.floor(Date.now() / 1000) - 1800, // 30 minutes ago (expired)
     };
     
-    const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'test-jwt-secret';
+    const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || testConfig.generateTestPassword();
     return jwt.sign(payload, secret);
 };
 
@@ -591,9 +592,9 @@ export const generateExpiredToken = (): string => {
  * Create error test helper
  */
 export const testTokenError = async (
-    mockJwt: any,
+    mockJwt: jest.Mocked<typeof jwt>,
     errorMessage: string,
-    testFunction: () => Promise<any>,
+    testFunction: () => Promise<unknown>,
     expectedError: string
 ) => {
     mockJwt.verify.mockImplementation(() => {
@@ -606,7 +607,7 @@ export const testTokenError = async (
 /**
  * Create Redis key expectation helper
  */
-export const expectRedisKeyOperation = (mockRedis: any, operation: 'get' | 'del' | 'setex', key: string, value?: any) => {
+export const expectRedisKeyOperation = (mockRedis: jest.Mocked<{ setex: jest.Mock; get: jest.Mock; del: jest.Mock; keys: jest.Mock; ttl: jest.Mock }>, operation: 'get' | 'del' | 'setex', key: string, value?: unknown) => {
     if (operation === 'setex' && value !== undefined) {
         expect(mockRedis[operation]).toHaveBeenCalledWith(key, expect.any(Number), value);
     } else {
@@ -631,17 +632,17 @@ export const setupTestEnvironment = (envVars: Record<string, string>) => {
 /**
  * Create BaseService mock with standard CRUD operations
  */
-export const createBaseServiceMock = (mockData: any[] = []) => {
+export const createBaseServiceMock = (mockData: Record<string, unknown>[] = []) => {
     return {
         __esModule: true,
         default: class MockBaseService {
             async getAll() {
                 return mockData;
             }
-            async updateById(id: string, data: any) {
+            async updateById(id: string, data: Record<string, unknown>) {
                 return { _id: id, ...data };
             }
-            async create(data: any) {
+            async create(data: Record<string, unknown>) {
                 return { _id: 'new-id', ...data };
             }
             async findById(id: string) {
@@ -663,7 +664,7 @@ export const setupServiceTest = (_serviceName: string) => {
     });
 
     return {
-        testGetAll: async (service: any, expectedLength: number = 2) => {
+        testGetAll: async (service: { getAll: () => Promise<unknown[]> }, expectedLength: number = 2) => {
             const result = await service.getAll();
             expect(result).toBeDefined();
             expect(Array.isArray(result)).toBe(true);
@@ -673,14 +674,14 @@ export const setupServiceTest = (_serviceName: string) => {
             return result;
         },
 
-        testCreate: async (service: any, testData: any) => {
+        testCreate: async (service: { create: (data: Record<string, unknown>) => Promise<{ _id: string }> }, testData: Record<string, unknown>) => {
             const result = await service.create(testData);
             expect(result).toBeDefined();
             expect(result._id).toBeDefined();
             return result;
         },
 
-        testUpdate: async (service: any, id: string, updateData: any) => {
+        testUpdate: async (service: { updateById: (id: string, data: Record<string, unknown>) => Promise<{ _id: string }> }, id: string, updateData: Record<string, unknown>) => {
             const result = await service.updateById(id, updateData);
             expect(result).toBeDefined();
             expect(result._id).toBe(id);
@@ -709,7 +710,7 @@ export const createServiceTestData = (entityName: string, count: number = 2) => 
 /**
  * Standard service test suite generator
  */
-export const createServiceTestSuite = (serviceName: string, ServiceClass: any, mockData: any[]) => {
+export const createServiceTestSuite = (serviceName: string, ServiceClass: new() => { getAll: () => Promise<unknown[]> }, mockData: Record<string, unknown>[]) => {
     return () => {
         const testUtils = setupServiceTest(serviceName);
         

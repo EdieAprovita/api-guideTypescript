@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { testConfig } from '../config/testConfig';
 
 export const protect = jest.fn((req: Request, res: Response, next: NextFunction) => {
     const reqWithUser = req as Request & { user?: { _id: string; role: string } };
@@ -22,7 +23,7 @@ export const refreshToken = jest.fn(async (req: Request, res: Response) => {
     res.json({
         success: true,
         message: 'Tokens refreshed successfully',
-        data: { accessToken: 'mock-token', refreshToken: 'mock-refresh-token' },
+        data: { accessToken: testConfig.generateTestPassword(), refreshToken: testConfig.generateTestPassword() },
     });
 });
 

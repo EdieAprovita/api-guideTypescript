@@ -257,7 +257,7 @@ describe('TokenService', () => {
     });
 
     // Helper function to setup common mock expectations
-    const setupMockToken = (mockPayload: any = { userId: 'user123', email: 'test@example.com' }) => {
+    const setupMockToken = (mockPayload: Record<string, unknown> = { userId: 'user123', email: 'test@example.com' }) => {
         mockJwt.sign.mockReturnValue('mock-token');
         mockJwt.verify.mockReturnValue(mockPayload);
         mockJwt.decode.mockReturnValue(mockPayload);

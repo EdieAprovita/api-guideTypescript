@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { createRequire } from 'module';
+import { faker } from '@faker-js/faker';
 const require = createRequire(import.meta.url);
 
 // Import the compiled JS app instead of TS
@@ -12,7 +13,7 @@ async function test() {
     const userData = {
       username: 'testuser',
       email: 'test@example.com',
-      password: 'TestPassword123!',
+      password: faker.internet.password({ length: 12 }) + 'A1!',
       role: 'user'
     };
 

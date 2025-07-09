@@ -1,12 +1,13 @@
 const request = require('supertest');
 const app = require('./src/app.js');
+const { faker } = require('@faker-js/faker');
 
 async function debugTest() {
   try {
     const userData = {
       username: 'testuser',
       email: 'test@example.com',
-      password: 'TestPassword123!',
+      password: faker.internet.password({ length: 12 }) + 'A1!',
       role: 'user'
     };
 

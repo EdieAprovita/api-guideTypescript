@@ -1,4 +1,6 @@
 // Factory para crear mocks básicos de servicios
+import { testConfig } from '../config/testConfig';
+
 export const createBasicServiceMock = (serviceName: string) => ({
     getAll: jest.fn().mockResolvedValue([]),
     findById: jest.fn().mockResolvedValue({ _id: 'mock-id', name: `Mock ${serviceName}` }),
@@ -19,7 +21,7 @@ export const serviceMocks = {
             lastName: 'User' 
         }),
         loginUser: jest.fn().mockResolvedValue({ 
-            token: 'mock-token', 
+            token: testConfig.generateTestPassword(), 
             user: { _id: 'user-id', email: 'test@example.com' } 
         }),
         findAllUsers: jest.fn().mockResolvedValue([
@@ -165,7 +167,7 @@ export const externalMocks = {
         sign: jest.fn().mockReturnValue('mock-token'),
     },
     bcrypt: {
-        hash: jest.fn().mockResolvedValue('hashed-password'),
+        hash: jest.fn().mockResolvedValue(testConfig.generateTestPassword()),
         compare: jest.fn().mockResolvedValue(true),
     },
 };

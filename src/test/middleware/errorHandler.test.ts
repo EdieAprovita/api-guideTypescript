@@ -6,7 +6,7 @@ import logger from '../../utils/logger';
 import { testConfig } from '../config/testConfig';
 
 // Helper functions to reduce duplication
-const expectErrorResponse = (response: any, expectedStatus: number, expectedMessage: string, expectedError: string) => {
+const expectErrorResponse = (response: request.Response, expectedStatus: number, expectedMessage: string, expectedError: string) => {
   expect(response.status).toBe(expectedStatus);
   expect(response.body).toEqual({
     success: false,
@@ -15,7 +15,7 @@ const expectErrorResponse = (response: any, expectedStatus: number, expectedMess
   });
 };
 
-const expectValidationErrorResponse = (response: any, expectedMessage: string, expectedError: string, errors: any) => {
+const expectValidationErrorResponse = (response: request.Response, expectedMessage: string, expectedError: string, errors: unknown[]) => {
   expect(response.status).toBe(400);
   expect(response.body).toEqual({
     success: false,
