@@ -3,10 +3,10 @@ import { faker } from '@faker-js/faker';
 export const testConfig = {
   passwords: {
     // Use environment variable or generate a strong password for tests
-    validPassword: process.env.TEST_VALID_PASSWORD || 'TestPassword123!',
+    validPassword: process.env.TEST_VALID_PASSWORD || 'ValidPass123!',
     weakPassword: 'weak',
-    wrongPassword: 'WrongPassword123!',
-    fixturePassword: process.env.TEST_FIXTURE_PASSWORD || 'TestFixture123!',
+    wrongPassword: process.env.TEST_WRONG_PASSWORD || 'WrongPass123!',
+    fixturePassword: process.env.TEST_FIXTURE_PASSWORD || 'FixturePass123!',
   },
   
   // Generate consistent test data for each test run

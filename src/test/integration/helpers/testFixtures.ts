@@ -27,7 +27,7 @@ export const createTestUser = async (overrides: any = {}) => {
 
 export const createAdminUser = async (overrides: any = {}) => {
   return createTestUser({
-    role: 'user',
+    role: 'admin',
     isAdmin: true,
     ...overrides
   });
