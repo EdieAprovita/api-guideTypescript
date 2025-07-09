@@ -3,10 +3,10 @@ import { faker } from '@faker-js/faker';
 export const testConfig = {
   passwords: {
     // Use environment variable or generate a strong password for tests
-    validPassword: process.env.TEST_VALID_PASSWORD || 'ValidPass123!',
-    weakPassword: 'weak',
-    wrongPassword: process.env.TEST_WRONG_PASSWORD || 'WrongPass123!',
-    fixturePassword: process.env.TEST_FIXTURE_PASSWORD || 'FixturePass123!',
+    validPassword: process.env.TEST_VALID_PASSWORD || faker.internet.password({ length: 12 }) + 'A1!',
+    weakPassword: process.env.TEST_WEAK_PASSWORD || faker.string.alphanumeric(3),
+    wrongPassword: process.env.TEST_WRONG_PASSWORD || faker.internet.password({ length: 12 }) + 'B2@',
+    fixturePassword: process.env.TEST_FIXTURE_PASSWORD || faker.internet.password({ length: 12 }) + 'C3#',
   },
   
   // Generate consistent test data for each test run
@@ -19,6 +19,9 @@ export const testConfig = {
     // Ensure it meets strength requirements
     return password + 'A1!';
   },
+  
+  // Generate test phone number
+  generateTestPhone: () => faker.phone.number(),
   
   // Common test user data
   testUsers: {

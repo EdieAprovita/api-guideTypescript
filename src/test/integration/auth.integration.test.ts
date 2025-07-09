@@ -1,30 +1,73 @@
 import request from 'supertest';
-import { connect, closeDatabase, clearDatabase } from './helpers/testDb';
-import { createTestUser, createAdminUser, generateAuthTokens } from './helpers/testFixtures';
+import bcrypt from 'bcryptjs';
 import app from '../../app';
+import { connect as connectTestDB, closeDatabase as disconnectTestDB, clearDatabase as clearTestDB } from './helpers/testDb';
+import { createTestUser, createAdminUser, generateAuthTokens } from './helpers/testFixtures';
 import { User } from '../../models/User';
 import TokenService from '../../services/TokenService';
-import bcrypt from 'bcryptjs';
 import { testConfig } from '../config/testConfig';
 import { generateExpiredToken } from '../utils/testHelpers';
 
+// Interfaces for type safety
+interface ApiResponse {
+  status: number;
+  body: {
+    message?: string;
+    error?: string;
+    errors?: Array<{ message: string; field?: string }>;
+    token?: string;
+    user?: {
+      _id: string;
+      username: string;
+      email: string;
+      role: string;
+    };
+    data?: {
+      accessToken?: string;
+      refreshToken?: string;
+      _id?: string;
+    };
+    success?: boolean;
+  };
+}
+
+interface UserData {
+  username?: string;
+  email?: string;
+  password?: string;
+  role?: string;
+}
+
+interface TestUser {
+  _id: string;
+  username: string;
+  email: string;
+  role: string;
+  password: string;
+}
+
+interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
 // Helper functions to reduce duplication
-const expectUnauthorizedResponse = (response: any) => {
+const expectUnauthorizedResponse = (response: ApiResponse) => {
   expect(response.status).toBe(401);
   expect(response.body.message || response.body.error).toBeDefined();
 };
 
-const expectBadRequestResponse = (response: any) => {
+const expectBadRequestResponse = (response: ApiResponse) => {
   expect(response.status).toBe(400);
   expect(response.body.message || response.body.error).toBeDefined();
 };
 
-const expectSuccessResponse = (response: any, expectedStatus: number = 200) => {
+const expectSuccessResponse = (response: ApiResponse, expectedStatus: number = 200) => {
   expect(response.status).toBe(expectedStatus);
   expect(response.body).toBeDefined();
 };
 
-const createUserData = (overrides: any = {}) => ({
+const createUserData = (overrides: UserData = {}): UserData => ({
   username: 'testuser',
   email: 'test@example.com',
   password: testConfig.passwords.validPassword,
@@ -33,28 +76,53 @@ const createUserData = (overrides: any = {}) => ({
 });
 
 const makeLoginRequest = (email: string, password: string) =>
-  request(app).post('/api/v1/users/login').send({ email, password });
+  request(app)
+    .post('/api/v1/users/login')
+    .set('User-Agent', 'test-agent')
+    .set('API-Version', 'v1')
+    .send({ email, password });
 
-const makeAuthRequest = (method: 'get' | 'post', path: string, token: string) =>
-  request(app)[method](path).set('Authorization', `Bearer ${token}`);
+const makeRegisterRequest = (userData: UserData) =>
+  request(app)
+    .post('/api/v1/users/register')
+    .set('User-Agent', 'test-agent')
+    .set('API-Version', 'v1')
+    .send(userData);
 
-const setupUserAndTokens = async (isAdmin = false) => {
+const makeAuthRequest = (method: 'get' | 'post', path: string, token?: string) => {
+  const req = request(app)[method](path)
+    .set('User-Agent', 'test-agent')
+    .set('API-Version', 'v1');
+  
+  if (token) {
+    req.set('Authorization', `Bearer ${token}`);
+  }
+  
+  return req;
+};
+
+const setupUserAndTokens = async (isAdmin = false): Promise<{ user: TestUser; tokens: AuthTokens }> => {
   const user = isAdmin ? await createAdminUser() : await createTestUser();
   const tokens = await generateAuthTokens(user._id.toString(), user.email, user.role);
-  return { user, tokens };
+  return { user: user as TestUser, tokens: tokens as AuthTokens };
 };
 
 describe('Authentication Flow Integration Tests', () => {
   beforeAll(async () => {
-    await connect();
+    // Clear any mocks to ensure real implementations are used
+    jest.clearAllMocks();
+    jest.resetAllMocks();
+    jest.restoreAllMocks();
+    
+    await connectTestDB();
   });
 
   afterEach(async () => {
-    await clearDatabase();
+    await clearTestDB();
   });
 
   afterAll(async () => {
-    await closeDatabase();
+    await disconnectTestDB();
   });
 
   describe('POST /api/v1/users/register', () => {
@@ -63,7 +131,15 @@ describe('Authentication Flow Integration Tests', () => {
 
       const response = await request(app)
         .post('/api/v1/users/register')
+        .set('User-Agent', 'test-agent')
+        .set('API-Version', 'v1')
         .send(userData);
+
+      // Debug: log response if it's not 201
+      if (response.status !== 201) {
+        console.log('Response status:', response.status);
+        console.log('Response body:', response.body);
+      }
 
       expectSuccessResponse(response, 201);
       expect(response.body).toHaveProperty('token');
@@ -78,9 +154,9 @@ describe('Authentication Flow Integration Tests', () => {
       expect(user?.username).toBe(userData.username);
       
       // Verify password was hashed
-      const isPasswordValid = await bcrypt.compare(userData.password, user?.password || '');
+      const isPasswordValid = await bcrypt.compare(userData.password!, user?.password || '');
       expect(isPasswordValid).toBe(true);
-    });
+    }, 20000);
 
     it('should prevent duplicate email registration', async () => {
       const userData = createUserData({ email: 'duplicate@example.com' });
@@ -123,13 +199,13 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('POST /api/v1/users/login', () => {
-    let testUser: any;
+    let testUser: TestUser;
     const password = testConfig.passwords.validPassword;
 
     beforeEach(async () => {
       testUser = await createTestUser({
-        password: await bcrypt.hash(password, 10)
-      });
+        password: password,
+      }) as TestUser;
     });
 
     it('should login with valid credentials', async () => {
@@ -183,8 +259,8 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('POST /api/v1/auth/refresh-token', () => {
-    let testUser: any;
-    let tokens: any;
+    let testUser: TestUser;
+    let tokens: AuthTokens;
 
     beforeEach(async () => {
       ({ user: testUser, tokens } = await setupUserAndTokens());
@@ -250,8 +326,8 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('POST /api/v1/auth/logout', () => {
-    let testUser: any;
-    let tokens: any;
+    let testUser: TestUser;
+    let tokens: AuthTokens;
 
     beforeEach(async () => {
       ({ user: testUser, tokens } = await setupUserAndTokens());
@@ -277,8 +353,8 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('POST /api/v1/auth/revoke-all-tokens', () => {
-    let testUser: any;
-    let tokens: any;
+    let testUser: TestUser;
+    let tokens: AuthTokens;
 
     beforeEach(async () => {
       ({ user: testUser, tokens } = await setupUserAndTokens());
@@ -304,10 +380,10 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('Protected Routes', () => {
-    let testUser: any;
-    let adminUser: any;
-    let userTokens: any;
-    let adminTokens: any;
+    let testUser: TestUser;
+    let adminUser: TestUser;
+    let userTokens: AuthTokens;
+    let adminTokens: AuthTokens;
 
     beforeEach(async () => {
       ({ user: testUser, tokens: userTokens } = await setupUserAndTokens());

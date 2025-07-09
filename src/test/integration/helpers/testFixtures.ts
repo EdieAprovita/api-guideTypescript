@@ -6,26 +6,44 @@ import { Business } from '../../../models/Business';
 import TokenService from '../../../services/TokenService';
 import { testConfig } from '../../config/testConfig';
 
-export const createTestUser = async (overrides: any = {}) => {
-  const hashedPassword = await bcrypt.hash(testConfig.passwords.fixturePassword, 10);
+interface UserOverrides {
+  password?: string;
+  username?: string;
+  email?: string;
+  role?: string;
+  isAdmin?: boolean;
+  isActive?: boolean;
+  isDeleted?: boolean;
+  photo?: string;
+}
+
+export const createTestUser = async (overrides: UserOverrides = {}) => {
+  // Use a plain-text password from overrides or a default from testConfig
+  const plainPassword = overrides.password || testConfig.passwords.fixturePassword;
   
+  if (!plainPassword) {
+    throw new Error('No password provided for test user creation');
+  }
+  
+  const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
   const userData = {
     username: faker.internet.userName(),
     email: faker.internet.email().toLowerCase(),
-    password: hashedPassword,
     role: 'user',
     isAdmin: false,
     isActive: true,
     isDeleted: false,
     photo: faker.image.avatar(),
-    ...overrides
+    ...overrides,
+    password: hashedPassword, // Ensure the final password is the hashed one
   };
 
   const user = await User.create(userData);
   return user;
 };
 
-export const createAdminUser = async (overrides: any = {}) => {
+export const createAdminUser = async (overrides: UserOverrides = {}) => {
   return createTestUser({
     role: 'admin',
     isAdmin: true,
@@ -33,7 +51,7 @@ export const createAdminUser = async (overrides: any = {}) => {
   });
 };
 
-export const createProfessionalUser = async (overrides: any = {}) => {
+export const createProfessionalUser = async (overrides: UserOverrides = {}) => {
   return createTestUser({
     role: 'professional',
     ...overrides
@@ -50,7 +68,28 @@ export const generateAuthTokens = async (userId: string, email: string, role?: s
   return tokens;
 };
 
-export const createTestRestaurant = async (authorId: string, overrides: any = {}) => {
+interface RestaurantOverrides {
+  restaurantName?: string;
+  typePlace?: string;
+  address?: string;
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
+  image?: string;
+  budget?: string;
+  contact?: Array<{
+    phone?: string;
+    facebook?: string;
+    instagram?: string;
+  }>;
+  cuisine?: string[];
+  rating?: number;
+  numReviews?: number;
+  reviews?: unknown[];
+}
+
+export const createTestRestaurant = async (authorId: string, overrides: RestaurantOverrides = {}) => {
   const restaurantData = {
     restaurantName: faker.company.name(),
     author: authorId,
@@ -83,7 +122,33 @@ export const createTestRestaurant = async (authorId: string, overrides: any = {}
   return restaurant;
 };
 
-export const createTestBusiness = async (authorId: string, overrides: any = {}) => {
+interface BusinessOverrides {
+  namePlace?: string;
+  address?: string;
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
+  image?: string;
+  contact?: Array<{
+    phone?: string;
+    email?: string;
+    facebook?: string;
+    instagram?: string;
+  }>;
+  budget?: number;
+  typeBusiness?: string;
+  hours?: Array<{
+    dayOfWeek?: string;
+    openTime?: string;
+    closeTime?: string;
+  }>;
+  rating?: number;
+  numReviews?: number;
+  reviews?: unknown[];
+}
+
+export const createTestBusiness = async (authorId: string, overrides: BusinessOverrides = {}) => {
   const businessData = {
     namePlace: faker.company.name(),
     author: authorId,

@@ -93,9 +93,13 @@ const createNameSchema = (required = true) => {
 
 export const userSchemas = {
     register: Joi.object({
-        username: createNameSchema(true),
+        firstName: createNameSchema(true),
+        lastName: createNameSchema(true),
         email: commonSchemas.email.required(),
         password: createPasswordSchema(),
+        dateOfBirth: Joi.date().max('now').required(),
+        phoneNumber: commonSchemas.phone.optional(),
+        location: createLocationSchema(false),
     }),
 
     login: Joi.object({
@@ -106,6 +110,9 @@ export const userSchemas = {
     updateProfile: Joi.object({
         firstName: createNameSchema(false),
         lastName: createNameSchema(false),
+        phoneNumber: commonSchemas.phone.optional(),
+        dateOfBirth: Joi.date().max('now').optional(),
+        location: createLocationSchema(false),
     }),
 };
 

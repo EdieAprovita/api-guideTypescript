@@ -7,21 +7,39 @@ let mongoServer: MongoMemoryServer;
  * Connect to the in-memory database
  */
 export const connect = async (): Promise<void> => {
-  // Create mongo memory server instance
-  mongoServer = await MongoMemoryServer.create();
+  // Skip if already connected
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+  
+  // Create mongo memory server instance with timeout
+  mongoServer = await MongoMemoryServer.create({
+    instance: {
+      storageEngine: 'ephemeralForTest',
+    },
+  });
   
   const uri = mongoServer.getUri();
   
-  await mongoose.connect(uri);
+  await mongoose.connect(uri, {
+    maxPoolSize: 1,
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 10000,
+  });
 };
 
 /**
  * Drop database, close the connection and stop mongoServer
  */
 export const closeDatabase = async (): Promise<void> => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  await mongoServer.stop();
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.connection.dropDatabase();
+    await mongoose.connection.close();
+  }
+  
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
 };
 
 /**

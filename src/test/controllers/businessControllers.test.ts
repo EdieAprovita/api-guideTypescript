@@ -1,6 +1,7 @@
 // Business Controllers Test - Refactored to eliminate duplication
 import request from 'supertest';
 import { setupCommonMocks, resetMocks, createMockBusiness } from '../utils/testHelpers';
+import { testConfig } from '../config/testConfig';
 
 // === CRITICAL: Mocks must be defined BEFORE any imports ===
 setupCommonMocks();
@@ -90,7 +91,7 @@ describe('Business Controllers Tests', () => {
                 description: 'A great shop',
                 address: '123 st',
                 typeBusiness: 'retail',
-                phone: '1234567890',
+                phone: testConfig.generateTestPhone(),
             };
 
             const response = await request(app).post('/api/v1/businesses').send(businessData);
@@ -114,7 +115,7 @@ describe('Business Controllers Tests', () => {
                 description: 'Another shop',
                 address: 'bad',
                 typeBusiness: 'retail',
-                phone: '1234567890',
+                phone: testConfig.generateTestPhone(),
             };
 
             const response = await request(app).post('/api/v1/businesses').send(businessData);
@@ -133,7 +134,7 @@ describe('Business Controllers Tests', () => {
                 description: 'A company',
                 address: 'explode',
                 typeBusiness: 'retail',
-                phone: '1234567890',
+                phone: testConfig.generateTestPhone(),
             };
 
             const response = await request(app).post('/api/v1/businesses').send(businessData);
@@ -154,7 +155,7 @@ describe('Business Controllers Tests', () => {
                 description: 'Updated description',
                 address: '456 road',
                 typeBusiness: 'retail',
-                phone: '1234567890',
+                phone: testConfig.generateTestPhone(),
             };
 
             const response = await request(app).put('/api/v1/businesses/1').send(businessData);
@@ -179,7 +180,7 @@ describe('Business Controllers Tests', () => {
                 description: 'Description',
                 address: 'no',
                 typeBusiness: 'retail',
-                phone: '1234567890',
+                phone: testConfig.generateTestPhone(),
             };
 
             const response = await request(app).put('/api/v1/businesses/1').send(businessData);
