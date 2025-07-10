@@ -342,67 +342,13 @@ export const createMockExpressValidator = () => ({
 });
 
 // === TEST DATA GENERATORS ===
-export const createMockUser = (overrides = {}) => ({
-    _id: faker.string.alphanumeric(24),
-    username: faker.internet.userName(),
-    email: faker.internet.email(),
-    role: 'user',
-    photo: 'default.png',
-    isActive: true,
-    isDeleted: false,
-    ...overrides,
-});
-
-export const createMockBusiness = (overrides = {}) => ({
-    _id: faker.string.alphanumeric(24),
-    namePlace: faker.company.name(),
-    address: faker.location.streetAddress(),
-    contact: {
-        phone: faker.phone.number(),
-        email: faker.internet.email(),
-    },
-    image: faker.image.url(),
-    hours: [
-        {
-            dayOfWeek: 'Monday',
-            openTime: '8:00',
-            closeTime: '18:00',
-        },
-    ],
-    ...overrides,
-});
-
-export const createMockRestaurant = (overrides = {}): MockRestaurant => ({
-    _id: faker.string.alphanumeric(24),
-    name: faker.company.name(),
-    description: faker.lorem.sentence(),
-    address: faker.location.streetAddress(),
-    location: { type: 'Point', coordinates: [faker.location.longitude(), faker.location.latitude()] },
-    contact: [
-        {
-            phone: faker.phone.number(),
-            email: faker.internet.email(),
-        },
-    ],
-    cuisine: faker.helpers.arrayElement(['Italian', 'Asian', 'Mexican', 'Mediterranean', 'American']),
-    reviews: [],
-    rating: faker.number.float({ min: 1, max: 5 }),
-    isVerified: faker.datatype.boolean(),
-    ...overrides,
-});
-
-export const createMockDoctor = (overrides = {}) => ({
-    _id: faker.string.alphanumeric(24),
-    name: faker.person.fullName(),
-    specialty: faker.helpers.arrayElement(['Cardiology', 'Neurology', 'Pediatrics']),
-    license: faker.string.alphanumeric(10),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
-    ...overrides,
-});
-
+// Backward compatibility exports - using centralized createMockData
+export const createMockUser = createMockData.user;
+export const createMockBusiness = createMockData.business;
+export const createMockRestaurant = createMockData.restaurant;
+export const createMockDoctor = createMockData.doctor;
 export const createMockRecipe = (overrides = {}) => ({
-    _id: faker.string.alphanumeric(24),
+    _id: faker.database.mongodbObjectId(),
     title: faker.lorem.words(3),
     description: faker.lorem.sentence(),
     ingredients: [faker.lorem.word(), faker.lorem.word()],
@@ -411,22 +357,13 @@ export const createMockRecipe = (overrides = {}) => ({
     difficulty: faker.helpers.arrayElement(['Easy', 'Medium', 'Hard']),
     ...overrides,
 });
-
-export const createMockPost = (overrides = {}) => ({
-    _id: faker.string.alphanumeric(24),
-    title: faker.lorem.words(3),
-    content: faker.lorem.paragraph(),
-    author: faker.string.alphanumeric(24),
-    tags: [faker.lorem.word()],
-    ...overrides,
-});
-
+export const createMockPost = createMockData.post;
 export const createMockReview = (overrides = {}) => ({
-    _id: faker.string.alphanumeric(24),
+    _id: faker.database.mongodbObjectId(),
     rating: faker.number.int({ min: 1, max: 5 }),
     comment: faker.lorem.sentence(),
-    businessId: faker.string.alphanumeric(24),
-    userId: faker.string.alphanumeric(24),
+    businessId: faker.database.mongodbObjectId(),
+    userId: faker.database.mongodbObjectId(),
     ...overrides,
 });
 
@@ -493,6 +430,15 @@ import {
     generateUniquePassword,
     generateDeterministicPassword,
 } from './passwordGenerator';
+
+// Import centralized controller test helpers
+import {
+    expectSuccessResponse as expectControllerSuccessResponse,
+    expectErrorResponse as expectControllerErrorResponse,
+    expectResourceCreated as expectControllerResourceCreated,
+    expectResourceUpdated as expectControllerResourceUpdated,
+    expectResourceDeleted as expectControllerResourceDeleted,
+} from './controllerTestHelpers';
 
 export const generateTestPassword = generateCentralizedPassword;
 export const generateWeakPassword = generateCentralizedWeakPassword;

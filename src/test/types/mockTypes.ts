@@ -77,61 +77,35 @@ export interface MockRequest {
 // Mock next function interface
 export interface MockNextFunction extends jest.MockedFunction<NextFunction> {}
 
-// User model mock interface
-export interface MockUserModel {
-    findOne: jest.MockedFunction<(filter: Record<string, unknown>) => MockQuery<TestUser | null>>;
-    findById: jest.MockedFunction<(id: string) => Promise<TestUser | null>>;
-    findByIdAndDelete: jest.MockedFunction<(id: string) => Promise<TestUser | null>>;
-    find: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<TestUser[]>>;
-    create: jest.MockedFunction<(data: Partial<TestUser>) => Promise<TestUser>>;
+// Generic model mock interface - reduces duplication across all model types
+export interface MockModel<T = unknown> {
+    findOne: jest.MockedFunction<(filter: Record<string, unknown>) => MockQuery<T | null>>;
+    findById: jest.MockedFunction<(id: string) => Promise<T | null>>;
+    findByIdAndDelete: jest.MockedFunction<(id: string) => Promise<T | null>>;
+    find: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<T[]>>;
+    create: jest.MockedFunction<(data: Partial<T>) => Promise<T>>;
     updateOne?: jest.MockedFunction<
         (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>
     >;
     deleteOne?: jest.MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
     countDocuments?: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
+    findByIdAndUpdate?: jest.MockedFunction<
+        (id: string, update: Record<string, unknown>, options?: Record<string, unknown>) => Promise<T | null>
+    >;
 }
 
-// Business model mock interface
-export interface MockBusinessModel {
-    findOne: jest.MockedFunction<(filter: Record<string, unknown>) => MockQuery<unknown>>;
-    findById: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    findByIdAndDelete: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    find: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<unknown[]>>;
-    create: jest.MockedFunction<(data: Record<string, unknown>) => Promise<unknown>>;
-    updateOne?: jest.MockedFunction<
-        (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>
-    >;
-    deleteOne?: jest.MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
-    countDocuments?: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
-}
-
-// Restaurant model mock interface
-export interface MockRestaurantModel {
-    findOne: jest.MockedFunction<(filter: Record<string, unknown>) => MockQuery<unknown>>;
-    findById: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    findByIdAndDelete: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    find: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<unknown[]>>;
-    create: jest.MockedFunction<(data: Record<string, unknown>) => Promise<unknown>>;
-    updateOne?: jest.MockedFunction<
-        (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>
-    >;
-    deleteOne?: jest.MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
-    countDocuments?: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
-}
-
-// Review model mock interface
-export interface MockReviewModel {
-    findOne: jest.MockedFunction<(filter: Record<string, unknown>) => MockQuery<unknown>>;
-    findById: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    findByIdAndDelete: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    find: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<unknown[]>>;
-    create: jest.MockedFunction<(data: Record<string, unknown>) => Promise<unknown>>;
-    updateOne?: jest.MockedFunction<
-        (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>
-    >;
-    deleteOne?: jest.MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
-    countDocuments?: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
-}
+// Specific model type aliases using the generic interface
+export type MockUserModel = MockModel<TestUser>;
+export type MockBusinessModel = MockModel<unknown>;
+export type MockRestaurantModel = MockModel<unknown>;
+export type MockReviewModel = MockModel<unknown>;
+export type MockDoctorModel = MockModel<unknown>;
+export type MockMarketModel = MockModel<unknown>;
+export type MockSanctuaryModel = MockModel<unknown>;
+export type MockRecipeModel = MockModel<unknown>;
+export type MockPostModel = MockModel<unknown>;
+export type MockProfessionModel = MockModel<unknown>;
+export type MockProfessionProfileModel = MockModel<unknown>;
 
 // Redis mock interface
 export interface MockRedis {
@@ -169,42 +143,43 @@ export interface MockBCrypt {
     genSalt: jest.MockedFunction<(rounds: number) => Promise<string>>;
 }
 
-// Service mock interfaces
-export interface MockUserService {
+// Generic service mock interface - reduces duplication across all service types
+export interface MockService<T = unknown> {
+    // Common CRUD operations
+    create?: jest.MockedFunction<(data: Record<string, unknown>) => Promise<T>>;
+    findById?: jest.MockedFunction<(id: string) => Promise<T | null>>;
+    findByIdCached?: jest.MockedFunction<(id: string) => Promise<T | null>>;
+    update?: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
+    updateById?: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
+    delete?: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
+    deleteById?: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
+    getAll?: jest.MockedFunction<() => Promise<T[]>>;
+    getAllCached?: jest.MockedFunction<() => Promise<T[]>>;
+    // Common specialized operations
+    addReview?: jest.MockedFunction<(reviewData: Record<string, unknown>) => Promise<unknown>>;
+    getTopRatedReviews?: jest.MockedFunction<() => Promise<unknown[]>>;
+}
+
+// Specific service type aliases using the generic interface
+export type MockUserService = MockService<TestUser> & {
     registerUser: jest.MockedFunction<(userData: Record<string, unknown>, res: MockResponse) => Promise<TestUser>>;
     loginUser: jest.MockedFunction<(email: string, password: string, res: MockResponse) => Promise<TestUser>>;
-    updateUserById: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<TestUser>>;
-    deleteUserById: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
     findAllUsers: jest.MockedFunction<() => Promise<TestUser[]>>;
     findUserById: jest.MockedFunction<(id: string) => Promise<TestUser | null>>;
-}
+    updateUserById: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<TestUser>>;
+    deleteUserById: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
+};
 
-export interface MockBusinessService {
-    createBusiness: jest.MockedFunction<(businessData: Record<string, unknown>) => Promise<unknown>>;
-    findBusinessById: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    updateBusiness: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<unknown>>;
-    deleteBusiness: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
-    findAllBusinesses: jest.MockedFunction<() => Promise<unknown[]>>;
-}
-
-export interface MockRestaurantService {
-    createRestaurant: jest.MockedFunction<(restaurantData: Record<string, unknown>) => Promise<unknown>>;
-    findRestaurantById: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    updateRestaurant: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<unknown>>;
-    deleteRestaurant: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
-    findAllRestaurants: jest.MockedFunction<() => Promise<unknown[]>>;
-    getAllCached: jest.MockedFunction<() => Promise<unknown[]>>;
-}
-
-export interface MockReviewService {
-    createReview: jest.MockedFunction<(reviewData: Record<string, unknown>) => Promise<unknown>>;
-    findReviewById: jest.MockedFunction<(id: string) => Promise<unknown>>;
-    updateReview: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<unknown>>;
-    deleteReview: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
-    findAllReviews: jest.MockedFunction<() => Promise<unknown[]>>;
-    addReview: jest.MockedFunction<(reviewData: Record<string, unknown>) => Promise<unknown>>;
-    getTopRatedReviews: jest.MockedFunction<() => Promise<unknown[]>>;
-}
+export type MockBusinessService = MockService<unknown>;
+export type MockRestaurantService = MockService<unknown>;
+export type MockReviewService = MockService<unknown>;
+export type MockDoctorService = MockService<unknown>;
+export type MockMarketService = MockService<unknown>;
+export type MockSanctuaryService = MockService<unknown>;
+export type MockRecipeService = MockService<unknown>;
+export type MockPostService = MockService<unknown>;
+export type MockProfessionService = MockService<unknown>;
+export type MockProfessionProfileService = MockService<unknown>;
 
 // Cache service mock interface
 export interface MockCacheService {

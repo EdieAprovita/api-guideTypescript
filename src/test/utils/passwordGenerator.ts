@@ -1,19 +1,21 @@
 /**
  * Centralized Password Generator for Test Suite
- * 
+ *
  * This module provides a unified password generation system for all tests,
  * eliminating duplication and ensuring consistent security practices across
  * the entire test suite.
- * 
+ *
  * Security Features:
  * - No hardcoded passwords anywhere in the codebase
  * - Environment-aware password generation
  * - Security scanner-friendly implementation
  * - Multiple password strength levels for different test scenarios
  * - Deterministic password generation for reproducible tests
+ * - Cryptographically secure random generation using Node.js crypto module
  */
 
 import { faker } from '@faker-js/faker';
+import { randomBytes } from 'crypto';
 
 /**
  * Password configuration interface for type safety
@@ -101,38 +103,44 @@ class TestPasswordGenerator {
     }
 
     /**
-     * Generate a random character from a given set
+     * Generate a cryptographically secure random character from a given set
+     * Uses Node.js crypto module for secure random generation
      */
     private generateRandomCharacter(chars: string): string {
-        return chars.charAt(Math.floor(Math.random() * chars.length));
+        const randomIndex = randomBytes(1)[0] % chars.length;
+        return chars.charAt(randomIndex);
     }
 
     /**
      * Ensure password meets all requirements by adding required character types
+     * Uses cryptographically secure random positioning
      */
     private ensureRequirements(password: string, config: PasswordConfig): string {
         let result = password;
-        
+
         if (config.requireUppercase && !/[A-Z]/.test(result)) {
-            const pos = Math.floor(Math.random() * result.length);
-            result = result.substring(0, pos) + 
-                    this.generateRandomCharacter('ABCDEFGHIJKLMNOPQRSTUVWXYZ') + 
-                    result.substring(pos + 1);
+            const pos = randomBytes(1)[0] % result.length;
+            result =
+                result.substring(0, pos) +
+                this.generateRandomCharacter('ABCDEFGHIJKLMNOPQRSTUVWXYZ') +
+                result.substring(pos + 1);
         }
 
         if (config.requireNumbers && !/[0-9]/.test(result)) {
-            const pos = Math.floor(Math.random() * result.length);
-            result = result.substring(0, pos) + 
-                    this.generateRandomCharacter('0123456789') + 
-                    result.substring(pos + 1);
+            const pos = randomBytes(1)[0] % result.length;
+            result = result.substring(0, pos) + this.generateRandomCharacter('0123456789') + result.substring(pos + 1);
         }
 
-        if (config.requireSpecialChars && config.specialChars && 
-            !new RegExp(`[${config.specialChars.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}]`).test(result)) {
-            const pos = Math.floor(Math.random() * result.length);
-            result = result.substring(0, pos) + 
-                    this.generateRandomCharacter(config.specialChars) + 
-                    result.substring(pos + 1);
+        if (
+            config.requireSpecialChars &&
+            config.specialChars &&
+            !new RegExp(`[${config.specialChars.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}]`).test(result)
+        ) {
+            const pos = randomBytes(1)[0] % result.length;
+            result =
+                result.substring(0, pos) +
+                this.generateRandomCharacter(config.specialChars) +
+                result.substring(pos + 1);
         }
 
         return result;
@@ -144,7 +152,7 @@ class TestPasswordGenerator {
     private generatePassword(config: PasswordConfig): string {
         // Check environment variable first if specified
         if (config.environmentVariable && process.env[config.environmentVariable]) {
-            return process.env[config.environmentVariable];
+            return process.env[config.environmentVariable]!;
         }
 
         // Build character set
@@ -174,7 +182,7 @@ class TestPasswordGenerator {
      */
     public generate(strength: PasswordStrength, useCache: boolean = true): string {
         const cacheKey = `${strength}_${useCache}`;
-        
+
         if (useCache && this.cache.has(cacheKey)) {
             return this.cache.get(cacheKey)!;
         }
@@ -195,10 +203,10 @@ class TestPasswordGenerator {
     public generateDeterministic(strength: PasswordStrength, seed: string): string {
         // Use seed to create deterministic faker instance
         faker.seed(this.hashSeed(seed));
-        
+
         const config = PASSWORD_CONFIGS[strength];
         let chars = 'abcdefghijklmnopqrstuvwxyz';
-        
+
         if (config.requireUppercase) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         if (config.requireNumbers) chars += '0123456789';
         if (config.requireSpecialChars && config.specialChars) chars += config.specialChars;
@@ -221,7 +229,7 @@ class TestPasswordGenerator {
         let hash = 0;
         for (let i = 0; i < seed.length; i++) {
             const char = seed.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
+            hash = (hash << 5) - hash + char;
             hash = hash & hash; // Convert to 32-bit integer
         }
         return Math.abs(hash);
@@ -239,7 +247,7 @@ class TestPasswordGenerator {
      */
     public validate(password: string, strength: PasswordStrength): boolean {
         const config = PASSWORD_CONFIGS[strength];
-        
+
         if (password.length < config.length) return false;
         if (config.requireUppercase && !/[A-Z]/.test(password)) return false;
         if (config.requireNumbers && !/[0-9]/.test(password)) return false;
@@ -308,10 +316,7 @@ export const generateUniquePassword = (strength: PasswordStrength = 'STRONG'): s
 /**
  * Generate deterministic password for reproducible tests
  */
-export const generateDeterministicPassword = (
-    seed: string, 
-    strength: PasswordStrength = 'STRONG'
-): string => {
+export const generateDeterministicPassword = (seed: string, strength: PasswordStrength = 'STRONG'): string => {
     return passwordGenerator.generateDeterministic(strength, seed);
 };
 
@@ -373,7 +378,7 @@ export const generateRoleBasedPassword = (role: 'user' | 'admin' | 'professional
 /**
  * Export password configurations for advanced use cases
  */
-export { PASSWORD_CONFIGS, PasswordStrength };
+export { PASSWORD_CONFIGS };
 
 /**
  * Export the generator instance for advanced usage
