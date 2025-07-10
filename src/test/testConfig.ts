@@ -1,9 +1,12 @@
-import { faker } from '@faker-js/faker';
-
 /**
  * Centralized test configuration to avoid hardcoded values
  * All values are generated dynamically for security
+ * Now uses centralized password generator to eliminate duplication
  */
+
+import { faker } from '@faker-js/faker';
+import { generateTestPassword, generateWeakPassword } from './utils/passwordGenerator';
+import { ERROR_MESSAGES } from './constants/validationMessages';
 
 // Generate unique test session ID to avoid conflicts
 const TEST_SESSION_ID = faker.string.alphanumeric(8);
@@ -26,23 +29,28 @@ export const TEST_JWT_CONFIG = {
     audience: 'vegan-guide-client-test',
 };
 
-// Dynamic password generation for tests
-export const generateTestPassword = (): string => {
-    return process.env.TEST_USER_PASSWORD || faker.internet.password({ 
-        length: 12, 
-        pattern: /[A-Za-z0-9!@#$%^&*]/ 
-    });
+// Dynamic test data generators
+export const generateTestPhone = (): string => {
+    return faker.phone.number();
 };
 
-export const generateWeakPassword = (): string => {
-    return faker.string.alphanumeric(3);
+export const generateTestEmail = (): string => {
+    return faker.internet.email();
+};
+
+export const generateTestUsername = (): string => {
+    return faker.internet.userName();
+};
+
+export const generateTestMongoId = (): string => {
+    return faker.database.mongodbObjectId();
 };
 
 // Common test values
 export const TEST_VALUES = {
     sessionId: TEST_SESSION_ID,
     userEmail: `test-${TEST_SESSION_ID}@example.com`,
-    username: `testuser-${TEST_SESSION_ID}`,
+    username: `${faker.internet.userName()}`,
     mockUserId: `user-${TEST_SESSION_ID}`,
     mockTokenId: `token-${TEST_SESSION_ID}`,
 };
@@ -65,21 +73,21 @@ export const setupTestEnvironment = () => {
 export const cleanupTestEnvironment = () => {
     const testVars = [
         'JWT_SECRET',
-        'JWT_REFRESH_SECRET', 
+        'JWT_REFRESH_SECRET',
         'JWT_EXPIRES_IN',
         'JWT_REFRESH_EXPIRES_IN',
         'REDIS_HOST',
-        'REDIS_PORT', 
+        'REDIS_PORT',
         'REDIS_PASSWORD',
-        'REDIS_DB'
+        'REDIS_DB',
     ];
-    
+
     testVars.forEach(varName => {
         delete process.env[varName];
     });
 };
 
-// Export for backward compatibility
+// Export for backward compatibility - now using centralized generator
 export const TEST_PASSWORDS = {
     strong: generateTestPassword(),
     weak: generateWeakPassword(),
@@ -95,4 +103,26 @@ export default {
     cleanupTestEnvironment,
     generateTestPassword,
     generateWeakPassword,
-}; 
+    generateTestPhone,
+    generateTestEmail,
+    generateTestUsername,
+    generateTestMongoId,
+    generators: {
+        securePassword: generateTestPassword,
+        phoneNumber: generateTestPhone,
+        email: generateTestEmail,
+        username: generateTestUsername,
+        mongoId: generateTestMongoId,
+    },
+    passwords: {
+        validPassword: generateTestPassword(),
+        weakPassword: generateWeakPassword(),
+        wrongPassword: generateTestPassword(),
+        fixturePassword: generateTestPassword(),
+    },
+    messages: {
+        validation: ERROR_MESSAGES.VALIDATION,
+        auth: ERROR_MESSAGES.AUTH,
+        general: ERROR_MESSAGES.GENERAL,
+    },
+};

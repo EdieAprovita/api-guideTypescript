@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import { setupCommonMocks, resetMocks, createMockRecipe } from '../utils/testHelpers';
 
@@ -65,7 +66,7 @@ describe('Recipes Controllers', () => {
                 title: 'Test Recipe',
                 ingredients: ['ingredient1', 'ingredient2'],
                 instructions: ['step1', 'step2'],
-                author: 'user123',
+                author: faker.database.mongodbObjectId(),
                 cookingTime: 30,
                 difficulty: 'medium',
             };

@@ -48,7 +48,20 @@ export class CacheService {
      * Inicializar conexión Redis con configuración resiliente
      */
     private initializeRedis(): void {
-        const redisConfig: any = {
+        interface RedisConfig {
+            host: string;
+            port: number;
+            db: number;
+            retryDelayOnFailover: number;
+            maxRetriesPerRequest: number;
+            lazyConnect: boolean;
+            keepAlive: number;
+            connectTimeout: number;
+            commandTimeout: number;
+            password?: string;
+        }
+
+        const redisConfig: RedisConfig = {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379'),
             db: 0,

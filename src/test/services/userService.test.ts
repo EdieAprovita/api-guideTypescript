@@ -1,12 +1,11 @@
 import { Response } from 'express';
 import UserService from '../../services/UserService';
-import { User } from '../../models/User';
-import { HttpError, HttpStatusCode } from '../../types/Errors';
-import { getErrorMessage } from '../../types/modalTypes';
+import { User, IUser } from '../../models/User';
+import { HttpError } from '../../types/Errors';
 import generateTokenAndSetCookie from '../../utils/generateToken';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { generateTestPassword } from '../utils/testHelpers';
+import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
 
 // Mock dependencies
 jest.mock('../../models/User');
@@ -19,12 +18,30 @@ const mockResponse = {
     cookie: jest.fn(),
     clearCookie: jest.fn(),
     status: jest.fn().mockReturnThis(),
-    json: jest.fn(),
+    json: jest.fn().mockReturnThis(),
+    send: jest.fn().mockReturnThis(),
+    setHeader: jest.fn(),
+    end: jest.fn(),
 } as unknown as Response;
 
-// Generate random passwords for testing to avoid hard-coded credentials
-const TEST_PASSWORD = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
-const WRONG_PASSWORD = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
+// Test data using centralized password generator
+const TEST_PASSWORD = generateTestPassword();
+const WRONG_PASSWORD = generateTestPassword();
+
+// Mock User model
+const mockUserModel = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+    findByIdAndDelete: jest.fn(),
+    find: jest.fn(),
+};
+
+// Apply mock to User
+Object.assign(User, mockUserModel);
+
+// Mock generateTokenAndSetCookie
+const mockGenerateTokenAndSetCookie = generateTokenAndSetCookie as jest.MockedFunction<typeof generateTokenAndSetCookie>;
 
 describe('UserService', () => {
     beforeEach(() => {
@@ -34,43 +51,56 @@ describe('UserService', () => {
     describe('registerUser', () => {
         it('should register user successfully', async () => {
             const userData = {
-                username: 'testuser',
-                email: 'test@example.com',
+                username: faker.internet.userName(),
+                email: faker.internet.email(),
                 password: TEST_PASSWORD,
             };
 
-            (User.findOne as any).mockResolvedValue(null);
-            (User.create as any).mockResolvedValue({
-                _id: 'user123',
-                ...userData,
+            const mockUser = {
+                _id: faker.database.mongodbObjectId(),
+                username: userData.username,
+                email: userData.email,
                 role: 'user',
                 photo: 'default.png',
-            });
-            (generateTokenAndSetCookie as jest.MockedFunction<typeof generateTokenAndSetCookie>).mockImplementation(() => {});
+            };
+
+            mockUserModel.findOne.mockResolvedValue(null);
+            mockUserModel.create.mockResolvedValue(mockUser);
+            mockGenerateTokenAndSetCookie.mockImplementation(() => {});
 
             const result = await UserService.registerUser(userData, mockResponse);
 
             expect(User.findOne).toHaveBeenCalledWith({ email: userData.email });
             expect(User.create).toHaveBeenCalledWith(userData);
-            expect(generateTokenAndSetCookie).toHaveBeenCalledWith(mockResponse, 'user123');
-            expect(result).toEqual({
-                _id: 'user123',
-                username: 'testuser',
-                email: 'test@example.com',
-                role: 'user',
-                photo: 'default.png',
-                token: expect.any(String),
-            });
+            expect(generateTokenAndSetCookie).toHaveBeenCalledWith(mockResponse, mockUser._id);
+            expect(result).toEqual(
+                expect.objectContaining({
+                    _id: mockUser._id,
+                    username: mockUser.username,
+                    email: mockUser.email,
+                    role: mockUser.role,
+                    photo: mockUser.photo,
+                    token: expect.any(String),
+                })
+            );
         });
 
         it('should throw error if user already exists', async () => {
             const userData = {
-                username: 'testuser',
-                email: 'test@example.com',
+                username: faker.internet.userName(),
+                email: faker.internet.email(),
                 password: TEST_PASSWORD,
             };
 
-            (User.findOne as any).mockResolvedValue({ _id: 'existing', email: userData.email });
+            const existingUser = {
+                _id: faker.database.mongodbObjectId(),
+                username: userData.username,
+                email: userData.email,
+                role: 'user',
+                photo: 'default.png',
+            };
+
+            mockUserModel.findOne.mockResolvedValue(existingUser);
 
             await expect(UserService.registerUser(userData, mockResponse)).rejects.toThrow(HttpError);
         });
@@ -78,13 +108,13 @@ describe('UserService', () => {
 
     describe('loginUser', () => {
         it('should login user with valid credentials', async () => {
-            const email = 'test@example.com';
+            const email = faker.internet.email();
             const password = TEST_PASSWORD;
-
+            
             const mockUser = {
-                _id: 'user123',
-                username: 'testuser',
-                email,
+                _id: faker.database.mongodbObjectId(),
+                username: faker.internet.userName(),
+                email: email,
                 role: 'user',
                 photo: 'default.png',
                 matchPassword: jest.fn().mockResolvedValue(true),
@@ -93,51 +123,59 @@ describe('UserService', () => {
             const mockQuery = {
                 select: jest.fn().mockResolvedValue(mockUser),
             };
-            (User.findOne as any).mockReturnValue(mockQuery);
-            (generateTokenAndSetCookie as jest.MockedFunction<typeof generateTokenAndSetCookie>).mockImplementation(() => {});
+
+            mockUserModel.findOne.mockReturnValue(mockQuery);
+            mockGenerateTokenAndSetCookie.mockImplementation(() => {});
 
             const result = await UserService.loginUser(email, password, mockResponse);
 
             expect(User.findOne).toHaveBeenCalledWith({ email });
             expect(mockQuery.select).toHaveBeenCalledWith('+password');
             expect(mockUser.matchPassword).toHaveBeenCalledWith(password);
-            expect(generateTokenAndSetCookie).toHaveBeenCalledWith(mockResponse, 'user123');
-            expect(result).toEqual({
-                _id: 'user123',
-                username: 'testuser',
-                email,
-                role: 'user',
-                photo: 'default.png',
-                token: expect.any(String),
-            });
+            expect(generateTokenAndSetCookie).toHaveBeenCalledWith(mockResponse, mockUser._id);
+            expect(result).toEqual(
+                expect.objectContaining({
+                    _id: mockUser._id,
+                    username: mockUser.username,
+                    email: mockUser.email,
+                    role: mockUser.role,
+                    photo: mockUser.photo,
+                    token: expect.any(String),
+                })
+            );
         });
 
         it('should throw error for invalid credentials', async () => {
-            const email = 'test@example.com';
+            const email = faker.internet.email();
             const password = WRONG_PASSWORD;
-
+            
             const mockUser = {
-                _id: 'user123',
-                email,
+                _id: faker.database.mongodbObjectId(),
+                username: faker.internet.userName(),
+                email: email,
+                role: 'user',
+                photo: 'default.png',
                 matchPassword: jest.fn().mockResolvedValue(false),
             };
 
             const mockQuery = {
                 select: jest.fn().mockResolvedValue(mockUser),
             };
-            (User.findOne as any).mockReturnValue(mockQuery);
+
+            mockUserModel.findOne.mockReturnValue(mockQuery);
 
             await expect(UserService.loginUser(email, password, mockResponse)).rejects.toThrow(HttpError);
         });
 
         it('should throw error when user not found', async () => {
-            const email = 'nonexistent@example.com';
+            const email = faker.internet.email();
             const password = TEST_PASSWORD;
-
+            
             const mockQuery = {
                 select: jest.fn().mockResolvedValue(null),
             };
-            (User.findOne as any).mockReturnValue(mockQuery);
+
+            mockUserModel.findOne.mockReturnValue(mockQuery);
 
             await expect(UserService.loginUser(email, password, mockResponse)).rejects.toThrow(HttpError);
         });
@@ -145,41 +183,40 @@ describe('UserService', () => {
 
     describe('updateUserById', () => {
         it('should update user successfully', async () => {
-            const userId = '1';
+            const userId = faker.database.mongodbObjectId();
             const updateData = { username: 'newusername' };
+            
+            const updatedUser = {
+                _id: userId,
+                username: 'newusername',
+                email: faker.internet.email(),
+                role: 'user',
+                photo: 'default.png',
+            };
+
             const mockUser = {
                 _id: userId,
                 username: 'oldusername',
-                email: 'test@example.com',
+                email: faker.internet.email(),
                 role: 'user',
                 photo: 'default.png',
-                save: jest.fn().mockResolvedValue({
-                    _id: userId,
-                    username: 'newusername',
-                    email: 'test@example.com',
-                    role: 'user',
-                    photo: 'default.png',
-                }),
+                save: jest.fn().mockResolvedValue(updatedUser),
             };
 
-            (User.findById as any).mockResolvedValue(mockUser);
+            mockUserModel.findById.mockResolvedValue(mockUser);
 
             const result = await UserService.updateUserById(userId, updateData);
 
             expect(User.findById).toHaveBeenCalledWith(userId);
             expect(mockUser.save).toHaveBeenCalled();
-            expect(result).toEqual(
-                expect.objectContaining({
-                    username: 'newusername',
-                })
-            );
+            expect(result).toEqual(updatedUser);
         });
 
         it('should throw NotFound error when user does not exist', async () => {
-            const userId = '1';
+            const userId = faker.database.mongodbObjectId();
             const updateData = { username: 'newusername' };
 
-            (User.findById as any).mockResolvedValue(null);
+            mockUserModel.findById.mockResolvedValue(null);
 
             await expect(UserService.updateUserById(userId, updateData)).rejects.toThrow(HttpError);
         });
@@ -187,9 +224,16 @@ describe('UserService', () => {
 
     describe('deleteUserById', () => {
         it('should delete user successfully', async () => {
-            const userId = '1';
+            const userId = faker.database.mongodbObjectId();
+            const deletedUser = {
+                _id: userId,
+                username: faker.internet.userName(),
+                email: faker.internet.email(),
+                role: 'user',
+                photo: 'default.png',
+            };
 
-            (User.findByIdAndDelete as any).mockResolvedValue({ _id: userId, email: 'deleted@example.com' });
+            mockUserModel.findByIdAndDelete.mockResolvedValue(deletedUser);
 
             const result = await UserService.deleteUserById(userId);
 
@@ -201,28 +245,60 @@ describe('UserService', () => {
     describe('findAllUsers', () => {
         it('should return all users', async () => {
             const mockUsers = [
-                { _id: '1', username: 'user1', email: 'user1@example.com', role: 'user', photo: 'default.png' },
-                { _id: '2', username: 'user2', email: 'user2@example.com', role: 'user', photo: 'default.png' },
+                {
+                    _id: '1',
+                    username: faker.internet.userName(),
+                    email: faker.internet.email(),
+                    role: 'user',
+                    photo: 'default.png',
+                },
+                {
+                    _id: '2',
+                    username: faker.internet.userName(),
+                    email: faker.internet.email(),
+                    role: 'user',
+                    photo: 'default.png',
+                }
             ];
 
-            (User.find as any).mockResolvedValue(mockUsers);
+            mockUserModel.find.mockResolvedValue(mockUsers);
 
             const result = await UserService.findAllUsers();
 
             expect(User.find).toHaveBeenCalledWith({});
-            expect(result).toEqual([
-                { _id: '1', username: 'user1', email: 'user1@example.com', role: 'user', photo: 'default.png' },
-                { _id: '2', username: 'user2', email: 'user2@example.com', role: 'user', photo: 'default.png' },
-            ]);
+            expect(result).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        _id: '1',
+                        username: expect.any(String),
+                        email: expect.any(String),
+                        role: 'user',
+                        photo: 'default.png',
+                    }),
+                    expect.objectContaining({
+                        _id: '2',
+                        username: expect.any(String),
+                        email: expect.any(String),
+                        role: 'user',
+                        photo: 'default.png',
+                    }),
+                ])
+            );
         });
     });
 
     describe('findUserById', () => {
         it('should return user by id', async () => {
-            const userId = '1';
-            const mockUser = { _id: userId, username: 'testuser', email: 'test@example.com' };
+            const userId = faker.database.mongodbObjectId();
+            const mockUser = {
+                _id: userId,
+                username: faker.internet.userName(),
+                email: faker.internet.email(),
+                role: 'user',
+                photo: 'default.png',
+            };
 
-            (User.findById as any).mockResolvedValue(mockUser);
+            mockUserModel.findById.mockResolvedValue(mockUser);
 
             const result = await UserService.findUserById(userId);
 
@@ -231,9 +307,9 @@ describe('UserService', () => {
         });
 
         it('should return null when user not found', async () => {
-            const userId = '1';
+            const userId = faker.database.mongodbObjectId();
 
-            (User.findById as any).mockResolvedValue(null);
+            mockUserModel.findById.mockResolvedValue(null);
 
             const result = await UserService.findUserById(userId);
 

@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { CacheAlertService, AlertConfig } from '../../services/CacheAlertService';
 import { cacheService } from '../../services/CacheService';
 import logger from '../../utils/logger';
@@ -11,7 +12,7 @@ const mockedLogger = logger as jest.Mocked<typeof logger>;
 
 describe('CacheAlertService', () => {
     let alertService: CacheAlertService;
-    
+
     const defaultConfig: AlertConfig = {
         enabled: true,
         checkIntervalSeconds: 1, // 1 second for tests
@@ -19,8 +20,8 @@ describe('CacheAlertService', () => {
             minHitRatio: 70,
             maxMemoryUsage: '50M',
             maxResponseTime: 100,
-            minCacheSize: 10
-        }
+            minCacheSize: 10,
+        },
     };
 
     beforeEach(() => {
@@ -38,7 +39,7 @@ describe('CacheAlertService', () => {
         it('should initialize with default configuration', () => {
             const service = new CacheAlertService();
             const config = service.getConfig();
-            
+
             expect(config.enabled).toBe(true);
             expect(config.checkIntervalSeconds).toBe(60);
             expect(config.thresholds.minHitRatio).toBe(70);
@@ -54,13 +55,13 @@ describe('CacheAlertService', () => {
                     minHitRatio: 80,
                     maxMemoryUsage: '100M',
                     maxResponseTime: 50,
-                    minCacheSize: 5
-                }
+                    minCacheSize: 5,
+                },
             };
 
             const service = new CacheAlertService(customConfig);
             const config = service.getConfig();
-            
+
             expect(config.enabled).toBe(true); // default
             expect(config.checkIntervalSeconds).toBe(30); // custom
             expect(config.thresholds.minHitRatio).toBe(80); // custom
@@ -74,24 +75,20 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
 
             alertService.startMonitoring();
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '📊 Starting cache monitoring every 1s'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('📊 Starting cache monitoring every 1s');
         });
 
         it('should not start monitoring when disabled', () => {
             const disabledService = new CacheAlertService({ enabled: false });
-            
+
             disabledService.startMonitoring();
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '📊 Cache alerting is disabled'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('📊 Cache alerting is disabled');
         });
 
         it('should not start monitoring if already running', () => {
@@ -100,15 +97,13 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
 
             alertService.startMonitoring();
             alertService.startMonitoring(); // Try to start again
 
-            expect(mockedLogger.warn).toHaveBeenCalledWith(
-                '⚠️ Cache monitoring already running'
-            );
+            expect(mockedLogger.warn).toHaveBeenCalledWith('⚠️ Cache monitoring already running');
         });
 
         it('should perform immediate check and schedule periodic checks', async () => {
@@ -117,7 +112,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -138,15 +133,13 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
 
             alertService.startMonitoring();
             alertService.stopMonitoring();
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '📊 Cache monitoring stopped'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('📊 Cache monitoring stopped');
         });
 
         it('should handle stopping when not running', () => {
@@ -162,7 +155,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -181,7 +174,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -200,7 +193,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -209,12 +202,8 @@ describe('CacheAlertService', () => {
             await jest.runOnlyPendingTimersAsync();
 
             // Should not have any alert logs
-            expect(mockedLogger.warn).not.toHaveBeenCalledWith(
-                expect.stringContaining('🚨 CACHE ALERT')
-            );
-            expect(mockedLogger.error).not.toHaveBeenCalledWith(
-                expect.stringContaining('🚨 CACHE ALERT')
-            );
+            expect(mockedLogger.warn).not.toHaveBeenCalledWith(expect.stringContaining('🚨 CACHE ALERT'));
+            expect(mockedLogger.error).not.toHaveBeenCalledWith(expect.stringContaining('🚨 CACHE ALERT'));
         });
     });
 
@@ -225,7 +214,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '60M', // Above 50M threshold
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -244,7 +233,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '80M', // Above 75M (50M * 1.5) = critical
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -265,7 +254,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 5, // Below threshold of 10
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -286,7 +275,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockRejectedValue(new Error('Redis connection failed'));
 
@@ -304,7 +293,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -327,7 +316,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -345,16 +334,14 @@ describe('CacheAlertService', () => {
                 totalRequests: 200,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
 
             // Trigger next check cycle
             jest.advanceTimersByTime(1000); // Advance 1 second
             await jest.runOnlyPendingTimersAsync();
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining('✅ CACHE ALERT RESOLVED')
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('✅ CACHE ALERT RESOLVED'));
         });
     });
 
@@ -365,10 +352,7 @@ describe('CacheAlertService', () => {
             alertService.startMonitoring();
             await jest.runOnlyPendingTimersAsync();
 
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Error checking cache metrics:',
-                expect.any(Error)
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Error checking cache metrics:', expect.any(Error));
 
             expect(mockedLogger.error).toHaveBeenCalledWith(
                 expect.stringContaining('🚨 CACHE ALERT [CRITICAL]: Error checking cache metrics - Redis may be down')
@@ -379,10 +363,12 @@ describe('CacheAlertService', () => {
     describe('parseMemoryToMB', () => {
         it('should parse different memory units correctly', () => {
             const service = new CacheAlertService();
-            
+
             // Test private method through reflection
-            const parseMemory = (service as any).parseMemoryToMB.bind(service);
-            
+            const parseMemory = (
+                service as unknown as { parseMemoryToMB: (mem: string) => number }
+            ).parseMemoryToMB.bind(service);
+
             expect(parseMemory('1024KB')).toBeCloseTo(1, 2);
             expect(parseMemory('50M')).toBe(50);
             expect(parseMemory('2.5MB')).toBe(2.5);
@@ -399,7 +385,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 5, // Below threshold
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -420,7 +406,7 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -440,19 +426,19 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
 
             alertService.startMonitoring();
-            
+
             const newConfig: Partial<AlertConfig> = {
                 checkIntervalSeconds: 30,
                 thresholds: {
                     minHitRatio: 80,
                     maxMemoryUsage: '100M',
                     maxResponseTime: 200,
-                    minCacheSize: 20
-                }
+                    minCacheSize: 20,
+                },
             };
 
             alertService.updateConfig(newConfig);
@@ -466,7 +452,7 @@ describe('CacheAlertService', () => {
     describe('getMonitoringStatus', () => {
         it('should return correct monitoring status', () => {
             const status = alertService.getMonitoringStatus();
-            
+
             expect(status.enabled).toBe(true);
             expect(status.running).toBe(false);
             expect(status.lastCheck).toBeNull();
@@ -480,11 +466,11 @@ describe('CacheAlertService', () => {
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
 
             alertService.startMonitoring();
-            
+
             const status = alertService.getMonitoringStatus();
             expect(status.running).toBe(true);
         });
@@ -492,21 +478,22 @@ describe('CacheAlertService', () => {
 
     describe('Notification Methods', () => {
         it('should call notification methods when alert is created', async () => {
+            const testEmail = faker.internet.email();
             const webhookConfig = {
                 ...defaultConfig,
                 webhookUrl: 'https://example.com/webhook',
-                emailRecipients: ['admin@example.com'],
-                slackChannel: '#alerts'
+                emailRecipients: [testEmail],
+                slackChannel: '#alerts',
             };
 
             const serviceWithNotifications = new CacheAlertService(webhookConfig);
-            
+
             mockedCacheService.getStats.mockResolvedValue({
                 hitRatio: 60, // Below threshold
                 totalRequests: 100,
                 cacheSize: 50,
                 memoryUsage: '30M',
-                uptime: 3600
+                uptime: 3600,
             });
             mockedCacheService.set.mockResolvedValue();
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
@@ -515,7 +502,7 @@ describe('CacheAlertService', () => {
             await jest.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.info).toHaveBeenCalledWith('🔗 Webhook notification sent');
-            expect(mockedLogger.info).toHaveBeenCalledWith('📧 Email notification sent to admin@example.com');
+            expect(mockedLogger.info).toHaveBeenCalledWith(`📧 Email notification sent to ${testEmail}`);
             expect(mockedLogger.info).toHaveBeenCalledWith('💬 Slack notification sent to #alerts');
         });
     });
@@ -525,7 +512,7 @@ describe('CacheAlertService', () => {
             // Test the exported singleton
             const { cacheAlertService } = require('../../services/CacheAlertService');
             const config = cacheAlertService.getConfig();
-            
+
             expect(config.checkIntervalSeconds).toBe(60);
             expect(config.thresholds.minHitRatio).toBe(70);
             expect(config.thresholds.maxMemoryUsage).toBe('50M');

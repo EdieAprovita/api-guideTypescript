@@ -3,8 +3,8 @@ import { cacheService } from '../../services/CacheService';
 import { restaurantService } from '../../services/RestaurantService';
 import { businessService } from '../../services/BusinessService';
 import logger from '../../utils/logger';
-import { MockRestaurant, MockBusiness } from '../types';
-import { mockRestaurants, mockBusinesses } from '../mockData';
+import { createMockData } from '../utils/testHelpers';
+import { MockRestaurant } from '../types';
 
 // Mock dependencies
 jest.mock('../../services/CacheService');
@@ -34,7 +34,7 @@ describe('CacheWarmingService', () => {
     describe('Constructor', () => {
         it('should initialize with default state', () => {
             const stats = warmingService.getWarmingStats();
-            
+
             expect(stats.isWarming).toBe(false);
             expect(stats.lastWarmingTime).toBeNull();
             expect(stats.autoWarmingActive).toBe(false);
@@ -43,20 +43,14 @@ describe('CacheWarmingService', () => {
 
     describe('startAutoWarming', () => {
         it('should start automatic warming with default interval', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([
-                mockRestaurants[0]
-            ]);
-            mockedBusinessService.getAllCached.mockResolvedValue([
-                mockBusinesses[0]
-            ]);
+            mockedRestaurantService.getAllCached.mockResolvedValue([createMockData.restaurant()]);
+            mockedBusinessService.getAllCached.mockResolvedValue([createMockData.business()]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.startAutoWarming();
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Starting automatic cache warming every 30 minutes'
-            );
-            
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Starting automatic cache warming every 30 minutes');
+
             const stats = warmingService.getWarmingStats();
             expect(stats.autoWarmingActive).toBe(true);
         });
@@ -68,25 +62,17 @@ describe('CacheWarmingService', () => {
 
             await warmingService.startAutoWarming(15);
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Starting automatic cache warming every 15 minutes'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Starting automatic cache warming every 15 minutes');
         });
 
         it('should perform initial warming when started', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([
-                mockRestaurants[0]
-            ]);
-            mockedBusinessService.getAllCached.mockResolvedValue([
-                mockBusinesses[0]
-            ]);
+            mockedRestaurantService.getAllCached.mockResolvedValue([createMockData.restaurant()]);
+            mockedBusinessService.getAllCached.mockResolvedValue([createMockData.business()]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.startAutoWarming();
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Starting comprehensive cache warming...'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Starting comprehensive cache warming...');
         });
     });
 
@@ -99,10 +85,8 @@ describe('CacheWarmingService', () => {
             await warmingService.startAutoWarming();
             warmingService.stopAutoWarming();
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🛑 Automatic cache warming stopped'
-            );
-            
+            expect(mockedLogger.info).toHaveBeenCalledWith('🛑 Automatic cache warming stopped');
+
             const stats = warmingService.getWarmingStats();
             expect(stats.autoWarmingActive).toBe(false);
         });
@@ -118,14 +102,14 @@ describe('CacheWarmingService', () => {
             // Mock successful service responses
             mockedRestaurantService.getAllCached.mockResolvedValue([
                 { _id: '1', name: 'Test Restaurant 1' },
-                { _id: '2', name: 'Test Restaurant 2' }
+                { _id: '2', name: 'Test Restaurant 2' },
             ]);
-            
+
             mockedBusinessService.getAllCached.mockResolvedValue([
                 { _id: '1', name: 'Test Business 1', typeBusiness: 'market' },
-                { _id: '2', name: 'Test Business 2', typeBusiness: 'shop' }
+                { _id: '2', name: 'Test Business 2', typeBusiness: 'shop' },
             ]);
-            
+
             mockedCacheService.set.mockResolvedValue();
         });
 
@@ -137,28 +121,22 @@ describe('CacheWarmingService', () => {
             expect(result.errors).toHaveLength(0);
             expect(typeof result.duration).toBe('number');
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Starting comprehensive cache warming...'
-            );
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining('Cache warming completed!')
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Starting comprehensive cache warming...');
+            expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('Cache warming completed!'));
         });
 
         it('should skip warming if already in progress', async () => {
             // Start first warming
             const firstWarming = warmingService.warmUpCriticalData();
-            
+
             // Try to start second warming immediately
             const result = await warmingService.warmUpCriticalData();
 
             expect(result.success).toBe(false);
             expect(result.itemsWarmed).toBe(0);
             expect(result.errors).toContain('Warming already in progress');
-            
-            expect(mockedLogger.warn).toHaveBeenCalledWith(
-                '⚠️ Cache warming already in progress, skipping...'
-            );
+
+            expect(mockedLogger.warn).toHaveBeenCalledWith('⚠️ Cache warming already in progress, skipping...');
 
             // Wait for first warming to complete
             await firstWarming;
@@ -188,7 +166,7 @@ describe('CacheWarmingService', () => {
 
         it('should handle critical errors gracefully', async () => {
             mockedCacheService.set.mockRejectedValue(new Error('Cache service down'));
-            mockedRestaurantService.getAllCached.mockResolvedValue([{ _id: '1', name: 'Test' } as any]);
+            mockedRestaurantService.getAllCached.mockResolvedValue([{ _id: '1', name: 'Test' } as MockRestaurant]);
 
             const result = await warmingService.warmUpCriticalData();
 
@@ -199,12 +177,8 @@ describe('CacheWarmingService', () => {
 
     describe('warmSpecificData', () => {
         beforeEach(() => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([
-                mockRestaurants[0]
-            ]);
-            mockedBusinessService.getAllCached.mockResolvedValue([
-                mockBusinesses[0]
-            ]);
+            mockedRestaurantService.getAllCached.mockResolvedValue([createMockData.restaurant()]);
+            mockedBusinessService.getAllCached.mockResolvedValue([createMockData.business()]);
             mockedCacheService.set.mockResolvedValue();
         });
 
@@ -212,9 +186,7 @@ describe('CacheWarmingService', () => {
             const result = await warmingService.warmSpecificData('restaurants');
 
             expect(result).toBeGreaterThan(0);
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Warming specific data type: restaurants'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Warming specific data type: restaurants');
             expect(mockedRestaurantService.getAllCached).toHaveBeenCalled();
         });
 
@@ -222,9 +194,7 @@ describe('CacheWarmingService', () => {
             const result = await warmingService.warmSpecificData('businesses');
 
             expect(result).toBeGreaterThan(0);
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Warming specific data type: businesses'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Warming specific data type: businesses');
             expect(mockedBusinessService.getAllCached).toHaveBeenCalled();
         });
 
@@ -232,9 +202,7 @@ describe('CacheWarmingService', () => {
             const result = await warmingService.warmSpecificData('users');
 
             expect(result).toBeGreaterThan(0);
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Warming specific data type: users'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Warming specific data type: users');
             expect(mockedCacheService.set).toHaveBeenCalledWith(
                 'users:stats',
                 expect.any(Object),
@@ -247,9 +215,7 @@ describe('CacheWarmingService', () => {
             const result = await warmingService.warmSpecificData('categories');
 
             expect(result).toBeGreaterThan(0);
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Warming specific data type: categories'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Warming specific data type: categories');
             expect(mockedCacheService.set).toHaveBeenCalledWith(
                 'categories:restaurants',
                 expect.any(Array),
@@ -262,9 +228,7 @@ describe('CacheWarmingService', () => {
             const result = await warmingService.warmSpecificData('geo');
 
             expect(result).toBeGreaterThan(0);
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Warming specific data type: geo'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Warming specific data type: geo');
             expect(mockedCacheService.set).toHaveBeenCalledWith(
                 'geo:cities:coordinates',
                 expect.any(Object),
@@ -274,22 +238,25 @@ describe('CacheWarmingService', () => {
         });
 
         it('should throw error for unknown data type', async () => {
-            await expect(
-                warmingService.warmSpecificData('unknown' as 'restaurants')
-            ).rejects.toThrow('Unknown data type: unknown');
+            await expect(warmingService.warmSpecificData('unknown' as 'restaurants')).rejects.toThrow(
+                'Unknown data type: unknown'
+            );
         });
     });
 
     describe('Restaurant warming logic', () => {
         it('should cache all restaurants list', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue(mockRestaurants);
+            mockedRestaurantService.getAllCached.mockResolvedValue([
+                createMockData.restaurant(),
+                createMockData.restaurant({ _id: 'restaurant-2' }),
+            ]);
             mockedCacheService.set.mockResolvedValue();
 
             const result = await warmingService.warmSpecificData('restaurants');
 
             expect(mockedCacheService.set).toHaveBeenCalledWith(
                 'restaurants:all',
-                mockRestaurants,
+                [createMockData.restaurant(), createMockData.restaurant({ _id: 'restaurant-2' })],
                 'restaurants',
                 { ttl: 300, tags: ['restaurants', 'listings'] }
             );
@@ -297,12 +264,12 @@ describe('CacheWarmingService', () => {
         });
 
         it('should cache individual top restaurants', async () => {
-            const extendedMockRestaurants = Array.from({ length: 25 }, (_, i) => ({ 
-                ...mockRestaurants[0],
-                _id: `${i + 1}`, 
-                name: `Restaurant ${i + 1}` 
+            const extendedMockRestaurants = Array.from({ length: 25 }, (_, i) => ({
+                ...createMockData.restaurant(),
+                _id: `${i + 1}`,
+                name: `Restaurant ${i + 1}`,
             }));
-            mockedRestaurantService.getAllCached.mockResolvedValue(extendedMockRestaurants as any);
+            mockedRestaurantService.getAllCached.mockResolvedValue(extendedMockRestaurants as MockRestaurant[]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('restaurants');
@@ -317,7 +284,7 @@ describe('CacheWarmingService', () => {
         });
 
         it('should cache popular restaurant searches', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([mockRestaurants[0]]);
+            mockedRestaurantService.getAllCached.mockResolvedValue([createMockData.restaurant()]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('restaurants');
@@ -343,21 +310,27 @@ describe('CacheWarmingService', () => {
 
     describe('Business warming logic', () => {
         it('should cache all businesses list', async () => {
-            mockedBusinessService.getAllCached.mockResolvedValue(mockBusinesses);
+            mockedBusinessService.getAllCached.mockResolvedValue([
+                createMockData.business(),
+                createMockData.business({ _id: 'business-2' }),
+            ]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('businesses');
 
             expect(mockedCacheService.set).toHaveBeenCalledWith(
                 'businesses:all',
-                mockBusinesses,
+                [createMockData.business(), createMockData.business({ _id: 'business-2' })],
                 'businesses',
                 { ttl: 600, tags: ['businesses', 'listings'] }
             );
         });
 
         it('should cache businesses by categories', async () => {
-            mockedBusinessService.getAllCached.mockResolvedValue(mockBusinesses);
+            mockedBusinessService.getAllCached.mockResolvedValue([
+                createMockData.business(),
+                createMockData.business({ _id: 'business-2' }),
+            ]);
             mockedCacheService.set.mockResolvedValue();
 
             await warmingService.warmSpecificData('businesses');
@@ -387,10 +360,10 @@ describe('CacheWarmingService', () => {
                     usersByRole: {
                         user: 0,
                         professional: 0,
-                        admin: 0
+                        admin: 0,
                     },
                     lastUpdated: expect.any(Date),
-                    cacheGenerated: true
+                    cacheGenerated: true,
                 },
                 'users',
                 { ttl: 3600, tags: ['users', 'stats'] }
@@ -407,7 +380,7 @@ describe('CacheWarmingService', () => {
                 {
                     _id: '1',
                     username: 'admin1',
-                    role: 'admin'
+                    role: 'admin',
                 },
                 'users',
                 { ttl: 1800, tags: ['users', 'profiles'] }
@@ -467,7 +440,7 @@ describe('CacheWarmingService', () => {
                     features: ['cache', 'geolocation', 'reviews', 'search'],
                     supportedLanguages: ['es', 'en'],
                     maxResults: 50,
-                    defaultRadius: 5000
+                    defaultRadius: 5000,
                 },
                 'config',
                 { ttl: 7200, tags: ['config', 'static'] }
@@ -485,7 +458,7 @@ describe('CacheWarmingService', () => {
                 'geo:cities:coordinates',
                 expect.objectContaining({
                     madrid: { lat: 40.4168, lng: -3.7038 },
-                    barcelona: { lat: 41.3851, lng: 2.1734 }
+                    barcelona: { lat: 41.3851, lng: 2.1734 },
                 }),
                 'geolocation',
                 { ttl: 7200, tags: ['geolocation', 'coordinates'] }
@@ -504,7 +477,7 @@ describe('CacheWarmingService', () => {
                     businesses: 8,
                     total: 23,
                     center: { lat: 40.4168, lng: -3.7038 },
-                    radius: 5000
+                    radius: 5000,
                 }),
                 'geolocation',
                 { ttl: 1800, tags: ['geolocation', 'search'] }
@@ -519,23 +492,23 @@ describe('CacheWarmingService', () => {
             expect(stats).toEqual({
                 isWarming: false,
                 lastWarmingTime: null,
-                autoWarmingActive: false
+                autoWarmingActive: false,
             });
         });
 
         it('should show warming in progress status', async () => {
             let resolveResolve: () => void;
-            const delayedPromise = new Promise<any[]>((resolve) => {
+            const delayedPromise = new Promise<any[]>(resolve => {
                 resolveResolve = () => resolve([]);
             });
-            
+
             mockedRestaurantService.getAllCached.mockReturnValue(delayedPromise);
             mockedBusinessService.getAllCached.mockResolvedValue([]);
             mockedCacheService.set.mockResolvedValue();
 
             // Start warming but don't wait for completion
             const warmingPromise = warmingService.warmUpCriticalData();
-            
+
             // Check status immediately
             const stats = warmingService.getWarmingStats();
             expect(stats.isWarming).toBe(true);
@@ -572,9 +545,7 @@ describe('CacheWarmingService', () => {
             jest.advanceTimersByTime(60 * 1000);
             await jest.runOnlyPendingTimersAsync();
 
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🔥 Starting comprehensive cache warming...'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Starting comprehensive cache warming...');
         });
     });
 
@@ -586,9 +557,7 @@ describe('CacheWarmingService', () => {
 
             const result = await warmingService.warmUpCriticalData();
 
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Error warming restaurants: Error: DB error'
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Error warming restaurants: Error: DB error');
             expect(result.errors).toContain('Error warming restaurants: Error: DB error');
         });
 
@@ -600,9 +569,7 @@ describe('CacheWarmingService', () => {
             const result = await warmingService.warmUpCriticalData();
 
             // Should have attempted to warm other data types
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining('Users warmed:')
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('Users warmed:'));
             expect(result.itemsWarmed).toBeGreaterThan(0);
         });
     });
@@ -614,4 +581,3 @@ describe('CacheWarmingService', () => {
         });
     });
 });
-

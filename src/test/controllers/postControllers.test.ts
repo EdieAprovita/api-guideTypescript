@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -72,7 +73,7 @@ describe('Post Controllers', () => {
             const postData = {
                 title: 'Test Post',
                 content: 'This is a test post content',
-                author: 'user123',
+                author: faker.database.mongodbObjectId(),
                 tags: ['test', 'example'],
             };
             const createdPost = { ...postData, _id: 'post123' };

@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import { Request, Response, NextFunction } from 'express';
 
@@ -22,12 +23,27 @@ jest.mock('../../services/ReviewService', () => ({
     },
 }));
 
+interface TestUser {
+    _id: string;
+    username: string;
+    email: string;
+    role: 'user' | 'professional' | 'admin';
+    isAdmin: boolean;
+    isActive: boolean;
+    isDeleted: boolean;
+    photo: string;
+    timestamps: {
+        createdAt: Date;
+        updatedAt: Date;
+    };
+}
+
 const mockAuthMiddleware = {
     protect: (req: Request, _res: Response, next: NextFunction) => {
-        req.user = { 
-            _id: 'testUserId', 
+        req.user = {
+            _id: 'testUserId',
             username: 'testUser',
-            email: 'test@example.com',
+            email: faker.internet.email(),
             role: 'user',
             isAdmin: false,
             isActive: true,
@@ -35,9 +51,9 @@ const mockAuthMiddleware = {
             photo: 'default.jpg',
             timestamps: {
                 createdAt: new Date(),
-                updatedAt: new Date()
-            }
-        } as any; // Temporary any for test mock
+                updatedAt: new Date(),
+            },
+        } as TestUser;
         next();
     },
     admin: (_req: Request, _res: Response, next: NextFunction) => next(),

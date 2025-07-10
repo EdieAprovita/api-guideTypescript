@@ -5,16 +5,14 @@ import request from 'supertest';
 import express from 'express';
 import { validate, sanitizeInput, rateLimits, securityHeaders } from '../../middleware/validation';
 import { userSchemas, paramSchemas } from '../../utils/validators';
-import faker from 'faker';
+import testConfig from '../testConfig';
 
 const app = express();
 app.use(express.json());
 
-// Dummy credentials used for testing only
-const TEST_PASSWORD =
-    process.env.TEST_USER_PASSWORD ?? faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
-// Generate weak password for validation testing
-const getWeakPassword = () => process.env.TEST_WEAK_PASSWORD ?? faker.string.alphanumeric(3);
+// Use centralized test config
+const TEST_PASSWORD = testConfig.passwords.validPassword;
+const getWeakPassword = () => testConfig.passwords.weakPassword;
 
 // Test routes
 app.post('/test-user-validation', validate({ body: userSchemas.register }), (req, res) =>

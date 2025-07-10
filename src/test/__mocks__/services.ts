@@ -1,9 +1,12 @@
+import { faker } from '@faker-js/faker';
 // Factory para crear mocks básicos de servicios
+import testConfig from '../testConfig';
+
 export const createBasicServiceMock = (serviceName: string) => ({
     getAll: jest.fn().mockResolvedValue([]),
-    findById: jest.fn().mockResolvedValue({ _id: 'mock-id', name: `Mock ${serviceName}` }),
-    create: jest.fn().mockResolvedValue({ _id: 'new-id', name: `New ${serviceName}` }),
-    updateById: jest.fn().mockResolvedValue({ _id: 'updated-id', name: `Updated ${serviceName}` }),
+    findById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
+    create: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
+    updateById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
     deleteById: jest.fn().mockResolvedValue('Deleted successfully'),
 });
 
@@ -12,22 +15,26 @@ export const serviceMocks = {
     // User Service
     userService: {
         ...createBasicServiceMock('User'),
-        registerUser: jest.fn().mockResolvedValue({ 
-            _id: 'user-id', 
-            email: 'test@example.com', 
-            firstName: 'Test', 
-            lastName: 'User' 
+        registerUser: jest.fn().mockResolvedValue({
+            _id: faker.database.mongodbObjectId(),
+            email: 'faker.internet.email()',
+            firstName: 'Test',
+            lastName: 'User',
         }),
-        loginUser: jest.fn().mockResolvedValue({ 
-            token: 'mock-token', 
-            user: { _id: 'user-id', email: 'test@example.com' } 
+        loginUser: jest.fn().mockResolvedValue({
+            token: testConfig.generateTestPassword(),
+            user: { _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' },
         }),
         findAllUsers: jest.fn().mockResolvedValue([
-            { _id: 'user1', email: 'user1@example.com' },
-            { _id: 'user2', email: 'user2@example.com' }
+            { _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' },
+            { _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' },
         ]),
-        findUserById: jest.fn().mockResolvedValue({ _id: 'user-id', email: 'test@example.com' }),
-        updateUserById: jest.fn().mockResolvedValue({ _id: 'user-id', email: 'updated@example.com' }),
+        findUserById: jest
+            .fn()
+            .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' }),
+        updateUserById: jest
+            .fn()
+            .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' }),
         deleteUserById: jest.fn().mockResolvedValue('User deleted successfully'),
     },
 
@@ -95,7 +102,7 @@ export const serviceMocks = {
         validateCoordinates: jest.fn().mockReturnValue(true),
         calculateDistance: jest.fn().mockReturnValue(10.5),
         findNearby: jest.fn().mockResolvedValue([]),
-        geocodeAddress: jest.fn().mockResolvedValue({ lat: 40.7128, lng: -74.0060 }),
+        geocodeAddress: jest.fn().mockResolvedValue({ lat: 40.7128, lng: -74.006 }),
     },
 
     // Token Service
@@ -105,13 +112,13 @@ export const serviceMocks = {
             refreshToken: 'mock-refresh-token',
         }),
         verifyAccessToken: jest.fn().mockResolvedValue({
-            userId: 'test-user-id',
-            email: 'test@example.com',
+            userId: faker.database.mongodbObjectId(),
+            email: 'faker.internet.email()',
             role: 'user',
         }),
         verifyRefreshToken: jest.fn().mockResolvedValue({
-            userId: 'test-user-id',
-            email: 'test@example.com',
+            userId: faker.database.mongodbObjectId(),
+            email: 'faker.internet.email()',
             role: 'user',
         }),
         refreshTokens: jest.fn().mockResolvedValue({
@@ -150,7 +157,7 @@ export const modelMocks = {
         find: jest.fn().mockResolvedValue([]),
         findByIdAndUpdate: jest.fn().mockResolvedValue({
             _id: 'updatedUserId',
-            email: 'updated@example.com',
+            email: 'faker.internet.email()',
         }),
         findByIdAndDelete: jest.fn().mockResolvedValue({
             _id: 'deletedUserId',
@@ -165,7 +172,7 @@ export const externalMocks = {
         sign: jest.fn().mockReturnValue('mock-token'),
     },
     bcrypt: {
-        hash: jest.fn().mockResolvedValue('hashed-password'),
+        hash: jest.fn().mockResolvedValue(testConfig.generateTestPassword()),
         compare: jest.fn().mockResolvedValue(true),
     },
 };

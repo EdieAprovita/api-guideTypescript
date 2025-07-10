@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import { setupCommonMocks, resetMocks } from '../utils/testHelpers';
 
@@ -27,8 +28,8 @@ describe('ProfessionProfile Controllers', () => {
     describe('Get all profession profiles', () => {
         it('should get all profession profiles', async () => {
             const mockProfiles = [
-                { _id: 'profile1', userId: 'user1', profession: 'Doctor', experience: 5 },
-                { _id: 'profile2', userId: 'user2', profession: 'Engineer', experience: 3 },
+                { _id: 'profile1', userId: faker.database.mongodbObjectId(), profession: 'Doctor', experience: 5 },
+                { _id: 'profile2', userId: faker.database.mongodbObjectId(), profession: 'Engineer', experience: 3 },
             ];
 
             (professionProfileService.getAll as jest.Mock).mockResolvedValueOnce(mockProfiles);
@@ -47,7 +48,7 @@ describe('ProfessionProfile Controllers', () => {
 
     describe('Get profession profile by id', () => {
         it('should get profession profile by id', async () => {
-            const mockProfile = { _id: 'profile1', userId: 'user1', profession: 'Doctor', experience: 5 };
+            const mockProfile = { _id: 'profile1', userId: faker.database.mongodbObjectId(), profession: 'Doctor', experience: 5 };
 
             (professionProfileService.findById as jest.Mock).mockResolvedValueOnce(mockProfile);
 
@@ -66,7 +67,7 @@ describe('ProfessionProfile Controllers', () => {
     describe('Create profession profile', () => {
         it('should create a new profession profile', async () => {
             const profileData = {
-                userId: 'user123',
+                userId: faker.database.mongodbObjectId(),
                 profession: 'Doctor',
                 experience: 5,
                 specialties: ['Cardiology'],
