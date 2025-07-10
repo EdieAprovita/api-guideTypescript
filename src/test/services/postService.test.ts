@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { Types } from 'mongoose';
 import { postService } from "../../services/PostService";
 import { HttpError } from "../../types/Errors";
@@ -19,14 +20,14 @@ jest.mock('../../services/BaseService', () => {
                 if (id === 'liked-post-id') {
                     return {
                         _id: id,
-                        likes: [{ username: 'user1' }],
+                        likes: [{ username: faker.database.mongodbObjectId() }],
                         save: jest.fn().mockResolvedValue(true)
                     };
                 }
                 if (id === 'post-with-comments') {
                     return {
                         _id: id,
-                        comments: [{ id: 'comment1', username: 'user1' }],
+                        comments: [{ id: 'comment1', username: faker.database.mongodbObjectId() }],
                         save: jest.fn().mockResolvedValue(true)
                     };
                 }
@@ -46,22 +47,22 @@ describe("PostService", () => {
     });
 
     it("likes a post when not already liked", async () => {
-        const result = await postService.likePost("valid-post-id", "user1");
-        expect(result).toEqual([{ username: "user1" }]);
+        const result = await postService.likePost("valid-post-id", faker.database.mongodbObjectId());
+        expect(result).toEqual([{ username: faker.database.mongodbObjectId() }]);
     });
 
     it("throws when liking an already liked post", async () => {
-        await expect(postService.likePost("liked-post-id", "user1")).rejects.toThrow(HttpError);
+        await expect(postService.likePost("liked-post-id", faker.database.mongodbObjectId())).rejects.toThrow(HttpError);
     });
 
     it("unlikes a liked post", async () => {
-        const result = await postService.unlikePost("liked-post-id", "user1");
+        const result = await postService.unlikePost("liked-post-id", faker.database.mongodbObjectId());
         expect(result).toEqual([]);
     });
 
     it("fails to remove someone else's comment", async () => {
         await expect(
-            postService.removeComment("post-with-comments", "comment1", "user2")
+            postService.removeComment("post-with-comments", "comment1", faker.database.mongodbObjectId())
         ).rejects.toThrow(HttpError);
     });
 });

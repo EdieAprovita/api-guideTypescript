@@ -5,7 +5,7 @@ import request from 'supertest';
 import express from 'express';
 import { validate, sanitizeInput, rateLimits, securityHeaders } from '../../middleware/validation';
 import { userSchemas, paramSchemas } from '../../utils/validators';
-import { testConfig } from '../config/testConfig';
+import testConfig from '../testConfig';
 
 const app = express();
 app.use(express.json());

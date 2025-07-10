@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
 import { 
@@ -58,7 +59,7 @@ describe('Review Controllers', () => {
                 refModel: 'Restaurant',
                 rating: 5,
                 comment: 'Great food!',
-                username: 'user123',
+                username: faker.database.mongodbObjectId(),
                 user: new Types.ObjectId('507f1f77bcf86cd799439014'),
                 timestamps: {
                     createdAt: new Date(),
@@ -147,8 +148,8 @@ describe('Review Controllers', () => {
             refModel: 'Restaurant',
             rating: 5,
             comment: 'Excellent food and service!',
-            username: 'user123',
-            user: 'user123'
+            username: faker.database.mongodbObjectId(),
+            user: faker.database.mongodbObjectId()
         };
 
         const mockCreatedReview: Partial<IReview> = {
@@ -157,7 +158,7 @@ describe('Review Controllers', () => {
             refModel: 'Restaurant',
             rating: 5,
             comment: 'Excellent food and service!',
-            username: 'user123',
+            username: faker.database.mongodbObjectId(),
             user: new Types.ObjectId('507f1f77bcf86cd799439014'),
             timestamps: {
                 createdAt: new Date(),
@@ -215,7 +216,7 @@ describe('Review Controllers', () => {
             refModel: 'Restaurant',
             rating: 5,
             comment: 'Great food!',
-            username: 'user123',
+            username: faker.database.mongodbObjectId(),
             user: new Types.ObjectId('507f1f77bcf86cd799439014'),
             timestamps: {
                 createdAt: new Date(),
@@ -282,7 +283,7 @@ describe('Review Controllers', () => {
             refModel: 'Restaurant',
             rating: 4,
             comment: 'Updated comment',
-            username: 'user123',
+            username: faker.database.mongodbObjectId(),
             user: new Types.ObjectId('507f1f77bcf86cd799439014'),
             timestamps: {
                 createdAt: new Date(),

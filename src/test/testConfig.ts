@@ -28,21 +28,40 @@ export const TEST_JWT_CONFIG = {
 
 // Dynamic password generation for tests
 export const generateTestPassword = (): string => {
-    return process.env.TEST_USER_PASSWORD || faker.internet.password({ 
-        length: 12, 
-        pattern: /[A-Za-z0-9!@#$%^&*]/ 
-    });
+    return (
+        process.env.TEST_USER_PASSWORD ||
+        faker.internet.password({
+            length: 12,
+            pattern: /[A-Za-z0-9!@#$%^&*]/,
+        })
+    );
 };
 
 export const generateWeakPassword = (): string => {
     return faker.string.alphanumeric(3);
 };
 
+export const generateTestPhone = (): string => {
+    return faker.phone.number();
+};
+
+export const generateTestEmail = (): string => {
+    return faker.internet.email();
+};
+
+export const generateTestUsername = (): string => {
+    return faker.internet.userName();
+};
+
+export const generateTestMongoId = (): string => {
+    return faker.database.mongodbObjectId();
+};
+
 // Common test values
 export const TEST_VALUES = {
     sessionId: TEST_SESSION_ID,
     userEmail: `test-${TEST_SESSION_ID}@example.com`,
-    username: `testuser-${TEST_SESSION_ID}`,
+    username: `${faker.internet.userName()}`,
     mockUserId: `user-${TEST_SESSION_ID}`,
     mockTokenId: `token-${TEST_SESSION_ID}`,
 };
@@ -65,15 +84,15 @@ export const setupTestEnvironment = () => {
 export const cleanupTestEnvironment = () => {
     const testVars = [
         'JWT_SECRET',
-        'JWT_REFRESH_SECRET', 
+        'JWT_REFRESH_SECRET',
         'JWT_EXPIRES_IN',
         'JWT_REFRESH_EXPIRES_IN',
         'REDIS_HOST',
-        'REDIS_PORT', 
+        'REDIS_PORT',
         'REDIS_PASSWORD',
-        'REDIS_DB'
+        'REDIS_DB',
     ];
-    
+
     testVars.forEach(varName => {
         delete process.env[varName];
     });
@@ -95,4 +114,33 @@ export default {
     cleanupTestEnvironment,
     generateTestPassword,
     generateWeakPassword,
-}; 
+    generateTestPhone,
+    generateTestEmail,
+    generateTestUsername,
+    generateTestMongoId,
+    generators: {
+        securePassword: generateTestPassword,
+        phoneNumber: generateTestPhone,
+        email: generateTestEmail,
+        username: generateTestUsername,
+        mongoId: generateTestMongoId,
+    },
+    passwords: {
+        validPassword: generateTestPassword(),
+        weakPassword: generateWeakPassword(),
+        wrongPassword: generateTestPassword(),
+        fixturePassword: generateTestPassword(),
+    },
+    messages: {
+        validation: {
+            passwordLength: 'Password must be at least 8 characters long',
+            emailFormat: 'Please provide a valid email address',
+            passwordComplexity:
+                'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+            passwordUppercase: 'Password must contain at least one uppercase letter',
+            passwordLowercase: 'Password must contain at least one lowercase letter',
+            passwordNumber: 'Password must contain at least one number',
+            passwordSpecial: 'Password must contain at least one special character',
+        },
+    },
+};

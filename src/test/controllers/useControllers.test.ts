@@ -72,7 +72,7 @@ describe('User Controllers', () => {
             };
 
             const createdUser = createMockData.user({
-                _id: 'userId',
+                _id: faker.database.mongodbObjectId(),
                 ...userData,
             });
 
@@ -87,7 +87,7 @@ describe('User Controllers', () => {
         });
 
         it('should handle registration error', async () => {
-            const userData = { email: 'test@example.com' };
+            const userData = { email: faker.internet.email() };
             const error = new Error('Registration failed');
 
             mockUserService.registerUser.mockRejectedValue(error);
@@ -113,7 +113,7 @@ describe('User Controllers', () => {
 
             const loginResult = {
                 token: 'mockToken',
-                user: createMockData.user({ _id: 'userId', email: TEST_EMAIL }),
+                user: createMockData.user({ _id: faker.database.mongodbObjectId(), email: TEST_EMAIL }),
             };
 
             mockUserService.loginUser.mockResolvedValue(loginResult);
@@ -130,8 +130,8 @@ describe('User Controllers', () => {
     describe('getUsers', () => {
         it('should return all users', async () => {
             const mockUsers = [
-                createMockData.user({ _id: 'user1', firstName: 'John', lastName: 'Doe' }),
-                createMockData.user({ _id: 'user2', firstName: 'Jane', lastName: 'Smith' }),
+                createMockData.user({ _id: faker.database.mongodbObjectId(), firstName: 'John', lastName: 'Doe' }),
+                createMockData.user({ _id: faker.database.mongodbObjectId(), firstName: 'Jane', lastName: 'Smith' }),
             ];
 
             mockUserService.findAllUsers.mockResolvedValue(mockUsers);
@@ -147,7 +147,7 @@ describe('User Controllers', () => {
 
     describe('getUserById', () => {
         it('should return user by id', async () => {
-            const userId = 'user123';
+            const userId = faker.database.mongodbObjectId();
             const mockUser = createMockData.user({
                 _id: userId,
                 firstName: 'John',
@@ -180,7 +180,7 @@ describe('User Controllers', () => {
 
     describe('updateUserProfile', () => {
         it('should update user profile', async () => {
-            const userId = 'user123';
+            const userId = faker.database.mongodbObjectId();
             const updateData = {
                 username: 'updatedUser',
                 email: 'update@example.com',
@@ -214,7 +214,7 @@ describe('User Controllers', () => {
 
     describe('deleteUserById', () => {
         it('should delete user by id', async () => {
-            const userId = 'user123';
+            const userId = faker.database.mongodbObjectId();
             const message = 'User deleted successfully';
 
             mockUserService.deleteUserById.mockResolvedValue(message);

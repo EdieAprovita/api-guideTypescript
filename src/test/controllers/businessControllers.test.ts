@@ -1,7 +1,7 @@
 // Business Controllers Test - Refactored to eliminate duplication
 import request from 'supertest';
 import { setupCommonMocks, resetMocks, createMockBusiness } from '../utils/testHelpers';
-import { testConfig } from '../config/testConfig';
+import testConfig from '../testConfig';
 
 // === CRITICAL: Mocks must be defined BEFORE any imports ===
 setupCommonMocks();

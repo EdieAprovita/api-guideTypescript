@@ -38,8 +38,8 @@ describe('User model email validation', () => {
     it('validates required fields', () => {
         // Test that required fields are present
         const userData = {
-            username: 'testuser',
-            email: 'test@example.com',
+            username: faker.internet.userName(),
+            email: faker.internet.email(),
             password: DUMMY_PASSWORD,
             role: 'user',
         };

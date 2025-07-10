@@ -34,29 +34,34 @@ interface UserOverrides {
 }
 
 export const createTestUser = async (overrides: UserOverrides = {}) => {
-  // Use a plain-text password from overrides or a default from testConfig
-  const plainPassword = overrides.password || testConfig.passwords.fixturePassword;
-  
-  if (!plainPassword) {
-    throw new Error('No password provided for test user creation');
+  try {
+    // Use a plain-text password from overrides or a default from testConfig
+    const plainPassword = overrides.password || testConfig.passwords.fixturePassword;
+    
+    if (!plainPassword) {
+      throw new Error('No password provided for test user creation');
+    }
+    
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    const userData = {
+      username: overrides.username || faker.internet.userName(),
+      email: (overrides.email || faker.internet.email()).toLowerCase(),
+      role: 'user',
+      isAdmin: false,
+      isActive: true,
+      isDeleted: false,
+      photo: 'default.png', // Use stable value instead of faker.image.avatar()
+      ...overrides,
+      password: hashedPassword, // Ensure the final password is the hashed one
+    };
+
+    const user = await User.create(userData);
+    return user;
+  } catch (error) {
+    console.error('Error creating test user:', error);
+    throw new Error(`Failed to create test user: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-  
-  const hashedPassword = await bcrypt.hash(plainPassword, 10);
-
-  const userData = {
-    username: faker.internet.userName(),
-    email: faker.internet.email().toLowerCase(),
-    role: 'user',
-    isAdmin: false,
-    isActive: true,
-    isDeleted: false,
-    photo: faker.image.avatar(),
-    ...overrides,
-    password: hashedPassword, // Ensure the final password is the hashed one
-  };
-
-  const user = await User.create(userData);
-  return user;
 };
 
 export const createAdminUser = async (overrides: UserOverrides = {}) => {

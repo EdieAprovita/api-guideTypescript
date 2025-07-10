@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import jwt from 'jsonwebtoken';
 import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers';
 import { TEST_JWT_CONFIG, TEST_REDIS_CONFIG, setupTestEnvironment, cleanupTestEnvironment } from '../testConfig';
@@ -257,7 +258,7 @@ describe('TokenService', () => {
     });
 
     // Helper function to setup common mock expectations
-    const setupMockToken = (mockPayload: Record<string, unknown> = { userId: 'user123', email: 'test@example.com' }) => {
+    const setupMockToken = (mockPayload: Record<string, unknown> = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() }) => {
         mockJwt.sign.mockReturnValue('mock-token');
         mockJwt.verify.mockReturnValue(mockPayload);
         mockJwt.decode.mockReturnValue(mockPayload);
@@ -292,7 +293,7 @@ describe('TokenService', () => {
 
     describe('generateTokenPair', () => {
         it('should generate access and refresh tokens', async () => {
-            const payload = { userId: 'user123', email: 'test@example.com' };
+            const payload = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() };
             setupMockToken(payload);
 
             const result = await TokenService.generateTokenPair(payload);
@@ -310,7 +311,7 @@ describe('TokenService', () => {
         });
 
         it('should include role in payload when provided', async () => {
-            const payload = { userId: 'user123', email: 'test@example.com', role: 'admin' };
+            const payload = { userId: faker.database.mongodbObjectId(), email: faker.internet.email(), role: 'admin' };
             setupMockToken(payload);
 
             await TokenService.generateTokenPair(payload);
@@ -328,7 +329,7 @@ describe('TokenService', () => {
 
     describe('verifyAccessToken', () => {
         it('should verify valid access token', async () => {
-            const mockPayload = { userId: 'user123', email: 'test@example.com' };
+            const mockPayload = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() };
             setupMockToken(mockPayload);
             mockRedis.get.mockResolvedValue(null); // Not blacklisted
 
@@ -365,8 +366,8 @@ describe('TokenService', () => {
     describe('verifyRefreshToken', () => {
         it('should verify valid refresh token', async () => {
             const mockPayload = { 
-                userId: 'user123', 
-                email: 'test@example.com', 
+                userId: faker.database.mongodbObjectId(), 
+                email: faker.internet.email(), 
                 type: 'refresh' 
             };
             setupMockToken(mockPayload);
@@ -379,8 +380,8 @@ describe('TokenService', () => {
 
         it('should reject token with wrong type', async () => {
             const mockPayload = { 
-                userId: 'user123', 
-                email: 'test@example.com', 
+                userId: faker.database.mongodbObjectId(), 
+                email: faker.internet.email(), 
                 type: 'access' // Wrong type
             };
             setupMockToken(mockPayload);
@@ -391,8 +392,8 @@ describe('TokenService', () => {
 
         it('should reject token not found in Redis', async () => {
             const mockPayload = { 
-                userId: 'user123', 
-                email: 'test@example.com', 
+                userId: faker.database.mongodbObjectId(), 
+                email: faker.internet.email(), 
                 type: 'refresh' 
             };
             setupMockToken(mockPayload);
@@ -404,8 +405,8 @@ describe('TokenService', () => {
 
         it('should reject mismatched token', async () => {
             const mockPayload = { 
-                userId: 'user123', 
-                email: 'test@example.com', 
+                userId: faker.database.mongodbObjectId(), 
+                email: faker.internet.email(), 
                 type: 'refresh' 
             };
             setupMockToken(mockPayload);
@@ -419,8 +420,8 @@ describe('TokenService', () => {
     describe('refreshTokens', () => {
         it('should refresh tokens successfully', async () => {
             const mockPayload = { 
-                userId: 'user123', 
-                email: 'test@example.com', 
+                userId: faker.database.mongodbObjectId(), 
+                email: faker.internet.email(), 
                 type: 'refresh' 
             };
             setupMockToken(mockPayload);
@@ -438,7 +439,7 @@ describe('TokenService', () => {
 
     describe('revokeRefreshToken', () => {
         it('should revoke refresh token', async () => {
-            await TokenService.revokeRefreshToken('user123');
+            await TokenService.revokeRefreshToken(faker.database.mongodbObjectId());
 
             expect(mockRedis.del).toHaveBeenCalledWith('refresh_token:user123');
         });
@@ -519,9 +520,9 @@ describe('TokenService', () => {
             mockRevokeRefreshToken.mockResolvedValue();
             mockRedis.setex.mockResolvedValue('OK');
 
-            await TokenService.revokeAllUserTokens('user123');
+            await TokenService.revokeAllUserTokens(faker.database.mongodbObjectId());
 
-            expect(mockRevokeRefreshToken).toHaveBeenCalledWith('user123');
+            expect(mockRevokeRefreshToken).toHaveBeenCalledWith(faker.database.mongodbObjectId());
             expect(mockRedis.setex).toHaveBeenCalledWith(
                 'user_tokens:user123',
                 24 * 60 * 60,
@@ -534,7 +535,7 @@ describe('TokenService', () => {
         it('should return true when user tokens are revoked', async () => {
             mockRedis.get.mockResolvedValue('revoked');
 
-            const result = await TokenService.isUserTokensRevoked('user123');
+            const result = await TokenService.isUserTokensRevoked(faker.database.mongodbObjectId());
 
             expect(result).toBe(true);
             expect(mockRedis.get).toHaveBeenCalledWith('user_tokens:user123');
@@ -543,7 +544,7 @@ describe('TokenService', () => {
         it('should return false when user tokens are not revoked', async () => {
             mockRedis.get.mockResolvedValue(null);
 
-            const result = await TokenService.isUserTokensRevoked('user123');
+            const result = await TokenService.isUserTokensRevoked(faker.database.mongodbObjectId());
 
             expect(result).toBe(false);
         });
@@ -578,7 +579,7 @@ describe('TokenService', () => {
             const mockToken = 'valid-token';
             const mockDecoded = {
                 header: { alg: 'HS256', typ: 'JWT' },
-                payload: { userId: 'user123', email: 'test@example.com' }
+                payload: { userId: faker.database.mongodbObjectId(), email: faker.internet.email() }
             };
 
             mockJwt.decode.mockReturnValue(mockDecoded);

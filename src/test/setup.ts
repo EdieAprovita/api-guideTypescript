@@ -1,7 +1,7 @@
 // Global test setup - Centralized and optimized
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
-import { testConfig } from './config/testConfig';
+import testConfig from './testConfig';
 import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from './__mocks__/middleware';
 import { serviceMocks, modelMocks, externalMocks } from './__mocks__/services';
 import { dbConfigMocks } from './__mocks__/database';

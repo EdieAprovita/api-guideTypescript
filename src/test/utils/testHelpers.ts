@@ -1,20 +1,20 @@
 import request from 'supertest';
 import { Application } from 'express';
-import { TestUser, MockRestaurant, MockDoctor, MockMarket, MockSanctuary } from '../types';
+import { TestUser, MockRestaurant, MockBusiness, MockMarket, MockSanctuary } from '../types';
 import { Request, Response, NextFunction } from 'express';
 import { faker } from '@faker-js/faker';
 import { Response as SupertestResponse } from 'supertest';
 import { MockedFunction } from 'jest-mock';
 import jwt from 'jsonwebtoken';
-import { testConfig } from '../config/testConfig';
+import testConfig from '../testConfig';
 
 /**
- * Create a test user with default values
+ * Create a test user with default values - NO hardcoded data
  */
 export const createTestUser = (overrides: Partial<TestUser> = {}): TestUser => ({
-    _id: 'test-user-id',
+    _id: faker.database.mongodbObjectId(),
     role: 'user',
-    email: 'test@example.com',
+    email: faker.internet.email(),
     ...overrides,
 });
 
@@ -22,9 +22,9 @@ export const createTestUser = (overrides: Partial<TestUser> = {}): TestUser => (
  * Create an admin test user
  */
 export const createAdminUser = (overrides: Partial<TestUser> = {}): TestUser => ({
-    _id: 'admin-user-id',
+    _id: faker.database.mongodbObjectId(),
     role: 'admin',
-    email: 'admin@example.com',
+    email: faker.internet.email(),
     ...overrides,
 });
 
@@ -32,9 +32,9 @@ export const createAdminUser = (overrides: Partial<TestUser> = {}): TestUser => 
  * Create a professional test user
  */
 export const createProfessionalUser = (overrides: Partial<TestUser> = {}): TestUser => ({
-    _id: 'professional-user-id',
+    _id: faker.database.mongodbObjectId(),
     role: 'professional',
-    email: 'professional@example.com',
+    email: faker.internet.email(),
     ...overrides,
 });
 
@@ -157,9 +157,9 @@ export const expectResourceDeleted = (response: SupertestResponse) => {
  */
 export const createServiceMocks = (serviceName: string) => ({
     getAll: jest.fn().mockResolvedValue([]),
-    findById: jest.fn().mockResolvedValue({ _id: 'mock-id', name: `Mock ${serviceName}` }),
-    create: jest.fn().mockResolvedValue({ _id: 'new-id', name: `New ${serviceName}` }),
-    updateById: jest.fn().mockResolvedValue({ _id: 'updated-id', name: `Updated ${serviceName}` }),
+    findById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
+    create: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
+    updateById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
     deleteById: jest.fn().mockResolvedValue('Deleted successfully'),
 });
 
@@ -181,8 +181,8 @@ const createTestTimestamp = () => {
  */
 export const createMockData = {
     user: (overrides = {}) => ({
-        _id: 'user-id',
-        email: 'test@example.com',
+        _id: faker.database.mongodbObjectId(),
+        email: faker.internet.email(),
         firstName: 'Test',
         lastName: 'User',
         role: 'user',
@@ -195,7 +195,7 @@ export const createMockData = {
         _id: 'post-id',
         title: 'Test Post',
         content: 'Test content',
-        author: 'user-id',
+        author: faker.database.mongodbObjectId(),
         likes: [],
         comments: [],
         ...overrides,
@@ -211,71 +211,57 @@ export const createMockData = {
 
     restaurant: (overrides = {}): MockRestaurant => ({
         _id: 'restaurant-id',
-        restaurantName: 'Test Restaurant',
-        author: 'author-id',
-        typePlace: 'restaurant',
+        name: 'Test Restaurant',
+        description: 'Test Restaurant Description',
         address: 'Test Address',
         location: { type: 'Point', coordinates: [0, 0] },
-        image: 'test-image.jpg',
-        budget: 'medium',
         contact: [],
-        cuisine: ['Test Cuisine'],
+        cuisine: 'Test Cuisine',
         reviews: [],
         rating: 4.5,
-        numReviews: 0,
-        timestamps: createTestTimestamp(),
+        isVerified: true,
         ...overrides,
     }),
 
-    doctor: (overrides = {}): MockDoctor => ({
+    doctor: (overrides = {}): MockBusiness => ({
         _id: 'doctor-id',
-        doctorName: 'Dr. Test',
-        author: 'author-id',
+        name: 'Dr. Test',
+        description: 'Test Doctor Description',
         address: 'Test Address',
         location: { type: 'Point', coordinates: [0, 0] },
-        image: 'test-doctor.jpg',
-        budget: 'medium',
         contact: [],
-        expertise: ['General Medicine'],
+        typeBusiness: 'doctor',
         reviews: [],
         rating: 4.5,
-        numReviews: 0,
-        timestamps: createTestTimestamp(),
+        isVerified: true,
         ...overrides,
     }),
 
     market: (overrides = {}): MockMarket => ({
         _id: 'market-id',
-        marketName: 'Test Market',
-        author: 'author-id',
+        name: 'Test Market',
+        description: 'Test Market Description',
         address: 'Test Market Address',
         location: { type: 'Point', coordinates: [0, 0] },
-        image: 'test-market.jpg',
-        typeMarket: 'supermarket',
         contact: [],
         reviews: [],
         rating: 4.0,
-        numReviews: 0,
-        timestamps: createTestTimestamp(),
+        isVerified: true,
         ...overrides,
     }),
 
     sanctuary: (overrides = {}): MockSanctuary => ({
         _id: 'sanctuary-id',
-        sanctuaryName: 'Test Sanctuary',
-        author: 'author-id',
+        name: 'Test Sanctuary',
+        description: 'Test Sanctuary Description',
         address: 'Test Sanctuary Address',
         location: { type: 'Point', coordinates: [0, 0] },
-        image: 'test-sanctuary.jpg',
-        typeofSanctuary: 'wildlife',
         animals: [],
-        capacity: 100,
-        caretakers: ['Test Caretaker'],
+        website: 'https://test-sanctuary.com',
         contact: [],
         reviews: [],
         rating: 4.8,
-        numReviews: 0,
-        timestamps: createTestTimestamp(),
+        isVerified: true,
         ...overrides,
     }),
 };
@@ -289,7 +275,7 @@ export const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve
  * Helper to assert that a mock was called with specific parameters
  */
 export const expectMockToHaveBeenCalledWith = <T extends unknown[]>(
-    mockFn: MockedFunction<(...args: T) => unknown>, 
+    mockFn: MockedFunction<(...args: T) => unknown>,
     ...expectedArgs: T
 ) => {
     expect(mockFn).toHaveBeenCalledWith(...expectedArgs);
@@ -386,13 +372,22 @@ export const createMockBusiness = (overrides = {}) => ({
     ...overrides,
 });
 
-export const createMockRestaurant = (overrides = {}) => ({
+export const createMockRestaurant = (overrides = {}): MockRestaurant => ({
     _id: faker.string.alphanumeric(24),
     name: faker.company.name(),
     description: faker.lorem.sentence(),
     address: faker.location.streetAddress(),
-            typeBusiness: 'restaurant',
-    phone: faker.phone.number(),
+    location: { type: 'Point', coordinates: [faker.location.longitude(), faker.location.latitude()] },
+    contact: [
+        {
+            phone: faker.phone.number(),
+            email: faker.internet.email(),
+        },
+    ],
+    cuisine: faker.helpers.arrayElement(['Italian', 'Asian', 'Mexican', 'Mediterranean', 'American']),
+    reviews: [],
+    rating: faker.number.float({ min: 1, max: 5 }),
+    isVerified: faker.datatype.boolean(),
     ...overrides,
 });
 
@@ -503,32 +498,46 @@ export const generateWeakPassword = () => faker.string.alphanumeric(3);
 
 /**
  * Create standard mock payload for token tests
+ * Uses deterministic data by default to prevent test failures
  */
-export const createMockTokenPayload = (overrides: Record<string, unknown> = {}) => ({
-    userId: 'user123',
-    email: 'test@example.com',
-    role: 'user',
-    ...overrides
-});
+export const createMockTokenPayload = (overrides: Record<string, unknown> = {}) => {
+    // Use deterministic data by default, but allow faker for specific cases
+    const useRandom = overrides.useRandom as boolean;
+    delete overrides.useRandom;
+
+    if (useRandom) {
+        return {
+            userId: faker.database.mongodbObjectId(),
+            email: faker.internet.email(),
+            role: 'user',
+            ...overrides,
+        };
+    }
+
+    return createDeterministicTestData.mockTokenPayload('user123', overrides);
+};
 
 /**
  * Create mock JWT setup for tests
  */
-export const setupJWTMocks = (mockJwt: jest.Mocked<typeof jwt>, options: { accessToken?: string; refreshToken?: string } = {}) => {
+export const setupJWTMocks = (
+    mockJwt: jest.Mocked<typeof jwt>,
+    options: { accessToken?: string; refreshToken?: string } = {}
+) => {
     const accessToken = options.accessToken || generateMockToken('access');
     const refreshToken = options.refreshToken || generateMockToken('refresh');
-    
-    mockJwt.sign
-        .mockReturnValueOnce(accessToken)
-        .mockReturnValueOnce(refreshToken);
-        
+
+    (mockJwt.sign as jest.Mock).mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
+
     return { accessToken, refreshToken };
 };
 
 /**
  * Create Redis mock setup for token tests
  */
-export const setupRedisMocks = (mockRedis: jest.Mocked<{ setex: jest.Mock; get: jest.Mock; del: jest.Mock; keys: jest.Mock; ttl: jest.Mock }>) => {
+export const setupRedisMocks = (
+    mockRedis: jest.Mocked<{ setex: jest.Mock; get: jest.Mock; del: jest.Mock; keys: jest.Mock; ttl: jest.Mock }>
+) => {
     mockRedis.setex.mockResolvedValue('OK');
     mockRedis.get.mockResolvedValue(null);
     mockRedis.del.mockResolvedValue(1);
@@ -539,38 +548,41 @@ export const setupRedisMocks = (mockRedis: jest.Mocked<{ setex: jest.Mock; get: 
 /**
  * Create JWT verification expectations
  */
-export const expectJWTVerification = (mockJwt: jest.Mocked<typeof jwt>, payload: Record<string, unknown>, tokenType: 'access' | 'refresh') => {
-    const secretKey = tokenType === 'access' ? 
-        (process.env.JWT_ACCESS_SECRET || testConfig.generateTestPassword()) : 
-        (process.env.JWT_REFRESH_SECRET || testConfig.generateTestPassword());
+export const expectJWTVerification = (
+    mockJwt: jest.Mocked<typeof jwt>,
+    payload: Record<string, unknown>,
+    tokenType: 'access' | 'refresh'
+) => {
+    const secretKey =
+        tokenType === 'access'
+            ? process.env.JWT_ACCESS_SECRET || testConfig.generators.securePassword()
+            : process.env.JWT_REFRESH_SECRET || testConfig.generators.securePassword();
     const expiresIn = tokenType === 'access' ? '15m' : '7d';
-    
-    expect(mockJwt.sign).toHaveBeenCalledWith(
-        payload,
-        secretKey,
-        {
-            expiresIn,
-            issuer: 'vegan-guide-api',
-            audience: 'vegan-guide-client',
-        }
-    );
+
+    expect(mockJwt.sign).toHaveBeenCalledWith(payload, secretKey, {
+        expiresIn,
+        issuer: 'vegan-guide-api',
+        audience: 'vegan-guide-client',
+    });
 };
 
 /**
  * Generate a mock token for testing
+ * Uses deterministic data by default to prevent test failures
  */
-export const generateMockToken = (type: 'access' | 'refresh' = 'access'): string => {
+export const generateMockToken = (type: 'access' | 'refresh' = 'access', userId: string = 'user123'): string => {
     const payload = {
-        userId: faker.string.uuid(),
+        userId,
         type,
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + (type === 'access' ? 900 : 604800), // 15 min or 7 days
     };
-    
-    const secret = type === 'access' ? 
-        (process.env.JWT_ACCESS_SECRET || testConfig.generateTestPassword()) : 
-        (process.env.JWT_REFRESH_SECRET || testConfig.generateTestPassword());
-    
+
+    const secret =
+        type === 'access'
+            ? process.env.JWT_ACCESS_SECRET || testConfig.generators.securePassword()
+            : process.env.JWT_REFRESH_SECRET || testConfig.generators.securePassword();
+
     return jwt.sign(payload, secret);
 };
 
@@ -583,8 +595,8 @@ export const generateExpiredToken = (): string => {
         iat: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
         exp: Math.floor(Date.now() / 1000) - 1800, // 30 minutes ago (expired)
     };
-    
-    const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || testConfig.generateTestPassword();
+
+    const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || testConfig.generators.securePassword();
     return jwt.sign(payload, secret);
 };
 
@@ -607,7 +619,12 @@ export const testTokenError = async (
 /**
  * Create Redis key expectation helper
  */
-export const expectRedisKeyOperation = (mockRedis: jest.Mocked<{ setex: jest.Mock; get: jest.Mock; del: jest.Mock; keys: jest.Mock; ttl: jest.Mock }>, operation: 'get' | 'del' | 'setex', key: string, value?: unknown) => {
+export const expectRedisKeyOperation = (
+    mockRedis: jest.Mocked<{ setex: jest.Mock; get: jest.Mock; del: jest.Mock; keys: jest.Mock; ttl: jest.Mock }>,
+    operation: 'get' | 'del' | 'setex',
+    key: string,
+    value?: unknown
+) => {
     if (operation === 'setex' && value !== undefined) {
         expect(mockRedis[operation]).toHaveBeenCalledWith(key, expect.any(Number), value);
     } else {
@@ -621,7 +638,7 @@ export const expectRedisKeyOperation = (mockRedis: jest.Mocked<{ setex: jest.Moc
 export const setupTestEnvironment = (envVars: Record<string, string>) => {
     const originalEnv = process.env;
     process.env = { ...originalEnv, ...envVars };
-    
+
     return () => {
         process.env = originalEnv;
     };
@@ -643,7 +660,7 @@ export const createBaseServiceMock = (mockData: Record<string, unknown>[] = []) 
                 return { _id: id, ...data };
             }
             async create(data: Record<string, unknown>) {
-                return { _id: 'new-id', ...data };
+                return { _id: faker.database.mongodbObjectId(), ...data };
             }
             async findById(id: string) {
                 return mockData.find(item => item._id === id) || null;
@@ -651,7 +668,7 @@ export const createBaseServiceMock = (mockData: Record<string, unknown>[] = []) 
             async deleteById(_id: string): Promise<void> {
                 // Mock delete operation
             }
-        }
+        },
     };
 };
 
@@ -674,19 +691,26 @@ export const setupServiceTest = (_serviceName: string) => {
             return result;
         },
 
-        testCreate: async (service: { create: (data: Record<string, unknown>) => Promise<{ _id: string }> }, testData: Record<string, unknown>) => {
+        testCreate: async (
+            service: { create: (data: Record<string, unknown>) => Promise<{ _id: string }> },
+            testData: Record<string, unknown>
+        ) => {
             const result = await service.create(testData);
             expect(result).toBeDefined();
             expect(result._id).toBeDefined();
             return result;
         },
 
-        testUpdate: async (service: { updateById: (id: string, data: Record<string, unknown>) => Promise<{ _id: string }> }, id: string, updateData: Record<string, unknown>) => {
+        testUpdate: async (
+            service: { updateById: (id: string, data: Record<string, unknown>) => Promise<{ _id: string }> },
+            id: string,
+            updateData: Record<string, unknown>
+        ) => {
             const result = await service.updateById(id, updateData);
             expect(result).toBeDefined();
             expect(result._id).toBe(id);
             return result;
-        }
+        },
     };
 };
 
@@ -703,22 +727,128 @@ export const createServiceTestData = (entityName: string, count: number = 2) => 
         numReviews: 0,
         reviews: [],
         contact: [],
-        timestamps: createTestTimestamp()
+        timestamps: createTestTimestamp(),
     }));
 };
 
 /**
  * Standard service test suite generator
  */
-export const createServiceTestSuite = (serviceName: string, ServiceClass: new() => { getAll: () => Promise<unknown[]> }, mockData: Record<string, unknown>[]) => {
+export const createServiceTestSuite = (
+    serviceName: string,
+    ServiceClass: new () => { getAll: () => Promise<unknown[]> },
+    mockData: Record<string, unknown>[]
+) => {
     return () => {
         const testUtils = setupServiceTest(serviceName);
-        
+
         return {
             'should delegate getAll to the model': async () => {
                 const service = new ServiceClass();
                 await testUtils.testGetAll(service, mockData.length);
-            }
+            },
         };
     };
+};
+
+// === DETERMINISTIC TEST DATA HELPERS ===
+
+/**
+ * Create deterministic test data that doesn't change between test runs
+ * Use these when you need predictable values for assertions
+ */
+export const createDeterministicTestData = {
+    user: (id: string = 'test-user-id', overrides: Partial<TestUser> = {}): TestUser => ({
+        _id: id,
+        role: 'user',
+        email: `test-${id}@example.com`,
+        ...overrides,
+    }),
+
+    adminUser: (id: string = 'test-admin-id', overrides: Partial<TestUser> = {}): TestUser => ({
+        _id: id,
+        role: 'admin',
+        email: `admin-${id}@example.com`,
+        ...overrides,
+    }),
+
+    professionalUser: (id: string = 'test-professional-id', overrides: Partial<TestUser> = {}): TestUser => ({
+        _id: id,
+        role: 'professional',
+        email: `professional-${id}@example.com`,
+        ...overrides,
+    }),
+
+    mockUser: (id: string = 'user123', overrides = {}) => ({
+        _id: id,
+        username: `testuser_${id}`,
+        email: `test-${id}@example.com`,
+        role: 'user',
+        photo: 'default.png',
+        isActive: true,
+        isDeleted: false,
+        ...overrides,
+    }),
+
+    mockTokenPayload: (userId: string = 'user123', overrides: Record<string, unknown> = {}) => ({
+        userId,
+        email: `test-${userId}@example.com`,
+        role: 'user',
+        ...overrides,
+    }),
+
+    mockRestaurant: (id: string = 'restaurant123', overrides = {}): MockRestaurant => ({
+        _id: id,
+        name: `Test Restaurant ${id}`,
+        description: 'Test Restaurant Description',
+        address: 'Test Address',
+        location: { type: 'Point', coordinates: [0, 0] },
+        contact: [
+            {
+                phone: '+1234567890',
+                email: `restaurant-${id}@example.com`,
+            },
+        ],
+        cuisine: 'Italian',
+        reviews: [],
+        rating: 4.5,
+        isVerified: true,
+        ...overrides,
+    }),
+
+    mockBusiness: (id: string = 'business123', overrides = {}): MockBusiness => ({
+        _id: id,
+        name: `Test Business ${id}`,
+        description: 'Test Business Description',
+        address: 'Test Address',
+        location: { type: 'Point', coordinates: [0, 0] },
+        contact: [
+            {
+                phone: '+1234567890',
+                email: `business-${id}@example.com`,
+            },
+        ],
+        typeBusiness: 'doctor',
+        reviews: [],
+        rating: 4.5,
+        isVerified: true,
+        ...overrides,
+    }),
+
+    tokens: {
+        access: 'mock-access-token',
+        refresh: 'mock-refresh-token',
+        expired: 'expired-token',
+        invalid: 'invalid-token',
+    },
+};
+
+// === SEED FAKER FOR PREDICTABLE TESTS ===
+
+/**
+ * Set up faker with a predictable seed for consistent test results
+ * Call this in beforeEach if you need consistent faker data
+ */
+export const setupPredictableFaker = (seed: number = 12345) => {
+    faker.seed(seed);
 };

@@ -1,6 +1,6 @@
 // Integration test setup - NO MOCKS for real integration testing
 import { faker } from '@faker-js/faker';
-import { testConfig } from '../config/testConfig';
+import testConfig from '../testConfig';
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
@@ -38,5 +38,5 @@ jest.unmock('jsonwebtoken');
 // Ensure bcrypt is available for integration tests
 const bcrypt = require('bcryptjs');
 if (!bcrypt || !bcrypt.hash) {
-  console.warn('bcrypt not properly loaded for integration tests');
+    console.warn('bcrypt not properly loaded for integration tests');
 }

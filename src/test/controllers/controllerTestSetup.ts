@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import { Request, Response, NextFunction } from 'express';
 
@@ -27,7 +28,7 @@ const mockAuthMiddleware = {
         req.user = { 
             _id: 'testUserId', 
             username: 'testUser',
-            email: 'test@example.com',
+            email: faker.internet.email(),
             role: 'user',
             isAdmin: false,
             isActive: true,

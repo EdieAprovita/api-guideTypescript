@@ -96,6 +96,12 @@ export const userSchemas = {
         username: createNameSchema(true),
         email: commonSchemas.email.required(),
         password: createPasswordSchema(),
+        // Backward compatibility fields - optional to prevent breaking existing clients
+        firstName: createNameSchema(false),
+        lastName: createNameSchema(false),
+        dateOfBirth: Joi.date().max('now').optional(),
+        phoneNumber: commonSchemas.phone.optional(),
+        location: createLocationSchema(false),
     }),
 
     login: Joi.object({
@@ -106,6 +112,9 @@ export const userSchemas = {
     updateProfile: Joi.object({
         firstName: createNameSchema(false),
         lastName: createNameSchema(false),
+        dateOfBirth: Joi.date().max('now').optional(),
+        phoneNumber: commonSchemas.phone.optional(),
+        location: createLocationSchema(false),
     }),
 };
 

@@ -165,3 +165,59 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/node,expressionengine
 
+### Project Specific ###
+# Backup files
+*.backup
+*.bak
+*.orig
+*.tmp
+
+# Debug files
+debug_*.js
+debug_*.mjs
+debug_*.ts
+*.debug.*
+
+# Test artifacts
+test-results/
+playwright-report/
+test-results.xml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Security files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Redis dump files
+dump.rdb
+*.rdb
+

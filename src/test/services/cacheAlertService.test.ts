@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { CacheAlertService, AlertConfig } from '../../services/CacheAlertService';
 import { cacheService } from '../../services/CacheService';
 import logger from '../../utils/logger';
@@ -495,7 +496,7 @@ describe('CacheAlertService', () => {
             const webhookConfig = {
                 ...defaultConfig,
                 webhookUrl: 'https://example.com/webhook',
-                emailRecipients: ['admin@example.com'],
+                emailRecipients: [faker.internet.email()],
                 slackChannel: '#alerts'
             };
 
@@ -515,7 +516,7 @@ describe('CacheAlertService', () => {
             await jest.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.info).toHaveBeenCalledWith('🔗 Webhook notification sent');
-            expect(mockedLogger.info).toHaveBeenCalledWith('📧 Email notification sent to admin@example.com');
+            expect(mockedLogger.info).toHaveBeenCalledWith('📧 Email notification sent to ${faker.internet.email()}');
             expect(mockedLogger.info).toHaveBeenCalledWith('💬 Slack notification sent to #alerts');
         });
     });
