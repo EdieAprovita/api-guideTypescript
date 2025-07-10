@@ -478,10 +478,11 @@ describe('CacheAlertService', () => {
 
     describe('Notification Methods', () => {
         it('should call notification methods when alert is created', async () => {
+            const testEmail = faker.internet.email();
             const webhookConfig = {
                 ...defaultConfig,
                 webhookUrl: 'https://example.com/webhook',
-                emailRecipients: [faker.internet.email()],
+                emailRecipients: [testEmail],
                 slackChannel: '#alerts',
             };
 
@@ -501,7 +502,7 @@ describe('CacheAlertService', () => {
             await jest.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.info).toHaveBeenCalledWith('🔗 Webhook notification sent');
-            expect(mockedLogger.info).toHaveBeenCalledWith('📧 Email notification sent to ${faker.internet.email()}');
+            expect(mockedLogger.info).toHaveBeenCalledWith(`📧 Email notification sent to ${testEmail}`);
             expect(mockedLogger.info).toHaveBeenCalledWith('💬 Slack notification sent to #alerts');
         });
     });

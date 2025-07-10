@@ -12,6 +12,7 @@ import { User } from '../../models/User';
 import TokenService from '../../services/TokenService';
 import testConfig from '../testConfig';
 import { generateExpiredToken } from '../utils/testHelpers';
+import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
 
 // Aumentar el timeout global para todos los tests de integración
 jest.setTimeout(45000);
@@ -209,7 +210,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         it('should validate password strength', async () => {
-            const userData = createUserData({ password: testConfig.passwords.weakPassword });
+            const userData = createUserData({ password: generateWeakPassword() });
 
             const response = await request(app).post('/api/v1/users/register').send(userData);
 
@@ -220,11 +221,11 @@ describe('Authentication Flow Integration Tests', () => {
 
     describe('POST /api/v1/users/login', () => {
         let testUser: TestUser;
-        const password = testConfig.passwords.validPassword;
+        const password = generateTestPassword();
 
         beforeEach(async () => {
             // Crear un usuario con una contraseña conocida para el test
-            const plainPassword = testConfig.generators.securePassword();
+            const plainPassword = generateTestPassword();
             const user = await createTestUser({
                 password: plainPassword,
             });
@@ -254,14 +255,14 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         it('should fail with invalid password', async () => {
-            const response = await makeLoginRequest(testUser.email, testConfig.passwords.wrongPassword);
+            const response = await makeLoginRequest(testUser.email, generateTestPassword());
 
             expectUnauthorizedResponse(response);
             expect(response.body.message).toContain('Invalid credentials');
         });
 
         it('should fail with non-existent email', async () => {
-            const response = await makeLoginRequest(faker.internet.email(), testConfig.passwords.validPassword);
+            const response = await makeLoginRequest(faker.internet.email(), generateTestPassword());
 
             expectUnauthorizedResponse(response);
             expect(response.body.message).toContain('Invalid credentials');
@@ -271,7 +272,7 @@ describe('Authentication Flow Integration Tests', () => {
             // Make multiple failed login attempts
             const promises = Array(15)
                 .fill(null)
-                .map(() => makeLoginRequest(testUser.email, testConfig.passwords.wrongPassword));
+                .map(() => makeLoginRequest(testUser.email, generateTestPassword()));
 
             const responses = await Promise.all(promises);
 

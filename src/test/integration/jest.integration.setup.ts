@@ -1,11 +1,11 @@
 // Integration test setup - NO MOCKS for real integration testing
 import { faker } from '@faker-js/faker';
-import testConfig from '../testConfig';
+import { generateTestPassword } from '../utils/passwordGenerator';
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = process.env.JWT_SECRET || testConfig.generateTestPassword();
-process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || testConfig.generateTestPassword();
+process.env.JWT_SECRET = process.env.JWT_SECRET || generateTestPassword();
+process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || generateTestPassword();
 process.env.JWT_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 process.env.BCRYPT_SALT_ROUNDS = '10';
@@ -16,7 +16,7 @@ process.env.REDIS_PORT = '';
 
 // Email configuration for tests (mock transporter will be used)
 process.env.EMAIL_USER = faker.internet.email();
-process.env.EMAIL_PASS = testConfig.generateTestPassword();
+process.env.EMAIL_PASS = generateTestPassword();
 process.env.CLIENT_URL = 'http://localhost:3000';
 
 // Increase timeout for integration tests

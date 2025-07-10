@@ -5,7 +5,7 @@ import { HttpError } from '../../types/Errors';
 import generateTokenAndSetCookie from '../../utils/generateToken';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import testConfig from '../testConfig';
+import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
 
 // Mock dependencies
 jest.mock('../../models/User');
@@ -24,9 +24,9 @@ const mockResponse = {
     end: jest.fn(),
 } as unknown as Response;
 
-// Test data using testConfig utilities
-const TEST_PASSWORD = testConfig.generateTestPassword();
-const WRONG_PASSWORD = testConfig.generateTestPassword();
+// Test data using centralized password generator
+const TEST_PASSWORD = generateTestPassword();
+const WRONG_PASSWORD = generateTestPassword();
 
 // Mock User model
 const mockUserModel = {

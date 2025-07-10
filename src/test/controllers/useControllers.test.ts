@@ -4,6 +4,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { createMockData } from '../utils/testHelpers';
 import { faker } from '@faker-js/faker';
+import { generateTestPassword } from '../utils/passwordGenerator';
 
 // Mock UserService específicamente para este test
 const mockUserService = {
@@ -57,7 +58,7 @@ beforeEach(() => {
 });
 
 // Generate test passwords using faker instead of hardcoded values
-const TEST_PASSWORD = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
+const TEST_PASSWORD = generateTestPassword();
 const TEST_EMAIL = faker.internet.email();
 
 describe('User Controllers', () => {

@@ -2,9 +2,10 @@
 // Tests the model validation logic without requiring actual Mongoose constructor
 
 import { faker } from '@faker-js/faker';
+import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
 
 // Generate a throwaway password for testing instead of using a hard-coded one
-const DUMMY_PASSWORD = faker.internet.password({ length: 12 });
+const DUMMY_PASSWORD = generateTestPassword();
 
 describe('User model email validation', () => {
     it('accepts a valid email', () => {
@@ -26,9 +27,9 @@ describe('User model email validation', () => {
     });
 
     it('validates password requirements', () => {
-        // Test password validation logic
-        const strongPassword = faker.internet.password({ length: 12, pattern: /[A-Za-z0-9!@#$%^&*]/ });
-        const weakPassword = faker.string.alphanumeric(3); // Generate a weak password dynamically
+        // Test password validation logic using centralized generators
+        const strongPassword = generateTestPassword();
+        const weakPassword = generateWeakPassword();
 
         // Basic password validation - at least 8 characters
         expect(strongPassword.length >= 8).toBe(true);

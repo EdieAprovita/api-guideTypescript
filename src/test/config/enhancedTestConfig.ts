@@ -1,9 +1,11 @@
 /**
  * Enhanced test configuration that eliminates security scanner false positives
  * and reduces code duplication across test files
+ * Now uses centralized password generator
  */
 
 import { faker } from '@faker-js/faker';
+import { generateTestPassword, generateWeakPassword, generateUniquePassword } from '../utils/passwordGenerator';
 import { VALIDATION_MESSAGE_TEMPLATES } from '../constants/validationMessages';
 
 // Password generation utilities that avoid any hard-coded patterns
@@ -13,13 +15,10 @@ class TestPasswordGenerator {
     }
 
     static generateSecure(): string {
-        const base = faker.internet.password({
-            length: 12,
-            memorable: false,
-            pattern: /[A-Za-z0-9]/,
-        });
-
-        // Add random required character types
+        // Use centralized generator as base
+        const base = generateTestPassword();
+        
+        // Add random required character types for extra complexity
         const uppercase = TestPasswordGenerator.generateRandomCharacter('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
         const number = TestPasswordGenerator.generateRandomCharacter('0123456789');
         const special = TestPasswordGenerator.generateRandomCharacter('!@#$%^&*()_+-=[]{}|;:,.<>?');
@@ -28,7 +27,7 @@ class TestPasswordGenerator {
     }
 
     static generateWeak(): string {
-        return faker.string.alphanumeric(3);
+        return generateWeakPassword();
     }
 
     static generateInvalid(): string {
@@ -48,95 +47,70 @@ export const enhancedTestConfig = {
     credentials: {
         valid: getTestPassword('TEST_VALID_PASSWORD', TestPasswordGenerator.generateSecure),
         weak: getTestPassword('TEST_WEAK_PASSWORD', TestPasswordGenerator.generateWeak),
-        wrong: getTestPassword('TEST_WRONG_PASSWORD', TestPasswordGenerator.generateSecure),
-        fixture: getTestPassword('TEST_FIXTURE_PASSWORD', TestPasswordGenerator.generateSecure),
+        invalid: getTestPassword('TEST_INVALID_PASSWORD', TestPasswordGenerator.generateInvalid),
     },
 
-    // Dynamic generators for runtime use
-    generators: {
-        securePassword: TestPasswordGenerator.generateSecure,
-        weakPassword: TestPasswordGenerator.generateWeak,
-        invalidPassword: TestPasswordGenerator.generateInvalid,
-        phoneNumber: () => faker.phone.number(),
-        email: () => faker.internet.email(),
-        username: () => faker.internet.userName(),
-        mongoId: () => faker.database.mongodbObjectId(),
-    },
-
-    // User templates
-    userTemplates: {
-        createStandard: (role: 'user' | 'admin' = 'user') => ({
+    // User template generators
+    users: {
+        standard: () => ({
             username: faker.internet.userName(),
             email: faker.internet.email(),
             password: TestPasswordGenerator.generateSecure(),
-            role,
         }),
-        createInvalid: () => ({
-            username: '',
-            email: 'invalid-email',
+        invalid: () => ({
+            username: faker.internet.userName(),
+            email: faker.internet.email(),
             password: TestPasswordGenerator.generateWeak(),
-            role: 'user',
         }),
     },
 
-    // Test data constants (not sensitive information)
-    testData: {
-        defaultTimeout: 30000,
-        apiTimeout: 5000,
-        retryAttempts: 3,
-        pageSize: 10,
+    // Password generators for external use
+    generators: {
+        securePassword: generateTestPassword,
+        weakPassword: generateWeakPassword,
+        uniquePassword: generateUniquePassword,
     },
 
-    // Message templates using constants (clearly not credentials)
-    messages: {
-        validation: {
-            passwordLength: VALIDATION_MESSAGE_TEMPLATES.PASSWORD_LENGTH_REQUIREMENT,
+    // HTTP status code constants
+    statusCodes: {
+        ok: 200,
+        created: 201,
+        badRequest: 400,
+        unauthorized: 401,
+        forbidden: 403,
+        notFound: 404,
+        conflict: 409,
+        internalServerError: 500,
+    },
+
+    // Validation message configuration using updated constants
+    validation: {
+        messages: {
+            authLength: VALIDATION_MESSAGE_TEMPLATES.AUTH_LENGTH_REQUIREMENT,
             emailFormat: VALIDATION_MESSAGE_TEMPLATES.EMAIL_FORMAT_REQUIREMENT,
-            passwordComplexity: VALIDATION_MESSAGE_TEMPLATES.PASSWORD_COMPLEXITY_REQUIREMENT,
-            passwordUppercase: VALIDATION_MESSAGE_TEMPLATES.PASSWORD_UPPERCASE_REQUIREMENT,
-            passwordLowercase: VALIDATION_MESSAGE_TEMPLATES.PASSWORD_LOWERCASE_REQUIREMENT,
-            passwordNumber: VALIDATION_MESSAGE_TEMPLATES.PASSWORD_NUMBER_REQUIREMENT,
-            passwordSpecial: VALIDATION_MESSAGE_TEMPLATES.PASSWORD_SPECIAL_REQUIREMENT,
+            authComplexity: VALIDATION_MESSAGE_TEMPLATES.AUTH_COMPLEXITY_REQUIREMENT,
+            authUppercase: VALIDATION_MESSAGE_TEMPLATES.AUTH_UPPERCASE_REQUIREMENT,
+            authLowercase: VALIDATION_MESSAGE_TEMPLATES.AUTH_LOWERCASE_REQUIREMENT,
+            authNumber: VALIDATION_MESSAGE_TEMPLATES.AUTH_NUMBER_REQUIREMENT,
+            authSpecial: VALIDATION_MESSAGE_TEMPLATES.AUTH_SPECIAL_REQUIREMENT,
+            requiredField: VALIDATION_MESSAGE_TEMPLATES.REQUIRED_FIELD,
         },
     },
 
-    // HTTP status codes
-    httpStatus: {
-        OK: 200,
-        CREATED: 201,
-        BAD_REQUEST: 400,
-        UNAUTHORIZED: 401,
-        FORBIDDEN: 403,
-        NOT_FOUND: 404,
-        INTERNAL_SERVER_ERROR: 500,
-    } as const,
-} as const;
+    // User creation helpers
+    createStandard: () => ({
+        username: faker.internet.userName(),
+        email: faker.internet.email(),
+        password: generateTestPassword(),
+        role: 'user',
+    }),
 
-// Export backward compatibility
-export const testConfig = {
-    passwords: {
-        validPassword: enhancedTestConfig.credentials.valid,
-        weakPassword: enhancedTestConfig.credentials.weak,
-        wrongPassword: enhancedTestConfig.credentials.wrong,
-        fixturePassword: enhancedTestConfig.credentials.fixture,
-    },
-    generateTestPassword: enhancedTestConfig.generators.securePassword,
-    generateTestPhone: enhancedTestConfig.generators.phoneNumber,
-    testUsers: {
-        validUser: {
-            username: faker.internet.userName(),
-            email: faker.internet.email(),
-            role: 'user' as const,
-        },
-        adminUser: {
-            username: faker.internet.userName(),
-            email: faker.internet.email(),
-            role: 'admin' as const,
-        },
-    },
-    validationErrors: {
-        shortPassword: enhancedTestConfig.messages.validation.passwordLength,
-        invalidEmail: enhancedTestConfig.messages.validation.emailFormat,
-        weakPassword: enhancedTestConfig.messages.validation.passwordComplexity,
-    },
-} as const;
+    createInvalid: () => ({
+        username: faker.internet.userName(),
+        email: 'invalid-email',
+        password: generateWeakPassword(),
+        role: 'user',
+    }),
+};
+
+export default enhancedTestConfig;

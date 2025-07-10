@@ -486,13 +486,20 @@ export const createValidationError = (field: string, message: string) => ({
 });
 
 // === PASSWORD HELPERS ===
-export const generateTestPassword = () =>
-    faker.internet.password({
-        length: 12,
-        pattern: /[A-Za-z0-9!@#$%^&*]/,
-    });
+// Import centralized password generators to eliminate duplication
+import {
+    generateTestPassword as generateCentralizedPassword,
+    generateWeakPassword as generateCentralizedWeakPassword,
+    generateUniquePassword,
+    generateDeterministicPassword,
+} from './passwordGenerator';
 
-export const generateWeakPassword = () => faker.string.alphanumeric(3);
+export const generateTestPassword = generateCentralizedPassword;
+export const generateWeakPassword = generateCentralizedWeakPassword;
+
+// Additional password helpers
+export const generateUniqueTestPassword = () => generateUniquePassword();
+export const generateDeterministicTestPassword = (seed: string) => generateDeterministicPassword(seed);
 
 // === TOKEN SERVICE TEST HELPERS ===
 

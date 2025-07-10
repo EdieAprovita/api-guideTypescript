@@ -3,7 +3,7 @@ import { User } from '../../../models/User';
 import { Restaurant } from '../../../models/Restaurant';
 import { Business } from '../../../models/Business';
 import TokenService from '../../../services/TokenService';
-import { testConfig } from '../../config/testConfig';
+import { generateTestPassword } from '../../utils/passwordGenerator';
 
 // Import bcrypt with fallback for mocked environments
 interface BcryptInterface {
@@ -36,7 +36,7 @@ interface UserOverrides {
 export const createTestUser = async (overrides: UserOverrides = {}) => {
   try {
     // Use a plain-text password from overrides or a default from testConfig
-    const plainPassword = overrides.password || testConfig.passwords.fixturePassword;
+    const plainPassword = overrides.password || generateTestPassword();
     
     if (!plainPassword) {
       throw new Error('No password provided for test user creation');

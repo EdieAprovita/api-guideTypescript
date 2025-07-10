@@ -300,7 +300,7 @@ describe('TokenService', () => {
 
             expect(mockJwt.sign).toHaveBeenCalledTimes(2);
             expect(mockRedis.setex).toHaveBeenCalledWith(
-                'refresh_token:user123',
+                `refresh_token:${payload.userId}`,
                 604800, // 7 days
                 'mock-token'
             );
@@ -429,7 +429,7 @@ describe('TokenService', () => {
 
             const result = await TokenService.refreshTokens('valid-refresh-token');
 
-            expect(mockRedis.del).toHaveBeenCalledWith('refresh_token:user123');
+            expect(mockRedis.del).toHaveBeenCalledWith(`refresh_token:${mockPayload.userId}`);
             expect(result).toEqual({
                 accessToken: 'mock-token',
                 refreshToken: 'mock-token'
@@ -439,9 +439,10 @@ describe('TokenService', () => {
 
     describe('revokeRefreshToken', () => {
         it('should revoke refresh token', async () => {
-            await TokenService.revokeRefreshToken(faker.database.mongodbObjectId());
+            const userId = faker.database.mongodbObjectId();
+            await TokenService.revokeRefreshToken(userId);
 
-            expect(mockRedis.del).toHaveBeenCalledWith('refresh_token:user123');
+            expect(mockRedis.del).toHaveBeenCalledWith(`refresh_token:${userId}`);
         });
     });
 
@@ -520,11 +521,12 @@ describe('TokenService', () => {
             mockRevokeRefreshToken.mockResolvedValue();
             mockRedis.setex.mockResolvedValue('OK');
 
-            await TokenService.revokeAllUserTokens(faker.database.mongodbObjectId());
+            const userId = faker.database.mongodbObjectId();
+            await TokenService.revokeAllUserTokens(userId);
 
-            expect(mockRevokeRefreshToken).toHaveBeenCalledWith(faker.database.mongodbObjectId());
+            expect(mockRevokeRefreshToken).toHaveBeenCalledWith(userId);
             expect(mockRedis.setex).toHaveBeenCalledWith(
-                'user_tokens:user123',
+                `user_tokens:${userId}`,
                 24 * 60 * 60,
                 'revoked'
             );
@@ -535,16 +537,18 @@ describe('TokenService', () => {
         it('should return true when user tokens are revoked', async () => {
             mockRedis.get.mockResolvedValue('revoked');
 
-            const result = await TokenService.isUserTokensRevoked(faker.database.mongodbObjectId());
+            const userId = faker.database.mongodbObjectId();
+            const result = await TokenService.isUserTokensRevoked(userId);
 
             expect(result).toBe(true);
-            expect(mockRedis.get).toHaveBeenCalledWith('user_tokens:user123');
+            expect(mockRedis.get).toHaveBeenCalledWith(`user_tokens:${userId}`);
         });
 
         it('should return false when user tokens are not revoked', async () => {
             mockRedis.get.mockResolvedValue(null);
 
-            const result = await TokenService.isUserTokensRevoked(faker.database.mongodbObjectId());
+            const userId = faker.database.mongodbObjectId();
+            const result = await TokenService.isUserTokensRevoked(userId);
 
             expect(result).toBe(false);
         });

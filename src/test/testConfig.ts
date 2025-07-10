@@ -1,10 +1,12 @@
-import { faker } from '@faker-js/faker';
-import { ERROR_MESSAGES } from './constants/validationMessages';
-
 /**
  * Centralized test configuration to avoid hardcoded values
  * All values are generated dynamically for security
+ * Now uses centralized password generator to eliminate duplication
  */
+
+import { faker } from '@faker-js/faker';
+import { generateTestPassword, generateWeakPassword } from './utils/passwordGenerator';
+import { ERROR_MESSAGES } from './constants/validationMessages';
 
 // Generate unique test session ID to avoid conflicts
 const TEST_SESSION_ID = faker.string.alphanumeric(8);
@@ -27,21 +29,7 @@ export const TEST_JWT_CONFIG = {
     audience: 'vegan-guide-client-test',
 };
 
-// Dynamic password generation for tests
-export const generateTestPassword = (): string => {
-    return (
-        process.env.TEST_USER_PASSWORD ||
-        faker.internet.password({
-            length: 12,
-            pattern: /[A-Za-z0-9!@#$%^&*]/,
-        })
-    );
-};
-
-export const generateWeakPassword = (): string => {
-    return faker.string.alphanumeric(3);
-};
-
+// Dynamic test data generators
 export const generateTestPhone = (): string => {
     return faker.phone.number();
 };
@@ -99,7 +87,7 @@ export const cleanupTestEnvironment = () => {
     });
 };
 
-// Export for backward compatibility
+// Export for backward compatibility - now using centralized generator
 export const TEST_PASSWORDS = {
     strong: generateTestPassword(),
     weak: generateWeakPassword(),
