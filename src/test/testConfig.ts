@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import { ERROR_MESSAGES } from './constants/validationMessages';
 
 /**
  * Centralized test configuration to avoid hardcoded values
@@ -132,15 +133,8 @@ export default {
         fixturePassword: generateTestPassword(),
     },
     messages: {
-        validation: {
-            passwordLength: 'Password must be at least 8 characters long',
-            emailFormat: 'Please provide a valid email address',
-            passwordComplexity:
-                'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
-            passwordUppercase: 'Password must contain at least one uppercase letter',
-            passwordLowercase: 'Password must contain at least one lowercase letter',
-            passwordNumber: 'Password must contain at least one number',
-            passwordSpecial: 'Password must contain at least one special character',
-        },
+        validation: ERROR_MESSAGES.VALIDATION,
+        auth: ERROR_MESSAGES.AUTH,
+        general: ERROR_MESSAGES.GENERAL,
     },
 };

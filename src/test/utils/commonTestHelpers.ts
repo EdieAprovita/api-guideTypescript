@@ -7,16 +7,9 @@ import { Request, Response, NextFunction } from 'express';
 import { faker } from '@faker-js/faker';
 
 // HTTP Status constants
-export const HTTP_STATUS = {
-    OK: 200,
-    CREATED: 201,
-    BAD_REQUEST: 400,
-    UNAUTHORIZED: 401,
-    FORBIDDEN: 403,
-    NOT_FOUND: 404,
-    CONFLICT: 409,
-    INTERNAL_SERVER_ERROR: 500,
-} as const;
+import { HTTP_STATUS_CODES } from '../constants/validationMessages';
+
+export const HTTP_STATUS = HTTP_STATUS_CODES;
 
 // Type definitions for test responses
 interface TestResponse {
@@ -170,15 +163,11 @@ export const teardownTestEnvironment = (): void => {
     process.env.NODE_ENV = 'development';
 };
 
-// Validation message constants (moved from individual test files)
-export const VALIDATION_MESSAGES = {
-    PASSWORD_LENGTH: 'Password must be at least 8 characters long',
-    EMAIL_FORMAT: 'Please enter a valid email address',
-    PASSWORD_COMPLEXITY:
-        'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
-    REQUIRED_FIELD: 'This field is required',
-    INVALID_ID: 'Invalid ID format',
-} as const;
+// Import centralized validation messages to avoid duplication
+import { ERROR_MESSAGES } from '../constants/validationMessages';
+
+// Re-export validation messages for backward compatibility
+export const VALIDATION_MESSAGES = ERROR_MESSAGES.VALIDATION;
 
 // Common test assertions
 export const expectResourceCreated = (response: TestResponse, expectedData: unknown): void => {
