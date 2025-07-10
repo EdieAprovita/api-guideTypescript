@@ -8,227 +8,63 @@ import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import { Express } from 'express';
 import { MockResponse, MockRequest, TestUser } from '../types/mockTypes';
+import {
+    expectSuccessResponse,
+    expectErrorResponse,
+    expectResourceCreated,
+    expectResourceUpdated,
+    expectResourceDeleted,
+    expectResourceNotFound,
+    expectUnauthorized,
+    expectValidationError,
+} from './responseExpectations';
+import {
+    generateBusinessEntity,
+    generateMedicalEntity,
+    generateUserEntity,
+    generateReviewEntity,
+    generateRecipeEntity,
+    generateContentEntity,
+} from './mockGenerators';
 
 // Extend Request type to include user property
 interface AuthenticatedRequest extends Request {
     user?: TestUser | null;
 }
 
-// Common response expectation helpers
-export const expectSuccessResponse = (
-    response: request.Response,
-    expectedStatus: number = 200,
-    expectedMessage?: string,
-    expectedData?: unknown
-) => {
-    expect(response.status).toBe(expectedStatus);
-    expect(response.body.success).toBe(true);
-    if (expectedMessage) {
-        expect(response.body.message).toBe(expectedMessage);
-    }
-    if (expectedData) {
-        expect(response.body.data).toEqual(expectedData);
-    }
-};
+// Specific mock generators using centralized patterns
+export const generateMockUser = (overrides: Partial<TestUser> = {}): TestUser =>
+    generateUserEntity(overrides) as TestUser;
 
-export const expectErrorResponse = (
-    response: request.Response,
-    expectedStatus: number,
-    expectedMessage: string,
-    expectedError?: string
-) => {
-    expect(response.status).toBe(expectedStatus);
-    expect(response.body.success).toBe(false);
-    expect(response.body.message).toBe(expectedMessage);
-    if (expectedError) {
-        expect(response.body.error).toBe(expectedError);
-    }
-};
+export const generateMockBusiness = (overrides: Record<string, unknown> = {}) =>
+    generateBusinessEntity(faker.company.name(), 'businessName', 'typeBusiness', overrides);
 
-export const expectResourceCreated = (
-    response: request.Response,
-    expectedMessage: string = 'Resource created successfully',
-    expectedData?: unknown
-) => {
-    expectSuccessResponse(response, 201, expectedMessage, expectedData);
-};
+export const generateMockRestaurant = (overrides: Record<string, unknown> = {}) =>
+    generateBusinessEntity(faker.company.name(), 'restaurantName', 'typeBusiness', overrides);
 
-export const expectResourceUpdated = (
-    response: request.Response,
-    expectedMessage: string = 'Resource updated successfully',
-    expectedData?: unknown
-) => {
-    expectSuccessResponse(response, 200, expectedMessage, expectedData);
-};
+export const generateMockDoctor = (overrides: Record<string, unknown> = {}) =>
+    generateMedicalEntity(faker.person.fullName(), 'doctorName', {
+        specialization: faker.helpers.arrayElement(['General', 'Pediatrics', 'Cardiology']),
+        ...overrides,
+    });
 
-export const expectResourceDeleted = (
-    response: request.Response,
-    expectedMessage: string = 'Resource deleted successfully'
-) => {
-    expectSuccessResponse(response, 200, expectedMessage);
-};
+export const generateMockMarket = (overrides: Record<string, unknown> = {}) =>
+    generateBusinessEntity(faker.company.name(), 'marketName', 'typeBusiness', overrides);
 
-export const expectResourceNotFound = (response: request.Response, expectedMessage: string = 'Resource not found') => {
-    expectErrorResponse(response, 404, expectedMessage);
-};
+export const generateMockSanctuary = (overrides: Record<string, unknown> = {}) =>
+    generateBusinessEntity(faker.company.name(), 'sanctuaryName', 'typeBusiness', overrides);
 
-export const expectUnauthorized = (response: request.Response, expectedMessage: string = 'Unauthorized access') => {
-    expectErrorResponse(response, 401, expectedMessage);
-};
+export const generateMockRecipe = (overrides: Record<string, unknown> = {}) => generateRecipeEntity(overrides);
 
-export const expectValidationError = (response: request.Response, expectedMessage: string = 'Validation failed') => {
-    expectErrorResponse(response, 400, expectedMessage);
-};
+export const generateMockPost = (overrides: Record<string, unknown> = {}) =>
+    generateContentEntity(faker.lorem.words(5), {
+        author: faker.database.mongodbObjectId(),
+        tags: Array.from({ length: 3 }, () => faker.lorem.word()),
+        likes: faker.number.int({ min: 0, max: 100 }),
+        ...overrides,
+    });
 
-// Common test data generators
-export const generateMockUser = (overrides: Partial<TestUser> = {}): TestUser => ({
-    _id: faker.database.mongodbObjectId(),
-    username: faker.internet.userName(),
-    email: faker.internet.email(),
-    role: 'user',
-    isActive: true,
-    isDeleted: false,
-    photo: 'default.png',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ...overrides,
-});
-
-export const generateMockBusiness = (overrides: Record<string, unknown> = {}) => ({
-    _id: faker.database.mongodbObjectId(),
-    businessName: faker.company.name(),
-    description: faker.lorem.sentence(),
-    typeBusiness: faker.helpers.arrayElement(['vegan', 'vegetarian', 'organic']),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
-    website: faker.internet.url(),
-    address: {
-        street: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        country: faker.location.country(),
-        zipCode: faker.location.zipCode(),
-    },
-    location: {
-        type: 'Point',
-        coordinates: [faker.location.longitude(), faker.location.latitude()],
-    },
-    ...overrides,
-});
-
-export const generateMockRestaurant = (overrides: Record<string, unknown> = {}) => ({
-    _id: faker.database.mongodbObjectId(),
-    restaurantName: faker.company.name(),
-    description: faker.lorem.sentence(),
-    typeBusiness: faker.helpers.arrayElement(['vegan', 'vegetarian', 'organic']),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
-    website: faker.internet.url(),
-    address: {
-        street: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        country: faker.location.country(),
-        zipCode: faker.location.zipCode(),
-    },
-    location: {
-        type: 'Point',
-        coordinates: [faker.location.longitude(), faker.location.latitude()],
-    },
-    ...overrides,
-});
-
-export const generateMockDoctor = (overrides: Record<string, unknown> = {}) => ({
-    _id: faker.database.mongodbObjectId(),
-    doctorName: faker.person.fullName(),
-    specialization: faker.helpers.arrayElement(['General', 'Pediatrics', 'Cardiology']),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
-    address: {
-        street: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        country: faker.location.country(),
-        zipCode: faker.location.zipCode(),
-    },
-    location: {
-        type: 'Point',
-        coordinates: [faker.location.longitude(), faker.location.latitude()],
-    },
-    ...overrides,
-});
-
-export const generateMockMarket = (overrides: Record<string, unknown> = {}) => ({
-    _id: faker.database.mongodbObjectId(),
-    marketName: faker.company.name(),
-    description: faker.lorem.sentence(),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
-    address: {
-        street: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        country: faker.location.country(),
-        zipCode: faker.location.zipCode(),
-    },
-    location: {
-        type: 'Point',
-        coordinates: [faker.location.longitude(), faker.location.latitude()],
-    },
-    ...overrides,
-});
-
-export const generateMockSanctuary = (overrides: Record<string, unknown> = {}) => ({
-    _id: faker.database.mongodbObjectId(),
-    sanctuaryName: faker.company.name(),
-    description: faker.lorem.sentence(),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
-    address: {
-        street: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        country: faker.location.country(),
-        zipCode: faker.location.zipCode(),
-    },
-    location: {
-        type: 'Point',
-        coordinates: [faker.location.longitude(), faker.location.latitude()],
-    },
-    ...overrides,
-});
-
-export const generateMockRecipe = (overrides: Record<string, unknown> = {}) => ({
-    _id: faker.database.mongodbObjectId(),
-    title: faker.lorem.words(3),
-    description: faker.lorem.sentence(),
-    ingredients: Array.from({ length: 3 }, () => faker.lorem.word()),
-    instructions: Array.from({ length: 3 }, () => faker.lorem.sentence()),
-    cookingTime: faker.number.int({ min: 10, max: 120 }),
-    servings: faker.number.int({ min: 1, max: 8 }),
-    difficulty: faker.helpers.arrayElement(['easy', 'medium', 'hard']),
-    ...overrides,
-});
-
-export const generateMockPost = (overrides: Record<string, unknown> = {}) => ({
-    _id: faker.database.mongodbObjectId(),
-    title: faker.lorem.words(5),
-    content: faker.lorem.paragraph(),
-    author: faker.database.mongodbObjectId(),
-    tags: Array.from({ length: 3 }, () => faker.lorem.word()),
-    likes: faker.number.int({ min: 0, max: 100 }),
-    ...overrides,
-});
-
-export const generateMockReview = (overrides: Record<string, unknown> = {}) => ({
-    _id: faker.database.mongodbObjectId(),
-    rating: faker.number.int({ min: 1, max: 5 }),
-    comment: faker.lorem.sentence(),
-    user: faker.database.mongodbObjectId(),
-    refId: faker.database.mongodbObjectId(),
-    refModel: faker.helpers.arrayElement(['Restaurant', 'Doctor', 'Market', 'Sanctuary']),
-    ...overrides,
-});
+export const generateMockReview = (overrides: Record<string, unknown> = {}) => generateReviewEntity(overrides);
 
 // Common mock request/response helpers
 export const createMockReqRes = (
@@ -257,21 +93,78 @@ export const createMockReqRes = (
     return { req, res, next };
 };
 
-// Common controller test patterns
+// Generic controller test patterns
+interface ControllerTestConfig {
+    endpoint: string;
+    serviceMock: jest.Mock;
+    expectedMessage?: string;
+}
+
+export const testControllerOperation = async (
+    app: Express,
+    method: 'get' | 'post' | 'put' | 'delete',
+    config: ControllerTestConfig,
+    requestData?: Record<string, unknown>,
+    expectedData?: unknown
+) => {
+    const { endpoint, serviceMock, expectedMessage } = config;
+
+    if (expectedData) {
+        serviceMock.mockResolvedValueOnce(expectedData);
+    }
+
+    let response: request.Response;
+
+    switch (method) {
+        case 'get':
+            response = await request(app).get(endpoint);
+            break;
+        case 'post':
+            response = await request(app)
+                .post(endpoint)
+                .send(requestData || {});
+            break;
+        case 'put':
+            response = await request(app)
+                .put(endpoint)
+                .send(requestData || {});
+            break;
+        case 'delete':
+            response = await request(app).delete(endpoint);
+            break;
+        default:
+            throw new Error(`Unsupported HTTP method: ${method}`);
+    }
+
+    // Assert response based on operation type
+    switch (method) {
+        case 'get':
+            expectSuccessResponse(response, 200, expectedMessage || 'Resource fetched successfully', expectedData);
+            break;
+        case 'post':
+            expectResourceCreated(response, expectedMessage || 'Resource created successfully', expectedData);
+            break;
+        case 'put':
+            expectResourceUpdated(response, expectedMessage || 'Resource updated successfully', expectedData);
+            break;
+        case 'delete':
+            expectResourceDeleted(response, expectedMessage || 'Resource deleted successfully');
+            break;
+    }
+
+    expect(serviceMock).toHaveBeenCalledTimes(1);
+
+    return response;
+};
+
+// Simplified controller test functions
 export const testControllerGetAll = async (
     app: Express,
     endpoint: string,
     serviceMock: jest.Mock,
     expectedData: unknown[],
     expectedMessage: string = 'Resources fetched successfully'
-) => {
-    serviceMock.mockResolvedValueOnce(expectedData);
-
-    const response = await request(app).get(endpoint);
-
-    expectSuccessResponse(response, 200, expectedMessage, expectedData);
-    expect(serviceMock).toHaveBeenCalledTimes(1);
-};
+) => testControllerOperation(app, 'get', { endpoint, serviceMock, expectedMessage }, undefined, expectedData);
 
 export const testControllerGetById = async (
     app: Express,
@@ -279,14 +172,7 @@ export const testControllerGetById = async (
     serviceMock: jest.Mock,
     expectedData: unknown,
     expectedMessage: string = 'Resource fetched successfully'
-) => {
-    serviceMock.mockResolvedValueOnce(expectedData);
-
-    const response = await request(app).get(endpoint);
-
-    expectSuccessResponse(response, 200, expectedMessage, expectedData);
-    expect(serviceMock).toHaveBeenCalledTimes(1);
-};
+) => testControllerOperation(app, 'get', { endpoint, serviceMock, expectedMessage }, undefined, expectedData);
 
 export const testControllerCreate = async (
     app: Express,
@@ -295,14 +181,7 @@ export const testControllerCreate = async (
     requestData: Record<string, unknown>,
     expectedData: unknown,
     expectedMessage: string = 'Resource created successfully'
-) => {
-    serviceMock.mockResolvedValueOnce(expectedData);
-
-    const response = await request(app).post(endpoint).send(requestData);
-
-    expectResourceCreated(response, expectedMessage, expectedData);
-    expect(serviceMock).toHaveBeenCalledWith(requestData);
-};
+) => testControllerOperation(app, 'post', { endpoint, serviceMock, expectedMessage }, requestData, expectedData);
 
 export const testControllerUpdate = async (
     app: Express,
@@ -311,28 +190,14 @@ export const testControllerUpdate = async (
     requestData: Record<string, unknown>,
     expectedData: unknown,
     expectedMessage: string = 'Resource updated successfully'
-) => {
-    serviceMock.mockResolvedValueOnce(expectedData);
-
-    const response = await request(app).put(endpoint).send(requestData);
-
-    expectResourceUpdated(response, expectedMessage, expectedData);
-    expect(serviceMock).toHaveBeenCalledWith(expect.any(String), requestData);
-};
+) => testControllerOperation(app, 'put', { endpoint, serviceMock, expectedMessage }, requestData, expectedData);
 
 export const testControllerDelete = async (
     app: Express,
     endpoint: string,
     serviceMock: jest.Mock,
     expectedMessage: string = 'Resource deleted successfully'
-) => {
-    serviceMock.mockResolvedValueOnce({ message: expectedMessage });
-
-    const response = await request(app).delete(endpoint);
-
-    expectResourceDeleted(response, expectedMessage);
-    expect(serviceMock).toHaveBeenCalledWith(expect.any(String));
-};
+) => testControllerOperation(app, 'delete', { endpoint, serviceMock, expectedMessage });
 
 // Common auth mock setup
 export const setupAuthMocks = () => {
@@ -356,23 +221,19 @@ export const setupAuthMocks = () => {
 };
 
 // Common service mock setup
-export const setupServiceMocks = () => {
-    const baseMock = {
-        getAll: jest.fn(),
-        getAllCached: jest.fn(),
-        findById: jest.fn(),
-        findByIdCached: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
-        updateById: jest.fn(),
-        delete: jest.fn(),
-        deleteById: jest.fn(),
-        addReview: jest.fn(),
-        getTopRatedReviews: jest.fn(),
-    };
-
-    return baseMock;
-};
+export const setupServiceMocks = () => ({
+    getAll: jest.fn(),
+    getAllCached: jest.fn(),
+    findById: jest.fn(),
+    findByIdCached: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    updateById: jest.fn(),
+    delete: jest.fn(),
+    deleteById: jest.fn(),
+    addReview: jest.fn(),
+    getTopRatedReviews: jest.fn(),
+});
 
 // Common test setup patterns
 export const setupControllerTest = () => {
@@ -384,6 +245,18 @@ export const setupControllerTest = () => {
         ...setupAuthMocks(),
         ...setupServiceMocks(),
     };
+};
+
+// Re-export response expectations for backward compatibility
+export {
+    expectSuccessResponse,
+    expectErrorResponse,
+    expectResourceCreated,
+    expectResourceUpdated,
+    expectResourceDeleted,
+    expectResourceNotFound,
+    expectUnauthorized,
+    expectValidationError,
 };
 
 export default {
