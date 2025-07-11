@@ -16,7 +16,7 @@
         "test": "jest --watchAll --coverage",
         "test:ci": "jest --coverage --watchAll=false --testLocationInResults --json --outputFile=coverage/test-reporter.json",
         "test:unit": "jest --testPathPatterns=unit",
-        "test:integration": "jest --testPathPatterns=integration",
+        "test:integration": "jest --config jest.config.integration.js",
         "test:isolated": "jest --config jest.config.isolated.js --watchAll=false",
         "test:isolated:watch": "jest --config jest.config.isolated.js --watchAll",
         "test:all": "npm run test:ci && npm run test:isolated",
