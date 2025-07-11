@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker';
 import { User } from '../../../models/User';
 import { Restaurant } from '../../../models/Restaurant';
 import { Business } from '../../../models/Business';
+import { logTestError } from './errorLogger';
 import TokenService from '../../../services/TokenService';
 import { generateTestPassword } from '../../utils/passwordGenerator';
 
@@ -59,8 +60,10 @@ export const createTestUser = async (overrides: UserOverrides = {}) => {
     const user = await User.create(userData);
     return user;
   } catch (error) {
-    console.error('Error creating test user:', error);
-    throw new Error(`Failed to create test user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logTestError('createTestUser', error);
+    throw new Error(
+      `Failed to create test user: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 };
 
@@ -110,7 +113,10 @@ interface RestaurantOverrides {
   reviews?: unknown[];
 }
 
-export const createTestRestaurant = async (authorId: string, overrides: RestaurantOverrides = {}) => {
+export const createTestRestaurant = async (
+  authorId: string,
+  overrides: RestaurantOverrides = {}
+) => {
   const restaurantData = {
     restaurantName: faker.company.name(),
     author: authorId,
@@ -139,8 +145,13 @@ export const createTestRestaurant = async (authorId: string, overrides: Restaura
     ...overrides
   };
 
-  const restaurant = await Restaurant.create(restaurantData);
-  return restaurant;
+  try {
+    const restaurant = await Restaurant.create(restaurantData);
+    return restaurant;
+  } catch (error) {
+    logTestError('createTestRestaurant', error);
+    throw error;
+  }
 };
 
 interface BusinessOverrides {
@@ -169,7 +180,10 @@ interface BusinessOverrides {
   reviews?: unknown[];
 }
 
-export const createTestBusiness = async (authorId: string, overrides: BusinessOverrides = {}) => {
+export const createTestBusiness = async (
+  authorId: string,
+  overrides: BusinessOverrides = {}
+) => {
   const businessData = {
     namePlace: faker.company.name(),
     author: authorId,
@@ -205,8 +219,13 @@ export const createTestBusiness = async (authorId: string, overrides: BusinessOv
     ...overrides
   };
 
-  const business = await Business.create(businessData);
-  return business;
+  try {
+    const business = await Business.create(businessData);
+    return business;
+  } catch (error) {
+    logTestError('createTestBusiness', error);
+    throw error;
+  }
 };
 
 export const generateLocationQuery = (lat?: number, lng?: number, radius?: number) => {

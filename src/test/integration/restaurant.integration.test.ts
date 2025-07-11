@@ -68,9 +68,9 @@ describe.skip('Restaurant API Integration Tests', () => {
 
         expect(response.status).toBe(201);
         expect(response.body.success).toBe(true);
-        expect(response.body.data.name).toBe(data.name);
+        expect(response.body.data.restaurantName).toBe(data.restaurantName);
 
-        const created = await Restaurant.findOne({ name: data.name });
+        const created = await Restaurant.findOne({ restaurantName: data.restaurantName });
         expect(created).not.toBeNull();
     });
 
