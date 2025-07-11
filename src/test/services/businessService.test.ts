@@ -14,7 +14,10 @@ describe("BusinessService", () => {
     const testUtils = setupServiceTest('BusinessService');
 
     it("delegates getAll to the model", async () => {
-        const result = await testUtils.testGetAll(businessService, 2);
+        const result = (await testUtils.testGetAll(
+            businessService,
+            2
+        )) as Array<{ _id: string; namePlace: string }>;
         expect(result[0].namePlace).toBe('Test Business 1');
     });
 });
