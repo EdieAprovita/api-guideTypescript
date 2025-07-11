@@ -36,7 +36,7 @@ export interface MockRestaurant {
 
 export interface MockBusiness {
     _id: string;
-    name: string;
+    namePlace: string;
     description: string;
     address: string;
     location: {
