@@ -20,14 +20,14 @@ describe.skip('Restaurant API Integration Tests', () => {
 
     beforeAll(async () => {
         await connectTestDB();
+    });
+
+    beforeEach(async () => {
+        await clearTestDB();
         const admin = await createAdminUser();
         adminId = admin._id.toString();
         const tokens = await generateAuthTokens(adminId, admin.email, admin.role);
         adminToken = tokens.accessToken;
-    });
-
-    afterEach(async () => {
-        await clearTestDB();
     });
 
     afterAll(async () => {
@@ -37,7 +37,14 @@ describe.skip('Restaurant API Integration Tests', () => {
     const generateRestaurantData = () => ({
         restaurantName: faker.company.name(),
         address: faker.location.streetAddress(),
-        phoneNumber: faker.phone.number(),
+        budget: '$$' as const,
+        contact: [
+            {
+                phone: faker.phone.number(),
+                facebook: faker.internet.url(),
+                instagram: `@${faker.internet.userName()}`,
+            },
+        ],
         location: {
             type: 'Point' as const,
             coordinates: [
@@ -46,7 +53,6 @@ describe.skip('Restaurant API Integration Tests', () => {
             ],
         },
         cuisine: ['Italian'],
-        priceRange: '$$' as const,
         reviews: [],
         rating: 0,
         numReviews: 0,
