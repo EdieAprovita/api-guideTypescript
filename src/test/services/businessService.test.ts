@@ -17,7 +17,7 @@ describe("BusinessService", () => {
         const result = (await testUtils.testGetAll(
             businessService,
             2
-        )) as Array<{ _id: string; namePlace: string }>;
+        )) as Array<BusinessData>;
         expect(result[0].namePlace).toBe('Test Business 1');
     });
 });
