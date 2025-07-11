@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { User } from '../../../models/User';
-import { Restaurant } from '../../../models/Restaurant';
+import { Restaurant, IRestaurant } from '../../../models/Restaurant';
 import { Business } from '../../../models/Business';
 import { logTestError } from './errorLogger';
 import TokenService from '../../../services/TokenService';
@@ -150,7 +150,9 @@ export const createTestRestaurant = async (
     return restaurant;
   } catch (error) {
     logTestError('createTestRestaurant', error);
-    throw error;
+    throw new Error(
+      `Failed to create test restaurant: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 };
 
@@ -224,7 +226,9 @@ export const createTestBusiness = async (
     return business;
   } catch (error) {
     logTestError('createTestBusiness', error);
-    throw error;
+    throw new Error(
+      `Failed to create test business: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 };
 
@@ -237,7 +241,7 @@ export const generateLocationQuery = (lat?: number, lng?: number, radius?: numbe
 };
 
 export const createMultipleRestaurants = async (authorId: string, count: number = 5) => {
-  const restaurants = [];
+  const restaurants: IRestaurant[] = [];
   
   for (let i = 0; i < count; i++) {
     const restaurant = await createTestRestaurant(authorId, {

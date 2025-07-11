@@ -1,9 +1,10 @@
 import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
+import { MockBusiness } from '../types';
 
 // Mock BaseService with shared utility
 const mockData = [
-    { _id: '1', namePlace: 'Test Business 1' },
-    { _id: '2', namePlace: 'Test Business 2' }
+    { _id: '1', name: 'Test Business 1' },
+    { _id: '2', name: 'Test Business 2' }
 ];
 
 jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
@@ -17,7 +18,7 @@ describe("BusinessService", () => {
         const result = (await testUtils.testGetAll(
             businessService,
             2
-        )) as Array<BusinessData>;
-        expect(result[0].namePlace).toBe('Test Business 1');
+        )) as Array<MockBusiness>;
+        expect(result[0].name).toBe('Test Business 1');
     });
 });

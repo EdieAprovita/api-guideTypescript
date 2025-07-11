@@ -48,15 +48,15 @@ describe.skip('Restaurant API Integration Tests', () => {
         location: {
             type: 'Point' as const,
             coordinates: [
-                parseFloat(faker.location.longitude()),
-                parseFloat(faker.location.latitude()),
+                faker.location.longitude(),
+                faker.location.latitude(),
             ],
         },
         cuisine: ['Italian'],
         reviews: [],
         rating: 0,
         numReviews: 0,
-        // Provide author explicitly since controller does not add it automatically
+        // Author is provided explicitly for test data consistency
         author: adminId,
     });
 
@@ -68,9 +68,6 @@ describe.skip('Restaurant API Integration Tests', () => {
             .set('Authorization', `Bearer ${adminToken}`)
             .send(data);
 
-        if (response.status !== 201) {
-            console.log('Create restaurant response:', response.body);
-        }
 
         expect(response.status).toBe(201);
         expect(response.body.success).toBe(true);
@@ -86,9 +83,6 @@ describe.skip('Restaurant API Integration Tests', () => {
 
         const response = await request(app).get('/api/v1/restaurants');
 
-        if (response.status !== 200) {
-            console.log('Get all restaurants response:', response.body);
-        }
 
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body.data)).toBe(true);
@@ -102,9 +96,6 @@ describe.skip('Restaurant API Integration Tests', () => {
             `/api/v1/restaurants/${restaurant._id}`
         );
 
-        if (response.status !== 200) {
-            console.log('Get restaurant by id response:', response.body);
-        }
 
         expect(response.status).toBe(200);
         expect(response.body.data._id.toString()).toBe(restaurant._id.toString());
