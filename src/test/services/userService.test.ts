@@ -30,11 +30,11 @@ const WRONG_PASSWORD = generateTestPassword();
 
 // Mock User model
 const mockUserModel = {
-    findOne: jest.fn(),
-    create: jest.fn(),
-    findById: jest.fn(),
-    findByIdAndDelete: jest.fn(),
-    find: jest.fn(),
+    findOne: jest.fn<Promise<IUser | null>, [Record<string, unknown>]>(),
+    create: jest.fn<Promise<IUser>, [Partial<IUser>]>(),
+    findById: jest.fn<Promise<IUser | null>, [string]>(),
+    findByIdAndDelete: jest.fn<Promise<IUser | null>, [string]>(),
+    find: jest.fn<Promise<IUser[]>, []>(),
 };
 
 // Apply mock to User
