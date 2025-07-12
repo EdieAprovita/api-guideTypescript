@@ -1,38 +1,13 @@
 import request from 'supertest';
 import { faker } from '@faker-js/faker';
 import app from '../../app';
-import {
-    connect as connectTestDB,
-    closeDatabase as disconnectTestDB,
-    clearDatabase as clearTestDB,
-} from './helpers/testDb';
-import {
-    createAdminUser,
-    createTestBusiness,
-    generateAuthTokens,
-} from './helpers/testFixtures';
+import { createTestBusiness } from './helpers/testFixtures';
 import { Business } from '../../models/Business';
+import { setupAdmin } from './helpers/testSetup';
 
 // Integration tests for Business endpoints (skipped pending environment setup)
 describe.skip('Business API Integration Tests', () => {
-    let adminId: string;
-    let adminToken: string;
-
-    beforeAll(async () => {
-        await connectTestDB();
-    });
-
-    beforeEach(async () => {
-        await clearTestDB();
-        const admin = await createAdminUser();
-        adminId = admin._id.toString();
-        const tokens = await generateAuthTokens(adminId, admin.email, admin.role);
-        adminToken = tokens.accessToken;
-    });
-
-    afterAll(async () => {
-        await disconnectTestDB();
-    });
+    const admin = setupAdmin();
 
     const generateBusinessData = () => ({
         namePlace: faker.company.name(),
@@ -52,7 +27,7 @@ describe.skip('Business API Integration Tests', () => {
             type: 'Point' as const,
             coordinates: [faker.location.longitude(), faker.location.latitude()],
         },
-        author: adminId,
+        author: admin.adminId,
     });
 
     it('should create a business', async () => {
@@ -60,7 +35,7 @@ describe.skip('Business API Integration Tests', () => {
 
         const response = await request(app)
             .post('/api/v1/businesses')
-            .set('Authorization', `Bearer ${adminToken}`)
+            .set('Authorization', `Bearer ${admin.adminToken}`)
             .send(data);
 
         expect(response.status).toBe(201);
@@ -72,8 +47,8 @@ describe.skip('Business API Integration Tests', () => {
     });
 
     it('should get all businesses', async () => {
-        await createTestBusiness(adminId);
-        await createTestBusiness(adminId);
+        await createTestBusiness(admin.adminId);
+        await createTestBusiness(admin.adminId);
 
         const response = await request(app).get('/api/v1/businesses');
 
@@ -83,7 +58,7 @@ describe.skip('Business API Integration Tests', () => {
     });
 
     it('should get a business by id', async () => {
-        const business = await createTestBusiness(adminId);
+        const business = await createTestBusiness(admin.adminId);
 
         const response = await request(app).get(
             `/api/v1/businesses/${business._id}`
@@ -94,11 +69,11 @@ describe.skip('Business API Integration Tests', () => {
     });
 
     it('should update a business', async () => {
-        const business = await createTestBusiness(adminId);
+        const business = await createTestBusiness(admin.adminId);
 
         const response = await request(app)
             .put(`/api/v1/businesses/${business._id}`)
-            .set('Authorization', `Bearer ${adminToken}`)
+            .set('Authorization', `Bearer ${admin.adminToken}`)
             .send({ namePlace: 'Updated Business' });
 
         expect(response.status).toBe(200);
@@ -106,11 +81,11 @@ describe.skip('Business API Integration Tests', () => {
     });
 
     it('should delete a business', async () => {
-        const business = await createTestBusiness(adminId);
+        const business = await createTestBusiness(admin.adminId);
 
         const response = await request(app)
             .delete(`/api/v1/businesses/${business._id}`)
-            .set('Authorization', `Bearer ${adminToken}`);
+            .set('Authorization', `Bearer ${admin.adminToken}`);
 
         expect(response.status).toBe(200);
         const found = await Business.findById(business._id);

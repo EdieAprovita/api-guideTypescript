@@ -2,46 +2,24 @@ import request from 'supertest';
 import app from '../../app';
 import { faker } from '@faker-js/faker';
 import {
-    connect as connectTestDB,
-    closeDatabase as disconnectTestDB,
-    clearDatabase as clearTestDB,
-} from './helpers/testDb';
-import {
     createTestUser,
-    createAdminUser,
     generateAuthTokens,
 } from './helpers/testFixtures';
+import { setupAdmin } from './helpers/testSetup';
 import { User } from '../../models/User';
 
 // Basic integration tests for user endpoints (skipped pending environment setup)
 
 describe.skip('User API Integration Tests', () => {
+    const admin = setupAdmin();
     let userId: string;
     let userToken: string;
-    let adminToken: string;
-
-    beforeAll(async () => {
-        await connectTestDB();
-    });
 
     beforeEach(async () => {
-        await clearTestDB();
         const user = await createTestUser();
         userId = user._id.toString();
         const tokens = await generateAuthTokens(userId, user.email, user.role);
         userToken = tokens.accessToken;
-
-        const admin = await createAdminUser();
-        const adminTokens = await generateAuthTokens(
-            admin._id.toString(),
-            admin.email,
-            admin.role
-        );
-        adminToken = adminTokens.accessToken;
-    });
-
-    afterAll(async () => {
-        await disconnectTestDB();
     });
 
     it('should get current user profile', async () => {
@@ -71,7 +49,7 @@ describe.skip('User API Integration Tests', () => {
     it('should get user by id as admin', async () => {
         const response = await request(app)
             .get(`/api/v1/users/${userId}`)
-            .set('Authorization', `Bearer ${adminToken}`);
+            .set('Authorization', `Bearer ${admin.adminToken}`);
 
         expect(response.status).toBe(200);
         expect(response.body._id || response.body.data._id).toBe(userId);
