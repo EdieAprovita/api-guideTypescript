@@ -7,6 +7,7 @@ module.exports = {
         '/node_modules/',
         '<rootDir>/src/test/middleware/',
         '<rootDir>/src/test/controllers/userControllers.test.ts',
+
     ],
     setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
     testTimeout: 20000,
