@@ -22,7 +22,7 @@ jobs:
         if: github.event.inputs.force_run == 'true'
         strategy:
             matrix:
-                node-version: [18.x] # Actualizado a versión moderna
+                node-version: [20.x]
         steps:
             - uses: actions/checkout@v4 # Actualizado a v4
             - name: Use Node.js ${{ matrix.node-version }}
