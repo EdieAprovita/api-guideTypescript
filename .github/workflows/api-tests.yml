@@ -38,7 +38,7 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Run tests
-        run: npm test
+        run: npm run test:ci
         env:
           NODE_ENV: test
           MONGODB_URI: mongodb://localhost:27017/vegan-city-guide-test
