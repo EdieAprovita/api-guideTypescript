@@ -3,11 +3,16 @@ import { faker } from '@faker-js/faker';
 import app from '../../app';
 import { createTestBusiness } from './helpers/testFixtures';
 import { Business } from '../../models/Business';
-import { setupAdmin } from './helpers/testSetup';
+import { setupTestDB, refreshAdmin, AdminAuth } from './helpers/testSetup';
 
 // Integration tests for Business endpoints (skipped pending environment setup)
 describe.skip('Business API Integration Tests', () => {
-    const admin = setupAdmin();
+    setupTestDB();
+    let admin: AdminAuth;
+
+    beforeEach(async () => {
+        admin = await refreshAdmin();
+    });
 
     const generateBusinessData = () => ({
         namePlace: faker.company.name(),

@@ -5,17 +5,19 @@ import {
     createTestUser,
     generateAuthTokens,
 } from './helpers/testFixtures';
-import { setupAdmin } from './helpers/testSetup';
+import { setupTestDB, refreshAdmin, AdminAuth } from './helpers/testSetup';
 import { User } from '../../models/User';
 
 // Basic integration tests for user endpoints (skipped pending environment setup)
 
 describe.skip('User API Integration Tests', () => {
-    const admin = setupAdmin();
+    setupTestDB();
+    let admin: AdminAuth;
     let userId: string;
     let userToken: string;
 
     beforeEach(async () => {
+        admin = await refreshAdmin();
         const user = await createTestUser();
         userId = user._id.toString();
         const tokens = await generateAuthTokens(userId, user.email, user.role);

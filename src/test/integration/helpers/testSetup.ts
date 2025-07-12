@@ -1,4 +1,8 @@
-import { connect as connectTestDB, closeDatabase as disconnectTestDB, clearDatabase as clearTestDB } from './testDb';
+import {
+    connect as connectTestDB,
+    closeDatabase as disconnectTestDB,
+    clearDatabase as clearTestDB,
+} from './testDb';
 import { createAdminUser, generateAuthTokens } from './testFixtures';
 
 export interface AdminAuth {
@@ -6,24 +10,22 @@ export interface AdminAuth {
     adminToken: string;
 }
 
-export const setupAdmin = (): AdminAuth => {
-    const auth: AdminAuth = { adminId: '', adminToken: '' };
-
+// Setup database connection hooks once per test suite
+export const setupTestDB = (): void => {
     beforeAll(async () => {
         await connectTestDB();
-    });
-
-    beforeEach(async () => {
-        await clearTestDB();
-        const admin = await createAdminUser();
-        auth.adminId = admin._id.toString();
-        const tokens = await generateAuthTokens(auth.adminId, admin.email, admin.role);
-        auth.adminToken = tokens.accessToken;
     });
 
     afterAll(async () => {
         await disconnectTestDB();
     });
+};
 
-    return auth;
+// Clear DB and create a fresh admin user/token for each test
+export const refreshAdmin = async (): Promise<AdminAuth> => {
+    await clearTestDB();
+    const admin = await createAdminUser();
+    const adminId = admin._id.toString();
+    const tokens = await generateAuthTokens(adminId, admin.email, admin.role);
+    return { adminId, adminToken: tokens.accessToken };
 };

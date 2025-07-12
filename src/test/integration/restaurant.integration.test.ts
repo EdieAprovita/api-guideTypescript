@@ -2,12 +2,17 @@ import request from 'supertest';
 import { faker } from '@faker-js/faker';
 import app from '../../app';
 import { createTestRestaurant } from './helpers/testFixtures';
-import { setupAdmin } from './helpers/testSetup';
+import { setupTestDB, refreshAdmin, AdminAuth } from './helpers/testSetup';
 import { Restaurant } from '../../models/Restaurant';
 
 // Integration skipped pending environment setup
 describe.skip('Restaurant API Integration Tests', () => {
-    const admin = setupAdmin();
+    setupTestDB();
+    let admin: AdminAuth;
+
+    beforeEach(async () => {
+        admin = await refreshAdmin();
+    });
 
     const generateRestaurantData = () => ({
         restaurantName: faker.company.name(),
