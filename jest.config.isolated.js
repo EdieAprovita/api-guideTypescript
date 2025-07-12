@@ -4,7 +4,7 @@ module.exports = {
     ...base,
     testMatch: [
         '**/middleware/**/*.test.ts',
-        '**/controllers/useControllers.test.ts',
+        '**/controllers/userControllers.test.ts',
     ],
     collectCoverageFrom: [
         'src/middleware/**/*.ts',
