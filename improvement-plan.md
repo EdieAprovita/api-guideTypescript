@@ -1,8 +1,8 @@
-# 🚀 VEGAN GUIDE - Plan de Mejoras Integral
+# 🚀 VEGAN GUIDE API - Plan de Mejoras Backend
 
 ## 📋 Resumen Ejecutivo
 
-Este plan de mejoras integral aborda las áreas críticas identificadas en el análisis exhaustivo del proyecto VEGAN GUIDE (API + Frontend). El plan está estructurado en 10 ramas específicas con tiempos estimados y tareas detalladas, priorizando seguridad, rendimiento, testing y experiencia de usuario.
+Este plan de mejoras se enfoca exclusivamente en el backend API del proyecto VEGAN GUIDE. El plan está estructurado en 6 ramas específicas con tiempos estimados y tareas detalladas, priorizando seguridad, rendimiento, testing, base de datos y observabilidad del API.
 
 **Puntuación Actual del Proyecto:** 9.2/10 *(actualizada - junio 2025)*  
 **Puntuación Objetivo:** 9.5/10
@@ -12,11 +12,11 @@ Este plan de mejoras integral aborda las áreas críticas identificadas en el an
 **✅ Fortalezas Identificadas:**
 
 - Arquitectura MVC sólida en el API con TypeScript
-- Frontend moderno con Next.js 15 y App Router
 - Documentación Swagger completa
 - Configuración Docker profesional
 - Patrones de servicios consistentes
-- Autenticación NextAuth.js implementada
+- Sistema de autenticación JWT robusto
+- Middleware de seguridad implementado
 
 **✅ Áreas Críticas RESUELTAS:**
 
@@ -31,15 +31,14 @@ Este plan de mejoras integral aborda las áreas críticas identificadas en el an
 - ✅ **Middleware de cache en todos los controllers**
 - ✅ **98.11% hit ratio conseguido**
 
-**❌ Áreas Pendientes de Mejora:**
+**❌ Áreas Pendientes de Mejora (Backend):**
 
 - Cobertura de testing insuficiente (API: 48%, objetivo: 90%)
-- Sin pipeline CI/CD automatizado
-- Componentes cliente/servidor inconsistentes
+- Sin pipeline CI/CD automatizado para API
 - Rendimiento de base de datos no optimizado
-- Sin monitoreo de performance completo
-- Frontend no optimizado (Core Web Vitals)
-- Manejo de errores básico
+- Sin monitoreo de performance completo del API
+- Manejo de errores básico en el servidor
+- Sistema de logging estructurado pendiente
 
 ---
 
@@ -48,15 +47,13 @@ Este plan de mejoras integral aborda las áreas críticas identificadas en el an
 | Rama                               | Prioridad   | Tiempo Estimado | Estado | Descripción Detallada                                                                                                                                                                                                                                                                                                                                                                                         | Componente      |
 | ---------------------------------- | ----------- | --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | **~~feature/input-validation~~**       | ✅ **COMPLETADO** | ~~3-4 días~~        | ✅ **DONE** | **~~Implementar validación completa de inputs~~**<br/>✅ Joi/Zod schemas en todos los endpoints<br/>✅ Middleware de validación centralizado<br/>✅ Validación de query, body y params<br/>✅ Sanitización XSS y NoSQL injection<br/>✅ Rate limiting específico por endpoint<br/>✅ Tests unitarios implementados                                       | API Backend     |
-| **~~feature/security-hardening~~**     | ✅ **COMPLETADO** | ~~4-5 días~~        | ✅ **DONE** | **~~Fortalecer seguridad integral~~**<br/>✅ Middleware admin corregido<br/>✅ JWT refresh tokens con blacklist<br/>✅ Verificación de ownership implementada<br/>✅ HTTPS enforcement y HSTS headers<br/>✅ Secrets management configurado<br/>✅ Auditoría de dependencias<br/>✅ CSP headers implementados             | API + Frontend  |
+| **~~feature/security-hardening~~**     | ✅ **COMPLETADO** | ~~4-5 días~~        | ✅ **DONE** | **~~Fortalecer seguridad integral~~**<br/>✅ Middleware admin corregido<br/>✅ JWT refresh tokens con blacklist<br/>✅ Verificación de ownership implementada<br/>✅ HTTPS enforcement y HSTS headers<br/>✅ Secrets management configurado<br/>✅ Auditoría de dependencias<br/>✅ CSP headers implementados             | API Backend     |
 | **~~feature/server-caching~~**         | ✅ **COMPLETADO** | ~~3-4 días~~        | ✅ **DONE** | **~~Implementar caché integral del servidor~~**<br/>✅ Redis integrado con 98.11% hit ratio<br/>✅ Cache-aside pattern implementado<br/>✅ Invalidación inteligente por tags/patterns<br/>✅ TTL específico por tipo de contenido<br/>✅ Cache warming automático funcionando<br/>✅ Sistema de alertas y métricas completo<br/>✅ Middleware automático en todos los controllers<br/>✅ Grade A+ en performance (0.12ms avg) | API Backend     |
-| **feature/comprehensive-testing**  | 🟡 High     | 5-6 días        | **Expandir cobertura de testing completa**<br/>• Tests de integración para todos los endpoints del API<br/>• Component testing del frontend con React Testing Library<br/>• Tests E2E con Playwright para flujos críticos<br/>• Mocks services mejorados y fixtures de datos<br/>• Coverage reports automatizados en CI/CD<br/>• Tests de rendimiento con Artillery<br/>• Tests de accesibilidad con axe-core | API + Frontend  |
-| **feature/cicd-pipeline**          | 🟡 High     | 2-3 días        | **Setup CI/CD completo con GitHub Actions**<br/>• Pipeline multi-stage (lint/test/build/deploy)<br/>• Pre-commit hooks con Husky y lint-staged<br/>• Lint/format automático con ESLint y Prettier<br/>• Deploy automático a staging/production<br/>• Rollback automático en caso de fallas<br/>• Notificaciones a Slack/Discord<br/>• Ambiente de preview para PRs                                            | Infraestructura |
+| **feature/api-testing**  | 🟡 High     | 4-5 días        | **Expandir cobertura de testing del API**<br/>• Tests de integración para todos los endpoints del API<br/>• Tests unitarios para servicios y middleware<br/>• Tests de carga y rendimiento con Artillery<br/>• Mocks services mejorados y fixtures de datos<br/>• Coverage reports automatizados en CI/CD<br/>• Tests de seguridad y validación<br/>• Smoke tests para health checks | API Backend  |
+| **feature/api-cicd-pipeline**          | 🟡 High     | 2-3 días        | **Setup CI/CD del API con GitHub Actions**<br/>• Pipeline para API (lint/test/build/deploy)<br/>• Pre-commit hooks con Husky y lint-staged<br/>• Lint/format automático con ESLint y Prettier<br/>• Deploy automático del API a staging/production<br/>• Rollback automático en caso de fallas<br/>• Health checks post-deploy<br/>• Docker image building automatizado                                            | API Backend |
 | **feature/database-optimization**  | 🟠 Medium   | 3-4 días        | **Optimizar rendimiento de base de datos**<br/>• Crear índices compuestos para queries complejas de geolocalización<br/>• Implementar query profiling y optimización<br/>• Mejorar connection pooling de MongoDB<br/>• Sistema de migraciones con migrate-mongo<br/>• Database monitoring con MongoDB Compass<br/>• Implementar database seeding mejorado<br/>• Optimizar agregaciones de geolocalización     | API Backend     |
-| **feature/frontend-optimization**  | 🟠 Medium   | 4-5 días        | **Optimizar rendimiento del frontend**<br/>• Image optimization con Next.js Image<br/>• Code splitting avanzado con dynamic imports<br/>• Service Worker para caching offline<br/>• Bundle analysis y tree shaking optimization<br/>• Performance budgets con Lighthouse CI<br/>• Lazy loading para componentes pesados<br/>• Optimización de Web Vitals (LCP, FID, CLS)                                      | Frontend        |
-| **feature/error-handling**         | 🟠 Medium   | 2-3 días        | **Mejorar manejo de errores integral**<br/>• Error boundaries en React para captura de errores<br/>• Logging estructurado con Winston en el API<br/>• Centralizar error responses con códigos HTTP consistentes<br/>• Integración con Sentry para error tracking<br/>• User-friendly error messages en frontend<br/>• Fallback UI components para errores<br/>• Error analytics y alertas                     | API + Frontend  |
-| **feature/performance-monitoring** | 🟠 Medium   | 3-4 días        | **Implementar monitoreo y observabilidad**<br/>• APM con New Relic o DataDog<br/>• Health check endpoints completos<br/>• Métricas de Prometheus para API y frontend<br/>• Performance budgets automatizados<br/>• Sistema de alertas con umbrales configurable<br/>• Dashboard de métricas en tiempo real<br/>• Log aggregation con ELK stack                                                                | Infraestructura |
-| **feature/accessibility-ux**       | 🔵 Low      | 3-4 días        | **Mejorar accesibilidad y UX**<br/>• ARIA labels completos en toda la aplicación<br/>• Keyboard navigation y focus management<br/>• Screen reader support y semantic HTML<br/>• Color contrast compliance WCAG 2.1<br/>• Responsive design improvements<br/>• Loading states y skeleton screens<br/>• Optimización de formularios con React Hook Form                                                         | Frontend        |
+| **feature/api-error-handling**         | 🟠 Medium   | 2-3 días        | **Mejorar manejo de errores del API**<br/>• Logging estructurado con Winston en el API<br/>• Centralizar error responses con códigos HTTP consistentes<br/>• Integración con Sentry para error tracking del API<br/>• Error classification y recovery mechanisms<br/>• Structured error responses<br/>• Error analytics y alertas del servidor<br/>• Request/Response logging completo                     | API Backend  |
+| **feature/api-monitoring** | 🟠 Medium   | 3-4 días        | **Implementar monitoreo y observabilidad del API**<br/>• APM con New Relic o DataDog para el API<br/>• Health check endpoints completos<br/>• Métricas de Prometheus para API<br/>• Performance budgets automatizados<br/>• Sistema de alertas con umbrales configurable<br/>• Dashboard de métricas en tiempo real<br/>• Log aggregation con ELK stack para API                                                                | API Backend |
 
 ---
 
@@ -72,33 +69,18 @@ Este plan de mejoras integral aborda las áreas críticas identificadas en el an
 
 ### **🚀 Fase 2 - Alto Impacto (PRÓXIMA FASE)**
 
-**Duración:** 2-3 semanas | **Objetivo:** Testing, CI/CD y optimización
+**Duración:** 2-3 semanas | **Objetivo:** Testing, CI/CD y optimización del API
 
-1. **feature/comprehensive-testing** (4-5 días) - **PRÓXIMO PASO**
-2. **feature/cicd-pipeline** (2-3 días) - **AUTOMATIZACIÓN**
+1. **feature/api-testing** (4-5 días) - **PRÓXIMO PASO**
+2. **feature/api-cicd-pipeline** (2-3 días) - **AUTOMATIZACIÓN**
 3. **feature/database-optimization** (3-4 días) - **RENDIMIENTO**
 
-### **Fase 2 - Alto Impacto (Semana 4-6)**
+### **Fase 3 - Observabilidad y Robustez (Semana 4-5)**
 
-**Duración:** 2-3 semanas | **Objetivo:** Alta calidad de código y automatización
+**Duración:** 1-2 semanas | **Objetivo:** Monitoreo y manejo de errores
 
-4. **feature/comprehensive-testing** (5-6 días) - **PRÓXIMO**
-5. **feature/cicd-pipeline** (2-3 días)
-6. **feature/database-optimization** (3-4 días)
-
-### **Fase 3 - Optimización (Semana 5-6)**
-
-**Duración:** 2 semanas | **Objetivo:** Rendimiento y experiencia de usuario
-
-7. **feature/frontend-optimization** (4-5 días)
-8. **feature/error-handling** (2-3 días)
-9. **feature/performance-monitoring** (3-4 días)
-
-### **Fase 4 - Pulimiento (Semana 7)**
-
-**Duración:** 1 semana | **Objetivo:** Accesibilidad y detalles finales
-
-10. **feature/accessibility-ux** (3-4 días)
+4. **feature/api-error-handling** (2-3 días)
+5. **feature/api-monitoring** (3-4 días)
 
 ---
 
@@ -111,10 +93,10 @@ Este plan de mejoras integral aborda las áreas críticas identificadas en el an
 | input-validation       | 60% cobertura               | ✅ **100% endpoints**   | ✅ Completado           | Tests + Swagger docs    |
 | security-hardening     | 2 vulnerabilidades críticas | ✅ **0 vulnerabilidades** | ✅ Completado         | npm audit + OWASP       |
 | server-caching         | 0ms cache hit               | ✅ **0.12ms avg (A+)**  | ✅ Completado           | Redis metrics           |
-| comprehensive-testing  | 75.8% API, 66% Frontend     | ❌ **48% API actual**   | 90% en ambos            | Jest + Coverage         |
-| database-optimization  | N/A índices compuestos      | 50% mejora queries      | MongoDB Profiler        |
-| frontend-optimization  | LCP >3s                     | LCP <1.5s               | Lighthouse CI           |
-| performance-monitoring | Sin APM                     | 99.9% uptime visibility | New Relic/DataDog       |
+| api-testing  | API: 48% actual     | ❌ **48% API actual**   | 90% cobertura API            | Jest + Coverage         |
+| database-optimization  | N/A índices compuestos      | ❌ **Sin optimizar**    | 50% mejora queries      | MongoDB Profiler        |
+| api-error-handling  | Error handling básico                     | ❌ **Sin estructurar**   | Logging estructurado               | Winston + Sentry           |
+| api-monitoring | Sin APM                     | ❌ **Sin monitoreo**    | 99.9% uptime visibility | New Relic/DataDog       |
 
 ### **Métricas de Negocio**
 
@@ -146,12 +128,11 @@ npm run test:coverage  # Ver cobertura de tests
 npm run validate       # Ejecutar validaciones existentes
 npm run db:check       # Verificar estado de BD
 
-# 6. Frontend - instalar dependencias de testing
-cd ../vegan-guide-platform
-npm install --save-dev @testing-library/react @testing-library/jest-dom playwright
+# 6. Para logging y monitoring del API
+npm install winston prom-client @sentry/node
 
-# 7. Para optimización frontend
-npm install @next/bundle-analyzer next-seo
+# 7. Para migraciones de base de datos
+npm install migrate-mongo
 ```
 
 ### **Scripts de Desarrollo Útiles**
@@ -248,116 +229,93 @@ npm run test:performance
 
 ---
 
-### **🚀 PRÓXIMO: 4. feature/comprehensive-testing** (5-6 días) - **CRÍTICO**
+### **🚀 PRÓXIMO: 4. feature/api-testing** (4-5 días) - **ALTA PRIORIDAD**
 
-#### **✅ Objetivo CONSEGUIDO:** Seguridad robusta en toda la aplicación
-
-**✅ Archivos implementados:**
-
-- ✅ `src/middleware/authMiddleware.ts` - Mejorado
-- ✅ `src/services/TokenService.ts` - Implementado
-- ✅ `src/middleware/security.ts` - Implementado
-- ✅ Headers de seguridad configurados
-
-**✅ Criterios de aceptación CONSEGUIDOS:**
-
-- ✅ 0 vulnerabilidades críticas
-- ✅ JWT blacklist funcionando
-- ✅ Rate limiting por usuario/IP
-- ✅ Headers de seguridad implementados
-
----
-
-
-### **🚀 PRÓXIMO: 4. feature/comprehensive-testing** (5-6 días) - **ALTA PRIORIDAD**
-
-#### **Objetivo:** Cobertura de testing completa y robusta
+#### **Objetivo:** Cobertura de testing completa del API
 
 **Archivos a crear/modificar:**
 
 - `tests/integration/` (directorio completo)
-- `tests/e2e/` (directorio con Playwright)
+- `tests/unit/` (expandir tests unitarios)
+- `tests/load/` (tests de carga)
 - `jest.config.js` (mejorar configuración)
-- `.github/workflows/tests.yml`
+- `.github/workflows/api-tests.yml`
 
 **Tareas específicas:**
 
 **Día 1:** Setup testing infrastructure
 
-- Configurar Jest para API
-- Setup React Testing Library para frontend
-- Configurar Playwright para E2E
+- Configurar Jest avanzado para API
+- Setup test database y fixtures
+- Configurar mocks y stubs
 
 **Día 2-3:** API Integration tests
 
-- Tests para todos los endpoints
+- Tests para todos los endpoints del API
 - Tests de autenticación y autorización
-- Tests de geolocalización
+- Tests de geolocalización y búsquedas
+- Tests de cache Redis
 
-**Día 4:** Frontend component tests
+**Día 4:** Unit tests y performance
 
-- Tests para componentes críticos
-- Tests de formularios y validación
-- Tests de navegación
-
-**Día 5:** E2E tests críticos
-
-- Flujo de registro y login
-- Búsqueda y filtros de lugares
-- Proceso de review y rating
-
-**Día 6:** Performance y accessibility tests
-
+- Tests unitarios para servicios
+- Tests para middleware y validators
 - Tests de rendimiento con Artillery
-- Tests de accesibilidad con axe
-- Visual regression tests
+
+**Día 5:** Security y edge cases
+
+- Tests de seguridad y validación
+- Tests de rate limiting
+- Tests de error handling
 
 **Criterios de aceptación:**
 
 - ✅ 90% cobertura en API
-- ✅ 85% cobertura en Frontend
-- ✅ E2E tests para flujos críticos
+- ✅ Tests de integración completos
+- ✅ Tests de carga implementados
 - ✅ Tests ejecutan en CI/CD
 
 ---
 
-### **5. feature/cicd-pipeline** (2-3 días)
+### **5. feature/api-cicd-pipeline** (2-3 días)
 
-#### **Objetivo:** Automatización completa del desarrollo
+#### **Objetivo:** Automatización completa del desarrollo del API
 
 **Archivos a crear:**
 
-- `.github/workflows/ci.yml`
-- `.github/workflows/deploy.yml`
+- `.github/workflows/api-ci.yml`
+- `.github/workflows/api-deploy.yml`
 - `.husky/` (directorio con hooks)
-- `scripts/deploy.sh`
+- `scripts/api-deploy.sh`
+- `Dockerfile.prod`
 
 **Tareas específicas:**
 
-**Día 1:** CI Pipeline
+**Día 1:** CI Pipeline del API
 
-- Lint, test, build automation
-- Parallel jobs para API y Frontend
-- Artifact generation
+- Lint, test, build automation para API
+- Docker image building
+- Security scanning con npm audit
 
 **Día 2:** Pre-commit hooks y quality gates
 
 - Husky setup con lint-staged
 - Commit message validation
-- Code quality checks
+- Code quality checks específicos del API
 
 **Día 3:** CD Pipeline y deployment
 
-- Staging environment setup
+- Staging environment setup para API
 - Production deployment automation
+- Health checks post-deploy
 - Rollback mechanisms
 
 **Criterios de aceptación:**
 
 - ✅ Pipeline ejecuta en <5 minutos
-- ✅ Deploy automático a staging
+- ✅ Deploy automático del API a staging
 - ✅ Rollback en <2 minutos
-- ✅ Notificaciones funcionando
+- ✅ Health checks funcionando
 
 ---
 
@@ -458,134 +416,93 @@ npm run test:performance
 
 ---
 
-### **8. feature/error-handling** (2-3 días)
+### **7. feature/api-error-handling** (2-3 días)
 
-#### **Objetivo:** Manejo de errores robusto y user-friendly
+#### **Objetivo:** Manejo de errores robusto del API
 
 **Archivos a crear/modificar:**
 
 - `src/middleware/errorHandler.ts`
-- `src/components/ErrorBoundary.tsx`
 - `src/utils/logger.ts`
-- `src/hooks/useErrorHandler.ts`
+- `src/utils/errorClassifier.ts`
+- `src/services/ErrorReportingService.ts`
 
 **Tareas específicas:**
 
-**Día 1:** API error handling
+**Día 1:** API error handling middleware
 
 - Centralized error handling middleware
 - Structured logging with Winston
 - Error classification system
 
-**Día 2:** Frontend error boundaries
+**Día 2:** Logging y structured responses
 
-- React Error Boundaries
-- User-friendly error messages
+- Request/Response logging
+- Structured error responses
 - Error recovery mechanisms
 
 **Día 3:** Monitoring y analytics
 
-- Sentry integration
-- Error analytics dashboard
+- Sentry integration para API
+- Error analytics y métricas
 - Alert system setup
 
 **Criterios de aceptación:**
 
-- ✅ Errores clasificados y loggeados
-- ✅ UI nunca crashea completamente
+- ✅ Errores del API clasificados y loggeados
+- ✅ Structured error responses
 - ✅ Errores enviados a Sentry
 - ✅ Alertas automáticas configuradas
 
 ---
 
-### **9. feature/performance-monitoring** (3-4 días)
+### **8. feature/api-monitoring** (3-4 días)
 
-#### **Objetivo:** Observabilidad completa del sistema
+#### **Objetivo:** Observabilidad completa del API
 
 **Archivos a crear:**
 
 - `src/middleware/metrics.ts`
 - `src/routes/health.ts`
+- `src/routes/metrics.ts`
 - `monitoring/prometheus.yml`
 - `monitoring/grafana-dashboard.json`
 
 **Tareas específicas:**
 
-**Día 1:** Metrics collection
+**Día 1:** Metrics collection del API
 
-- Prometheus metrics setup
+- Prometheus metrics setup para API
 - Custom application metrics
-- Performance counters
+- Performance counters del servidor
 
 **Día 2:** Health checks y alerting
 
 - Comprehensive health endpoints
-- Uptime monitoring
+- API uptime monitoring
 - Alert rules configuration
 
 **Día 3:** APM integration
 
-- New Relic o DataDog setup
+- New Relic o DataDog setup para API
 - Application performance insights
 - Database performance monitoring
 
 **Día 4:** Dashboards y reporting
 
-- Grafana dashboards
-- Performance reports
-- SLA monitoring
+- Grafana dashboards para API
+- Performance reports del servidor
+- SLA monitoring del API
 
 **Criterios de aceptación:**
 
-- ✅ 99.9% uptime visibility
+- ✅ 99.9% uptime visibility del API
 - ✅ Alertas en <5 minutos
 - ✅ Performance trends tracked
-- ✅ Business metrics monitored
+- ✅ API metrics monitored
 
 ---
 
-### **10. feature/accessibility-ux** (3-4 días)
-
-#### **Objetivo:** Accesibilidad y experiencia de usuario excelente
-
-**Archivos a modificar:**
-
-- `src/components/ui/` (todos los componentes)
-- `src/styles/globals.css`
-- `src/hooks/useA11y.ts` (crear)
-
-**Tareas específicas:**
-
-**Día 1:** ARIA y semántica
-
-- ARIA labels en componentes
-- Semantic HTML improvements
-- Screen reader optimization
-
-**Día 2:** Keyboard navigation
-
-- Focus management
-- Keyboard shortcuts
-- Tab order optimization
-
-**Día 3:** Visual accessibility
-
-- Color contrast compliance
-- Text scaling support
-- High contrast mode
-
-**Día 4:** UX improvements
-
-- Loading states
-- Skeleton screens
-- Error state improvements
-
-**Criterios de aceptación:**
-
-- ✅ WCAG 2.1 AA compliance
-- ✅ Lighthouse accessibility >95
-- ✅ Keyboard navigation completa
-- ✅ Screen reader compatible
 
 ---
 
@@ -608,12 +525,12 @@ npm install redis ioredis @types/redis
 # Añadir redis service a docker-compose.yml
 ```
 
-#### **🧪 SIGUIENTE: feature/comprehensive-testing (4-5 días)**
+#### **🧪 SIGUIENTE: feature/api-testing (4-5 días)**
 
 ```bash
 # Mejorar cobertura de 48% a 90%
 npm run test:coverage
-npm install --save-dev supertest artillery @testing-library/react
+npm install --save-dev supertest artillery
 ```
 
 ### **Para cada rama:**
@@ -676,12 +593,12 @@ npm install --save-dev supertest artillery @testing-library/react
 
 **❌ Métricas PENDIENTES:**
 
-- 📊 **Test Coverage**: 48% → necesita 90% *(CRÍTICO)*
-- 💾 **Cache Hit Ratio**: Sin implementar → >80% *(CRÍTICO)*
-- ⚡ **Response Time**: Sin medir → <400ms promedio
+- 📊 **Test Coverage API**: 48% → necesita 90% *(CRÍTICO)*
+- ✅ **Cache Hit Ratio**: 98.11% conseguido *(COMPLETADO)*
+- ⚡ **Response Time**: 0.12ms promedio conseguido *(COMPLETADO)*
 - 📈 **Uptime**: Sin monitoring → 99.9%
-- 🚀 **Core Web Vitals**: Sin medir → todos en verde
-- 🔄 **CI/CD**: Sin implementar → automatización completa
+- 🔄 **CI/CD API**: Sin implementar → automatización completa
+- 📝 **Logging**: Sin estructurar → Winston + Sentry
 
 **Beneficios de Negocio:**
 
@@ -980,11 +897,11 @@ El enfoque por fases ha demostrado ser efectivo, completando los elementos más 
 
 ### **🚀 Próximos Pasos INMEDIATOS:**
 
-1. **EMPEZAR CON feature/comprehensive-testing** (48% → 90%)
-2. **Implementar CI/CD** pipeline automatizado
+1. **EMPEZAR CON feature/api-testing** (48% → 90%)
+2. **Implementar CI/CD del API** pipeline automatizado
 3. **Optimizar base de datos** (índices compuestos)
-4. **Frontend optimization** (Core Web Vitals)
-5. **Error handling** avanzado
+4. **API error handling** avanzado
+5. **API monitoring** y observabilidad
 
 ### **Beneficios Esperados:**
 
@@ -1059,19 +976,29 @@ DELETE /api/v1/cache/flush        # Limpiar todo
 
 ## 🚀 **PLAN PARA MAÑANA**
 
-### **Prioridad 1: feature/comprehensive-testing**
-**Objetivo**: Subir cobertura de 48% → 90%
-**Duración**: 5-6 días
-**Impacto**: Quality assurance y confidence
+### **Prioridad 1: feature/api-testing**
+**Objetivo**: Subir cobertura API de 48% → 90%
+**Duración**: 4-5 días
+**Impacto**: Quality assurance y confidence del API
 
-### **Prioridad 2: feature/cicd-pipeline**  
-**Objetivo**: Automatización completa
+### **Prioridad 2: feature/api-cicd-pipeline**  
+**Objetivo**: Automatización completa del API
 **Duración**: 2-3 días
-**Impacto**: Development velocity
+**Impacto**: Development velocity del backend
 
 ### **Prioridad 3: feature/database-optimization**
 **Objetivo**: Índices y queries optimizadas
 **Duración**: 3-4 días  
 **Impacto**: Performance base mejorado
+
+### **Prioridad 4: feature/api-error-handling**
+**Objetivo**: Logging estructurado y error handling
+**Duración**: 2-3 días
+**Impacto**: Robustez y debugging del API
+
+### **Prioridad 5: feature/api-monitoring**
+**Objetivo**: Observabilidad completa del API
+**Duración**: 3-4 días
+**Impacto**: Monitoreo y alertas 24/7
 
 El sistema de cache implementado es **production-ready** y proporciona una base sólida para las siguientes optimizaciones.

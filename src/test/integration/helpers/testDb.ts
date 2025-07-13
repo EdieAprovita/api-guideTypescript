@@ -61,3 +61,13 @@ export const createTestConnection = async (): Promise<typeof mongoose> => {
   await connect();
   return mongoose;
 };
+
+/**
+ * Setup test database - alias for connect
+ */
+export const setupTestDb = connect;
+
+/**
+ * Teardown test database - alias for closeDatabase
+ */
+export const teardownTestDb = closeDatabase;
