@@ -166,16 +166,21 @@ export const restaurantSchemas = {
 // Review validation schemas
 export const reviewSchemas = {
     create: Joi.object({
-        businessId: commonSchemas.objectId.required(),
         rating: Joi.number().integer().min(1).max(5).required(),
-        comment: Joi.string().trim().min(10).max(1000).required(),
-        images: Joi.array().items(commonSchemas.url).max(5).optional(),
+        title: Joi.string().trim().min(5).max(100).required(),
+        content: Joi.string().trim().min(10).max(1000).required(),
+        visitDate: Joi.date().max('now').optional(),
+        recommendedDishes: Joi.array().items(Joi.string().trim().max(50)).optional(),
+        tags: Joi.array().items(Joi.string().trim().max(30)).optional(),
     }),
 
     update: Joi.object({
         rating: Joi.number().integer().min(1).max(5).optional(),
-        comment: Joi.string().trim().min(10).max(1000).optional(),
-        images: Joi.array().items(commonSchemas.url).max(5).optional(),
+        title: Joi.string().trim().min(5).max(100).optional(),
+        content: Joi.string().trim().min(10).max(1000).optional(),
+        visitDate: Joi.date().max('now').optional(),
+        recommendedDishes: Joi.array().items(Joi.string().trim().max(50)).optional(),
+        tags: Joi.array().items(Joi.string().trim().max(30)).optional(),
     }),
 };
 
@@ -211,5 +216,9 @@ export const paramSchemas = {
 
     userId: Joi.object({
         userId: commonSchemas.objectId.required(),
+    }),
+
+    restaurantId: Joi.object({
+        restaurantId: commonSchemas.objectId.required(),
     }),
 };

@@ -147,10 +147,7 @@ class TestTokenService {
             }
         } catch (error) {
             // Token might be malformed, but we still want to attempt blacklisting
-            console.warn(
-                'Error decoding token for blacklist:',
-                error instanceof Error ? error.message : 'Unknown error'
-            );
+            // Silenced for tests to avoid console noise
             const blacklistKey = `blacklist:${token}`;
             await this.redis.setex(blacklistKey, 3600, 'revoked'); // 1 hour default
         }
@@ -259,9 +256,9 @@ describe('TokenService', () => {
 
     // Helper function to setup common mock expectations
     const setupMockToken = (mockPayload: Record<string, unknown> = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() }) => {
-        mockJwt.sign.mockReturnValue('mock-token');
-        mockJwt.verify.mockReturnValue(mockPayload);
-        mockJwt.decode.mockReturnValue(mockPayload);
+        (mockJwt.sign as jest.Mock).mockReturnValue('mock-token');
+        (mockJwt.verify as jest.Mock).mockReturnValue(mockPayload);
+        (mockJwt.decode as jest.Mock).mockReturnValue(mockPayload);
         return mockPayload;
     };
 

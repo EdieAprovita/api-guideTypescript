@@ -19,6 +19,8 @@ export interface IUser extends Document {
     isDeleted: boolean;
     email: string;
     photo: string;
+    firstName?: string;
+    lastName?: string;
     timestamps: {
         createdAt: Date;
         updatedAt: Date;
@@ -75,6 +77,16 @@ const userSchema = new Schema<IUser>(
         photo: {
             type: String,
             default: 'https://res.cloudinary.com/dzqbzqgjm/image/upload/v1599098981/default-user_qjqjqz.png',
+        },
+        firstName: {
+            type: String,
+            trim: true,
+            maxlength: 50,
+        },
+        lastName: {
+            type: String,
+            trim: true,
+            maxlength: 50,
         },
     },
     { timestamps: true }
