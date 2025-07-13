@@ -24,7 +24,7 @@ Este directorio contiene los workflows de GitHub Actions optimizados para el pro
 4. **Versiones Actualizadas**
 
     - Todas las acciones actualizadas a `@v4`
-    - Node.js unificado en versión `18.x`
+    - Node.js unificado en versión `20.x`
     - Eliminadas versiones obsoletas (14.x, 16.x)
 
 5. **Auditoría de Seguridad Optimizada**
