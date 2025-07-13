@@ -1,5 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
+import { 
+    MockRestaurant, 
+    MockBusiness, 
+    MockMarket, 
+    MockSanctuary,
+    MockServiceMethods,
+    MockRestaurantService,
+    MockBusinessService,
+    MockMarketService,
+    MockSanctuaryService
+} from './types/baseTypes';
 
 // Tipos específicos para testing
 export interface TestUser {
@@ -8,110 +19,18 @@ export interface TestUser {
     email?: string;
 }
 
-// Mock data types that avoid Mongoose Document interface requirements
-export interface MockRestaurant {
-    _id: string;
-    name: string;
-    description: string;
-    address: string;
-    location: {
-        type: string;
-        coordinates: [number, number];
-    };
-    contact: {
-        phone?: string;
-        email?: string;
-        website?: string;
-    }[];
-    cuisine: string;
-    reviews: {
-        _id: string;
-        rating: number;
-        comment: string;
-        username: string;
-    }[];
-    rating: number;
-    isVerified: boolean;
-}
-
-export interface MockBusiness {
-    _id: string;
-    namePlace: string;
-    description: string;
-    address: string;
-    location: {
-        type: string;
-        coordinates: [number, number];
-    };
-    contact: {
-        phone?: string;
-        email?: string;
-        website?: string;
-    }[];
-    typeBusiness: string;
-    reviews: {
-        _id: string;
-        rating: number;
-        comment: string;
-        username: string;
-    }[];
-    rating: number;
-    isVerified: boolean;
-}
-
-export interface MockMarket {
-    _id: string;
-    name: string;
-    description: string;
-    address: string;
-    location: {
-        type: string;
-        coordinates: [number, number];
-    };
-    contact: {
-        phone?: string;
-        email?: string;
-        website?: string;
-    }[];
-    reviews: {
-        _id: string;
-        rating: number;
-        comment: string;
-        username: string;
-    }[];
-    rating: number;
-    isVerified: boolean;
-}
-
-export interface MockSanctuary {
-    _id: string;
-    name: string;
-    description: string;
-    address: string;
-    location: {
-        type: string;
-        coordinates: [number, number];
-    };
-    animals: {
-        type: string;
-        count: number;
-        description?: string;
-    }[];
-    website: string;
-    contact: {
-        phone?: string;
-        email?: string;
-        website?: string;
-    }[];
-    reviews: {
-        _id: string;
-        rating: number;
-        comment: string;
-        username: string;
-    }[];
-    rating: number;
-    isVerified: boolean;
-}
+// Re-export base types
+export {
+    MockRestaurant,
+    MockBusiness,
+    MockMarket,
+    MockSanctuary,
+    MockServiceMethods,
+    MockRestaurantService,
+    MockBusinessService,
+    MockMarketService,
+    MockSanctuaryService
+};
 
 export interface MockUser {
     _id: string;
@@ -157,24 +76,6 @@ export interface MockPost {
     };
 }
 
-// Service mock interfaces
-export interface MockServiceMethods<T> {
-    getAll: jest.MockedFunction<() => Promise<T[]>>;
-    getAllCached: jest.MockedFunction<() => Promise<T[]>>;
-    findById: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    findByIdCached: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    create: jest.MockedFunction<(data: Partial<T>) => Promise<T>>;
-    createCached: jest.MockedFunction<(data: Partial<T>) => Promise<T>>;
-    updateById: jest.MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
-    updateByIdCached: jest.MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
-    deleteById: jest.MockedFunction<(id: string) => Promise<void>>;
-}
-
-export interface MockRestaurantService extends MockServiceMethods<MockRestaurant> {}
-export interface MockDoctorService extends MockServiceMethods<MockBusiness> {}
-export interface MockMarketService extends MockServiceMethods<MockMarket> {}
-export interface MockSanctuaryService extends MockServiceMethods<MockSanctuary> {}
-
 export interface MockReviewService {
     getTopRatedReviews: jest.MockedFunction<() => Promise<MockReview[]>>;
     addReview: jest.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
@@ -198,16 +99,13 @@ export interface AuthMock {
     checkOwnership: jest.MockedFunction<() => TestMiddleware>;
     logout: jest.MockedFunction<TestController>;
     refreshToken: jest.MockedFunction<TestController>;
-    revokeAllTokens: jest.MockedFunction<TestController>;
 }
 
-// Type guards para validación de tipos
+// Type guards
 export const isValidMockRestaurant = (obj: unknown): obj is MockRestaurant => {
-    return typeof obj === 'object' && obj !== null && 
-           '_id' in obj && 'name' in obj && 'location' in obj;
+    return obj !== null && typeof obj === 'object' && '_id' in obj && 'name' in obj;
 };
 
 export const isValidMockUser = (obj: unknown): obj is MockUser => {
-    return typeof obj === 'object' && obj !== null && 
-           '_id' in obj && 'username' in obj && 'email' in obj;
+    return obj !== null && typeof obj === 'object' && '_id' in obj && 'username' in obj;
 };

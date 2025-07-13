@@ -30,6 +30,7 @@ import postRoutes from './routes/postRoutes';
 import sanctuaryRoutes from './routes/sanctuaryRoutes';
 import authRoutes from './routes/authRoutes';
 import cacheRoutes from './routes/cacheRoutes';
+import reviewRoutes from './routes/reviewRoutes';
 import swaggerUi, { JsonObject } from 'swagger-ui-express';
 import fs from 'fs';
 import yaml from 'js-yaml';
@@ -83,6 +84,7 @@ app.use('/api/v1/professionalProfile', professionProfileRoutes);
 app.use('/api/v1/professions', professionRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/sanctuaries', sanctuaryRoutes);
+app.use('/api/v1/reviews', reviewRoutes);
 
 // Cache administration routes
 app.use('/api/v1/cache', cacheRoutes);

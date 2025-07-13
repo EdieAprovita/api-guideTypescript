@@ -22,7 +22,7 @@ describe("ReviewService", () => {
 
   it("aggregates top rated reviews", async () => {
     (Review as jest.Mocked<typeof Review>).aggregate = jest.fn().mockResolvedValue([ { _id: "a" } ]);
-    const result = await reviewService.getTopRatedReviews("Doctor");
+    const result = await reviewService.getTopRatedReviews("restaurant");
     expect(Review.aggregate).toHaveBeenCalled();
     expect(result).toEqual([{ _id: "a" }]);
   });

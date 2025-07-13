@@ -135,7 +135,7 @@ const setupUserAndTokens = async (isAdmin = false): Promise<{ user: TestUser; to
     }
 };
 
-// Temporarily skip integration tests pending environment setup
+// Integration skipped pending environment setup
 describe.skip('Authentication Flow Integration Tests', () => {
     beforeAll(async () => {
         // Clear any mocks to ensure real implementations are used

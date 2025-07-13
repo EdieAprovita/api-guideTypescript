@@ -292,12 +292,24 @@ describe('Review Controllers', () => {
         };
 
         it('should successfully update a review', async () => {
+            const userId = '507f1f77bcf86cd799439014';
+            const reviewMock = {
+                _id: '507f1f77bcf86cd799439011',
+                author: userId, // Match the user ID
+                rating: 3,
+                comment: 'Original comment'
+            };
+
             mockRequest.params = { id: '507f1f77bcf86cd799439011' };
             mockRequest.body = mockUpdateData;
+            (mockRequest as any).user = { _id: userId };
+            
+            mockReviewService.getReviewById.mockResolvedValue(reviewMock as unknown as IReview);
             mockReviewService.updateReview.mockResolvedValue(mockUpdatedReview as IReview);
 
             await updateReview(mockRequest as Request, mockResponse as Response, mockNext);
 
+            expect(mockReviewService.getReviewById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
             expect(mockReviewService.updateReview).toHaveBeenCalledWith('507f1f77bcf86cd799439011', mockUpdateData);
             expect(mockResponse.status).toHaveBeenCalledWith(200);
             expect(mockResponse.json).toHaveBeenCalledWith({ success: true, data: mockUpdatedReview });
@@ -320,10 +332,15 @@ describe('Review Controllers', () => {
         });
 
         it('should handle service errors during update', async () => {
+            const userId = '507f1f77bcf86cd799439014';
+            const serviceError = new Error('Review not found');
+            
             mockRequest.params = { id: '507f1f77bcf86cd799439011' };
             mockRequest.body = mockUpdateData;
-            const serviceError = new Error('Review not found');
-            mockReviewService.updateReview.mockRejectedValue(serviceError);
+            (mockRequest as any).user = { _id: userId };
+            
+            // Mock getReviewById to throw the error (this happens first)
+            mockReviewService.getReviewById.mockRejectedValue(serviceError);
 
             await updateReview(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -331,9 +348,21 @@ describe('Review Controllers', () => {
         });
 
         it('should handle unknown errors during update', async () => {
+            const userId = '507f1f77bcf86cd799439014';
+            const reviewMock = {
+                _id: '507f1f77bcf86cd799439011',
+                author: userId, // Match the user ID
+                rating: 3,
+                comment: 'Original comment'
+            };
+            const unknownError = new Error('Unknown error');
+            
             mockRequest.params = { id: '507f1f77bcf86cd799439011' };
             mockRequest.body = mockUpdateData;
-            const unknownError = new Error('Unknown error');
+            (mockRequest as any).user = { _id: userId };
+            
+            // getReviewById succeeds, but updateReview fails
+            mockReviewService.getReviewById.mockResolvedValue(reviewMock as unknown as IReview);
             mockReviewService.updateReview.mockRejectedValue(unknownError);
 
             await updateReview(mockRequest as Request, mockResponse as Response, mockNext);
@@ -344,18 +373,30 @@ describe('Review Controllers', () => {
 
     describe('deleteReview', () => {
         it('should successfully delete a review', async () => {
-            mockRequest.params = { reviewId: '507f1f77bcf86cd799439011' };
+            const userId = '507f1f77bcf86cd799439014';
+            const reviewMock = {
+                _id: '507f1f77bcf86cd799439011',
+                author: userId, // Match the user ID
+                rating: 3,
+                comment: 'Original comment'
+            };
+
+            mockRequest.params = { id: '507f1f77bcf86cd799439011' }; // Changed from reviewId to id
+            (mockRequest as any).user = { _id: userId };
+            
+            mockReviewService.getReviewById.mockResolvedValue(reviewMock as unknown as IReview);
             mockReviewService.deleteReview.mockResolvedValue(undefined);
 
             await deleteReview(mockRequest as Request, mockResponse as Response, mockNext);
 
+            expect(mockReviewService.getReviewById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
             expect(mockReviewService.deleteReview).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
             expect(mockResponse.status).toHaveBeenCalledWith(200);
             expect(mockResponse.json).toHaveBeenCalledWith({ success: true, message: 'Review deleted successfully' });
             expect(mockNext).not.toHaveBeenCalled();
         });
 
-        it('should return 400 error when reviewId is missing', async () => {
+        it('should return 400 error when id is missing', async () => {
             mockRequest.params = {};
 
             await deleteReview(mockRequest as Request, mockResponse as Response, mockNext);
@@ -370,9 +411,14 @@ describe('Review Controllers', () => {
         });
 
         it('should handle service errors during deletion', async () => {
-            mockRequest.params = { reviewId: '507f1f77bcf86cd799439011' };
+            const userId = '507f1f77bcf86cd799439014';
             const serviceError = new Error('Review not found');
-            mockReviewService.deleteReview.mockRejectedValue(serviceError);
+            
+            mockRequest.params = { id: '507f1f77bcf86cd799439011' };
+            (mockRequest as any).user = { _id: userId };
+            
+            // Mock getReviewById to throw the error (this happens first)
+            mockReviewService.getReviewById.mockRejectedValue(serviceError);
 
             await deleteReview(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -380,9 +426,14 @@ describe('Review Controllers', () => {
         });
 
         it('should handle unknown errors during deletion', async () => {
-            mockRequest.params = { reviewId: '507f1f77bcf86cd799439011' };
+            const userId = '507f1f77bcf86cd799439014';
             const unknownError = new Error('Unknown error');
-            mockReviewService.deleteReview.mockRejectedValue(unknownError);
+            
+            mockRequest.params = { id: '507f1f77bcf86cd799439011' };
+            (mockRequest as any).user = { _id: userId };
+            
+            // Mock getReviewById to throw the error (this happens first)
+            mockReviewService.getReviewById.mockRejectedValue(unknownError);
 
             await deleteReview(mockRequest as Request, mockResponse as Response, mockNext);
 

@@ -33,3 +33,5 @@ process.on('SIGTERM', () => {
         console.log(colorTheme.info.bold('✅ Process terminated'));
     });
 });
+
+export { app, server };
