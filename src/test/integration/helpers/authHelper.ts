@@ -40,29 +40,9 @@ export const createTestUser = async (
         password: generatedCredential,
         role,
         isVerified: true,
-        preferences: {
-            dietaryRestrictions: ['vegan'],
-            allergies: [],
-            preferredCuisines: ['mediterranean', 'italian'],
-            notifications: {
-                email: true,
-                push: false,
-                marketing: false
-            }
-        },
-        profile: {
-            bio: 'Test user for integration testing',
-            location: {
-                city: 'Test City',
-                state: 'Test State',
-                country: 'Test Country'
-            },
-            socialMedia: {
-                instagram: '',
-                facebook: '',
-                twitter: ''
-            }
-        }
+        isAdmin: role === 'admin',
+        isActive: true,
+        isDeleted: false
     };
 
     const user = await User.create(userData);

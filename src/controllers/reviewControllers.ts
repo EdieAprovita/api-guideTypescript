@@ -52,8 +52,21 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
     if (!id) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
-    const review = await ReviewService.updateReview(id, req.body);
-    res.status(200).json({ success: true, data: review });
+    
+    // Check if user is the author of the review
+    const review = await ReviewService.getReviewById(id);
+    const userId = (req as any).user?._id;
+    
+    if (!userId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
+    }
+    
+    if (review.author.toString() !== userId) {
+        throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own reviews');
+    }
+    
+    const updatedReview = await ReviewService.updateReview(id, req.body);
+    res.status(200).json({ success: true, data: updatedReview });
 });
 
 /**
@@ -62,10 +75,23 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
  */
 
 export const deleteReview = asyncHandler(async (req: Request, res: Response) => {
-    const { reviewId } = req.params;
-    if (!reviewId) {
+    const { id } = req.params;
+    if (!id) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
-    await ReviewService.deleteReview(reviewId);
+    
+    // Check if user is the author of the review
+    const review = await ReviewService.getReviewById(id);
+    const userId = (req as any).user?._id;
+    
+    if (!userId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
+    }
+    
+    if (review.author.toString() !== userId) {
+        throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only delete your own reviews');
+    }
+    
+    await ReviewService.deleteReview(id);
     res.status(200).json({ success: true, message: 'Review deleted successfully' });
 });

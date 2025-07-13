@@ -1,6 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
 
+// Extract common types
+export interface BusinessHours {
+    [day: string]: {
+        open: string;
+        close: string;
+        closed: boolean;
+    };
+}
+
 export interface TestUser {
     _id: Types.ObjectId;
     email: string;
@@ -12,35 +21,26 @@ export interface TestUser {
     isVerified: boolean;
 }
 
+// Update TestRestaurant
 export interface TestRestaurant {
     _id?: Types.ObjectId;
-    name: string;
+    restaurantName: string;
     description: string;
-    phone: string;
-    email: string;
-    website?: string;
-    address: {
-        street: string;
-        city: string;
-        state: string;
-        country: string;
-        zipCode: string;
-    };
+    address: string;
     location: {
         type: 'Point';
         coordinates: [number, number];
     };
     cuisine: string[];
-    priceRange: string;
     features: string[];
-    owner: string | Types.ObjectId;
-    businessHours: Record<string, {
-        open: string;
-        close: string;
-        closed: boolean;
-    }>;
+    author: string | Types.ObjectId;
+    contact: Array<{ phone: string; facebook: string; instagram: string }>;
+    rating: number;
+    numReviews: number;
+    reviews: any[];
 }
 
+// Update TestBusiness
 export interface TestBusiness {
     _id?: Types.ObjectId;
     name: string;
@@ -48,13 +48,7 @@ export interface TestBusiness {
     phone: string;
     email: string;
     website?: string;
-    address: {
-        street: string;
-        city: string;
-        state: string;
-        country: string;
-        zipCode: string;
-    };
+    address: string;
     location: {
         type: 'Point';
         coordinates: [number, number];
@@ -63,11 +57,7 @@ export interface TestBusiness {
     subcategory?: string;
     owner: string | Types.ObjectId;
     status: 'pending' | 'approved' | 'rejected';
-    businessHours: Record<string, {
-        open: string;
-        close: string;
-        closed: boolean;
-    }>;
+    businessHours: BusinessHours;
     features: string[];
 }
 
@@ -193,37 +183,39 @@ export interface PopulatedReview {
     };
 }
 
-// Test data factories para evitar duplicación
+// Update testDataFactory with default schedule
+const defaultBusinessHours: BusinessHours = {
+    monday: { open: '10:00', close: '20:00', closed: false },
+    tuesday: { open: '10:00', close: '20:00', closed: false },
+    wednesday: { open: '10:00', close: '20:00', closed: false },
+    thursday: { open: '10:00', close: '20:00', closed: false },
+    friday: { open: '10:00', close: '20:00', closed: false },
+    saturday: { open: '10:00', close: '20:00', closed: false },
+    sunday: { open: '10:00', close: '20:00', closed: false }
+};
+
 export const testDataFactory = {
     restaurant: (): TestRestaurant => ({
-        name: 'Test Restaurant',
+        restaurantName: 'Test Restaurant',
         description: 'Test restaurant description',
-        phone: '+1-555-999-0000',
-        email: 'test@restaurant.com',
-        address: {
-            street: '456 Test Street',
-            city: 'Test City',
-            state: 'Test State',
-            country: 'USA',
-            zipCode: '12345'
-        },
+        address: '456 Test Street, Test City, Test State, USA, 12345',
         location: {
             type: 'Point',
             coordinates: [-118.2437, 34.0522]
         },
         cuisine: ['vegan'],
-        priceRange: '$$',
         features: ['delivery'],
-        owner: '',
-        businessHours: {
-            monday: { open: '10:00', close: '20:00', closed: false },
-            tuesday: { open: '10:00', close: '20:00', closed: false },
-            wednesday: { open: '10:00', close: '20:00', closed: false },
-            thursday: { open: '10:00', close: '20:00', closed: false },
-            friday: { open: '10:00', close: '20:00', closed: false },
-            saturday: { open: '10:00', close: '20:00', closed: false },
-            sunday: { open: '10:00', close: '20:00', closed: false }
-        }
+        author: '', // Se setea en el test
+        contact: [
+            {
+                phone: '+1-555-999-0000',
+                facebook: '',
+                instagram: ''
+            }
+        ],
+        rating: 0,
+        numReviews: 0,
+        reviews: []
     }),
 
     business: (): TestBusiness => ({
@@ -233,13 +225,7 @@ export const testDataFactory = {
         phone: '+1-555-123-4567',
         email: 'test@business.com',
         website: 'https://testbusiness.com',
-        address: {
-            street: '123 Business Street',
-            city: 'Business City',
-            state: 'Business State',
-            country: 'USA',
-            zipCode: '54321'
-        },
+        address: '123 Business Street, Business City, Business State, USA, 54321',
         location: {
             type: 'Point',
             coordinates: [-118.2437, 34.0522]
@@ -248,10 +234,7 @@ export const testDataFactory = {
         status: 'pending',
         features: ['delivery', 'outdoor-seating'],
         businessHours: {
-            monday: { open: '09:00', close: '21:00', closed: false },
-            tuesday: { open: '09:00', close: '21:00', closed: false },
-            wednesday: { open: '09:00', close: '21:00', closed: false },
-            thursday: { open: '09:00', close: '21:00', closed: false },
+            ...defaultBusinessHours,
             friday: { open: '09:00', close: '22:00', closed: false },
             saturday: { open: '09:00', close: '22:00', closed: false },
             sunday: { open: '10:00', close: '20:00', closed: false }

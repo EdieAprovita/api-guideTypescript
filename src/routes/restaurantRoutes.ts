@@ -11,6 +11,10 @@ import {
     deleteRestaurant,
     getTopRatedRestaurants,
 } from '../controllers/restaurantControllers';
+import { reviewService as ReviewService } from '../services/ReviewService';
+import { restaurantService as RestaurantService } from '../services/RestaurantService';
+import asyncHandler from '../middleware/asyncHandler';
+import { HttpError, HttpStatusCode } from '../types/Errors';
 
 const router = express.Router();
 
@@ -61,5 +65,116 @@ router.put(
 );
 
 router.delete('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), deleteRestaurant);
+
+// Review routes for restaurants
+router.post(
+    '/:restaurantId/reviews',
+    rateLimits.api,
+    validateInputLength(2048),
+    protect,
+    validate({
+        params: paramSchemas.restaurantId,
+        body: reviewSchemas.create
+    }),
+    asyncHandler(async (req, res) => {
+        const { restaurantId } = req.params;
+        const userId = req.user?._id;
+        
+        if (!userId) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
+        }
+
+        if (!restaurantId) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required');
+        }
+
+        // Check if restaurant exists
+        const restaurant = await RestaurantService.findById(restaurantId);
+        if (!restaurant) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
+        }
+
+        // Check if user already reviewed this restaurant
+        const existingReview = await ReviewService.findByUserAndRestaurant(userId, restaurantId);
+        if (existingReview) {
+            throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this restaurant');
+        }
+
+        const reviewData = {
+            ...req.body,
+            author: userId,
+            restaurant: restaurantId
+        };
+
+        const review = await ReviewService.addReview(reviewData);
+        
+        res.status(201).json({
+            success: true,
+            data: review
+        });
+    })
+);
+
+router.get(
+    '/:restaurantId/reviews',
+    rateLimits.api,
+    validate({ params: paramSchemas.restaurantId }),
+    asyncHandler(async (req, res) => {
+        const { restaurantId } = req.params;
+        const { page = 1, limit = 10, rating, sort = '-createdAt' } = req.query;
+
+        if (!restaurantId) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required');
+        }
+
+        // Check if restaurant exists
+        const restaurant = await RestaurantService.findById(restaurantId);
+        if (!restaurant) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
+        }
+
+        const reviews = await ReviewService.getReviewsByRestaurant(
+            restaurantId,
+            {
+                page: Number(page),
+                limit: Number(limit),
+                ...(rating && { rating: Number(rating) }),
+                sort: String(sort)
+            }
+        );
+
+        res.status(200).json({
+            success: true,
+            data: reviews.data,
+            pagination: reviews.pagination
+        });
+    })
+);
+
+router.get(
+    '/:restaurantId/reviews/stats',
+    rateLimits.api,
+    validate({ params: paramSchemas.restaurantId }),
+    asyncHandler(async (req, res) => {
+        const { restaurantId } = req.params;
+
+        if (!restaurantId) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required');
+        }
+
+        // Check if restaurant exists
+        const restaurant = await RestaurantService.findById(restaurantId);
+        if (!restaurant) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
+        }
+
+        const stats = await ReviewService.getReviewStats(restaurantId);
+
+        res.status(200).json({
+            success: true,
+            data: stats
+        });
+    })
+);
 
 export default router;

@@ -118,13 +118,7 @@ class CrudTestFactory {
 
             describe(`GET ${baseUrl}/:id`, () => {
                 it(`should get a specific ${resourceName} by ID`, async () => {
-                    // First create a resource to get
-                    const createResponse = await request(app)
-                        .post(baseUrl)
-                        .set(authHeaders)
-                        .send(validData);
-                    
-                    const resourceId = createResponse.body.data._id;
+                    const resourceId = await CrudTestFactory.createTestResource(app, baseUrl, authHeaders, validData);
 
                     const response = await request(app)
                         .get(`${baseUrl}/${resourceId}`)
@@ -156,12 +150,7 @@ class CrudTestFactory {
 
                 if (unauthorizedTests) {
                     it('should return 401 without authentication', async () => {
-                        const createResponse = await request(app)
-                            .post(baseUrl)
-                            .set(authHeaders)
-                            .send(validData);
-                        
-                        const resourceId = createResponse.body.data._id;
+                        const resourceId = await CrudTestFactory.createTestResource(app, baseUrl, authHeaders, validData);
 
                         await request(app)
                             .get(`${baseUrl}/${resourceId}`)
@@ -173,13 +162,7 @@ class CrudTestFactory {
             // UPDATE tests
             describe(`PUT ${baseUrl}/:id`, () => {
                 it(`should update a ${resourceName} with valid data`, async () => {
-                    // First create a resource to update
-                    const createResponse = await request(app)
-                        .post(baseUrl)
-                        .set(authHeaders)
-                        .send(validData);
-                    
-                    const resourceId = createResponse.body.data._id;
+                    const resourceId = await CrudTestFactory.createTestResource(app, baseUrl, authHeaders, validData);
 
                     const response = await request(app)
                         .put(`${baseUrl}/${resourceId}`)
@@ -214,12 +197,7 @@ class CrudTestFactory {
 
                 if (unauthorizedTests) {
                     it('should return 401 without authentication', async () => {
-                        const createResponse = await request(app)
-                            .post(baseUrl)
-                            .set(authHeaders)
-                            .send(validData);
-                        
-                        const resourceId = createResponse.body.data._id;
+                        const resourceId = await CrudTestFactory.createTestResource(app, baseUrl, authHeaders, validData);
 
                         await request(app)
                             .put(`${baseUrl}/${resourceId}`)
@@ -230,12 +208,7 @@ class CrudTestFactory {
 
                 if (validationTests && invalidData) {
                     it('should return 400 with invalid update data', async () => {
-                        const createResponse = await request(app)
-                            .post(baseUrl)
-                            .set(authHeaders)
-                            .send(validData);
-                        
-                        const resourceId = createResponse.body.data._id;
+                        const resourceId = await CrudTestFactory.createTestResource(app, baseUrl, authHeaders, validData);
 
                         const response = await request(app)
                             .put(`${baseUrl}/${resourceId}`)
@@ -255,13 +228,7 @@ class CrudTestFactory {
             // DELETE tests
             describe(`DELETE ${baseUrl}/:id`, () => {
                 it(`should delete a ${resourceName}`, async () => {
-                    // First create a resource to delete
-                    const createResponse = await request(app)
-                        .post(baseUrl)
-                        .set(authHeaders)
-                        .send(validData);
-                    
-                    const resourceId = createResponse.body.data._id;
+                    const resourceId = await CrudTestFactory.createTestResource(app, baseUrl, authHeaders, validData);
 
                     const response = await request(app)
                         .delete(`${baseUrl}/${resourceId}`)
@@ -298,12 +265,7 @@ class CrudTestFactory {
 
                 if (unauthorizedTests) {
                     it('should return 401 without authentication', async () => {
-                        const createResponse = await request(app)
-                            .post(baseUrl)
-                            .set(authHeaders)
-                            .send(validData);
-                        
-                        const resourceId = createResponse.body.data._id;
+                        const resourceId = await CrudTestFactory.createTestResource(app, baseUrl, authHeaders, validData);
 
                         await request(app)
                             .delete(`${baseUrl}/${resourceId}`)
@@ -395,6 +357,14 @@ class CrudTestFactory {
                 });
             });
         });
+    }
+
+    private static async createTestResource(app: Application, baseUrl: string, authHeaders: Record<string, string>, data: any): Promise<string> {
+        const response = await request(app)
+            .post(baseUrl)
+            .set(authHeaders)
+            .send(data);
+        return response.body.data._id;
     }
 }
 
