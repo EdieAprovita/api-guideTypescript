@@ -48,8 +48,6 @@ class CrudTestFactory {
         } = config;
 
         describe(`CRUD operations for ${resourceName}`, () => {
-            let createdResourceId: string;
-
             // CREATE tests
             describe(`POST ${baseUrl}`, () => {
                 it(`should create a new ${resourceName} with valid data`, async () => {
@@ -65,8 +63,6 @@ class CrudTestFactory {
                     if (assertions?.expectSuccessfulCreate) {
                         assertions.expectSuccessfulCreate(response);
                     }
-
-                    createdResourceId = response.body.data._id;
                 });
 
                 if (unauthorizedTests) {

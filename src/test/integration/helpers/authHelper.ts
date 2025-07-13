@@ -3,6 +3,7 @@ import { User } from '../../../models/User';
 import { Types } from 'mongoose';
 import { Request, Response, NextFunction } from 'express';
 import { generateTestPassword } from '../../utils/passwordGenerator';
+import { randomBytes } from 'crypto';
 
 interface AuthenticatedRequest extends Request {
     user?: {
@@ -33,7 +34,7 @@ export const createTestUser = async (
 
     const userData = {
         email,
-        username: `testuser_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        username: `testuser_${Date.now()}_${randomBytes(4).toString('hex')}`,
         firstName: 'Test',
         lastName: 'User',
         password: generatedCredential,
@@ -204,7 +205,7 @@ export const createUnverifiedUser = async (email: string = 'unverified@example.c
 
     const userData = {
         email,
-        username: `unverified_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        username: `unverified_${Date.now()}_${randomBytes(4).toString('hex')}`,
         firstName: 'Unverified',
         lastName: 'User',
         password: generatedCredential,
