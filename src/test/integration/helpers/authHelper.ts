@@ -64,20 +64,21 @@ export const createModeratorUser = async (email: string = 'moderator@example.com
 };
 
 /**
- * Generates a JWT token for testing
+ * Generates a JWT token for testing compatible with TokenService
  */
-export const generateAuthToken = (userId: string, role: string = 'user'): string => {
+export const generateAuthToken = (userId: string, role: string = 'user', email: string = 'test@example.com'): string => {
     const payload = {
-        user: {
-            id: userId,
-            role: role
-        }
+        userId: userId,
+        email: email,
+        role: role
     };
 
     const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
     
     return jwt.sign(payload, secret, {
-        expiresIn: '24h'
+        expiresIn: '24h',
+        issuer: 'vegan-guide-api',
+        audience: 'vegan-guide-client'
     });
 };
 
@@ -86,16 +87,17 @@ export const generateAuthToken = (userId: string, role: string = 'user'): string
  */
 export const generateExpiredAuthToken = (userId: string): string => {
     const payload = {
-        user: {
-            id: userId,
-            role: 'user'
-        }
+        userId: userId,
+        email: 'test@example.com',
+        role: 'user'
     };
 
     const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
     
     return jwt.sign(payload, secret, {
-        expiresIn: '-1h' // Expired 1 hour ago
+        expiresIn: '-1h', // Expired 1 hour ago
+        issuer: 'vegan-guide-api',
+        audience: 'vegan-guide-client'
     });
 };
 
@@ -137,7 +139,7 @@ export const loginTestUser = async (email: string, userCredential?: string) => {
         throw new Error('Invalid credential');
     }
 
-    const token = generateAuthToken(user._id.toString(), user.role);
+    const token = generateAuthToken(user._id.toString(), user.role, user.email);
     
     return {
         user: user.toObject(),

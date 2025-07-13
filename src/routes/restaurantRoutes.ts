@@ -11,6 +11,7 @@ import {
     deleteRestaurant,
     getTopRatedRestaurants,
 } from '../controllers/restaurantControllers';
+import { createReviewForRestaurant } from '../controllers/reviewControllers';
 import { reviewService as ReviewService } from '../services/ReviewService';
 import { restaurantService as RestaurantService } from '../services/RestaurantService';
 import asyncHandler from '../middleware/asyncHandler';
@@ -76,43 +77,7 @@ router.post(
         params: paramSchemas.restaurantId,
         body: reviewSchemas.create
     }),
-    asyncHandler(async (req, res) => {
-        const { restaurantId } = req.params;
-        const userId = req.user?._id;
-        
-        if (!userId) {
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
-        }
-
-        if (!restaurantId) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required');
-        }
-
-        // Check if restaurant exists
-        const restaurant = await RestaurantService.findById(restaurantId);
-        if (!restaurant) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
-        }
-
-        // Check if user already reviewed this restaurant
-        const existingReview = await ReviewService.findByUserAndRestaurant(userId, restaurantId);
-        if (existingReview) {
-            throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this restaurant');
-        }
-
-        const reviewData = {
-            ...req.body,
-            author: userId,
-            restaurant: restaurantId
-        };
-
-        const review = await ReviewService.addReview(reviewData);
-        
-        res.status(201).json({
-            success: true,
-            data: review
-        });
-    })
+    createReviewForRestaurant
 );
 
 router.get(

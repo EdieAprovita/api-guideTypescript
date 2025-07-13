@@ -34,6 +34,11 @@ class ReviewService implements IReviewService {
     }
 
     async getReviewById(reviewId: string): Promise<IReview> {
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(reviewId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
+        }
+
         const review = await Review.findById(reviewId)
             .populate('author', 'firstName lastName')
             .populate('restaurant', 'restaurantName');
@@ -45,6 +50,11 @@ class ReviewService implements IReviewService {
     }
 
     async updateReview(reviewId: string, updateData: Partial<IReview>): Promise<IReview> {
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(reviewId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
+        }
+
         const review = await Review.findByIdAndUpdate(reviewId, updateData, { new: true })
             .populate('author', 'firstName lastName')
             .populate('restaurant', 'restaurantName');
@@ -56,6 +66,11 @@ class ReviewService implements IReviewService {
     }
 
     async deleteReview(reviewId: string): Promise<void> {
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(reviewId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
+        }
+
         const review = await Review.findById(reviewId);
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
@@ -64,7 +79,18 @@ class ReviewService implements IReviewService {
     }
 
     async findByUserAndRestaurant(userId: string, restaurantId: string): Promise<IReview | null> {
-        return await Review.findOne({ author: userId, restaurant: restaurantId });
+        // Validate ObjectId formats to prevent injection
+        if (!Types.ObjectId.isValid(userId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid user ID format'));
+        }
+        if (!Types.ObjectId.isValid(restaurantId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
+        }
+
+        return await Review.findOne({ 
+            author: new Types.ObjectId(userId), 
+            restaurant: new Types.ObjectId(restaurantId) 
+        });
     }
 
     async getReviewsByRestaurant(restaurantId: string, options: {
@@ -74,29 +100,69 @@ class ReviewService implements IReviewService {
         sort: string;
     }): Promise<{ data: IReview[]; pagination: any }> {
         const { page, limit, rating, sort } = options;
-        const skip = (page - 1) * limit;
+        
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(restaurantId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
+        }
 
-        let query: any = { restaurant: restaurantId };
-        if (rating) {
-            query.rating = rating;
+        // Validate and sanitize pagination parameters
+        const sanitizedPage = Math.max(1, Math.floor(Number(page)) || 1);
+        const sanitizedLimit = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
+        const skip = (sanitizedPage - 1) * sanitizedLimit;
+
+        // Validate and sanitize rating filter
+        let query: any = { restaurant: new Types.ObjectId(restaurantId) };
+        if (rating !== undefined && rating !== null) {
+            const sanitizedRating = Math.floor(Number(rating));
+            if (sanitizedRating >= 1 && sanitizedRating <= 5) {
+                query.rating = sanitizedRating;
+            }
+        }
+
+        // Validate and sanitize sort parameter to prevent injection
+        const allowedSortFields = ['rating', 'createdAt', 'helpfulCount', 'visitDate'];
+        let sanitizedSort: Record<string, 1 | -1> = { createdAt: -1 }; // default sort
+
+        if (sort && typeof sort === 'string') {
+            // Handle formats like '-createdAt', 'rating', 'rating:desc'
+            let field: string;
+            let direction: number = 1;
+
+            if (sort.startsWith('-')) {
+                field = sort.substring(1);
+                direction = -1;
+            } else if (sort.includes(':')) {
+                const [sortField, sortDirection] = sort.split(':');
+                field = sortField || '';
+                direction = sortDirection === 'desc' || sortDirection === '-1' ? -1 : 1;
+            } else {
+                field = sort;
+                direction = 1;
+            }
+
+            // Only allow whitelisted fields
+            if (allowedSortFields.includes(field)) {
+                sanitizedSort = { [field]: direction as 1 | -1 };
+            }
         }
 
         const [reviews, total] = await Promise.all([
             Review.find(query)
                 .populate('author', 'firstName lastName')
-                .sort(sort)
+                .sort(sanitizedSort)
                 .skip(skip)
-                .limit(limit),
+                .limit(sanitizedLimit),
             Review.countDocuments(query)
         ]);
 
-        const pages = Math.ceil(total / limit);
+        const pages = Math.ceil(total / sanitizedLimit);
 
         return {
             data: reviews,
             pagination: {
-                page,
-                limit,
+                page: sanitizedPage,
+                limit: sanitizedLimit,
                 total,
                 pages
             }
@@ -104,6 +170,11 @@ class ReviewService implements IReviewService {
     }
 
     async getReviewStats(restaurantId: string): Promise<any> {
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(restaurantId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
+        }
+
         const stats = await Review.aggregate([
             { $match: { restaurant: new Types.ObjectId(restaurantId) } },
             {
@@ -139,16 +210,27 @@ class ReviewService implements IReviewService {
     }
 
     async markAsHelpful(reviewId: string, userId: string): Promise<IReview> {
+        // Validate ObjectId formats to prevent injection
+        if (!Types.ObjectId.isValid(reviewId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
+        }
+        if (!Types.ObjectId.isValid(userId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid user ID format'));
+        }
+
         const review = await Review.findById(reviewId);
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
 
-        if (review.helpfulVotes.includes(new Types.ObjectId(userId))) {
+        const userObjectId = new Types.ObjectId(userId);
+        // Use find() instead of includes() for ObjectId comparison
+        const existingVote = review.helpfulVotes.find(vote => vote.toString() === userId);
+        if (existingVote) {
             throw new HttpError(HttpStatusCode.CONFLICT, getErrorMessage('User has already voted'));
         }
 
-        review.helpfulVotes.push(new Types.ObjectId(userId));
+        review.helpfulVotes.push(userObjectId);
         review.helpfulCount = review.helpfulVotes.length;
         await review.save();
 
@@ -156,13 +238,22 @@ class ReviewService implements IReviewService {
     }
 
     async removeHelpfulVote(reviewId: string, userId: string): Promise<IReview> {
+        // Validate ObjectId formats to prevent injection
+        if (!Types.ObjectId.isValid(reviewId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
+        }
+        if (!Types.ObjectId.isValid(userId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid user ID format'));
+        }
+
         const review = await Review.findById(reviewId);
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
 
         const userObjectId = new Types.ObjectId(userId);
-        const voteIndex = review.helpfulVotes.indexOf(userObjectId);
+        // Use findIndex() instead of indexOf() for ObjectId comparison
+        const voteIndex = review.helpfulVotes.findIndex(vote => vote.toString() === userId);
         
         if (voteIndex === -1) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Vote not found'));
@@ -177,11 +268,22 @@ class ReviewService implements IReviewService {
 
     // Legacy methods for backward compatibility
     async listReviewsForModel(refId: string, refModel: string): Promise<IReview[]> {
-        const reviews = await Review.find({ restaurant: refId });
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(refId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid reference ID format'));
+        }
+
+        const reviews = await Review.find({ restaurant: new Types.ObjectId(refId) });
         return reviews;
     }
 
     async getTopRatedReviews(refModel: string): Promise<IReview[]> {
+        // Validate refModel parameter to prevent injection
+        const allowedModels = ['restaurant', 'business'];
+        if (!allowedModels.includes(refModel)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid model type'));
+        }
+
         const reviews = await Review.aggregate([
             {
                 $group: {

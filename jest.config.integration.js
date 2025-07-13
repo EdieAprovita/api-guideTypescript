@@ -12,4 +12,19 @@ module.exports = {
     verbose: true,
     forceExit: true,
     detectOpenHandles: true,
+    // Disable all mocks for integration tests
+    automock: false,
+    // Ensure no mocks are applied
+    unmockedModulePathPatterns: [
+        'node_modules/',
+        'src/models/',
+        'src/services/',
+        'src/controllers/',
+        'src/middleware/'
+    ],
+    // Clear any existing mocks
+    clearMocks: true,
+    restoreMocks: true,
+    resetMocks: true,
+    resetModules: true,
 };
