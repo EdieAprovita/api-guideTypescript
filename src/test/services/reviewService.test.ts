@@ -15,7 +15,12 @@ describe("ReviewService", () => {
   });
 
   it("throws when review not found", async () => {
-    (Review as jest.Mocked<typeof Review>).findById = jest.fn().mockResolvedValue(null);
+    const execMock = jest.fn().mockResolvedValue(null);
+    const populateMock = jest.fn().mockReturnThis();
+    (Review as jest.Mocked<typeof Review>).findById = jest.fn().mockReturnValue({
+      populate: populateMock,
+      exec: execMock
+    } as any);
     await expect(reviewService.getReviewById("x"))
       .rejects.toThrow(HttpError);
   });

@@ -25,7 +25,10 @@ class ReviewService implements IReviewService {
     }
 
     async getReviewById(reviewId: string): Promise<IReview> {
-        const review = await Review.findById(reviewId);
+        const review = await Review.findById(reviewId)
+            .populate('author', 'firstName lastName')
+            .populate('restaurant', 'restaurantName')
+            .exec();
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
