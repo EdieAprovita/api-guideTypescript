@@ -41,6 +41,8 @@ jest.mock('../../services/TokenService', () => {
                     });
                     return payload;
                 } catch (error) {
+                    // Log the error for debugging purposes
+                    console.error('Token verification error:', error);
                     throw new Error('Invalid or expired access token');
                 }
             }),
@@ -95,12 +97,16 @@ jest.mock('../../middleware/authMiddleware', () => {
                     req.user = currentUser;
                     next();
                 } catch (error) {
+                    // Log the error for debugging purposes
+                    console.error('Token verification error in middleware:', error);
                     return res.status(401).json({
                         success: false,
                         message: 'Invalid or expired token'
                     });
                 }
             } catch (error) {
+                // Log the error for debugging purposes
+                console.error('Authentication middleware error:', error);
                 return res.status(500).json({
                     success: false,
                     message: 'Authentication error'

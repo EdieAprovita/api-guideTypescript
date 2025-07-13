@@ -223,14 +223,13 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
 
-        const userObjectId = new Types.ObjectId(userId);
         // Use find() instead of includes() for ObjectId comparison
         const existingVote = review.helpfulVotes.find(vote => vote.toString() === userId);
         if (existingVote) {
             throw new HttpError(HttpStatusCode.CONFLICT, getErrorMessage('User has already voted'));
         }
 
-        review.helpfulVotes.push(userObjectId);
+        review.helpfulVotes.push(new Types.ObjectId(userId));
         review.helpfulCount = review.helpfulVotes.length;
         await review.save();
 
@@ -251,7 +250,6 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
 
-        const userObjectId = new Types.ObjectId(userId);
         // Use findIndex() instead of indexOf() for ObjectId comparison
         const voteIndex = review.helpfulVotes.findIndex(vote => vote.toString() === userId);
         

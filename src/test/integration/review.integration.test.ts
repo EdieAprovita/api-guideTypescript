@@ -4,19 +4,9 @@ import { setupTestDb, teardownTestDb } from './helpers/testDb';
 import { createTestUser, generateAuthToken } from './helpers/authHelper';
 import { Review } from '../../models/Review';
 import { Restaurant } from '../../models/Restaurant';
-import { User } from '../../models/User';
-import { testDataFactory, PopulatedReview } from '../types/testTypes';
+import { testDataFactory } from '../types/testTypes';
 import { Types } from 'mongoose';
-import { 
-    expectSuccessResponse, 
-    expectErrorResponse, 
-    expectValidationError,
-    expectUnauthorizedError,
-    expectNotFoundError,
-    expectResourceCreated,
-    expectResourceUpdated,
-    expectResourceDeleted
-} from '../utils/unifiedTestHelpers';
+
 
 describe('Review Integration Tests', () => {
     let authToken: string;
