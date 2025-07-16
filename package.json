@@ -16,6 +16,7 @@
     "test:ci": "jest --coverage --watchAll=false",
     "test:unit": "jest --testPathPattern=unit",
     "test:integration": "jest --testPathPattern=integration",
+    "test:performance": "artillery run tests/performance/api.yml",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --config .prettierrc --write src/**/*.ts",
@@ -106,6 +107,7 @@
     "prettier": "^3.5.3",
     "rimraf": "^6.0.1",
     "supertest": "^7.1.1",
+    "artillery": "^2.0.23",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.8.3"
