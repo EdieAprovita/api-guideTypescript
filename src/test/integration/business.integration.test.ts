@@ -5,8 +5,7 @@ import { createTestBusiness } from './helpers/testFixtures';
 import { Business } from '../../models/Business';
 import { setupTestDB, refreshAdmin, AdminAuth } from './helpers/testSetup';
 
-// Integration tests for Business endpoints (skipped pending environment setup)
-describe.skip('Business API Integration Tests', () => {
+describe('Business API Integration Tests', () => {
     setupTestDB();
     let admin: AdminAuth;
 

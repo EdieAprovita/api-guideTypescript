@@ -5,8 +5,7 @@ import { createTestRestaurant } from './helpers/testFixtures';
 import { setupTestDB, refreshAdmin, AdminAuth } from './helpers/testSetup';
 import { Restaurant } from '../../models/Restaurant';
 
-// Integration skipped pending environment setup
-describe.skip('Restaurant API Integration Tests', () => {
+describe('Restaurant API Integration Tests', () => {
     setupTestDB();
     let admin: AdminAuth;
 

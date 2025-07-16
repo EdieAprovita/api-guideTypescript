@@ -135,8 +135,7 @@ const setupUserAndTokens = async (isAdmin = false): Promise<{ user: TestUser; to
     }
 };
 
-// Integration skipped pending environment setup
-describe.skip('Authentication Flow Integration Tests', () => {
+describe('Authentication Flow Integration Tests', () => {
     beforeAll(async () => {
         // Clear any mocks to ensure real implementations are used
         jest.clearAllMocks();
