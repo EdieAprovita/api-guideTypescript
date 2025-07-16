@@ -36,30 +36,45 @@ interface UserOverrides {
 
 export const createTestUser = async (overrides: UserOverrides = {}) => {
   try {
-    // Use a plain-text password from overrides or a default from testConfig
+    // Use a plain-text password from overrides or generate one if not provided
     const plainPassword = overrides.password || generateTestPassword();
     
     if (!plainPassword) {
-      throw new Error('No password provided for test user creation');
+      throw new Error('Password is required for test user creation');
     }
     
-    const hashedPassword = await bcrypt.hash(plainPassword, 10);
-
+    // Generate unique username and email to avoid conflicts
+    const uniqueId = Date.now().toString() + Math.random().toString(36).substring(2);
+    
+    // Don't hash the password here - let the User model middleware handle it
     const userData = {
-      username: overrides.username || faker.internet.userName(),
-      email: (overrides.email || faker.internet.email()).toLowerCase(),
+      username: overrides.username || `testuser_${uniqueId}`,
+      email: (overrides.email || `test_${uniqueId}@example.com`).toLowerCase(),
       role: 'user',
       isAdmin: false,
       isActive: true,
       isDeleted: false,
       photo: 'default.png', // Use stable value instead of faker.image.avatar()
       ...overrides,
-      password: hashedPassword, // Ensure the final password is the hashed one
+      password: plainPassword, // Use plain password - will be hashed by User model middleware
     };
 
+    console.log('Creating user with data:', {
+      ...userData,
+      password: '[REDACTED]' // Don't log the actual password
+    });
+
     const user = await User.create(userData);
+    
+    console.log('User created successfully:', user ? 'Yes' : 'No');
+    console.log('User ID:', user?._id);
+    
+    if (!user) {
+      throw new Error('User.create() returned null or undefined');
+    }
     return user;
   } catch (error) {
+    console.error('Detailed error in createTestUser:', error);
     logTestError('createTestUser', error);
     throw new Error(
       `Failed to create test user: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -156,7 +171,7 @@ export const createTestRestaurant = async (
     budget: faker.helpers.arrayElement(['$', '$$', '$$$', '$$$$']),
     contact: [
       {
-        phone: faker.phone.number(),
+        phone: '1234567890', // Simple phone number string
         facebook: faker.internet.url(),
         instagram: `@${faker.internet.userName()}`
       }
@@ -223,7 +238,7 @@ export const createTestBusiness = async (
     image: faker.image.url(),
     contact: [
       {
-        phone: faker.phone.number().toString(),
+        phone: faker.phone.number('##########'), // Generate simple 10-digit number
         email: faker.internet.email(),
         facebook: faker.internet.url(),
         instagram: `@${faker.internet.userName()}`

@@ -106,12 +106,13 @@ class UserService extends BaseService {
     }
 
     async loginUser(email: string, password: string, res: Response) {
-        const user = await this.getUserByEmail(email);
+        // Find user without throwing error if not found
+        const user = await User.findOne({ email }).select('+password');
         await this.validateUserCredentials(user, password);
-        const token = this.generateJWTToken(user._id);
-        generateTokenAndSetCookie(res, user._id);
+        const token = this.generateJWTToken(user!._id);
+        generateTokenAndSetCookie(res, user!._id);
         return {
-            ...this.getUserResponse(user),
+            ...this.getUserResponse(user!),
             token,
         };
     }
@@ -141,7 +142,10 @@ class UserService extends BaseService {
 
     async findUserById(userId: string) {
         if (!userId) throw new UserIdRequiredError('User ID not found');
-        return User.findById(userId);
+        console.log('UserService.findUserById called with userId:', userId);
+        const user = await User.findById(userId);
+        console.log('UserService.findUserById result:', user ? `User found: ${user._id}` : 'User not found');
+        return user;
     }
 
     async updateUserById(userId: string, updateData: Partial<IUser>) {

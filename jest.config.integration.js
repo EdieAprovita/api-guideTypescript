@@ -1,26 +1,42 @@
-const base = require('./jest.config.base');
-
+// Integration test config without global mocks
 module.exports = {
-    ...base,
+    preset: 'ts-jest',
+    testEnvironment: 'node',
+    roots: ['<rootDir>/src'],
     testMatch: ['**/integration/**/*.test.ts'],
-    setupFilesAfterEnv: ['<rootDir>/src/test/integration/jest.integration.setup.ts'],
+    setupFilesAfterEnv: ['<rootDir>/src/test/integration/jest.simple.setup.ts'],
+    transform: {
+        '^.+\\.ts$': [
+            'ts-jest',
+            {
+                tsconfig: 'tsconfig.test.json',
+            },
+        ],
+    },
+    collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/test/**', '!src/types/**'],
+    coverageDirectory: 'coverage',
+    coverageReporters: ['text', 'lcov', 'html'],
+    moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+    },
     testTimeout: 30000,
     verbose: true,
     forceExit: true,
     detectOpenHandles: true,
-    // Disable all mocks for integration tests
+    maxWorkers: 1,
+    // Minimal mocks for integration tests - don't inherit global setup
     automock: false,
-    // Ensure no mocks are applied
-    unmockedModulePathPatterns: [
-        'node_modules/',
-        'src/models/',
-        'src/services/',
-        'src/controllers/',
-        'src/middleware/'
-    ],
-    // Clear any existing mocks for integration tests
+    // Clear any existing mocks
     clearMocks: true,
     restoreMocks: true,
     resetMocks: true,
     resetModules: true,
+    coverageThreshold: {
+        global: {
+            branches: 20,
+            functions: 20,
+            lines: 20,
+            statements: 20,
+        },
+    },
 };

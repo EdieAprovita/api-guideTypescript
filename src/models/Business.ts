@@ -14,7 +14,11 @@ export interface IBusiness extends Document {
     contact: IContact[];
     budget: number;
     typeBusiness: string;
-    hours: [Date];
+    hours: Array<{
+        dayOfWeek: string;
+        openTime: string;
+        closeTime: string;
+    }>;
     reviews: Types.ObjectId[];
     rating: number;
     numReviews: number;
@@ -38,7 +42,7 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
         location: geoJSONPointSchema,
         contact: [
             {
-                phone: Number,
+                phone: String,
                 email: String,
                 facebook: String,
                 instagram: String,
