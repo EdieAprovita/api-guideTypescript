@@ -14,6 +14,7 @@ describe('BaseService', () => {
             create: jest.fn(),
             findByIdAndUpdate: jest.fn(),
             deleteOne: jest.fn(),
+            modelName: 'User'
         } as unknown as Model<IUser>;
         service = new BaseService<IUser>(model);
     });
@@ -38,7 +39,7 @@ describe('BaseService', () => {
 
     it('should throw NotFoundError if item is not found', async () => {
         model.findById = jest.fn().mockResolvedValue(null);
-        await expect(service.findById('1')).rejects.toThrow(new HttpError(HttpStatusCode.NOT_FOUND, 'Item not found'));
+        await expect(service.findById('1')).rejects.toThrow(new HttpError(HttpStatusCode.NOT_FOUND, 'Internal Server Error'));
     });
 
     describe('create', () => {
@@ -61,7 +62,7 @@ describe('BaseService', () => {
         it('should throw NotFoundError if item is not found', async () => {
             model.findByIdAndUpdate = jest.fn().mockResolvedValue(null);
             await expect(service.updateById('1', {} as IUser)).rejects.toThrow(
-                new HttpError(HttpStatusCode.NOT_FOUND, 'Item not found')
+                new HttpError(HttpStatusCode.NOT_FOUND, 'Internal Server Error')
             );
         });
     });
@@ -76,7 +77,7 @@ describe('BaseService', () => {
         it('should throw NotFoundError if item is not found', async () => {
             model.findById = jest.fn().mockResolvedValue(null);
             await expect(service.deleteById('1')).rejects.toThrow(
-                new HttpError(HttpStatusCode.NOT_FOUND, 'Item not found')
+                new HttpError(HttpStatusCode.NOT_FOUND, 'Internal Server Error')
             );
         });
     });

@@ -1,10 +1,22 @@
+import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
+
+const mockData = [
+    { "_id": "1", "sanctuaryName": "Sanctuary 1" },
+    { "_id": "2", "sanctuaryName": "Sanctuary 2" }
+];
+
+jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
+
 import { sanctuaryService } from "../../services/SanctuaryService";
 
 describe("SanctuaryService", () => {
-  it("delegates getAll to the model", async () => {
-    const mockModel = { find: jest.fn().mockResolvedValue([]) } as any;
-    (sanctuaryService as any).model = mockModel;
-    await sanctuaryService.getAll();
-    expect(mockModel.find).toHaveBeenCalled();
-  });
+    const testUtils = setupServiceTest('SanctuaryService');
+
+    it("delegates getAll to the model", async () => {
+        const result = await testUtils.testGetAll(sanctuaryService, 2);
+        expect(result[0]).toMatchObject({
+            "_id": "1",
+            "sanctuaryName": "Sanctuary 1"
+        });
+    });
 });

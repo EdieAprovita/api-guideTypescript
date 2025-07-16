@@ -81,21 +81,39 @@ abstract class BaseService {
         user.password = hashedPassword;
         await user.save();
     }
+
+    protected generateJWTToken(userId: string): string {
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'JWT secret not configured');
+        }
+        return jwt.sign({ userId }, secret, {
+            expiresIn: '30d',
+        });
+    }
 }
 
 class UserService extends BaseService {
     async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, res: Response) {
         await this.validateUserNotExists(userData.email);
         const user = await User.create(userData);
+        const token = this.generateJWTToken(user._id);
         generateTokenAndSetCookie(res, user._id);
-        return this.getUserResponse(user);
+        return {
+            ...this.getUserResponse(user),
+            token,
+        };
     }
 
     async loginUser(email: string, password: string, res: Response) {
         const user = await this.getUserByEmail(email);
         await this.validateUserCredentials(user, password);
+        const token = this.generateJWTToken(user._id);
         generateTokenAndSetCookie(res, user._id);
-        return this.getUserResponse(user);
+        return {
+            ...this.getUserResponse(user),
+            token,
+        };
     }
 
     async forgotPassword(email: string) {

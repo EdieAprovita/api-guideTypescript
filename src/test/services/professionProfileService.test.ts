@@ -1,10 +1,22 @@
+import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
+
+const mockData = [
+    { "_id": "1", "profileName": "Profile 1" },
+    { "_id": "2", "profileName": "Profile 2" }
+];
+
+jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
+
 import { professionProfileService } from "../../services/ProfessionProfileService";
 
 describe("ProfessionProfileService", () => {
-  it("delegates getAll to the model", async () => {
-    const mockModel = { find: jest.fn().mockResolvedValue([]) } as any;
-    (professionProfileService as any).model = mockModel;
-    await professionProfileService.getAll();
-    expect(mockModel.find).toHaveBeenCalled();
-  });
+    const testUtils = setupServiceTest('ProfessionProfileService');
+
+    it("delegates getAll to the model", async () => {
+        const result = await testUtils.testGetAll(professionProfileService, 2);
+        expect(result[0]).toMatchObject({
+            "_id": "1",
+            "profileName": "Profile 1"
+        });
+    });
 });

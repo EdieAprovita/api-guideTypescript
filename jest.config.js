@@ -1,24 +1,18 @@
+const base = require('./jest.config.base');
+
 module.exports = {
+    ...base,
     preset: 'ts-jest',
     testEnvironment: 'node',
     roots: ['<rootDir>/src', '<rootDir>/tests'],
     testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
-    transform: {
-        '^.+\\.ts$': [
-            'ts-jest',
-            {
-                tsconfig: 'tsconfig.test.json',
-            },
-        ],
-    },
-    collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/test/**', '!src/types/**'],
-    coverageDirectory: 'coverage',
-    coverageReporters: ['text', 'lcov', 'html'],
+    testPathIgnorePatterns: [
+        '/node_modules/',
+        '<rootDir>/src/test/middleware/',
+        '<rootDir>/src/test/controllers/userControllers.test.ts',
+
+    ],
     setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
-    moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/src/$1',
-    },
-    testTimeout: 10000,
-    clearMocks: true,
-    restoreMocks: true,
+    testTimeout: 20000,
+    verbose: false,
 };

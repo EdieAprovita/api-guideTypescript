@@ -1,0 +1,36 @@
+import { faker } from '@faker-js/faker';
+import { Request, Response, NextFunction } from 'express';
+import testConfig from '../testConfig';
+
+export const protect = jest.fn((req: Request, res: Response, next: NextFunction) => {
+    const reqWithUser = req as Request & { user?: { _id: string; role: string } };
+    reqWithUser.user = { _id: faker.database.mongodbObjectId(), role: 'user' };
+    next();
+});
+
+export const admin = jest.fn((req: Request, res: Response, next: NextFunction) => next());
+
+export const professional = jest.fn((req: Request, res: Response, next: NextFunction) => next());
+
+export const requireAuth = jest.fn((req: Request, res: Response, next: NextFunction) => next());
+
+export const checkOwnership = jest.fn(() => (req: Request, res: Response, next: NextFunction) => next());
+
+export const logout = jest.fn(async (req: Request, res: Response, next: NextFunction) => {
+    next();
+});
+
+export const refreshToken = jest.fn(async (req: Request, res: Response) => {
+    res.json({
+        success: true,
+        message: 'Tokens refreshed successfully',
+        data: { accessToken: testConfig.generateTestPassword(), refreshToken: testConfig.generateTestPassword() },
+    });
+});
+
+export const revokeAllTokens = jest.fn(async (req: Request, res: Response) => {
+    res.json({
+        success: true,
+        message: 'All tokens revoked successfully',
+    });
+});
