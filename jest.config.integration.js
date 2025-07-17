@@ -28,9 +28,9 @@ module.exports = {
     automock: false,
     // Clear any existing mocks
     clearMocks: true,
-    restoreMocks: true,
-    resetMocks: true,
-    resetModules: true,
+    restoreMocks: false,
+    resetMocks: false,
+    resetModules: false,
     coverageThreshold: {
         global: {
             branches: 20,

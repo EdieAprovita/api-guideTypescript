@@ -16,6 +16,7 @@ describe('Business API Integration Tests', () => {
     const generateBusinessData = () => ({
         namePlace: faker.company.name(),
         address: faker.location.streetAddress(),
+        image: faker.image.url(), // Add required image field
         contact: [
             {
                 phone: faker.phone.number().toString(),
@@ -31,7 +32,7 @@ describe('Business API Integration Tests', () => {
             type: 'Point' as const,
             coordinates: [faker.location.longitude(), faker.location.latitude()],
         },
-        author: admin.adminId,
+        author: admin.adminObjectId,
     });
 
     it('should create a business', async () => {
@@ -51,8 +52,8 @@ describe('Business API Integration Tests', () => {
     });
 
     it('should get all businesses', async () => {
-        await createTestBusiness(admin.adminId);
-        await createTestBusiness(admin.adminId);
+        await createTestBusiness(admin.adminObjectId);
+        await createTestBusiness(admin.adminObjectId);
 
         const response = await request(app).get('/api/v1/businesses');
 
@@ -62,7 +63,7 @@ describe('Business API Integration Tests', () => {
     });
 
     it('should get a business by id', async () => {
-        const business = await createTestBusiness(admin.adminId);
+        const business = await createTestBusiness(admin.adminObjectId);
 
         const response = await request(app).get(
             `/api/v1/businesses/${business._id}`
@@ -73,7 +74,7 @@ describe('Business API Integration Tests', () => {
     });
 
     it('should update a business', async () => {
-        const business = await createTestBusiness(admin.adminId);
+        const business = await createTestBusiness(admin.adminObjectId);
 
         const response = await request(app)
             .put(`/api/v1/businesses/${business._id}`)
@@ -85,7 +86,7 @@ describe('Business API Integration Tests', () => {
     });
 
     it('should delete a business', async () => {
-        const business = await createTestBusiness(admin.adminId);
+        const business = await createTestBusiness(admin.adminObjectId);
 
         const response = await request(app)
             .delete(`/api/v1/businesses/${business._id}`)

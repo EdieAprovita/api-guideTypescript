@@ -45,8 +45,16 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         }
 
         // Use TokenService for enhanced security validation
-        const payload = await TokenService.verifyAccessToken(token);
-        console.log('Auth middleware - Token payload:', payload);
+        let payload;
+        try {
+            payload = await TokenService.verifyAccessToken(token);
+        } catch (error) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid or expired token');
+        }
+
+        if (!payload) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid token payload');
+        }
 
         // Check if user tokens have been revoked globally
         const areTokensRevoked = await TokenService.isUserTokensRevoked(payload.userId);
@@ -55,7 +63,6 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         }
 
         const currentUser = await User.findById(payload.userId).select('-password');
-        console.log('Auth middleware - User lookup result:', currentUser ? `User found: ${currentUser._id}` : 'User not found');
 
         if (!currentUser) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
@@ -67,7 +74,6 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         }
 
         req.user = currentUser;
-        console.log('Auth middleware - Set req.user:', req.user._id);
         next();
     } catch (error) {
         errorHandler(error instanceof Error ? error : new Error('Unknown error'), req, res);

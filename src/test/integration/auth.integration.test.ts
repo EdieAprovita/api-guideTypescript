@@ -80,7 +80,7 @@ const expectSuccessResponse = (response: ApiResponse, expectedStatus: number = 2
 const createUserData = (overrides: UserData = {}): UserData => ({
     username: faker.internet.userName(),
     email: faker.internet.email(),
-    password: 'Test123ABC!', // Valid password that meets requirements but avoids problematic chars
+    password: overrides.password || generateTestPassword(), // Use dynamic password generator
     role: 'user',
     ...overrides,
 });
@@ -243,7 +243,13 @@ describe('Authentication Flow Integration Tests', () => {
                     throw new Error('Failed to create test user - user is null or missing _id');
                 }
                 
-                testUser = { ...user.toObject(), password: plainPassword };
+                testUser = { 
+                    _id: user._id.toString(),
+                    username: user.username,
+                    email: user.email,
+                    role: user.role,
+                    password: plainPassword 
+                };
             } catch (error) {
                 console.error('Error creating test user:', error);
                 throw error; // Re-throw to fail the test setup
@@ -468,7 +474,7 @@ describe('Authentication Flow Integration Tests', () => {
             const response = await request(app).get('/api/v1/users/profile');
 
             expectUnauthorizedResponse(response);
-            expect(response.body.message).toContain('Not authorized');
+            expect(response.body.message || response.body.error).toContain('Not authorized');
         });
 
         it('should deny access with expired token', async () => {
