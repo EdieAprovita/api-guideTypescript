@@ -10,7 +10,7 @@ import { User } from '../../models/User';
 
 // Basic integration tests for user endpoints (skipped pending environment setup)
 
-describe.skip('User API Integration Tests', () => {
+describe('User API Integration Tests', () => {
     setupTestDB();
     let admin: AdminAuth;
     let userId: string;

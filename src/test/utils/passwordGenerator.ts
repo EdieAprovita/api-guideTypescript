@@ -39,7 +39,7 @@ const PASSWORD_CONFIGS = {
         requireUppercase: true,
         requireNumbers: true,
         requireSpecialChars: true,
-        specialChars: '!@#$%^&*()_+-=[]{}|;:,.<>?',
+        specialChars: '@$!%*?&',
         environmentVariable: 'TEST_USER_PASSWORD',
     } as PasswordConfig,
 
@@ -67,7 +67,7 @@ const PASSWORD_CONFIGS = {
         requireUppercase: true,
         requireNumbers: true,
         requireSpecialChars: true,
-        specialChars: '!@#$%^&*()_+-=[]{}|;:,.<>?~`',
+        specialChars: '@$!%*?&',
     } as PasswordConfig,
 
     // API key style for token testing

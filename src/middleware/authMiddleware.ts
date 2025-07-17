@@ -45,7 +45,16 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         }
 
         // Use TokenService for enhanced security validation
-        const payload = await TokenService.verifyAccessToken(token);
+        let payload;
+        try {
+            payload = await TokenService.verifyAccessToken(token);
+        } catch (error) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid or expired token');
+        }
+
+        if (!payload) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid token payload');
+        }
 
         // Check if user tokens have been revoked globally
         const areTokensRevoked = await TokenService.isUserTokensRevoked(payload.userId);

@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../../app';
 import { setupTestDb, teardownTestDb } from './helpers/testDb';
-import { createTestUser, generateAuthToken } from './helpers/authHelper';
+import { createTestUser, generateAuthTokens } from './helpers/testFixtures';
 import { Review } from '../../models/Review';
 import { Restaurant } from '../../models/Restaurant';
 import { testDataFactory } from '../types/testTypes';
@@ -24,12 +24,11 @@ describe('Review Integration Tests', () => {
     beforeAll(async () => {
         await setupTestDb();
         const user = await createTestUser();
-        console.log('Created user:', user);
-        console.log('User _id type:', typeof user._id);
-        console.log('User _id value:', user._id);
         testUserId = user._id.toString();
         testUserEmail = user.email;
-        authToken = generateAuthToken(testUserId, user.role, testUserEmail);
+        authToken = (
+            await generateAuthTokens(testUserId, user.email, user.role)
+        ).accessToken;
 
         // Create ObjectId for author field if user._id is not valid
         const authorId = Types.ObjectId.isValid(user._id) ? user._id : new Types.ObjectId();
@@ -80,8 +79,6 @@ describe('Review Integration Tests', () => {
             const response = await request(app)
                 .get('/api/v1');
 
-            console.log('Basic API response status:', response.status);
-            console.log('Basic API response body:', response.text);
             
             expect(response.status).toBe(200);
             expect(response.text).toBe('API is running');
@@ -94,8 +91,6 @@ describe('Review Integration Tests', () => {
                 .post(`/api/v1/restaurants/${restaurantId}/reviews`)
                 .send(validReviewData);
 
-            console.log('No auth response status:', response.status);
-            console.log('No auth response body:', JSON.stringify(response.body, null, 2));
             
             // The mock middleware creates the review but doesn't verify the token format
             // In a real test, this would be 401, but with mocks we expect success
@@ -108,8 +103,6 @@ describe('Review Integration Tests', () => {
                 .set('Authorization', 'Bearer invalid-token')
                 .send(validReviewData);
 
-            console.log('Invalid auth response status:', response.status);
-            console.log('Invalid auth response body:', JSON.stringify(response.body, null, 2));
             
             // The middleware mock should reject invalid tokens but sometimes passes through
             expect([201, 401]).toContain(response.status);
@@ -118,12 +111,6 @@ describe('Review Integration Tests', () => {
 
     describe('POST /api/v1/restaurants/:restaurantId/reviews', () => {
         it('should create a new review with valid data', async () => {
-            console.log('Testing review creation with:');
-            console.log('Restaurant ID:', restaurantId);
-            console.log('User ID:', testUserId);
-            console.log('User Email:', testUserEmail);
-            console.log('Auth token:', authToken);
-            console.log('Review data:', validReviewData);
 
             const response = await request(app)
                 .post(`/api/v1/restaurants/${restaurantId}/reviews`)
@@ -131,9 +118,6 @@ describe('Review Integration Tests', () => {
                 .send(validReviewData);
 
             // Log the response for debugging
-            console.log('Response status:', response.status);
-            console.log('Response body:', JSON.stringify(response.body, null, 2));
-
             if (response.status !== 201) {
                 console.error('Error response:', response.body);
             }

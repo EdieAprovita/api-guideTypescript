@@ -549,7 +549,7 @@ export const generateExpiredToken = (): string => {
         exp: Math.floor(Date.now() / 1000) - 1800, // 30 minutes ago (expired)
     };
 
-    const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || testConfig.generators.securePassword();
+    const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing_12345';
     return jwt.sign(payload, secret);
 };
 

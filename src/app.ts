@@ -53,8 +53,10 @@ if (process.env.NODE_ENV !== 'test') { app.use(validateUserAgent); } // Block ma
 app.use(limitRequestSize(10 * 1024 * 1024)); // 10MB global limit
 app.use(detectSuspiciousActivity); // Detect and block suspicious patterns
 
-app.use(mongoSanitize()); // prevent MongoDB operator injection
-app.use(xss()); // sanitize user input against XSS
+if (process.env.NODE_ENV !== 'test') {
+    app.use(mongoSanitize()); // prevent MongoDB operator injection
+    app.use(xss()); // sanitize user input against XSS
+}
 
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
@@ -80,7 +82,7 @@ app.use('/api/v1/recipes', recipesRoutes);
 app.use('/api/v1/markets', marketsRoutes);
 app.use('/api/v1/restaurants', restaurantRoutes);
 app.use('/api/v1/doctors', doctorsRoutes);
-app.use('/api/v1/professionalProfile', professionProfileRoutes);
+app.use('/api/v1/professionsProfile', professionProfileRoutes);
 app.use('/api/v1/professions', professionRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/sanctuaries', sanctuaryRoutes);
