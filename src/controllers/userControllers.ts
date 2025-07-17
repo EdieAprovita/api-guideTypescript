@@ -198,9 +198,23 @@ export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Resp
 
 export const updateUserProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user?._id;
-        if (!userId) throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
-        const updatedUser = await UserServices.updateUserById(userId, req.body);
+        const { id } = req.params;
+        const currentUserId = req.user?._id?.toString();
+        const currentUserRole = req.user?.role;
+        
+        if (!currentUserId) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+        }
+        
+        // Use the ID from params if provided, otherwise use current user ID
+        const targetUserId = id || currentUserId;
+        
+        // Check authorization: users can only update their own profile, admins can update any profile
+        if (targetUserId !== currentUserId && currentUserRole !== 'admin') {
+            throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own profile');
+        }
+        
+        const updatedUser = await UserServices.updateUserById(targetUserId, req.body);
         res.json(updatedUser);
     } catch (error) {
         next(

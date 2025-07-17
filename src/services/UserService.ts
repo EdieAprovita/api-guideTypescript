@@ -7,6 +7,7 @@ import { User, IUser } from '../models/User';
 import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import generateTokenAndSetCookie from '../utils/generateToken';
+import TokenService from './TokenService';
 
 abstract class BaseService {
     protected validateUserExists(user: IUser | null) {
@@ -95,25 +96,36 @@ abstract class BaseService {
 
 class UserService extends BaseService {
     async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, res: Response) {
-        await this.validateUserNotExists(userData.email);
-        const user = await User.create(userData);
-        const token = this.generateJWTToken(user._id);
-        generateTokenAndSetCookie(res, user._id);
-        return {
-            ...this.getUserResponse(user),
-            token,
-        };
+        try {
+            await this.validateUserNotExists(userData.email);
+            const user = await User.create(userData);
+            const tokens = await TokenService.generateTokens(user._id.toString());
+            generateTokenAndSetCookie(res, user._id);
+            return {
+                ...this.getUserResponse(user),
+                token: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+            };
+        } catch (error) {
+            // In test environment, log the error to understand what's happening
+            if (process.env.NODE_ENV === 'test') {
+                console.log('UserService.registerUser error:', error);
+            }
+            throw error;
+        }
     }
 
     async loginUser(email: string, password: string, res: Response) {
         // Find user without throwing error if not found
         const user = await User.findOne({ email }).select('+password');
         await this.validateUserCredentials(user, password);
-        const token = this.generateJWTToken(user!._id);
+        const tokens = await TokenService.generateTokens(user!._id.toString());
         generateTokenAndSetCookie(res, user!._id);
+        const userResponse = this.getUserResponse(user!);
         return {
-            ...this.getUserResponse(user!),
-            token,
+            token: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            ...userResponse,
         };
     }
 
@@ -142,9 +154,7 @@ class UserService extends BaseService {
 
     async findUserById(userId: string) {
         if (!userId) throw new UserIdRequiredError('User ID not found');
-        console.log('UserService.findUserById called with userId:', userId);
         const user = await User.findById(userId);
-        console.log('UserService.findUserById result:', user ? `User found: ${user._id}` : 'User not found');
         return user;
     }
 

@@ -17,24 +17,24 @@ export const serviceMocks = {
         ...createBasicServiceMock('User'),
         registerUser: jest.fn().mockResolvedValue({
             _id: faker.database.mongodbObjectId(),
-            email: 'faker.internet.email()',
+            email: faker.internet.email(),
             firstName: 'Test',
             lastName: 'User',
         }),
         loginUser: jest.fn().mockResolvedValue({
             token: testConfig.generateTestPassword(),
-            user: { _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' },
+            user: { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
         }),
         findAllUsers: jest.fn().mockResolvedValue([
-            { _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' },
-            { _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' },
+            { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
+            { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
         ]),
         findUserById: jest
             .fn()
-            .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' }),
+            .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: faker.internet.email() }),
         updateUserById: jest
             .fn()
-            .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' }),
+            .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: faker.internet.email() }),
         deleteUserById: jest.fn().mockResolvedValue('User deleted successfully'),
     },
 
@@ -113,12 +113,12 @@ export const serviceMocks = {
         }),
         verifyAccessToken: jest.fn().mockResolvedValue({
             userId: faker.database.mongodbObjectId(),
-            email: 'faker.internet.email()',
+            email: faker.internet.email(),
             role: 'user',
         }),
         verifyRefreshToken: jest.fn().mockResolvedValue({
             userId: faker.database.mongodbObjectId(),
-            email: 'faker.internet.email()',
+            email: faker.internet.email(),
             role: 'user',
         }),
         refreshTokens: jest.fn().mockResolvedValue({
@@ -157,7 +157,7 @@ export const modelMocks = {
         find: jest.fn().mockResolvedValue([]),
         findByIdAndUpdate: jest.fn().mockResolvedValue({
             _id: 'updatedUserId',
-            email: 'faker.internet.email()',
+            email: faker.internet.email(),
         }),
         findByIdAndDelete: jest.fn().mockResolvedValue({
             _id: 'deletedUserId',

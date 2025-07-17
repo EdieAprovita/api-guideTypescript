@@ -1,72 +1,159 @@
-import { faker } from '@faker-js/faker';
-import { generateTestPassword } from '../utils/passwordGenerator';
-
-// Create a set to track blacklisted tokens
-const blacklistedTokens = new Set<string>();
-
-// Mock TokenService using the same pattern as the main test setup
-jest.mock('../../services/TokenService', () => ({
-    __esModule: true,
-    default: {
-        generateTokenPair: jest.fn().mockResolvedValue({
-            accessToken: 'mock-access-token',
-            refreshToken: 'mock-refresh-token',
-        }),
+// CRITICAL: Mock TokenService BEFORE any imports that might use it
+jest.mock('../../services/TokenService', () => {
+    const jwt = require('jsonwebtoken');
+    
+    // Create stateful mocks for testing
+    const blacklistedTokens = new Set();
+    const usedRefreshTokens = new Set();
+    const revokedUserTokens = new Set();
+    
+    // Create a mock instance that matches the singleton pattern
+    const mockTokenService = {
         verifyAccessToken: jest.fn().mockImplementation(async (token) => {
             console.log('=== TokenService.verifyAccessToken MOCK CALLED ===');
             console.log('Token received:', token ? token.substring(0, 20) + '...' : 'null/undefined');
             
-            // Decode the JWT token to get the real payload
-            const jwt = require('jsonwebtoken');
+            if (!token) {
+                throw new Error('No token provided');
+            }
+            
+            // Check if token is blacklisted
+            if (blacklistedTokens.has(token)) {
+                throw new Error('Token is blacklisted');
+            }
+            
             try {
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing_12345', {
-                    issuer: 'vegan-guide-api',
-                    audience: 'vegan-guide-client'
-                });
+                // Try to decode the real JWT token - WITHOUT ignoring expiration
+                const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing_12345';
+                const decoded = jwt.verify(token, secret);
                 console.log('Mock decoded payload:', decoded);
                 
-                // Return the actual payload from the token
+                // Return the payload with real user info
                 return {
                     userId: decoded.userId,
                     email: decoded.email,
-                    role: decoded.role || 'user'
+                    role: decoded.role
                 };
             } catch (error) {
                 console.log('Mock decode error:', error.message);
-                // Fallback to a valid payload if decoding fails
-                return {
-                    userId: faker.database.mongodbObjectId(),
-                    email: 'test@example.com',
-                    role: 'user'
-                };
+                // Throw error for expired/invalid tokens
+                throw new Error(error.message.includes('expired') ? 'Token expired' : 'Invalid token');
             }
         }),
-        verifyRefreshToken: jest.fn().mockResolvedValue({
-            userId: faker.database.mongodbObjectId(),
-            email: 'test@example.com',
-            role: 'user',
+        
+        verifyRefreshToken: jest.fn().mockImplementation(async (token) => {
+            console.log('=== TokenService.verifyRefreshToken MOCK CALLED ===');
+            
+            if (!token) {
+                throw new Error('No refresh token provided');
+            }
+            
+            // Check if token is blacklisted
+            if (blacklistedTokens.has(token)) {
+                throw new Error('Refresh token is blacklisted');
+            }
+            
+            // Check if refresh token has been used (one-time use)
+            if (usedRefreshTokens.has(token)) {
+                throw new Error('Refresh token has already been used');
+            }
+            
+            try {
+                // Try to decode the real JWT token
+                const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET, { ignoreExpiration: true });
+                
+                // Mark this refresh token as used
+                usedRefreshTokens.add(token);
+                
+                return {
+                    userId: decoded.userId,
+                    email: decoded.email,
+                    role: decoded.role
+                };
+            } catch (error) {
+                throw new Error('Invalid refresh token format');
+            }
         }),
-        refreshTokens: jest.fn().mockResolvedValue({
-            accessToken: 'new-access-token',
-            refreshToken: 'new-refresh-token',
+        
+        isUserTokensRevoked: jest.fn().mockImplementation(async (userId) => {
+            console.log('=== TokenService.isUserTokensRevoked MOCK CALLED ===');
+            return revokedUserTokens.has(userId);
         }),
-        blacklistToken: jest.fn().mockImplementation(async (token) => {
-            console.log('=== TokenService.blacklistToken MOCK CALLED ===');
-            console.log('Blacklisting token:', token ? token.substring(0, 20) + '...' : 'null/undefined');
-            blacklistedTokens.add(token);
-            return undefined;
-        }),
-        revokeAllUserTokens: jest.fn().mockResolvedValue(undefined),
+        
         isTokenBlacklisted: jest.fn().mockImplementation(async (token) => {
             console.log('=== TokenService.isTokenBlacklisted MOCK CALLED ===');
-            console.log('Checking if token is blacklisted:', token ? token.substring(0, 20) + '...' : 'null/undefined');
             const isBlacklisted = blacklistedTokens.has(token);
             console.log('Token is blacklisted:', isBlacklisted);
             return isBlacklisted;
         }),
-        isUserTokensRevoked: jest.fn().mockResolvedValue(false),
-    },
-}));
+        
+        blacklistToken: jest.fn().mockImplementation(async (token) => {
+            console.log('=== TokenService.blacklistToken MOCK CALLED ===');
+            blacklistedTokens.add(token);
+            return true;
+        }),
+        
+        revokeAllUserTokens: jest.fn().mockImplementation(async (userId) => {
+            console.log('=== TokenService.revokeAllUserTokens MOCK CALLED ===');
+            revokedUserTokens.add(userId);
+            return true;
+        }),
+        
+        generateTokenPair: jest.fn().mockImplementation(async (payload) => {
+            // Add timestamp and random element to ensure unique tokens
+            const tokenPayload = {
+                ...payload,
+                iat: Math.floor(Date.now() / 1000),
+                nonce: Math.random().toString(36).substring(7)
+            };
+            const accessToken = jwt.sign(tokenPayload, 'test_jwt_secret_key_for_testing_12345', {
+                expiresIn: '15m',
+                issuer: 'vegan-guide-api',
+                audience: 'vegan-guide-client'
+            });
+            const refreshToken = jwt.sign({...tokenPayload, type: 'refresh'}, 'test_refresh_secret_12345', {
+                expiresIn: '7d',
+                issuer: 'vegan-guide-api',
+                audience: 'vegan-guide-client'
+            });
+            return { accessToken, refreshToken };
+        }),
+        
+        generateTokens: jest.fn().mockImplementation(async (userId) => {
+            const payload = {
+                userId,
+                email: 'test@example.com',
+                role: 'user'
+            };
+            return mockTokenService.generateTokenPair(payload);
+        }),
+        
+        refreshTokens: jest.fn().mockImplementation(async (refreshToken) => {
+            console.log('=== TokenService.refreshTokens MOCK CALLED ===');
+            
+            // Use the verifyRefreshToken method from our mock
+            const payload = await mockTokenService.verifyRefreshToken(refreshToken);
+            
+            // Generate new token pair
+            return mockTokenService.generateTokenPair({
+                userId: payload.userId,
+                email: payload.email,
+                role: payload.role,
+            });
+        }),
+        
+        revokeRefreshToken: jest.fn().mockImplementation(async (userId) => {
+            console.log('=== TokenService.revokeRefreshToken MOCK CALLED ===');
+            return true;
+        })
+    };
+    
+    return mockTokenService;
+});
+
+// Simple integration test setup - minimal mocks
+import { faker } from '@faker-js/faker';
+import { generateTestPassword } from '../utils/passwordGenerator';
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
@@ -87,10 +174,5 @@ process.env.CLIENT_URL = 'http://localhost:3000'
 
 // Increase timeout for integration tests
 jest.setTimeout(30000);
-
-// Clear blacklisted tokens before each test
-beforeEach(() => {
-    blacklistedTokens.clear();
-});
 
 console.log('Integration test setup complete');
