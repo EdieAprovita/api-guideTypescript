@@ -4,7 +4,7 @@ module.exports = {
     testEnvironment: 'node',
     roots: ['<rootDir>/src'],
     testMatch: ['**/integration/**/*.test.ts'],
-    setupFilesAfterEnv: ['<rootDir>/src/test/integration/jest.simple.setup.ts'],
+    setupFilesAfterEnv: ['<rootDir>/src/test/integration/jest.integration.setup.ts'],
     transform: {
         '^.+\\.ts$': [
             'ts-jest',

@@ -119,11 +119,11 @@ jest.mock('../../services/TokenService', () => {
             return { accessToken, refreshToken };
         }),
         
-        generateTokens: jest.fn().mockImplementation(async (userId) => {
+        generateTokens: jest.fn().mockImplementation(async (userId, email, role) => {
             const payload = {
                 userId,
-                email: 'test@example.com',
-                role: 'user'
+                email: email || 'test@example.com',
+                role: role || 'user'
             };
             return mockTokenService.generateTokenPair(payload);
         }),
@@ -150,6 +150,13 @@ jest.mock('../../services/TokenService', () => {
     
     return mockTokenService;
 });
+
+// Ensure UserService is NOT mocked for integration tests
+jest.unmock('../../services/UserService');
+
+// Ensure controllers are NOT mocked for integration tests
+jest.unmock('../../controllers/userControllers');
+jest.unmock('../../middleware/authMiddleware');
 
 // Simple integration test setup - minimal mocks
 import { faker } from '@faker-js/faker';

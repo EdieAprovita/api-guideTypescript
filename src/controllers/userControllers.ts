@@ -16,6 +16,11 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
         const result = await UserServices.registerUser(req.body, res);
         res.status(201).json(result);
     } catch (error) {
+        // Log error details in test environment for debugging
+        if (process.env.NODE_ENV === 'test') {
+            console.error('registerUser controller error:', error);
+        }
+        
         next(
             new HttpError(
                 HttpStatusCode.BAD_REQUEST,
@@ -39,6 +44,11 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
         const result = await UserServices.loginUser(email, password, res);
         res.status(200).json(result);
     } catch (error) {
+        // Log error details in test environment for debugging
+        if (process.env.NODE_ENV === 'test') {
+            console.error('loginUser controller error:', error);
+        }
+        
         next(
             new HttpError(
                 HttpStatusCode.UNAUTHORIZED,

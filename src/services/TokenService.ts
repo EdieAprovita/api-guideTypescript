@@ -43,14 +43,55 @@ class TokenService {
 
             this.redis = new Redis(redisConfig);
         } else {
-            // Mock Redis for tests
+            // Mock Redis for tests with realistic behavior
+            const mockRedisStorage = new Map<string, { value: string; expiry: number }>();
+            
             this.redis = {
-                setex: () => Promise.resolve('OK'),
-                get: () => Promise.resolve(null),
-                del: () => Promise.resolve(0),
-                keys: () => Promise.resolve([]),
-                ttl: () => Promise.resolve(-1),
-                disconnect: () => {},
+                setex: (key: string, seconds: number, value: string) => {
+                    const expiry = Date.now() + (seconds * 1000);
+                    mockRedisStorage.set(key, { value, expiry });
+                    return Promise.resolve('OK');
+                },
+                get: (key: string) => {
+                    const entry = mockRedisStorage.get(key);
+                    if (!entry) return Promise.resolve(null);
+                    
+                    // Check if expired
+                    if (Date.now() > entry.expiry) {
+                        mockRedisStorage.delete(key);
+                        return Promise.resolve(null);
+                    }
+                    
+                    return Promise.resolve(entry.value);
+                },
+                del: (key: string) => {
+                    const existed = mockRedisStorage.has(key);
+                    mockRedisStorage.delete(key);
+                    return Promise.resolve(existed ? 1 : 0);
+                },
+                keys: (pattern: string) => {
+                    const keys = Array.from(mockRedisStorage.keys());
+                    if (pattern === '*') return Promise.resolve(keys);
+                    
+                    // Simple pattern matching for blacklist:*
+                    const regex = new RegExp(pattern.replace('*', '.*'));
+                    return Promise.resolve(keys.filter(key => regex.test(key)));
+                },
+                ttl: (key: string) => {
+                    const entry = mockRedisStorage.get(key);
+                    if (!entry) return Promise.resolve(-2); // Key doesn't exist
+                    
+                    const remainingTime = Math.floor((entry.expiry - Date.now()) / 1000);
+                    return Promise.resolve(remainingTime > 0 ? remainingTime : -1);
+                },
+                disconnect: () => {
+                    mockRedisStorage.clear();
+                },
+                // Add method to clear storage for tests
+                flushall: () => {
+                    mockRedisStorage.clear();
+                    return Promise.resolve('OK');
+                }
             } as unknown as Redis;
         }
 
@@ -96,6 +137,22 @@ class TokenService {
         return { accessToken, refreshToken };
     }
 
+    /**
+     * Generate tokens for a user (convenience method for backward compatibility)
+     * @param userId - User ID
+     * @param email - User email (optional)
+     * @param role - User role (optional)
+     * @returns Promise<TokenPair>
+     */
+    async generateTokens(userId: string, email?: string, role?: string): Promise<TokenPair> {
+        const payload: TokenPayload = {
+            userId,
+            email: email || '',
+            role: role || 'user'
+        };
+        return this.generateTokenPair(payload);
+    }
+
     async verifyAccessToken(token: string): Promise<TokenPayload> {
         try {
             // Check if token is blacklisted
@@ -120,6 +177,12 @@ class TokenService {
 
     async verifyRefreshToken(token: string): Promise<TokenPayload> {
         try {
+            // Check if token is blacklisted FIRST
+            const isBlacklisted = await this.isTokenBlacklisted(token);
+            if (isBlacklisted) {
+                throw new Error('Token has been revoked');
+            }
+
             const payload = jwt.verify(token, this.refreshTokenSecret, {
                 issuer: 'vegan-guide-api',
                 audience: 'vegan-guide-client',
@@ -254,6 +317,12 @@ class TokenService {
 
     async disconnect(): Promise<void> {
         this.redis.disconnect();
+    }
+
+    async clearAllForTesting(): Promise<void> {
+        if (process.env.NODE_ENV === 'test' && 'flushall' in this.redis) {
+            await (this.redis as any).flushall();
+        }
     }
 }
 

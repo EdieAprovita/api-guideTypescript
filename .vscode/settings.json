@@ -3,8 +3,21 @@
 		"connectionId": "edieaprovita",
 		"projectKey": "EdieAprovita_api-guideTypescript"
 	},
+	"terminal.integrated.env.osx": {
+		"PATH": "/Users/edgarchavero/.nvm/versions/node/v22.16.0/bin:${env:PATH}"
+	},
+	"terminal.integrated.env.linux": {
+		"PATH": "/Users/edgarchavero/.nvm/versions/node/v22.16.0/bin:${env:PATH}"
+	},
+	"playwright.reuseBrowser": true,
+	"playwright.showTrace": true,
 	"mcp": {
 		"inputs": [],
-		"servers": {}
+		"servers": {
+			"playwright": {
+				"command": "/Volumes/EACM/Developer-Projects/api-guideTypescript/playwright-mcp-wrapper.sh",
+				"args": []
+			}
+		}
 	}
 }

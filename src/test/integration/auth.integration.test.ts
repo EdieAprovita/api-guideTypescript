@@ -1,13 +1,46 @@
+// IMPORTANT: Set environment variables BEFORE any imports
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
+process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_12345';
+process.env.JWT_EXPIRES_IN = '15m';
+process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+process.env.BCRYPT_SALT_ROUNDS = '10';
+
+// Disable Redis for tests
+process.env.REDIS_HOST = '';
+process.env.REDIS_PORT = '';
+
 import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
+
+// Clear all mocks to ensure integration tests use real implementations
+jest.clearAllMocks();
+jest.resetAllMocks();
+
+// CRITICAL: Disable all automatic mocks for integration tests
+jest.unmock('../../app');
+jest.unmock('../../services/UserService');
+jest.unmock('../../controllers/userControllers');
+jest.unmock('../../middleware/authMiddleware');
+jest.unmock('../../middleware/validation');
+jest.unmock('../../middleware/security');
+jest.unmock('../../utils/validators');
+jest.unmock('../../models/User');
+jest.unmock('../../services/TokenService');
+jest.unmock('bcryptjs');
+
+// Force Jest to use real implementations by resetting module registry
+jest.resetModules();
+
 import app from '../../app';
 import {
     connect as connectTestDB,
     closeDatabase as disconnectTestDB,
     clearDatabase as clearTestDB,
 } from './helpers/testDb';
-import { createTestUser, createAdminUser, generateAuthTokens } from './helpers/testFixtures';
+import { createTestUser, createAdminUser } from './helpers/testFixtures';
+import { generateAuthTokens } from './helpers/testFixtures';
 import { logTestError } from './helpers/errorLogger';
 import { User } from '../../models/User';
 import TokenService from '../../services/TokenService';
@@ -151,6 +184,10 @@ describe('Authentication Flow Integration Tests', () => {
 
     afterEach(async () => {
         await clearTestDB();
+        // Clear Redis mock storage between tests if method exists
+        if (typeof TokenService.clearAllForTesting === 'function') {
+            await TokenService.clearAllForTesting();
+        }
     });
 
     afterAll(async () => {
@@ -164,6 +201,7 @@ describe('Authentication Flow Integration Tests', () => {
             clearPasswordCache();
             
             const userData = createUserData();
+            console.log('=== TEST DEBUG: userData ===', userData);
 
             const response = await request(app)
                 .post('/api/v1/users/register')
@@ -171,14 +209,23 @@ describe('Authentication Flow Integration Tests', () => {
                 .set('API-Version', 'v1')
                 .send(userData);
 
+            console.log('=== TEST DEBUG: response status ===', response.status);
+            console.log('=== TEST DEBUG: response body ===', JSON.stringify(response.body, null, 2));
 
             expectSuccessResponse(response, 201);
             expect(response.body).toHaveProperty('token');
+            expect(response.body).toHaveProperty('_id');
             expect(response.body).toHaveProperty('email');
             expect(response.body).toHaveProperty('username');
-            expect(response.body.email).toBe(userData.email.toLowerCase());
+            expect(response.body.email).toBe(userData.email?.toLowerCase());
             expect(response.body.username).toBe(userData.username);
             expect(response.body).not.toHaveProperty('password');
+
+            // Verify token is a valid JWT
+            const { token } = response.body;
+            expect(token).toBeDefined();
+            expect(typeof token).toBe('string');
+            expect(token.split('.').length).toBe(3); // JWT has 3 parts
 
             // Verify user was created in database
             const user = await User.findOne({ email: userData.email });
@@ -201,7 +248,11 @@ describe('Authentication Flow Integration Tests', () => {
             const userData = createUserData({ email, password });
 
             // First registration
-            await request(app).post('/api/v1/users/register').send(userData);
+            await request(app)
+                .post('/api/v1/users/register')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send(userData);
 
             // Attempt duplicate registration with different username but same email
             const duplicateData = createUserData({ 
@@ -212,10 +263,14 @@ describe('Authentication Flow Integration Tests', () => {
             
             const response = await request(app)
                 .post('/api/v1/users/register')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
                 .send(duplicateData);
 
             expectBadRequestResponse(response);
-            expect(response.body.errors?.[0]?.message || response.body.message).toContain('already exists');
+            // The real error response format is { errors: [{ message: "..." }] }
+            const errorMessage = response.body.errors?.[0]?.message || response.body.message || response.body.error;
+            expect(errorMessage).toContain('already exists');
         });
 
         it('should validate email format', async () => {
@@ -227,10 +282,18 @@ describe('Authentication Flow Integration Tests', () => {
         it('should validate password strength', async () => {
             const userData = createUserData({ password: generateWeakPassword() });
 
-            const response = await request(app).post('/api/v1/users/register').send(userData);
+            const response = await request(app)
+                .post('/api/v1/users/register')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send(userData);
 
             expectBadRequestResponse(response);
-            expect(response.body.errors?.[0]?.message || response.body.error).toContain('password');
+            expect(
+                response.body.errors?.[0]?.message || 
+                response.body.message || 
+                response.body.error
+            ).toMatch(/password/i);
         });
     });
 
@@ -269,6 +332,7 @@ describe('Authentication Flow Integration Tests', () => {
 
             expectSuccessResponse(response);
             expect(response.body).toHaveProperty('token');
+            expect(response.body).toHaveProperty('_id');
             expect(response.body).toHaveProperty('email');
             expect(response.body).toHaveProperty('username');
             expect(response.body._id).toBe(testUser._id.toString());
@@ -291,14 +355,22 @@ describe('Authentication Flow Integration Tests', () => {
             const response = await makeLoginRequest(testUser.email, 'definitely-wrong-password');
 
             expectUnauthorizedResponse(response);
-            expect(response.body.errors?.[0]?.message || response.body.message).toContain('Invalid credentials');
+            expect(
+                response.body.errors?.[0]?.message || 
+                response.body.message || 
+                response.body.error
+            ).toMatch(/invalid credentials/i);
         });
 
         it('should fail with non-existent email', async () => {
             const response = await makeLoginRequest(faker.internet.email(), 'any-password');
 
             expectUnauthorizedResponse(response);
-            expect(response.body.errors?.[0]?.message || response.body.message).toContain('Invalid credentials');
+            expect(
+                response.body.errors?.[0]?.message || 
+                response.body.message || 
+                response.body.error
+            ).toMatch(/invalid credentials/i);
         });
 
         it('should handle rate limiting', async () => {
@@ -322,18 +394,24 @@ describe('Authentication Flow Integration Tests', () => {
     });
 
     describe('POST /api/v1/auth/refresh-token', () => {
-        let testUser: TestUser;
-        let tokens: AuthTokens;
-
-        beforeEach(async () => {
-            const setup = await setupUserAndTokens();
-            testUser = setup.user;
-            tokens = setup.tokens;
-        });
-
         it('should refresh access token with valid refresh token', async () => {
-            const response = await request(app).post('/api/v1/auth/refresh-token').send({
-                refreshToken: tokens.refreshToken,
+            // Create fresh user and tokens for this test
+            const setup = await setupUserAndTokens();
+            const tokens = setup.tokens;
+            
+            const response = await request(app)
+                .post('/api/v1/auth/refresh-token')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send({
+                    refreshToken: tokens.refreshToken,
+                });
+
+            console.log('Refresh token response:', {
+                status: response.status,
+                body: response.body,
+                refreshTokenProvided: !!tokens.refreshToken,
+                refreshTokenLength: tokens.refreshToken?.length
             });
 
             expectSuccessResponse(response);
@@ -345,38 +423,69 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         it('should invalidate old refresh token', async () => {
+            // Create fresh user and tokens for this test
+            const setup = await setupUserAndTokens();
+            const tokens = setup.tokens;
             // Use refresh token once
-            await request(app).post('/api/v1/auth/refresh-token').send({
-                refreshToken: tokens.refreshToken,
-            });
+            const firstRefreshResponse = await request(app)
+                .post('/api/v1/auth/refresh-token')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send({
+                    refreshToken: tokens.refreshToken,
+                });
+
+            expectSuccessResponse(firstRefreshResponse);
 
             // Try to use same refresh token again
-            const response = await request(app).post('/api/v1/auth/refresh-token').send({
-                refreshToken: tokens.refreshToken,
-            });
+            const response = await request(app)
+                .post('/api/v1/auth/refresh-token')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send({
+                    refreshToken: tokens.refreshToken,
+                });
 
             expectUnauthorizedResponse(response);
-            expect(response.body.message).toContain('Invalid refresh token');
+            expect(
+                response.body.message || 
+                response.body.error
+            ).toMatch(/invalid refresh token/i);
         });
 
         it('should handle blacklisted tokens', async () => {
+            // Create fresh user and tokens for this test
+            const setup = await setupUserAndTokens();
+            const tokens = setup.tokens;
+            
             // Blacklist the token
             await TokenService.blacklistToken(tokens.refreshToken);
 
-            const response = await request(app).post('/api/v1/auth/refresh-token').send({
-                refreshToken: tokens.refreshToken,
-            });
+            const response = await request(app)
+                .post('/api/v1/auth/refresh-token')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send({
+                    refreshToken: tokens.refreshToken,
+                });
 
             expectUnauthorizedResponse(response);
         });
 
         it('should reject invalid refresh token format', async () => {
-            const response = await request(app).post('/api/v1/auth/refresh-token').send({
-                refreshToken: 'invalid.token.format',
-            });
+            const response = await request(app)
+                .post('/api/v1/auth/refresh-token')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send({
+                    refreshToken: 'invalid.token.format',
+                });
 
             expectUnauthorizedResponse(response);
-            expect(response.body.message).toContain('Invalid refresh token');
+            expect(
+                response.body.message || 
+                response.body.error
+            ).toMatch(/invalid refresh token/i);
         });
     });
 
@@ -402,7 +511,10 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         it('should require authentication', async () => {
-            const response = await request(app).post('/api/v1/auth/logout');
+            const response = await request(app)
+                .post('/api/v1/auth/logout')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
 
             expectUnauthorizedResponse(response);
         });
@@ -430,7 +542,10 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         it('should require authentication for token revocation', async () => {
-            const response = await request(app).post('/api/v1/auth/revoke-all-tokens');
+            const response = await request(app)
+                .post('/api/v1/auth/revoke-all-tokens')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
 
             expectUnauthorizedResponse(response);
         });
@@ -453,10 +568,6 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         it('should allow access with valid token', async () => {
-            // Debug information
-            console.log('Test user ID:', testUser._id);
-            console.log('Access token:', userTokens.accessToken);
-            
             const response = await makeAuthRequest('get', '/api/v1/users/profile', userTokens.accessToken);
 
             console.log('Response status:', response.status);
@@ -466,23 +577,30 @@ describe('Authentication Flow Integration Tests', () => {
                 expectSuccessResponse(response);
                 // Check if response.body has the expected structure
                 if (response.body && response.body._id) {
-                    expect(response.body._id).toBe(testUser._id.toString());
+                    expect(response.body._id.toString()).toBe(testUser._id.toString());
                 } else {
                     console.error('Response body missing _id:', response.body);
-                    throw new Error('Response body is missing _id field');
+                    expect(response.body).toHaveProperty('_id');
                 }
             } else {
                 console.error('Unexpected response status:', response.status);
                 console.error('Error body:', response.body);
-                throw new Error(`Expected 200 but got ${response.status}`);
+                expect(response.status).toBe(200);
             }
         });
 
         it('should deny access without token', async () => {
-            const response = await request(app).get('/api/v1/users/profile');
+            const response = await request(app)
+                .get('/api/v1/users/profile')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
 
             expectUnauthorizedResponse(response);
-            expect(response.body.errors?.[0]?.message).toContain('Not authorized');
+            expect(
+                response.body.errors?.[0]?.message || 
+                response.body.message || 
+                response.body.error
+            ).toMatch(/not authorized/i);
         });
 
         it('should deny access with expired token', async () => {
@@ -500,7 +618,10 @@ describe('Authentication Flow Integration Tests', () => {
 
             expect(response.status).toBe(403);
             expect(response.body.success).toBe(false);
-            expect(response.body.error).toContain('Admin access required');
+            expect(
+                response.body.error || 
+                response.body.message
+            ).toMatch(/admin access required/i);
         });
 
         it('should allow admin access to admin routes', async () => {

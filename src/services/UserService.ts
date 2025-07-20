@@ -97,15 +97,38 @@ abstract class BaseService {
 class UserService extends BaseService {
     async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, res: Response) {
         try {
+            // Debug logging for integration tests
+            if (process.env.NODE_ENV === 'test') {
+                console.log('=== UserService.registerUser REAL METHOD CALLED ===');
+                console.log('userData received:', userData);
+            }
+            
             await this.validateUserNotExists(userData.email);
             const user = await User.create(userData);
-            const tokens = await TokenService.generateTokens(user._id.toString());
+            
+            if (process.env.NODE_ENV === 'test') {
+                console.log('User created:', user?._id);
+            }
+            
+            const tokens = await TokenService.generateTokens(user._id.toString(), user.email, user.role);
+            
+            if (process.env.NODE_ENV === 'test') {
+                console.log('Tokens generated:', !!tokens.accessToken);
+            }
+            
             generateTokenAndSetCookie(res, user._id);
-            return {
+            
+            const result = {
                 ...this.getUserResponse(user),
                 token: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
             };
+            
+            if (process.env.NODE_ENV === 'test') {
+                console.log('Final result:', result);
+            }
+            
+            return result;
         } catch (error) {
             // In test environment, log the error to understand what's happening
             if (process.env.NODE_ENV === 'test') {
@@ -119,7 +142,7 @@ class UserService extends BaseService {
         // Find user without throwing error if not found
         const user = await User.findOne({ email }).select('+password');
         await this.validateUserCredentials(user, password);
-        const tokens = await TokenService.generateTokens(user!._id.toString());
+        const tokens = await TokenService.generateTokens(user!._id.toString(), user!.email, user!.role);
         generateTokenAndSetCookie(res, user!._id);
         const userResponse = this.getUserResponse(user!);
         return {

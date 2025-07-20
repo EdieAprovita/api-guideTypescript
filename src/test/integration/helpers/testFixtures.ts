@@ -5,6 +5,7 @@ import { Business } from '../../../models/Business';
 import { logTestError } from './errorLogger';
 import jwt from 'jsonwebtoken';
 import { generateTestPassword } from '../../utils/passwordGenerator';
+import TokenService from '../../../services/TokenService';
 
 // Import bcrypt with fallback for mocked environments
 interface BcryptInterface {
@@ -102,32 +103,16 @@ export const generateAuthTokens = async (
   email: string,
   role?: string
 ) => {
-  const accessSecret =
-    process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
-  const refreshSecret =
-    process.env.JWT_REFRESH_SECRET || 'test_jwt_refresh_secret_key';
-
-  const accessToken = jwt.sign(
-    { userId, email, role },
-    accessSecret,
-    {
-      expiresIn: '15m',
-      issuer: 'vegan-guide-api',
-      audience: 'vegan-guide-client'
-    }
+  const tokenPair = await TokenService.generateTokens(
+    userId,
+    email,
+    role || 'user'
   );
 
-  const refreshToken = jwt.sign(
-    { userId, email, role },
-    refreshSecret,
-    {
-      expiresIn: '7d',
-      issuer: 'vegan-guide-api',
-      audience: 'vegan-guide-client'
-    }
-  );
-
-  return { accessToken, refreshToken };
+  return {
+    accessToken: tokenPair.accessToken,
+    refreshToken: tokenPair.refreshToken
+  };
 };
 
 interface RestaurantOverrides {

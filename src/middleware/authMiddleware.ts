@@ -219,16 +219,22 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
  */
 export const refreshToken = async (req: Request, res: Response) => {
     try {
+        console.log('[REFRESH TOKEN DEBUG] Request received');
+        console.log('[REFRESH TOKEN DEBUG] Body:', req.body);
+        
         const { refreshToken } = req.body;
 
         if (!refreshToken) {
+            console.log('[REFRESH TOKEN DEBUG] No refresh token provided');
             return res.status(400).json({
                 success: false,
                 message: 'Refresh token is required',
             });
         }
 
+        console.log('[REFRESH TOKEN DEBUG] Calling TokenService.refreshTokens');
         const tokens = await TokenService.refreshTokens(refreshToken);
+        console.log('[REFRESH TOKEN DEBUG] Tokens generated successfully:', !!tokens);
 
         return res.json({
             success: true,
@@ -236,6 +242,7 @@ export const refreshToken = async (req: Request, res: Response) => {
             data: tokens,
         });
     } catch (error) {
+        console.log('[REFRESH TOKEN DEBUG] Error occurred:', error);
         return res.status(401).json({
             success: false,
             message: 'Invalid refresh token',
