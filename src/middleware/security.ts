@@ -146,11 +146,15 @@ export const smartRateLimit = createAdvancedRateLimit({
  * Suspicious activity detection middleware
  */
 export const detectSuspiciousActivity = (req: Request, res: Response, next: NextFunction) => {
-    // Skip password validation for authentication endpoints
-    if (req.path.includes('/register') || req.path.includes('/login') || req.path.includes('/reset-password')) {
+    // Skip security checks for authentication endpoints only
+    // Use exact path matching to prevent bypass vulnerabilities
+    const authEndpoints = ['/register', '/login', '/reset-password'];
+    const isAuthEndpoint = authEndpoints.some(endpoint => req.path === endpoint || req.path.endsWith(endpoint));
+
+    if (isAuthEndpoint) {
         return next();
     }
-    
+
     const suspiciousPatterns = [
         // SQL injection patterns - safer regex without nested quantifiers
         /\b(union|select|insert|update|delete|drop|create|alter|exec|script)\b/i,

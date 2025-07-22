@@ -119,7 +119,7 @@ class TokenService {
         const tokenPayload = {
             ...payload,
             iat: Math.floor(Date.now() / 1000),
-            jti: Math.random().toString(36).substr(2, 9), // unique token ID
+            jti: Math.random().toString(36).substring(2, 11), // unique token ID
         };
 
         const accessToken = jwt.sign(
@@ -137,7 +137,7 @@ class TokenService {
                 ...payload,
                 type: 'refresh',
                 iat: Math.floor(Date.now() / 1000),
-                jti: Math.random().toString(36).substr(2, 9),
+                jti: Math.random().toString(36).substring(2, 11),
             },
             this.refreshTokenSecret as jwt.Secret,
             {

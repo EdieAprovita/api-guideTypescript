@@ -14,7 +14,8 @@ describe('TokenService Integration Tests', () => {
         try {
             await TokenService.clearAllForTesting();
         } catch (error) {
-            // Ignore errors in test environment
+            // Log error for debugging but don't fail the test
+            console.warn('Failed to clear tokens for testing:', error);
         }
     });
 
@@ -23,7 +24,8 @@ describe('TokenService Integration Tests', () => {
         try {
             await TokenService.disconnect();
         } catch (error) {
-            // Ignore errors in test environment
+            // Log error for debugging but don't fail the test
+            console.warn('Failed to disconnect TokenService:', error);
         }
     });
 

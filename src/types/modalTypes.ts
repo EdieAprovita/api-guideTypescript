@@ -12,7 +12,7 @@ export const getErrorMessage = (message: string): string =>
     process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? message : 'Internal Server Error';
 
 export interface IContact {
-    phone: number;
+    phone: string;
     email: string;
     facebook?: string;
     instagram?: string;
