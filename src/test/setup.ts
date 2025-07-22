@@ -57,11 +57,13 @@ jest.mock('../models/User', () => ({
 jest.mock('jsonwebtoken', () => ({
     __esModule: true,
     default: {
-        sign: jest.fn().mockReturnValue(generateTestPassword()),
-        verify: jest.fn().mockReturnValue({ userId: 'someUserId' }),
+        sign: jest.fn().mockReturnValue('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZW1haWwuY29tIn0.mock-signature'),
+        verify: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com' }),
+        decode: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com', exp: Math.floor(Date.now() / 1000) + 3600 }),
     },
-    sign: jest.fn().mockReturnValue(generateTestPassword()),
-    verify: jest.fn().mockReturnValue({ userId: 'someUserId' }),
+    sign: jest.fn().mockReturnValue('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZW1haWwuY29tIn0.mock-signature'),
+    verify: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com' }),
+    decode: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com', exp: Math.floor(Date.now() / 1000) + 3600 }),
 }));
 
 jest.mock('bcryptjs', () => ({

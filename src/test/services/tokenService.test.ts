@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker';
 import jwt from 'jsonwebtoken';
 import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers';
 import { TEST_JWT_CONFIG, TEST_REDIS_CONFIG, setupTestEnvironment, cleanupTestEnvironment } from '../testConfig';
+import TokenService from '../../services/TokenService';
 
 // Mock jwt module completely
 jest.mock('jsonwebtoken', () => ({
@@ -12,7 +13,7 @@ jest.mock('jsonwebtoken', () => ({
 
 const mockJwt = jwt as jest.Mocked<typeof jwt>;
 
-// Mock Redis operations  
+// Mock Redis operations
 const mockRedis = {
     setex: jest.fn(),
     get: jest.fn(),
@@ -38,26 +39,22 @@ class TestTokenService {
         this.refreshTokenExpiry = TEST_JWT_CONFIG.refreshExpiry;
     }
 
-    async generateTokenPair(payload: { userId: string; email: string; role?: string }): Promise<{ accessToken: string; refreshToken: string }> {
-        const accessToken = jwt.sign(
-            payload,
-            this.accessTokenSecret,
-            {
-                expiresIn: this.accessTokenExpiry,
-                issuer: TEST_JWT_CONFIG.issuer,
-                audience: TEST_JWT_CONFIG.audience,
-            }
-        );
+    async generateTokenPair(payload: {
+        userId: string;
+        email: string;
+        role?: string;
+    }): Promise<{ accessToken: string; refreshToken: string }> {
+        const accessToken = jwt.sign(payload, this.accessTokenSecret, {
+            expiresIn: this.accessTokenExpiry,
+            issuer: TEST_JWT_CONFIG.issuer,
+            audience: TEST_JWT_CONFIG.audience,
+        });
 
-        const refreshToken = jwt.sign(
-            { ...payload, type: 'refresh' },
-            this.refreshTokenSecret,
-            {
-                expiresIn: this.refreshTokenExpiry,
-                issuer: TEST_JWT_CONFIG.issuer,
-                audience: TEST_JWT_CONFIG.audience,
-            }
-        );
+        const refreshToken = jwt.sign({ ...payload, type: 'refresh' }, this.refreshTokenSecret, {
+            expiresIn: this.refreshTokenExpiry,
+            issuer: TEST_JWT_CONFIG.issuer,
+            audience: TEST_JWT_CONFIG.audience,
+        });
 
         // Store refresh token in Redis with expiration
         const refreshTokenKey = `refresh_token:${payload.userId}`;
@@ -137,7 +134,7 @@ class TestTokenService {
 
     async blacklistToken(token: string): Promise<void> {
         try {
-            const decoded = jwt.decode(token);
+            const decoded = jwt.decode(token, { complete: false });
             if (decoded && typeof decoded === 'object' && 'exp' in decoded && decoded.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
                 if (expirationTime > 0) {
@@ -146,8 +143,6 @@ class TestTokenService {
                 }
             }
         } catch (error) {
-            // Token might be malformed, but we still want to attempt blacklisting
-            // Silenced for tests to avoid console noise
             const blacklistKey = `blacklist:${token}`;
             await this.redis.setex(blacklistKey, 3600, 'revoked'); // 1 hour default
         }
@@ -175,15 +170,12 @@ class TestTokenService {
     }
 
     async cleanup(): Promise<void> {
-        // Clean up expired blacklisted tokens (Redis handles this automatically with TTL)
-        // This method can be used for additional cleanup if needed
         const pattern = 'blacklist:*';
         const keys = await this.redis.keys(pattern);
 
         for (const key of keys) {
             const ttl = await this.redis.ttl(key);
             if (ttl === -1) {
-                // Key exists but has no TTL, remove it
                 await this.redis.del(key);
             }
         }
@@ -197,36 +189,39 @@ class TestTokenService {
     }> {
         try {
             const decoded = jwt.decode(token, { complete: true });
-            
-            if (!decoded || typeof decoded === 'string') {
-                return {
-                    isValid: false,
-                    error: 'Invalid token format'
-                };
+            if (decoded && typeof decoded === 'object' && 'header' in decoded && 'payload' in decoded) {
+                const payload = decoded.payload;
+                if (typeof payload === 'object' && payload !== null) {
+                    return {
+                        header: decoded.header,
+                        payload: payload as jwt.JwtPayload,
+                        isValid: true,
+                    };
+                }
             }
-
-            if (!decoded.payload || typeof decoded.payload === 'string') {
-                return {
-                    isValid: false,
-                    error: 'Invalid token format'
-                };
-            }
-
             return {
-                header: decoded.header,
-                payload: decoded.payload,
-                isValid: true
+                isValid: false,
+                error: 'Invalid token format',
             };
         } catch (error) {
             return {
                 isValid: false,
-                error: error instanceof Error ? error.message : 'Invalid token format'
+                error: error instanceof Error ? error.message : 'Invalid token format',
             };
         }
     }
 
     async disconnect(): Promise<void> {
-        await this.redis.disconnect();
+        this.redis.disconnect();
+    }
+
+    async clearAllForTesting(): Promise<void> {
+        // Clear all mock storage
+        mockRedis.setex.mockClear();
+        mockRedis.get.mockClear();
+        mockRedis.del.mockClear();
+        mockRedis.keys.mockClear();
+        mockRedis.ttl.mockClear();
     }
 }
 
@@ -255,7 +250,12 @@ describe('TokenService', () => {
     });
 
     // Helper function to setup common mock expectations
-    const setupMockToken = (mockPayload: Record<string, unknown> = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() }) => {
+    const setupMockToken = (
+        mockPayload: Record<string, unknown> = {
+            userId: faker.database.mongodbObjectId(),
+            email: faker.internet.email(),
+        }
+    ) => {
         (mockJwt.sign as jest.Mock).mockReturnValue('mock-token');
         (mockJwt.verify as jest.Mock).mockReturnValue(mockPayload);
         (mockJwt.decode as jest.Mock).mockReturnValue(mockPayload);
@@ -278,10 +278,10 @@ describe('TokenService', () => {
         it('should use default values for expiry times', () => {
             delete process.env.JWT_EXPIRES_IN;
             delete process.env.JWT_REFRESH_EXPIRES_IN;
-            
+
             const testService = new TestTokenService();
             expect(testService).toBeDefined();
-            
+
             // Restore for other tests
             process.env.JWT_EXPIRES_IN = TEST_JWT_CONFIG.accessExpiry;
             process.env.JWT_REFRESH_EXPIRES_IN = TEST_JWT_CONFIG.refreshExpiry;
@@ -303,7 +303,7 @@ describe('TokenService', () => {
             );
             expect(result).toEqual({
                 accessToken: 'mock-token',
-                refreshToken: 'mock-token'
+                refreshToken: 'mock-token',
             });
         });
 
@@ -318,7 +318,7 @@ describe('TokenService', () => {
                 expect.any(String),
                 expect.objectContaining({
                     issuer: TEST_JWT_CONFIG.issuer,
-                    audience: TEST_JWT_CONFIG.audience
+                    audience: TEST_JWT_CONFIG.audience,
                 })
             );
         });
@@ -337,7 +337,7 @@ describe('TokenService', () => {
                 TEST_JWT_CONFIG.accessSecret,
                 expect.objectContaining({
                     issuer: TEST_JWT_CONFIG.issuer,
-                    audience: TEST_JWT_CONFIG.audience
+                    audience: TEST_JWT_CONFIG.audience,
                 })
             );
             expect(result).toEqual(mockPayload);
@@ -346,8 +346,9 @@ describe('TokenService', () => {
         it('should reject blacklisted token', async () => {
             mockRedis.get.mockResolvedValue('revoked'); // Blacklisted
 
-            await expect(TokenService.verifyAccessToken('blacklisted-token'))
-                .rejects.toThrow('Invalid or expired access token: Token has been revoked');
+            await expect(TokenService.verifyAccessToken('blacklisted-token')).rejects.toThrow(
+                'Invalid or expired access token: Token has been revoked'
+            );
         });
 
         it('should handle verification errors', async () => {
@@ -355,17 +356,18 @@ describe('TokenService', () => {
                 throw new Error('Token expired');
             });
 
-            await expect(TokenService.verifyAccessToken('expired-token'))
-                .rejects.toThrow('Invalid or expired access token: Token expired');
+            await expect(TokenService.verifyAccessToken('expired-token')).rejects.toThrow(
+                'Invalid or expired access token: Token expired'
+            );
         });
     });
 
     describe('verifyRefreshToken', () => {
         it('should verify valid refresh token', async () => {
-            const mockPayload = { 
-                userId: faker.database.mongodbObjectId(), 
-                email: faker.internet.email(), 
-                type: 'refresh' 
+            const mockPayload = {
+                userId: faker.database.mongodbObjectId(),
+                email: faker.internet.email(),
+                type: 'refresh',
             };
             setupMockToken(mockPayload);
             mockRedis.get.mockResolvedValue('stored-token');
@@ -376,50 +378,53 @@ describe('TokenService', () => {
         });
 
         it('should reject token with wrong type', async () => {
-            const mockPayload = { 
-                userId: faker.database.mongodbObjectId(), 
-                email: faker.internet.email(), 
-                type: 'access' // Wrong type
+            const mockPayload = {
+                userId: faker.database.mongodbObjectId(),
+                email: faker.internet.email(),
+                type: 'access', // Wrong type
             };
             setupMockToken(mockPayload);
 
-            await expect(TokenService.verifyRefreshToken('wrong-type-token'))
-                .rejects.toThrow('Invalid or expired refresh token: Invalid token type');
+            await expect(TokenService.verifyRefreshToken('wrong-type-token')).rejects.toThrow(
+                'Invalid or expired refresh token: Invalid token type'
+            );
         });
 
         it('should reject token not found in Redis', async () => {
-            const mockPayload = { 
-                userId: faker.database.mongodbObjectId(), 
-                email: faker.internet.email(), 
-                type: 'refresh' 
+            const mockPayload = {
+                userId: faker.database.mongodbObjectId(),
+                email: faker.internet.email(),
+                type: 'refresh',
             };
             setupMockToken(mockPayload);
             mockRedis.get.mockResolvedValue(null); // Not in Redis
 
-            await expect(TokenService.verifyRefreshToken('missing-token'))
-                .rejects.toThrow('Invalid or expired refresh token: Refresh token not found or invalid');
+            await expect(TokenService.verifyRefreshToken('missing-token')).rejects.toThrow(
+                'Invalid or expired refresh token: Refresh token not found or invalid'
+            );
         });
 
         it('should reject mismatched token', async () => {
-            const mockPayload = { 
-                userId: faker.database.mongodbObjectId(), 
-                email: faker.internet.email(), 
-                type: 'refresh' 
+            const mockPayload = {
+                userId: faker.database.mongodbObjectId(),
+                email: faker.internet.email(),
+                type: 'refresh',
             };
             setupMockToken(mockPayload);
             mockRedis.get.mockResolvedValue('different-token'); // Mismatch
 
-            await expect(TokenService.verifyRefreshToken('request-token'))
-                .rejects.toThrow('Invalid or expired refresh token: Refresh token not found or invalid');
+            await expect(TokenService.verifyRefreshToken('request-token')).rejects.toThrow(
+                'Invalid or expired refresh token: Refresh token not found or invalid'
+            );
         });
     });
 
     describe('refreshTokens', () => {
         it('should refresh tokens successfully', async () => {
-            const mockPayload = { 
-                userId: faker.database.mongodbObjectId(), 
-                email: faker.internet.email(), 
-                type: 'refresh' 
+            const mockPayload = {
+                userId: faker.database.mongodbObjectId(),
+                email: faker.internet.email(),
+                type: 'refresh',
             };
             setupMockToken(mockPayload);
             mockRedis.get.mockResolvedValue('valid-refresh-token');
@@ -429,7 +434,7 @@ describe('TokenService', () => {
             expect(mockRedis.del).toHaveBeenCalledWith(`refresh_token:${mockPayload.userId}`);
             expect(result).toEqual({
                 accessToken: 'mock-token',
-                refreshToken: 'mock-token'
+                refreshToken: 'mock-token',
             });
         });
     });
@@ -446,22 +451,18 @@ describe('TokenService', () => {
     describe('blacklistToken', () => {
         it('should blacklist token with valid expiration', async () => {
             const mockDecoded = {
-                exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+                exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
             };
             mockJwt.decode.mockReturnValue(mockDecoded);
 
             await TokenService.blacklistToken('valid-token');
 
-            expect(mockRedis.setex).toHaveBeenCalledWith(
-                'blacklist:valid-token',
-                expect.any(Number),
-                'revoked'
-            );
+            expect(mockRedis.setex).toHaveBeenCalledWith('blacklist:valid-token', expect.any(Number), 'revoked');
         });
 
         it('should handle expired token gracefully', async () => {
             const mockDecoded = {
-                exp: Math.floor(Date.now() / 1000) - 3600 // 1 hour ago
+                exp: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
             };
             mockJwt.decode.mockReturnValue(mockDecoded);
 
@@ -477,11 +478,7 @@ describe('TokenService', () => {
 
             await TokenService.blacklistToken('malformed-token');
 
-            expect(mockRedis.setex).toHaveBeenCalledWith(
-                'blacklist:malformed-token',
-                3600,
-                'revoked'
-            );
+            expect(mockRedis.setex).toHaveBeenCalledWith('blacklist:malformed-token', 3600, 'revoked');
         });
 
         it('should handle null decoded token', async () => {
@@ -522,11 +519,7 @@ describe('TokenService', () => {
             await TokenService.revokeAllUserTokens(userId);
 
             expect(mockRevokeRefreshToken).toHaveBeenCalledWith(userId);
-            expect(mockRedis.setex).toHaveBeenCalledWith(
-                `user_tokens:${userId}`,
-                24 * 60 * 60,
-                'revoked'
-            );
+            expect(mockRedis.setex).toHaveBeenCalledWith(`user_tokens:${userId}`, 24 * 60 * 60, 'revoked');
         });
     });
 
@@ -580,7 +573,7 @@ describe('TokenService', () => {
             const mockToken = 'valid-token';
             const mockDecoded = {
                 header: { alg: 'HS256', typ: 'JWT' },
-                payload: { userId: faker.database.mongodbObjectId(), email: faker.internet.email() }
+                payload: { userId: faker.database.mongodbObjectId(), email: faker.internet.email() },
             };
 
             mockJwt.decode.mockReturnValue(mockDecoded);
@@ -590,7 +583,7 @@ describe('TokenService', () => {
             expect(result).toEqual({
                 header: mockDecoded.header,
                 payload: mockDecoded.payload,
-                isValid: true
+                isValid: true,
             });
             expect(mockJwt.decode).toHaveBeenCalledWith(mockToken, { complete: true });
         });
@@ -602,7 +595,7 @@ describe('TokenService', () => {
 
             expect(result).toEqual({
                 isValid: false,
-                error: 'Invalid token format'
+                error: 'Invalid token format',
             });
         });
 
@@ -615,7 +608,7 @@ describe('TokenService', () => {
 
             expect(result).toEqual({
                 isValid: false,
-                error: 'Malformed token'
+                error: 'Malformed token',
             });
         });
 
@@ -628,14 +621,14 @@ describe('TokenService', () => {
 
             expect(result).toEqual({
                 isValid: false,
-                error: 'Invalid token format'
+                error: 'Invalid token format',
             });
         });
 
         it('should handle token with invalid payload structure', async () => {
             const mockDecoded = {
                 header: { alg: 'HS256', typ: 'JWT' },
-                payload: 'string-payload' // Invalid payload type
+                payload: 'string-payload', // Invalid payload type
             };
 
             mockJwt.decode.mockReturnValue(mockDecoded);
@@ -644,7 +637,7 @@ describe('TokenService', () => {
 
             expect(result).toEqual({
                 isValid: false,
-                error: 'Invalid token format'
+                error: 'Invalid token format',
             });
         });
     });
@@ -662,7 +655,7 @@ describe('TokenService', () => {
     describe('Redis Configuration', () => {
         it('should handle Redis configuration with password', () => {
             const originalEnv = process.env;
-            
+
             process.env = {
                 ...originalEnv,
                 NODE_ENV: 'production',
@@ -670,7 +663,7 @@ describe('TokenService', () => {
                 REDIS_PORT: '6380',
                 REDIS_PASSWORD: TEST_REDIS_CONFIG.password,
                 JWT_SECRET: TEST_JWT_CONFIG.accessSecret,
-                JWT_REFRESH_SECRET: TEST_JWT_CONFIG.refreshSecret
+                JWT_REFRESH_SECRET: TEST_JWT_CONFIG.refreshSecret,
             };
 
             // This test verifies that the constructor doesn't throw when Redis config includes password
@@ -679,5 +672,59 @@ describe('TokenService', () => {
 
             process.env = originalEnv;
         });
+    });
+});
+
+describe('TokenService Integration Tests', () => {
+    beforeEach(async () => {
+        // Clear any existing tokens
+        await TokenService.clearAllForTesting();
+    });
+
+    it('should generate and verify refresh token correctly', async () => {
+        const userId = faker.database.mongodbObjectId();
+        const email = faker.internet.email();
+        const role = 'user';
+
+        // Generate token pair
+        const tokens = await TokenService.generateTokenPair({
+            userId,
+            email,
+            role,
+        });
+
+        expect(tokens.accessToken).toBeDefined();
+        expect(tokens.refreshToken).toBeDefined();
+
+        // Verify refresh token
+        const payload = await TokenService.verifyRefreshToken(tokens.refreshToken);
+
+        expect(payload.userId).toBe(userId);
+        expect(payload.email).toBe(email);
+        expect(payload.role).toBe(role);
+    });
+
+    it('should refresh tokens correctly', async () => {
+        const userId = faker.database.mongodbObjectId();
+        const email = faker.internet.email();
+        const role = 'user';
+
+        // Generate initial tokens
+        const initialTokens = await TokenService.generateTokenPair({
+            userId,
+            email,
+            role,
+        });
+
+        // Refresh tokens
+        const newTokens = await TokenService.refreshTokens(initialTokens.refreshToken);
+
+        expect(newTokens.accessToken).toBeDefined();
+        expect(newTokens.refreshToken).toBeDefined();
+        expect(newTokens.accessToken).not.toBe(initialTokens.accessToken);
+        expect(newTokens.refreshToken).not.toBe(initialTokens.refreshToken);
+
+        // Old refresh token should be invalid
+        await expect(TokenService.verifyRefreshToken(initialTokens.refreshToken)).rejects.toThrow();
     });
 });

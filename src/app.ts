@@ -82,7 +82,7 @@ app.use('/api/v1/recipes', recipesRoutes);
 app.use('/api/v1/markets', marketsRoutes);
 app.use('/api/v1/restaurants', restaurantRoutes);
 app.use('/api/v1/doctors', doctorsRoutes);
-app.use('/api/v1/professionsProfile', professionProfileRoutes);
+app.use('/api/v1/professionalProfile', professionProfileRoutes);
 app.use('/api/v1/professions', professionRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/sanctuaries', sanctuaryRoutes);

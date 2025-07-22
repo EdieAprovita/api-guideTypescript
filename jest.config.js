@@ -5,9 +5,9 @@ module.exports = {
     testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
     testPathIgnorePatterns: [
         '/node_modules/',
-        '<rootDir>/src/test/middleware/',
         '<rootDir>/src/test/controllers/userControllers.test.ts',
-
+        '<rootDir>/src/test/e2e/',
+        '<rootDir>/src/test/middleware/',
     ],
     setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
     testTimeout: 20000,

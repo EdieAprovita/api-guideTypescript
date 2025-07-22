@@ -107,28 +107,52 @@ export const serviceMocks = {
 
     // Token Service
     tokenService: {
-        generateTokenPair: jest.fn().mockResolvedValue({
-            accessToken: 'mock-access-token',
-            refreshToken: 'mock-refresh-token',
+        generateTokenPair: jest.fn().mockImplementation(payload => {
+            return Promise.resolve({
+                accessToken: `mock-access-token-${payload.userId}`,
+                refreshToken: `mock-refresh-token-${payload.userId}`,
+            });
         }),
-        verifyAccessToken: jest.fn().mockResolvedValue({
-            userId: faker.database.mongodbObjectId(),
-            email: faker.internet.email(),
-            role: 'user',
+        generateTokens: jest.fn().mockImplementation((userId, email, role) => {
+            return Promise.resolve({
+                accessToken: `mock-access-token-${userId}`,
+                refreshToken: `mock-refresh-token-${userId}`,
+            });
         }),
-        verifyRefreshToken: jest.fn().mockResolvedValue({
-            userId: faker.database.mongodbObjectId(),
-            email: faker.internet.email(),
-            role: 'user',
+        verifyAccessToken: jest.fn().mockImplementation(token => {
+            // Extract userId from mock token format
+            const userId = token.replace('mock-access-token-', '');
+            return Promise.resolve({
+                userId,
+                email: 'test@example.com',
+                role: 'user',
+            });
         }),
-        refreshTokens: jest.fn().mockResolvedValue({
-            accessToken: 'new-access-token',
-            refreshToken: 'new-refresh-token',
+        verifyRefreshToken: jest.fn().mockImplementation(token => {
+            // Extract userId from mock token format
+            const userId = token.replace('mock-refresh-token-', '');
+            return Promise.resolve({
+                userId,
+                email: 'test@example.com',
+                role: 'user',
+            });
+        }),
+        refreshTokens: jest.fn().mockImplementation(refreshToken => {
+            // Extract userId from mock token format
+            const userId = refreshToken.replace('mock-refresh-token-', '');
+            // Remove any suffix like '-new' if present
+            const cleanUserId = userId.replace('-new', '');
+            return Promise.resolve({
+                accessToken: `mock-access-token-${cleanUserId}-new`,
+                refreshToken: `mock-refresh-token-${cleanUserId}-new`,
+            });
         }),
         blacklistToken: jest.fn().mockResolvedValue(undefined),
         revokeAllUserTokens: jest.fn().mockResolvedValue(undefined),
         isTokenBlacklisted: jest.fn().mockResolvedValue(false),
         isUserTokensRevoked: jest.fn().mockResolvedValue(false),
+        clearAllForTesting: jest.fn().mockResolvedValue(undefined),
+        disconnect: jest.fn().mockResolvedValue(undefined),
     },
 };
 
@@ -151,7 +175,7 @@ export const modelMocks = {
             email: 'mock@example.com',
         }),
         create: jest.fn().mockResolvedValue({
-            _id: 'newUserId',
+            _id: faker.database.mongodbObjectId(),
             email: 'new@example.com',
         }),
         find: jest.fn().mockResolvedValue([]),
@@ -168,8 +192,17 @@ export const modelMocks = {
 // Mock para librerías externas
 export const externalMocks = {
     jsonwebtoken: {
-        verify: jest.fn().mockReturnValue({ userId: 'someUserId' }),
-        sign: jest.fn().mockReturnValue('mock-token'),
+        verify: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com' }),
+        sign: jest
+            .fn()
+            .mockReturnValue(
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZW1haWwuY29tIn0.mock-signature'
+            ),
+        decode: jest.fn().mockReturnValue({
+            userId: 'test-user-id',
+            email: 'test@email.com',
+            exp: Math.floor(Date.now() / 1000) + 3600,
+        }),
     },
     bcrypt: {
         hash: jest.fn().mockResolvedValue(testConfig.generateTestPassword()),

@@ -33,11 +33,9 @@ describe('Validation Middleware Tests', () => {
     describe('Input Validation', () => {
         it('should validate user registration data correctly', async () => {
             const validUserData = {
-                firstName: 'John',
-                lastName: 'Doe',
+                username: 'johndoe',
                 email: 'john.doe@example.com',
                 password: TEST_PASSWORD,
-                dateOfBirth: '1990-01-01',
             };
 
             const response = await request(app).post('/test-user-validation').send(validUserData);
@@ -49,11 +47,9 @@ describe('Validation Middleware Tests', () => {
 
         it('should reject invalid email format', async () => {
             const invalidUserData = {
-                firstName: 'John',
-                lastName: 'Doe',
+                username: 'johndoe',
                 email: 'invalid-email',
                 password: TEST_PASSWORD,
-                dateOfBirth: '1990-01-01',
             };
 
             const response = await request(app).post('/test-user-validation').send(invalidUserData);
@@ -67,11 +63,9 @@ describe('Validation Middleware Tests', () => {
 
         it('should reject weak passwords', async () => {
             const weakPasswordData = {
-                firstName: 'John',
-                lastName: 'Doe',
+                username: 'johndoe',
                 email: 'john.doe@example.com',
                 password: getWeakPassword(), // Dynamically generated weak password for validation testing
-                dateOfBirth: '1990-01-01',
             };
 
             const response = await request(app).post('/test-user-validation').send(weakPasswordData);

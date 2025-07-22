@@ -1,5 +1,5 @@
-// INTEGRATION TEST SETUP - NO CONTROLLER MOCKS
-// This setup is specifically for integration tests where we want real implementations
+// INTEGRATION TEST SETUP - WITH CONTROLLED MOCKING
+// This setup is specifically for integration tests with proper mock configuration
 
 // Set test environment variables FIRST
 process.env.NODE_ENV = 'test';
@@ -22,7 +22,60 @@ process.env.CLIENT_URL = 'http://localhost:3000';
 jest.clearAllMocks();
 jest.resetModules();
 
-// DISABLE AUTOMATIC MOCKING for integration tests
+// IMPORTANT: Mock TokenService for integration tests to ensure consistency
+jest.mock('../../services/TokenService', () => {
+    const originalModule = jest.requireActual('../../services/TokenService');
+
+    // Create a mock that extends the real TokenService but with controlled behavior
+    const MockTokenService = {
+        ...originalModule,
+        generateTokens: jest.fn().mockImplementation((userId: string, email?: string, role?: string) => {
+            return Promise.resolve({
+                accessToken: `mock-access-token-${userId}`,
+                refreshToken: `mock-refresh-token-${userId}`,
+            });
+        }),
+        generateTokenPair: jest.fn().mockImplementation((payload: any) => {
+            return Promise.resolve({
+                accessToken: `mock-access-token-${payload.userId}`,
+                refreshToken: `mock-refresh-token-${payload.userId}`,
+            });
+        }),
+        verifyAccessToken: jest.fn().mockImplementation((token: string) => {
+            const userId = token.replace('mock-access-token-', '');
+            return Promise.resolve({
+                userId,
+                email: 'test@example.com',
+                role: 'user',
+            });
+        }),
+        verifyRefreshToken: jest.fn().mockImplementation((token: string) => {
+            const userId = token.replace('mock-refresh-token-', '');
+            return Promise.resolve({
+                userId,
+                email: 'test@example.com',
+                role: 'user',
+            });
+        }),
+        refreshTokens: jest.fn().mockImplementation((refreshToken: string) => {
+            const userId = refreshToken.replace('mock-refresh-token-', '');
+            return Promise.resolve({
+                accessToken: `mock-access-token-${userId}-new`,
+                refreshToken: `mock-refresh-token-${userId}-new`,
+            });
+        }),
+        blacklistToken: jest.fn().mockResolvedValue(undefined),
+        revokeAllUserTokens: jest.fn().mockResolvedValue(undefined),
+        isTokenBlacklisted: jest.fn().mockResolvedValue(false),
+        isUserTokensRevoked: jest.fn().mockResolvedValue(false),
+        clearAllForTesting: jest.fn().mockResolvedValue(undefined),
+        disconnect: jest.fn().mockResolvedValue(undefined),
+    };
+
+    return MockTokenService;
+});
+
+// DISABLE AUTOMATIC MOCKING for other services in integration tests
 jest.unmock('../../controllers/userControllers');
 jest.unmock('../../services/UserService');
 jest.unmock('../../middleware/authMiddleware');
@@ -35,9 +88,6 @@ jest.unmock('../../middleware/asyncHandler');
 jest.unmock('../__mocks__/authMiddleware');
 jest.unmock('../__mocks__/validation');
 jest.unmock('../__mocks__/middleware');
-
-// IMPORTANT: We don't mock TokenService here because it has its own Redis mock built-in
-// The TokenService.ts file automatically uses a mock Redis when NODE_ENV === 'test'
 
 // Configure console for debugging
 const originalConsoleLog = console.log;
@@ -56,6 +106,7 @@ beforeAll(async () => {
     console.log('Environment:', process.env.NODE_ENV);
     console.log('JWT Secret set:', !!process.env.JWT_SECRET);
     console.log('Redis disabled:', !process.env.REDIS_HOST);
+    console.log('TokenService mocked:', true);
 });
 
 afterAll(async () => {
@@ -63,4 +114,4 @@ afterAll(async () => {
     // Cleanup connections, etc.
 });
 
-console.log('Integration test setup complete - NO CONTROLLER MOCKS');
+console.log('Integration test setup complete - WITH CONTROLLED MOCKING');

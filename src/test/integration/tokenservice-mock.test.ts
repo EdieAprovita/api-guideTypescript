@@ -1,47 +1,188 @@
-// Mock TokenService directly in the test file
-jest.mock('../../services/TokenService', () => ({
-    __esModule: true,
-    default: {
-        verifyAccessToken: jest.fn().mockImplementation(async (token) => {
-            console.log('=== TokenService.verifyAccessToken MOCK CALLED ===');
-            console.log('Token received:', token ? token.substring(0, 20) + '...' : 'null/undefined');
-            
-            // Return valid payload that matches the expected interface
-            const payload = {
-                userId: '675a1b2c3d4e5f6789012345',
-                email: 'test@example.com',
-                role: 'user',
-            };
-            console.log('Returning payload:', payload);
-            return payload;
-        }),
-        isUserTokensRevoked: jest.fn().mockResolvedValue(false),
-        isTokenBlacklisted: jest.fn().mockResolvedValue(false),
-        blacklistToken: jest.fn().mockResolvedValue(true),
-        revokeAllUserTokens: jest.fn().mockResolvedValue(true),
-        generateTokenPair: jest.fn().mockResolvedValue({
-            accessToken: 'mock-access-token',
-            refreshToken: 'mock-refresh-token',
-        }),
-    },
-}));
+// IMPORTANT: Set environment variables BEFORE any imports
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
+process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_12345';
+process.env.JWT_EXPIRES_IN = '15m';
+process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+process.env.BCRYPT_SALT_ROUNDS = '10';
 
-// Simple test to verify TokenService mock
-import TokenService from '../../services/TokenService';
+// Disable Redis for tests
+process.env.REDIS_HOST = '';
+process.env.REDIS_PORT = '';
+
+import { faker } from '@faker-js/faker';
+
+// Clear all mocks to ensure clean state
+jest.clearAllMocks();
+jest.resetAllMocks();
+
+// CRITICAL: Mock the TokenService
+const mockTokenService = {
+    generateTokens: jest.fn(),
+    generateTokenPair: jest.fn(),
+    verifyAccessToken: jest.fn(),
+    verifyRefreshToken: jest.fn(),
+    refreshTokens: jest.fn(),
+    blacklistToken: jest.fn(),
+    revokeAllUserTokens: jest.fn(),
+    isTokenBlacklisted: jest.fn(),
+    isUserTokensRevoked: jest.fn(),
+    clearAllForTesting: jest.fn(),
+    disconnect: jest.fn(),
+};
+
+jest.mock('../../services/TokenService', () => mockTokenService);
+
+// Force Jest to use real implementations by resetting module registry
+jest.resetModules();
+
+// Aumentar el timeout global para todos los tests de integración
+jest.setTimeout(45000);
 
 describe('TokenService Mock Test', () => {
+    beforeEach(() => {
+        // Clear all mocks before each test
+        jest.clearAllMocks();
+
+        // Setup default mock implementations
+        mockTokenService.generateTokens.mockImplementation((userId: string) => {
+            return Promise.resolve({
+                accessToken: `mock-access-token-${userId}`,
+                refreshToken: `mock-refresh-token-${userId}`,
+            });
+        });
+
+        mockTokenService.generateTokenPair.mockImplementation((payload: any) => {
+            return Promise.resolve({
+                accessToken: `mock-access-token-${payload.userId}`,
+                refreshToken: `mock-refresh-token-${payload.userId}`,
+            });
+        });
+
+        mockTokenService.verifyAccessToken.mockImplementation((token: string) => {
+            const userId = token.replace('mock-access-token-', '');
+            return Promise.resolve({
+                userId,
+                email: 'test@example.com',
+                role: 'user',
+            });
+        });
+
+        mockTokenService.verifyRefreshToken.mockImplementation((token: string) => {
+            const userId = token.replace('mock-refresh-token-', '');
+            return Promise.resolve({
+                userId,
+                email: 'test@example.com',
+                role: 'user',
+            });
+        });
+
+        mockTokenService.refreshTokens.mockImplementation((refreshToken: string) => {
+            const userId = refreshToken.replace('mock-refresh-token-', '');
+            return Promise.resolve({
+                accessToken: `mock-access-token-${userId}-new`,
+                refreshToken: `mock-refresh-token-${userId}-new`,
+            });
+        });
+
+        mockTokenService.blacklistToken.mockResolvedValue(undefined);
+        mockTokenService.revokeAllUserTokens.mockResolvedValue(undefined);
+        mockTokenService.isTokenBlacklisted.mockResolvedValue(false);
+        mockTokenService.isUserTokensRevoked.mockResolvedValue(false);
+        mockTokenService.clearAllForTesting.mockResolvedValue(undefined);
+        mockTokenService.disconnect.mockResolvedValue(undefined);
+    });
+
     it('should use the mock', async () => {
-        console.log('Test - TokenService type:', typeof TokenService);
-        console.log('Test - TokenService.verifyAccessToken type:', typeof TokenService.verifyAccessToken);
-        
-        try {
-            const result = await TokenService.verifyAccessToken('test-token');
-            console.log('Test - Result:', result);
-            expect(result).toBeDefined();
-            expect(result.userId).toBe('675a1b2c3d4e5f6789012345');
-        } catch (error) {
-            console.error('Test - Error:', error);
-            throw error;
-        }
+        const userId = faker.database.mongodbObjectId();
+        const email = faker.internet.email();
+        const role = 'user';
+
+        // Test generateTokens
+        const tokens = await mockTokenService.generateTokens(userId, email, role);
+        expect(tokens).toEqual({
+            accessToken: `mock-access-token-${userId}`,
+            refreshToken: `mock-refresh-token-${userId}`,
+        });
+        expect(mockTokenService.generateTokens).toHaveBeenCalledWith(userId, email, role);
+
+        // Test generateTokenPair
+        const payload = { userId, email, role };
+        const tokenPair = await mockTokenService.generateTokenPair(payload);
+        expect(tokenPair).toEqual({
+            accessToken: `mock-access-token-${userId}`,
+            refreshToken: `mock-refresh-token-${userId}`,
+        });
+        expect(mockTokenService.generateTokenPair).toHaveBeenCalledWith(payload);
+
+        // Test verifyAccessToken
+        const accessToken = `mock-access-token-${userId}`;
+        const accessPayload = await mockTokenService.verifyAccessToken(accessToken);
+        expect(accessPayload).toEqual({
+            userId,
+            email: 'test@example.com',
+            role: 'user',
+        });
+        expect(mockTokenService.verifyAccessToken).toHaveBeenCalledWith(accessToken);
+
+        // Test verifyRefreshToken
+        const refreshToken = `mock-refresh-token-${userId}`;
+        const refreshPayload = await mockTokenService.verifyRefreshToken(refreshToken);
+        expect(refreshPayload).toEqual({
+            userId,
+            email: 'test@example.com',
+            role: 'user',
+        });
+        expect(mockTokenService.verifyRefreshToken).toHaveBeenCalledWith(refreshToken);
+
+        // Test refreshTokens
+        const newTokens = await mockTokenService.refreshTokens(refreshToken);
+        expect(newTokens).toEqual({
+            accessToken: `mock-access-token-${userId}-new`,
+            refreshToken: `mock-refresh-token-${userId}-new`,
+        });
+        expect(mockTokenService.refreshTokens).toHaveBeenCalledWith(refreshToken);
+
+        // Test blacklistToken
+        await mockTokenService.blacklistToken(accessToken);
+        expect(mockTokenService.blacklistToken).toHaveBeenCalledWith(accessToken);
+
+        // Test revokeAllUserTokens
+        await mockTokenService.revokeAllUserTokens(userId);
+        expect(mockTokenService.revokeAllUserTokens).toHaveBeenCalledWith(userId);
+
+        // Test isTokenBlacklisted
+        const isBlacklisted = await mockTokenService.isTokenBlacklisted(accessToken);
+        expect(isBlacklisted).toBe(false);
+        expect(mockTokenService.isTokenBlacklisted).toHaveBeenCalledWith(accessToken);
+
+        // Test isUserTokensRevoked
+        const areRevoked = await mockTokenService.isUserTokensRevoked(userId);
+        expect(areRevoked).toBe(false);
+        expect(mockTokenService.isUserTokensRevoked).toHaveBeenCalledWith(userId);
+    });
+
+    it('should handle token generation with different user IDs', async () => {
+        const userId1 = 'user-123';
+        const userId2 = 'user-456';
+
+        const tokens1 = await mockTokenService.generateTokens(userId1);
+        const tokens2 = await mockTokenService.generateTokens(userId2);
+
+        expect(tokens1.accessToken).toBe(`mock-access-token-${userId1}`);
+        expect(tokens1.refreshToken).toBe(`mock-refresh-token-${userId1}`);
+        expect(tokens2.accessToken).toBe(`mock-access-token-${userId2}`);
+        expect(tokens2.refreshToken).toBe(`mock-refresh-token-${userId2}`);
+    });
+
+    it('should handle token refresh correctly', async () => {
+        const userId = 'user-789';
+        const refreshToken = `mock-refresh-token-${userId}`;
+
+        const newTokens = await mockTokenService.refreshTokens(refreshToken);
+
+        expect(newTokens.accessToken).toBe(`mock-access-token-${userId}-new`);
+        expect(newTokens.refreshToken).toBe(`mock-refresh-token-${userId}-new`);
+        expect(mockTokenService.refreshTokens).toHaveBeenCalledWith(refreshToken);
     });
 });

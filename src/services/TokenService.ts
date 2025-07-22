@@ -12,6 +12,9 @@ interface TokenPair {
     refreshToken: string;
 }
 
+// Global mock storage for tests
+let mockRedisStorage: Map<string, { value: string; expiry: number }>;
+
 class TokenService {
     private readonly redis: Redis;
     private readonly accessTokenSecret: string;
@@ -43,25 +46,27 @@ class TokenService {
 
             this.redis = new Redis(redisConfig);
         } else {
-            // Mock Redis for tests with realistic behavior
-            const mockRedisStorage = new Map<string, { value: string; expiry: number }>();
-            
+            // Initialize global mock storage if not exists
+            if (!mockRedisStorage) {
+                mockRedisStorage = new Map<string, { value: string; expiry: number }>();
+            }
+
             this.redis = {
                 setex: (key: string, seconds: number, value: string) => {
-                    const expiry = Date.now() + (seconds * 1000);
+                    const expiry = Date.now() + seconds * 1000;
                     mockRedisStorage.set(key, { value, expiry });
                     return Promise.resolve('OK');
                 },
                 get: (key: string) => {
                     const entry = mockRedisStorage.get(key);
                     if (!entry) return Promise.resolve(null);
-                    
+
                     // Check if expired
                     if (Date.now() > entry.expiry) {
                         mockRedisStorage.delete(key);
                         return Promise.resolve(null);
                     }
-                    
+
                     return Promise.resolve(entry.value);
                 },
                 del: (key: string) => {
@@ -72,7 +77,7 @@ class TokenService {
                 keys: (pattern: string) => {
                     const keys = Array.from(mockRedisStorage.keys());
                     if (pattern === '*') return Promise.resolve(keys);
-                    
+
                     // Simple pattern matching for blacklist:*
                     const regex = new RegExp(pattern.replace('*', '.*'));
                     return Promise.resolve(keys.filter(key => regex.test(key)));
@@ -80,7 +85,7 @@ class TokenService {
                 ttl: (key: string) => {
                     const entry = mockRedisStorage.get(key);
                     if (!entry) return Promise.resolve(-2); // Key doesn't exist
-                    
+
                     const remainingTime = Math.floor((entry.expiry - Date.now()) / 1000);
                     return Promise.resolve(remainingTime > 0 ? remainingTime : -1);
                 },
@@ -91,7 +96,7 @@ class TokenService {
                 flushall: () => {
                     mockRedisStorage.clear();
                     return Promise.resolve('OK');
-                }
+                },
             } as unknown as Redis;
         }
 
@@ -110,8 +115,15 @@ class TokenService {
     }
 
     async generateTokenPair(payload: TokenPayload): Promise<TokenPair> {
+        // Add unique timestamp to ensure tokens are different
+        const tokenPayload = {
+            ...payload,
+            iat: Math.floor(Date.now() / 1000),
+            jti: Math.random().toString(36).substr(2, 9), // unique token ID
+        };
+
         const accessToken = jwt.sign(
-            payload,
+            tokenPayload,
             this.accessTokenSecret as jwt.Secret,
             {
                 expiresIn: this.accessTokenExpiry,
@@ -121,7 +133,12 @@ class TokenService {
         );
 
         const refreshToken = jwt.sign(
-            { ...payload, type: 'refresh' },
+            {
+                ...payload,
+                type: 'refresh',
+                iat: Math.floor(Date.now() / 1000),
+                jti: Math.random().toString(36).substr(2, 9),
+            },
             this.refreshTokenSecret as jwt.Secret,
             {
                 expiresIn: this.refreshTokenExpiry,
@@ -148,7 +165,7 @@ class TokenService {
         const payload: TokenPayload = {
             userId,
             email: email || '',
-            role: role || 'user'
+            role: role || 'user',
         };
         return this.generateTokenPair(payload);
     }
@@ -230,7 +247,8 @@ class TokenService {
 
     async blacklistToken(token: string): Promise<void> {
         try {
-            const decoded = jwt.decode(token);
+            // Use jwt.verify to properly decode and validate token structure
+            const decoded = jwt.decode(token, { complete: false });
             if (decoded && typeof decoded === 'object' && 'exp' in decoded && decoded.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
                 if (expirationTime > 0) {
