@@ -711,44 +711,59 @@ export const createServiceTestSuite = (
  * Use these when you need predictable values for assertions
  */
 export const createDeterministicTestData = {
-    user: (id: string = 'test-user-id', overrides: Partial<TestUser> = {}): TestUser => ({
-        _id: id,
-        role: 'user',
-        email: `test-${id}@example.com`,
-        ...overrides,
-    }),
+    user: (id: string = '', overrides: Partial<TestUser> = {}): TestUser => {
+        const validId = id.length === 24 ? id : faker.database.mongodbObjectId();
+        return {
+            _id: validId,
+            role: 'user',
+            email: `test-${validId.slice(-8)}@example.com`,
+            ...overrides,
+        };
+    },
 
-    adminUser: (id: string = 'test-admin-id', overrides: Partial<TestUser> = {}): TestUser => ({
-        _id: id,
-        role: 'admin',
-        email: `admin-${id}@example.com`,
-        ...overrides,
-    }),
+    adminUser: (id: string = '', overrides: Partial<TestUser> = {}): TestUser => {
+        const validId = id.length === 24 ? id : faker.database.mongodbObjectId();
+        return {
+            _id: validId,
+            role: 'admin',
+            email: `admin-${validId.slice(-8)}@example.com`,
+            ...overrides,
+        };
+    },
 
-    professionalUser: (id: string = 'test-professional-id', overrides: Partial<TestUser> = {}): TestUser => ({
-        _id: id,
-        role: 'professional',
-        email: `professional-${id}@example.com`,
-        ...overrides,
-    }),
+    professionalUser: (id: string = '', overrides: Partial<TestUser> = {}): TestUser => {
+        const validId = id.length === 24 ? id : faker.database.mongodbObjectId();
+        return {
+            _id: validId,
+            role: 'professional',
+            email: `professional-${validId.slice(-8)}@example.com`,
+            ...overrides,
+        };
+    },
 
-    mockUser: (id: string = 'user123', overrides = {}) => ({
-        _id: id,
-        username: `testuser_${id}`,
-        email: `test-${id}@example.com`,
-        role: 'user',
-        photo: 'default.png',
-        isActive: true,
-        isDeleted: false,
-        ...overrides,
-    }),
+    mockUser: (id: string = '', overrides = {}) => {
+        const validId = id.length === 24 ? id : faker.database.mongodbObjectId();
+        return {
+            _id: validId,
+            username: `testuser_${validId.slice(-8)}`,
+            email: `test-${validId.slice(-8)}@example.com`,
+            role: 'user',
+            photo: 'default.png',
+            isActive: true,
+            isDeleted: false,
+            ...overrides,
+        };
+    },
 
-    mockTokenPayload: (userId: string = 'user123', overrides: Record<string, unknown> = {}) => ({
-        userId,
-        email: `test-${userId}@example.com`,
-        role: 'user',
-        ...overrides,
-    }),
+    mockTokenPayload: (userId: string = '', overrides: Record<string, unknown> = {}) => {
+        const validUserId = userId.length === 24 ? userId : faker.database.mongodbObjectId();
+        return {
+            userId: validUserId,
+            email: `test-${validUserId.slice(-8)}@example.com`,
+            role: 'user',
+            ...overrides,
+        };
+    },
 
     mockRestaurant: (id: string = 'restaurant123', overrides = {}): MockRestaurant => ({
         _id: id,

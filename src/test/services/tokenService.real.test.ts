@@ -1,4 +1,5 @@
 import TokenService from '../../services/TokenService';
+import { faker } from '@faker-js/faker';
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
@@ -13,7 +14,7 @@ jest.doMock('jsonwebtoken', () => originalJWT);
 
 describe('TokenService Real Tests', () => {
     it('should generate tokens with correct userId using real JWT', async () => {
-        const userId = 'test-user-id-123';
+        const userId = faker.database.mongodbObjectId();
         const email = 'test@example.com';
         const role = 'user';
 

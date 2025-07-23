@@ -54,17 +54,126 @@ jest.mock('../models/User', () => ({
 }));
 
 // Mock external libraries
-jest.mock('jsonwebtoken', () => ({
-    __esModule: true,
-    default: {
-        sign: jest.fn().mockReturnValue('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZW1haWwuY29tIn0.mock-signature'),
-        verify: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com' }),
-        decode: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com', exp: Math.floor(Date.now() / 1000) + 3600 }),
-    },
-    sign: jest.fn().mockReturnValue('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZW1haWwuY29tIn0.mock-signature'),
-    verify: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com' }),
-    decode: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com', exp: Math.floor(Date.now() / 1000) + 3600 }),
-}));
+jest.mock('jsonwebtoken', () => {
+    const { faker } = require('@faker-js/faker');
+    const generateValidObjectId = () => faker.database.mongodbObjectId();
+    
+    return {
+        __esModule: true,
+        default: {
+            sign: jest.fn().mockImplementation((payload) => {
+                // Preserve the actual userId from the payload or generate a valid one if missing
+                const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
+                const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
+                const actualRole = payload && payload.role ? payload.role : 'user';
+                return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
+            }),
+            verify: jest.fn().mockImplementation((token) => {
+                // Try to decode the mock token format to extract the actual user data
+                const tokenStr = token as string;
+                try {
+                    if (tokenStr.includes('mock-signature')) {
+                        const payloadPart = tokenStr.split('.')[1];
+                        // Mock payload extraction since it's base64-like but not real base64
+                        const match = payloadPart.match(/"userId":"([^"]+)"/); 
+                        const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
+                        const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
+                        
+                        return {
+                            userId: match ? match[1] : generateValidObjectId(),
+                            email: emailMatch ? emailMatch[1] : 'test@email.com',
+                            role: roleMatch ? roleMatch[1] : 'user',
+                            exp: Math.floor(Date.now() / 1000) + 3600
+                        };
+                    }
+                } catch (e) {
+                    // Fallback
+                }
+                
+                // Fallback for other token formats
+                return {
+                    userId: generateValidObjectId(),
+                    email: 'test@email.com',
+                    role: 'user',
+                    exp: Math.floor(Date.now() / 1000) + 3600
+                };
+            }),
+            decode: jest.fn().mockImplementation(() => ({ 
+                userId: generateValidObjectId(), 
+                email: 'test@email.com', 
+                role: 'user',
+                exp: Math.floor(Date.now() / 1000) + 3600 
+            })),
+        },
+        sign: jest.fn().mockImplementation((payload) => {
+            // Preserve the actual userId from the payload or generate a valid one if missing
+            const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
+            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
+            const actualRole = payload && payload.role ? payload.role : 'user';
+            return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
+        }),
+        verify: jest.fn().mockImplementation((token) => {
+            // Try to decode the mock token format to extract the actual user data
+            const tokenStr = token as string;
+            try {
+                if (tokenStr.includes('mock-signature')) {
+                    const payloadPart = tokenStr.split('.')[1];
+                    // Mock payload extraction since it's base64-like but not real base64
+                    const match = payloadPart.match(/"userId":"([^"]+)"/); 
+                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
+                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
+                    
+                    return {
+                        userId: match ? match[1] : generateValidObjectId(),
+                        email: emailMatch ? emailMatch[1] : 'test@email.com',
+                        role: roleMatch ? roleMatch[1] : 'user',
+                        exp: Math.floor(Date.now() / 1000) + 3600
+                    };
+                }
+            } catch (e) {
+                // Fallback
+            }
+            
+            // Fallback for other token formats
+            return {
+                userId: generateValidObjectId(),
+                email: 'test@email.com',
+                role: 'user',
+                exp: Math.floor(Date.now() / 1000) + 3600
+            };
+        }),
+        decode: jest.fn().mockImplementation((token) => {
+            // Try to decode the mock token format to extract the actual user data
+            const tokenStr = token as string;
+            try {
+                if (tokenStr.includes('mock-signature')) {
+                    const payloadPart = tokenStr.split('.')[1];
+                    // Mock payload extraction since it's base64-like but not real base64
+                    const match = payloadPart.match(/"userId":"([^"]+)"/); 
+                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
+                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
+                    
+                    return {
+                        userId: match ? match[1] : generateValidObjectId(),
+                        email: emailMatch ? emailMatch[1] : 'test@email.com',
+                        role: roleMatch ? roleMatch[1] : 'user',
+                        exp: Math.floor(Date.now() / 1000) + 3600
+                    };
+                }
+            } catch (e) {
+                // Fallback
+            }
+            
+            // Fallback for other token formats
+            return {
+                userId: generateValidObjectId(),
+                email: 'test@email.com',
+                role: 'user',
+                exp: Math.floor(Date.now() / 1000) + 3600
+            };
+        }),
+    };
+});
 
 jest.mock('bcryptjs', () => ({
     __esModule: true,

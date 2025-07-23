@@ -1,14 +1,10 @@
 // IMPORTANT: Set environment variables BEFORE any imports
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
-process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_12345';
-process.env.JWT_EXPIRES_IN = '15m';
-process.env.JWT_REFRESH_EXPIRES_IN = '7d';
-process.env.BCRYPT_SALT_ROUNDS = '10';
+// Load test environment variables
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.test' });
 
-// Disable Redis for tests
-process.env.REDIS_HOST = '';
-process.env.REDIS_PORT = '';
+// Ensure NODE_ENV is set to test
+process.env.NODE_ENV = 'test';
 
 import { faker } from '@faker-js/faker';
 import request from 'supertest';
@@ -38,6 +34,7 @@ import {
     connect as connectTestDB,
     closeDatabase as disconnectTestDB,
     clearDatabase as clearTestDB,
+    connectToLocalDB,
 } from './helpers/testDb';
 import { createTestUser, createAdminUser } from './helpers/testFixtures';
 import { generateAuthTokens } from './helpers/testFixtures';
@@ -47,6 +44,10 @@ import TokenService from '../../services/TokenService';
 import testConfig from '../testConfig';
 import { generateExpiredToken } from '../utils/testHelpers';
 import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
+import { setupTestCleanup } from './helpers/testCleanup';
+
+// Setup automatic database cleanup after each test
+setupTestCleanup();
 
 // Aumentar el timeout global para todos los tests de integración
 jest.setTimeout(45000);
@@ -141,12 +142,26 @@ const makeAuthRequest = (method: 'get' | 'post', path: string, token?: string) =
 const setupUserAndTokens = async (isAdmin = false): Promise<{ user: TestUser; tokens: AuthTokens }> => {
     try {
         const plainPassword = testConfig.generators.securePassword();
+
+        // Create user with explicit password
         const user = isAdmin
             ? await createAdminUser({ password: plainPassword })
             : await createTestUser({ password: plainPassword });
 
         if (!user || !user._id) {
             throw new Error('Failed to create test user');
+        }
+
+        // Verify the user was created correctly
+        const createdUser = await User.findById(user._id).select('+password');
+        if (!createdUser) {
+            throw new Error('User not found after creation');
+        }
+
+        // Verify password was hashed correctly
+        const isPasswordValid = await bcrypt.compare(plainPassword, createdUser.password);
+        if (!isPasswordValid) {
+            throw new Error('Password verification failed after user creation');
         }
 
         const tokens = await generateAuthTokens(user._id.toString(), user.email, user.role);
@@ -174,8 +189,26 @@ const setupUserAndTokens = async (isAdmin = false): Promise<{ user: TestUser; to
 describe('Authentication Flow Integration Tests', () => {
     beforeAll(async () => {
         try {
-            await connectTestDB();
-            console.log('Test database connected successfully');
+            // First try to connect to memory server
+            try {
+                await connectTestDB();
+                console.log('Test database connected successfully (memory server)');
+            } catch (memoryError) {
+                console.warn('Memory server failed, trying local MongoDB:', memoryError);
+
+                // Fallback to local MongoDB
+                try {
+                    await connectToLocalDB();
+                    console.log('Test database connected successfully (local MongoDB)');
+                } catch (localError) {
+                    console.error('Both memory server and local MongoDB failed:', localError);
+                    throw localError;
+                }
+            }
+
+            // Ensure database is clean before starting tests
+            await clearTestDB();
+            console.log('Test database cleared before starting tests');
         } catch (error) {
             console.error('Failed to connect test database:', error);
             throw error;
@@ -183,15 +216,27 @@ describe('Authentication Flow Integration Tests', () => {
     });
 
     afterEach(async () => {
-        await clearTestDB();
-        // Clear Redis mock storage between tests if method exists
-        if (typeof TokenService.clearAllForTesting === 'function') {
-            await TokenService.clearAllForTesting();
+        try {
+            await clearTestDB();
+            console.log('Test database cleared after test');
+
+            // Clear Redis mock storage between tests if method exists
+            if (typeof TokenService.clearAllForTesting === 'function') {
+                await TokenService.clearAllForTesting();
+                console.log('TokenService cleared for testing');
+            }
+        } catch (error) {
+            console.error('Error in afterEach cleanup:', error);
         }
     });
 
     afterAll(async () => {
-        await disconnectTestDB();
+        try {
+            await disconnectTestDB();
+            console.log('Test database disconnected successfully');
+        } catch (error) {
+            console.error('Error disconnecting test database:', error);
+        }
     });
 
     describe('POST /api/v1/users/register', () => {
@@ -199,7 +244,7 @@ describe('Authentication Flow Integration Tests', () => {
             // Clear password cache to ensure we get a fresh password with correct special chars
             const { clearPasswordCache } = require('../utils/passwordGenerator');
             clearPasswordCache();
-            
+
             const userData = createUserData();
             console.log('=== TEST DEBUG: userData ===', userData);
 
@@ -241,10 +286,10 @@ describe('Authentication Flow Integration Tests', () => {
             // Clear password cache to ensure we get a fresh password with correct special chars
             const { clearPasswordCache } = require('../utils/passwordGenerator');
             clearPasswordCache();
-            
+
             const email = 'duplicate@example.com';
             const password = generateTestPassword(); // Use same strong password for both requests
-            
+
             const userData = createUserData({ email, password });
 
             // First registration
@@ -255,12 +300,12 @@ describe('Authentication Flow Integration Tests', () => {
                 .send(userData);
 
             // Attempt duplicate registration with different username but same email
-            const duplicateData = createUserData({ 
-                email, 
+            const duplicateData = createUserData({
+                email,
                 password, // Same strong password
-                username: 'different_username' 
+                username: 'different_username',
             });
-            
+
             const response = await request(app)
                 .post('/api/v1/users/register')
                 .set('User-Agent', 'test-agent')
@@ -289,11 +334,9 @@ describe('Authentication Flow Integration Tests', () => {
                 .send(userData);
 
             expectBadRequestResponse(response);
-            expect(
-                response.body.errors?.[0]?.message || 
-                response.body.message || 
-                response.body.error
-            ).toMatch(/password/i);
+            expect(response.body.errors?.[0]?.message || response.body.message || response.body.error).toMatch(
+                /password/i
+            );
         });
     });
 
@@ -304,22 +347,22 @@ describe('Authentication Flow Integration Tests', () => {
         beforeEach(async () => {
             // Create a user with a known password for testing
             const plainPassword = generateTestPassword();
-            
+
             try {
                 const user = await createTestUser({
                     password: plainPassword,
                 });
-                
+
                 if (!user || !user._id) {
                     throw new Error('Failed to create test user - user is null or missing _id');
                 }
-                
-                testUser = { 
+
+                testUser = {
                     _id: user._id.toString(),
                     username: user.username,
                     email: user.email,
                     role: user.role,
-                    password: plainPassword 
+                    password: plainPassword,
                 };
             } catch (error) {
                 console.error('Error creating test user:', error);
@@ -355,22 +398,18 @@ describe('Authentication Flow Integration Tests', () => {
             const response = await makeLoginRequest(testUser.email, 'definitely-wrong-password');
 
             expectUnauthorizedResponse(response);
-            expect(
-                response.body.errors?.[0]?.message || 
-                response.body.message || 
-                response.body.error
-            ).toMatch(/invalid credentials/i);
+            expect(response.body.errors?.[0]?.message || response.body.message || response.body.error).toMatch(
+                /invalid credentials/i
+            );
         });
 
         it('should fail with non-existent email', async () => {
             const response = await makeLoginRequest(faker.internet.email(), 'any-password');
 
             expectUnauthorizedResponse(response);
-            expect(
-                response.body.errors?.[0]?.message || 
-                response.body.message || 
-                response.body.error
-            ).toMatch(/invalid credentials/i);
+            expect(response.body.errors?.[0]?.message || response.body.message || response.body.error).toMatch(
+                /invalid credentials/i
+            );
         });
 
         it('should handle rate limiting', async () => {
@@ -398,7 +437,7 @@ describe('Authentication Flow Integration Tests', () => {
             // Create fresh user and tokens for this test
             const setup = await setupUserAndTokens();
             const tokens = setup.tokens;
-            
+
             const response = await request(app)
                 .post('/api/v1/auth/refresh-token')
                 .set('User-Agent', 'test-agent')
@@ -411,7 +450,7 @@ describe('Authentication Flow Integration Tests', () => {
                 status: response.status,
                 body: response.body,
                 refreshTokenProvided: !!tokens.refreshToken,
-                refreshTokenLength: tokens.refreshToken?.length
+                refreshTokenLength: tokens.refreshToken?.length,
             });
 
             expectSuccessResponse(response);
@@ -447,17 +486,14 @@ describe('Authentication Flow Integration Tests', () => {
                 });
 
             expectUnauthorizedResponse(response);
-            expect(
-                response.body.message || 
-                response.body.error
-            ).toMatch(/invalid refresh token/i);
+            expect(response.body.message || response.body.error).toMatch(/invalid refresh token/i);
         });
 
         it('should handle blacklisted tokens', async () => {
             // Create fresh user and tokens for this test
             const setup = await setupUserAndTokens();
             const tokens = setup.tokens;
-            
+
             // Blacklist the token
             await TokenService.blacklistToken(tokens.refreshToken);
 
@@ -482,10 +518,7 @@ describe('Authentication Flow Integration Tests', () => {
                 });
 
             expectUnauthorizedResponse(response);
-            expect(
-                response.body.message || 
-                response.body.error
-            ).toMatch(/invalid refresh token/i);
+            expect(response.body.message || response.body.error).toMatch(/invalid refresh token/i);
         });
     });
 
@@ -572,7 +605,7 @@ describe('Authentication Flow Integration Tests', () => {
 
             console.log('Response status:', response.status);
             console.log('Response body:', response.body);
-            
+
             if (response.status === 200) {
                 expectSuccessResponse(response);
                 // Check if response.body has the expected structure
@@ -582,9 +615,15 @@ describe('Authentication Flow Integration Tests', () => {
                     console.error('Response body missing _id:', response.body);
                     expect(response.body).toHaveProperty('_id');
                 }
+            } else if (response.status === 401) {
+                console.error('Unauthorized response - token may be invalid');
+                console.error('Token used:', userTokens.accessToken);
+                console.error('Error body:', response.body);
+                expect(response.status).toBe(200); // This will fail but show the actual error
             } else {
                 console.error('Unexpected response status:', response.status);
                 console.error('Error body:', response.body);
+                console.error('Token used:', userTokens.accessToken);
                 expect(response.status).toBe(200);
             }
         });
@@ -596,11 +635,9 @@ describe('Authentication Flow Integration Tests', () => {
                 .set('API-Version', 'v1');
 
             expectUnauthorizedResponse(response);
-            expect(
-                response.body.errors?.[0]?.message || 
-                response.body.message || 
-                response.body.error
-            ).toMatch(/not authorized/i);
+            expect(response.body.errors?.[0]?.message || response.body.message || response.body.error).toMatch(
+                /not authorized/i
+            );
         });
 
         it('should deny access with expired token', async () => {
@@ -618,10 +655,7 @@ describe('Authentication Flow Integration Tests', () => {
 
             expect(response.status).toBe(403);
             expect(response.body.success).toBe(false);
-            expect(
-                response.body.error || 
-                response.body.message
-            ).toMatch(/admin access required/i);
+            expect(response.body.error || response.body.message).toMatch(/admin access required/i);
         });
 
         it('should allow admin access to admin routes', async () => {

@@ -12,48 +12,51 @@ process.env.REDIS_PORT = '';
 
 import request from 'supertest';
 
+console.log('Loading user integration test file...');
+
 // Clear all mocks to ensure clean state
 jest.clearAllMocks();
 jest.resetAllMocks();
 
-// CRITICAL: Use the mock setup for this test
-jest.mock('../../services/TokenService', () => {
-    const { serviceMocks } = require('../__mocks__/services');
-    return serviceMocks.tokenService;
-});
-
-jest.mock('../../services/UserService', () => {
-    const { serviceMocks } = require('../__mocks__/services');
-    return serviceMocks.userService;
-});
+// Use real implementations for integration tests
+jest.unmock('../../services/TokenService');
+jest.unmock('../../services/UserService');
+jest.unmock('../../middleware/authMiddleware');
 
 // Force Jest to use real implementations by resetting module registry
 jest.resetModules();
 
 import app from '../../app';
-import { serviceMocks } from '../__mocks__/services';
-import { generateAuthTokens } from './helpers/testFixtures';
+import { setupTestCleanup } from './helpers/testCleanup';
+import { createAdminUser, generateAuthTokens } from './helpers/testFixtures';
+import { connect, closeDatabase } from './helpers/testDb';
+
+// Setup automatic database cleanup after each test
+setupTestCleanup();
 
 // Aumentar el timeout global para todos los tests de integración
 jest.setTimeout(45000);
 
 describe('User API Integration Tests', () => {
+    beforeAll(async () => {
+        // Connect to test database
+        await connect();
+    });
+
+    afterAll(async () => {
+        // Close database connection
+        await closeDatabase();
+    });
+
     beforeEach(() => {
         // Clear all mocks before each test
         jest.clearAllMocks();
     });
 
     it('should get current user profile', async () => {
-        const userId = 'test-user-id-123';
-        const tokens = await generateAuthTokens(userId, 'test@example.com', 'user');
-
-        // Setup mock to return user data
-        serviceMocks.userService.findUserById.mockResolvedValue({
-            _id: userId,
-            username: 'testuser',
-            email: 'test@example.com',
-            role: 'user',
-        });
+        // Create a real admin user
+        const adminUser = await createAdminUser();
+        const tokens = await generateAuthTokens(adminUser._id.toString(), adminUser.email, 'admin');
 
         const response = await request(app)
             .get('/api/v1/users/profile')
@@ -62,20 +65,13 @@ describe('User API Integration Tests', () => {
             .set('API-Version', 'v1');
 
         expect(response.status).toBe(200);
-        expect(response.body._id || response.body.data._id).toBe(userId);
+        expect(response.body._id || response.body.data._id).toBe(adminUser._id.toString());
     });
 
     it('should update user profile', async () => {
-        const userId = 'test-user-id-456';
-        const tokens = await generateAuthTokens(userId, 'test@example.com', 'user');
-
-        // Setup mock to return updated user data
-        serviceMocks.userService.updateUserById.mockResolvedValue({
-            _id: userId,
-            username: 'updated-name',
-            email: 'test@example.com',
-            role: 'user',
-        });
+        // Create a real user
+        const user = await createAdminUser();
+        const tokens = await generateAuthTokens(user._id.toString(), user.email, 'user');
 
         const response = await request(app)
             .put('/api/v1/users/profile')
@@ -89,24 +85,25 @@ describe('User API Integration Tests', () => {
     });
 
     it('should get user by id as admin', async () => {
-        const userId = 'test-user-id-789';
-        const tokens = await generateAuthTokens(userId, 'admin@example.com', 'admin');
+        console.log('Starting admin test...');
 
-        // Setup mock to return user data
-        serviceMocks.userService.findUserById.mockResolvedValue({
-            _id: userId,
-            username: 'adminuser',
-            email: 'admin@example.com',
-            role: 'admin',
-        });
+        // Create a real admin user
+        const adminUser = await createAdminUser();
+        const tokens = await generateAuthTokens(adminUser._id.toString(), adminUser.email, 'admin');
+
+        console.log('Admin user created:', adminUser._id);
+        console.log('Admin tokens generated:', tokens);
 
         const response = await request(app)
-            .get(`/api/v1/users/${userId}`)
+            .get(`/api/v1/users/${adminUser._id}`)
             .set('Authorization', `Bearer ${tokens.accessToken}`)
             .set('User-Agent', 'test-agent')
             .set('API-Version', 'v1');
 
+        console.log('Admin test response status:', response.status);
+        console.log('Admin test response body:', response.body);
+
         expect(response.status).toBe(200);
-        expect(response.body._id || response.body.data._id).toBe(userId);
+        expect(response.body._id || response.body.data._id).toBe(adminUser._id.toString());
     });
 });

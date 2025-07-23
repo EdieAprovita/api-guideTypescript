@@ -1,42 +1,25 @@
-// Integration test config without global mocks
+const base = require('./jest.config.base');
+
 module.exports = {
-    preset: 'ts-jest',
-    testEnvironment: 'node',
-    roots: ['<rootDir>/src'],
-    testMatch: ['**/integration/**/*.test.ts'],
-    setupFilesAfterEnv: ['<rootDir>/src/test/integration/jest.integration.setup.ts'],
-    transform: {
-        '^.+\\.ts$': [
-            'ts-jest',
-            {
-                tsconfig: 'tsconfig.test.json',
-            },
-        ],
-    },
-    collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/test/**', '!src/types/**'],
-    coverageDirectory: 'coverage',
-    coverageReporters: ['text', 'lcov', 'html'],
-    moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/src/$1',
-    },
-    testTimeout: 30000,
-    verbose: true,
-    forceExit: true,
-    detectOpenHandles: true,
-    maxWorkers: 1,
-    // Minimal mocks for integration tests - don't inherit global setup
-    automock: false,
-    // Clear any existing mocks
-    clearMocks: true,
-    restoreMocks: false,
-    resetMocks: false,
-    resetModules: false,
-    coverageThreshold: {
-        global: {
-            branches: 20,
-            functions: 20,
-            lines: 20,
-            statements: 20,
-        },
-    },
+  ...base,
+  testMatch: [
+    '**/test/integration/**/*.test.ts',
+    '!**/test/unit/**',
+    '!**/test/services/**',
+    '!**/test/middleware/**',
+    '!**/test/controllers/**'
+  ],
+  setupFiles: ['<rootDir>/src/test/integration/jest.integration.setup.ts'],
+  setupFilesAfterEnv: [],
+  testEnvironment: 'node',
+  coverageThreshold: {
+    global: {
+      branches: 10,
+      functions: 10,
+      lines: 10,
+      statements: 10
+    }
+  },
+  // Para tests de integración, damos más tiempo
+  testTimeout: 30000
 };

@@ -1,4 +1,5 @@
 import TokenService from '../services/TokenService';
+import { faker } from '@faker-js/faker';
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
@@ -9,7 +10,7 @@ process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 
 describe('Redis Mock Debug Test', () => {
     it('should store and retrieve tokens correctly', async () => {
-        const userId = 'test-user-id-123';
+        const userId = faker.database.mongodbObjectId();
         const email = 'test@example.com';
         const role = 'user';
 

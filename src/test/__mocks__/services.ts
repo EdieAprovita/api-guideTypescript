@@ -2,6 +2,9 @@ import { faker } from '@faker-js/faker';
 // Factory para crear mocks básicos de servicios
 import testConfig from '../testConfig';
 
+// Storage for token data to maintain consistency between generation and verification
+const tokenDataStorage = new Map<string, { userId: string; email: string; role: string }>();
+
 export const createBasicServiceMock = (serviceName: string) => ({
     getAll: jest.fn().mockResolvedValue([]),
     findById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
@@ -108,50 +111,154 @@ export const serviceMocks = {
     // Token Service
     tokenService: {
         generateTokenPair: jest.fn().mockImplementation(payload => {
+            // Ensure userId is a valid ObjectId
+            const validUserId = payload.userId.length === 24 ? payload.userId : faker.database.mongodbObjectId();
+            const tokenId = Math.random().toString(36).substring(2, 11);
+            const accessToken = `mock-access-token-${tokenId}`;
+            const refreshToken = `mock-refresh-token-${tokenId}`;
+            
+            // Store token data for later verification
+            tokenDataStorage.set(accessToken, {
+                userId: validUserId,
+                email: payload.email,
+                role: payload.role || 'user'
+            });
+            tokenDataStorage.set(refreshToken, {
+                userId: validUserId,
+                email: payload.email,
+                role: payload.role || 'user'
+            });
+            
             return Promise.resolve({
-                accessToken: `mock-access-token-${payload.userId}`,
-                refreshToken: `mock-refresh-token-${payload.userId}`,
+                accessToken,
+                refreshToken,
             });
         }),
         generateTokens: jest.fn().mockImplementation((userId, email, role) => {
+            // Ensure userId is a valid ObjectId
+            const validUserId = userId.length === 24 ? userId : faker.database.mongodbObjectId();
+            const tokenId = Math.random().toString(36).substring(2, 11);
+            const accessToken = `mock-access-token-${tokenId}`;
+            const refreshToken = `mock-refresh-token-${tokenId}`;
+            
+            // Store token data for later verification
+            tokenDataStorage.set(accessToken, {
+                userId: validUserId,
+                email: email || 'test@example.com',
+                role: role || 'user'
+            });
+            tokenDataStorage.set(refreshToken, {
+                userId: validUserId,
+                email: email || 'test@example.com',
+                role: role || 'user'
+            });
+            
             return Promise.resolve({
-                accessToken: `mock-access-token-${userId}`,
-                refreshToken: `mock-refresh-token-${userId}`,
+                accessToken,
+                refreshToken,
             });
         }),
         verifyAccessToken: jest.fn().mockImplementation(token => {
-            // Extract userId from mock token format
-            const userId = token.replace('mock-access-token-', '');
+            // Check if token data is stored
+            const storedData = tokenDataStorage.get(token);
+            if (storedData) {
+                return Promise.resolve(storedData);
+            }
+            
+            // Fallback for old format tokens or unknown tokens
+            const parts = token.replace('mock-access-token-', '').split('-');
+            let userId = parts[0];
+            const role = parts[1] || 'user';
+            
+            // Ensure userId is a valid ObjectId
+            if (userId.length !== 24) {
+                userId = faker.database.mongodbObjectId();
+            }
+            
             return Promise.resolve({
                 userId,
                 email: 'test@example.com',
-                role: 'user',
+                role,
             });
         }),
         verifyRefreshToken: jest.fn().mockImplementation(token => {
-            // Extract userId from mock token format
-            const userId = token.replace('mock-refresh-token-', '');
+            // Check if token data is stored
+            const storedData = tokenDataStorage.get(token);
+            if (storedData) {
+                return Promise.resolve(storedData);
+            }
+            
+            // If token is not found in storage and follows our new format, it should be invalid
+            if (token.startsWith('mock-refresh-token-') && token.includes('-new')) {
+                return Promise.reject(new Error('Invalid or expired refresh token: Token not found or invalid'));
+            }
+            
+            // Fallback for old format tokens (backwards compatibility)
+            const parts = token.replace('mock-refresh-token-', '').split('-');
+            let userId = parts[0];
+            const role = parts[1] || 'user';
+            
+            // For new format tokens without stored data, reject
+            if (parts.length === 1 && userId.length === 9) { // New format without stored data
+                return Promise.reject(new Error('Invalid or expired refresh token: Token not found or invalid'));
+            }
+            
+            // Ensure userId is a valid ObjectId for old format
+            if (userId.length !== 24) {
+                userId = faker.database.mongodbObjectId();
+            }
+            
             return Promise.resolve({
                 userId,
                 email: 'test@example.com',
-                role: 'user',
+                role,
             });
         }),
         refreshTokens: jest.fn().mockImplementation(refreshToken => {
-            // Extract userId from mock token format
-            const userId = refreshToken.replace('mock-refresh-token-', '');
-            // Remove any suffix like '-new' if present
-            const cleanUserId = userId.replace('-new', '');
+            // Get original token data
+            const originalData = tokenDataStorage.get(refreshToken);
+            if (originalData) {
+                // Generate new tokens with same data
+                const tokenId = Math.random().toString(36).substring(2, 11);
+                const newAccessToken = `mock-access-token-${tokenId}-new`;
+                const newRefreshToken = `mock-refresh-token-${tokenId}-new`;
+                
+                // Store new token data
+                tokenDataStorage.set(newAccessToken, originalData);
+                tokenDataStorage.set(newRefreshToken, originalData);
+                
+                // Remove old refresh token
+                tokenDataStorage.delete(refreshToken);
+                
+                return Promise.resolve({
+                    accessToken: newAccessToken,
+                    refreshToken: newRefreshToken,
+                });
+            }
+            
+            // Fallback for old format tokens
+            const parts = refreshToken.replace('mock-refresh-token-', '').split('-');
+            let userId = parts[0];
+            const role = parts[1] || 'user';
+            
+            // Ensure userId is a valid ObjectId
+            if (userId.length !== 24) {
+                userId = faker.database.mongodbObjectId();
+            }
+            
             return Promise.resolve({
-                accessToken: `mock-access-token-${cleanUserId}-new`,
-                refreshToken: `mock-refresh-token-${cleanUserId}-new`,
+                accessToken: `mock-access-token-${userId}-${role}-new`,
+                refreshToken: `mock-refresh-token-${userId}-${role}-new`,
             });
         }),
         blacklistToken: jest.fn().mockResolvedValue(undefined),
         revokeAllUserTokens: jest.fn().mockResolvedValue(undefined),
         isTokenBlacklisted: jest.fn().mockResolvedValue(false),
         isUserTokensRevoked: jest.fn().mockResolvedValue(false),
-        clearAllForTesting: jest.fn().mockResolvedValue(undefined),
+        clearAllForTesting: jest.fn().mockImplementation(() => {
+            tokenDataStorage.clear();
+            return Promise.resolve(undefined);
+        }),
         disconnect: jest.fn().mockResolvedValue(undefined),
     },
 };
@@ -192,16 +299,83 @@ export const modelMocks = {
 // Mock para librerías externas
 export const externalMocks = {
     jsonwebtoken: {
-        verify: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@email.com' }),
-        sign: jest
-            .fn()
-            .mockReturnValue(
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZW1haWwuY29tIn0.mock-signature'
-            ),
-        decode: jest.fn().mockReturnValue({
-            userId: 'test-user-id',
-            email: 'test@email.com',
-            exp: Math.floor(Date.now() / 1000) + 3600,
+        verify: jest.fn().mockImplementation((token) => {
+            // Try to decode the mock token format to extract the actual user data
+            const tokenStr = token as string;
+            try {
+                if (tokenStr.includes('mock-signature')) {
+                    const payloadPart = tokenStr.split('.')[1];
+                    // Mock payload extraction since it's base64-like but not real base64
+                    const match = payloadPart.match(/"userId":"([^"]+)"/); 
+                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
+                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
+                    
+                    return {
+                        userId: match ? match[1] : faker.database.mongodbObjectId(),
+                        email: emailMatch ? emailMatch[1] : 'test@email.com',
+                        role: roleMatch ? roleMatch[1] : 'user',
+                        exp: Math.floor(Date.now() / 1000) + 3600
+                    };
+                }
+                // Handle mock-access-token format for backwards compatibility
+                if (token.includes('mock-access-token-')) {
+                    const parts = token.replace('mock-access-token-', '').split('-');
+                    const userId = parts[0];
+                    const role = parts[1] || 'user';
+                    return {
+                        userId,
+                        email: 'test@email.com',
+                        role,
+                        exp: Math.floor(Date.now() / 1000) + 3600,
+                    };
+                }
+            } catch (e) {
+                // Fallback
+            }
+            
+            // Fallback for other token formats
+            return {
+                userId: faker.database.mongodbObjectId(),
+                email: 'test@email.com',
+                role: 'user',
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            };
+        }),
+        sign: jest.fn().mockImplementation((payload) => {
+            // Preserve the actual userId from the payload or generate a valid one if missing
+            const actualUserId = payload && payload.userId ? payload.userId : faker.database.mongodbObjectId();
+            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
+            const actualRole = payload && payload.role ? payload.role : 'user';
+            return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}\",\"email\":\"${actualEmail}\",\"role\":\"${actualRole}\"}.mock-signature`;
+        }),
+        decode: jest.fn().mockImplementation((token: string) => {
+            // Try to decode the mock token format to extract the actual user data
+            try {
+                if (token.includes('mock-signature')) {
+                    const payloadPart = token.split('.')[1];
+                    // Mock payload extraction since it's base64-like but not real base64
+                    const match = payloadPart.match(/"userId":"([^"]+)"/); 
+                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
+                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
+                    
+                    return {
+                        userId: match ? match[1] : faker.database.mongodbObjectId(),
+                        email: emailMatch ? emailMatch[1] : 'test@email.com',
+                        role: roleMatch ? roleMatch[1] : 'user',
+                        exp: Math.floor(Date.now() / 1000) + 3600
+                    };
+                }
+            } catch (e) {
+                // Fallback
+            }
+            
+            // Fallback for other token formats
+            return {
+                userId: faker.database.mongodbObjectId(),
+                email: 'test@email.com',
+                role: 'user',
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            };
         }),
     },
     bcrypt: {

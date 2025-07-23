@@ -24,6 +24,47 @@ try {
     };
 }
 
+// UNIFIED DATA FACTORY - Use this for consistent test data across all tests
+export const buildTestUser = (
+    overrides: Partial<{
+        userId: string;
+        email: string;
+        username: string;
+        password: string;
+        role: string;
+        isAdmin: boolean;
+        isActive: boolean;
+    }> = {}
+) => {
+    const defaultUser = {
+        userId: faker.database.mongodbObjectId(),
+        email: faker.internet.email(),
+        username: faker.internet.userName(),
+        password: 'TestPassword123!',
+        role: 'user',
+        isAdmin: false,
+        isActive: true,
+    };
+
+    return { ...defaultUser, ...overrides };
+};
+
+export const buildTestTokenPayload = (
+    overrides: Partial<{
+        userId: string;
+        email: string;
+        role: string;
+    }> = {}
+) => {
+    const defaultPayload = {
+        userId: faker.database.mongodbObjectId(),
+        email: faker.internet.email(),
+        role: 'user',
+    };
+
+    return { ...defaultPayload, ...overrides };
+};
+
 interface UserOverrides {
     password?: string;
     username?: string;
@@ -73,6 +114,25 @@ export const createTestUser = async (overrides: UserOverrides = {}) => {
         if (!user) {
             throw new Error('User.create() returned null or undefined');
         }
+
+        // Verify the user was saved correctly
+        const savedUser = await User.findById(user._id).select('+password');
+        if (!savedUser) {
+            throw new Error('User not found in database after creation');
+        }
+
+        // Verify password was hashed
+        if (savedUser.password === plainPassword) {
+            throw new Error('Password was not hashed during user creation');
+        }
+
+        // Verify password can be verified
+        const isPasswordValid = await bcrypt.compare(plainPassword, savedUser.password);
+        if (!isPasswordValid) {
+            throw new Error('Password verification failed after user creation');
+        }
+
+        console.log('User creation verified successfully');
         return user;
     } catch (error) {
         console.error('Detailed error in createTestUser:', error);

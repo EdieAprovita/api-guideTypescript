@@ -23,8 +23,9 @@ class TokenService {
     private readonly refreshTokenExpiry: string;
 
     constructor() {
-        // Only connect to Redis if not in test environment
-        if (process.env.NODE_ENV !== 'test') {
+        // Connect to Redis for both production and test environments
+        // Use mock Redis only if explicitly disabled (REDIS_HOST='')
+        if (process.env.NODE_ENV !== 'test' || (process.env.REDIS_HOST && process.env.REDIS_HOST !== '')) {
             const redisConfig: {
                 host: string;
                 port: number;
@@ -209,6 +210,12 @@ class TokenService {
                 throw new Error('Invalid token type');
             }
 
+            // Reject blacklisted tokens early
+            const isBlacklistedEarly = await this.isTokenBlacklisted(token);
+            if (isBlacklistedEarly) {
+                throw new Error('Token is blacklisted');
+            }
+
             // Check if refresh token exists in Redis
             const refreshTokenKey = `refresh_token:${payload.userId}`;
             const storedToken = await this.redis.get(refreshTokenKey);
@@ -227,17 +234,17 @@ class TokenService {
     }
 
     async refreshTokens(refreshToken: string): Promise<TokenPair> {
+        // Validate old refresh token first
         const payload = await this.verifyRefreshToken(refreshToken);
 
-        // Revoke old refresh token
+        // 1) Blacklist the old refresh token so it cannot be reused
+        await this.blacklistToken(refreshToken);
+
+        // 2) Revoke stored refresh token entry for the user
         await this.revokeRefreshToken(payload.userId);
 
-        // Generate new token pair
-        return this.generateTokenPair({
-            userId: payload.userId,
-            email: payload.email,
-            role: payload.role,
-        });
+        // 3) Issue and STORE a brand-new pair (generateTokens handles saving)
+        return this.generateTokens(payload.userId, payload.email, payload.role);
     }
 
     async revokeRefreshToken(userId: string): Promise<void> {

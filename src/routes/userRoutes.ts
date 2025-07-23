@@ -32,6 +32,17 @@ router.get('/', rateLimits.api, protect, admin, validate({ query: querySchemas.s
 
 router.get('/profile', rateLimits.api, protect, getCurrentUserProfile);
 
+router.put(
+    '/profile',
+    rateLimits.api,
+    validateInputLength(4096), // 4KB limit for profile updates
+    protect,
+    validate({
+        body: userSchemas.updateProfile,
+    }),
+    updateUserProfile
+);
+
 router.post(
     '/login',
     rateLimits.auth,
@@ -91,7 +102,7 @@ router.put(
     updateUserProfile
 );
 
-router.get('/:id', rateLimits.api, protect, validate({ params: paramSchemas.id }), getUserById);
+router.get('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), getUserById);
 
 router.delete('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), deleteUserById);
 

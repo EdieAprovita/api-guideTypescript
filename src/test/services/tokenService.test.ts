@@ -1,3 +1,9 @@
+// Unit tests should use mocks - force mock environment
+process.env.NODE_ENV = 'test';
+process.env.REDIS_HOST = ''; // Force mock Redis for unit tests
+process.env.JWT_SECRET = 'test_jwt_secret_key';
+process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_key';
+
 import { faker } from '@faker-js/faker';
 import jwt from 'jsonwebtoken';
 import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers';

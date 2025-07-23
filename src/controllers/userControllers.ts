@@ -20,13 +20,9 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
         if (process.env.NODE_ENV === 'test') {
             console.error('registerUser controller error:', error);
         }
-        
-        next(
-            new HttpError(
-                HttpStatusCode.BAD_REQUEST,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+
+        const statusCode = error instanceof HttpError ? error.statusCode : HttpStatusCode.BAD_REQUEST;
+        next(new HttpError(statusCode, getErrorMessage(error instanceof Error ? error.message : 'Unknown error')));
     }
 });
 
@@ -48,13 +44,9 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
         if (process.env.NODE_ENV === 'test') {
             console.error('loginUser controller error:', error);
         }
-        
-        next(
-            new HttpError(
-                HttpStatusCode.UNAUTHORIZED,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+
+        const statusCode = error instanceof HttpError ? error.statusCode : HttpStatusCode.UNAUTHORIZED;
+        next(new HttpError(statusCode, getErrorMessage(error instanceof Error ? error.message : 'Unknown error')));
     }
 });
 
@@ -184,14 +176,49 @@ export const getUserById = asyncHandler(async (req: Request, res: Response, next
 
 export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
+        // Debug logging for test environment
+        if (process.env.NODE_ENV === 'test') {
+            console.log('🔍 getCurrentUserProfile Debug:');
+            console.log('  req.user:', req.user);
+            console.log('  req.user?._id:', req.user?._id);
+            console.log('  typeof req.user?._id:', typeof req.user?._id);
+        }
+
         const userId = req.user?._id;
-        if (!userId) throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+        if (!userId) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not authenticated');
+        }
+
+        // Debug logging for user lookup
+        if (process.env.NODE_ENV === 'test') {
+            console.log('  Looking up user with ID:', userId);
+            console.log('  userId type:', typeof userId);
+        }
+
         const user = await UserServices.findUserById(userId);
+        
+        if (process.env.NODE_ENV === 'test') {
+            console.log('  User lookup result:', user ? 'found' : 'not found');
+            if (user) {
+                console.log('  Found user ID:', user._id);
+                console.log('  Found user email:', user.email);
+            }
+        }
+
+        if (!user) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        }
+
         res.status(200).json(user);
     } catch (error) {
+        // Log error details in test environment for debugging
+        if (process.env.NODE_ENV === 'test') {
+            console.error('getCurrentUserProfile controller error:', error);
+        }
+
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                error instanceof HttpError ? error.statusCode : HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
@@ -211,19 +238,19 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
         const { id } = req.params;
         const currentUserId = req.user?._id?.toString();
         const currentUserRole = req.user?.role;
-        
+
         if (!currentUserId) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
         }
-        
+
         // Use the ID from params if provided, otherwise use current user ID
         const targetUserId = id || currentUserId;
-        
+
         // Check authorization: users can only update their own profile, admins can update any profile
         if (targetUserId !== currentUserId && currentUserRole !== 'admin') {
             throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own profile');
         }
-        
+
         const updatedUser = await UserServices.updateUserById(targetUserId, req.body);
         res.json(updatedUser);
     } catch (error) {

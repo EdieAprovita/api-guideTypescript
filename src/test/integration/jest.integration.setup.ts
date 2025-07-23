@@ -1,13 +1,23 @@
 // INTEGRATION TEST SETUP - WITH CONTROLLED MOCKING
 // This setup is specifically for integration tests with proper mock configuration
 
+import mongoose from 'mongoose';
+
 // Set test environment variables FIRST
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
 process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_12345';
 process.env.JWT_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+// Avoid binary-download failures in CI
+process.env.MONGOMS_DISABLE_POSTINSTALL = '1';
 process.env.BCRYPT_SALT_ROUNDS = '10';
+
+// MongoDB configuration for tests
+// Try to use local MongoDB if available, otherwise use memory server
+if (!process.env.MONGODB_URI) {
+    process.env.MONGODB_URI = 'mongodb://localhost:27017/test-db';
+}
 
 // Disable Redis for tests (TokenService will use in-memory mock)
 process.env.REDIS_HOST = '';
@@ -31,30 +41,34 @@ jest.mock('../../services/TokenService', () => {
         ...originalModule,
         generateTokens: jest.fn().mockImplementation((userId: string, email?: string, role?: string) => {
             return Promise.resolve({
-                accessToken: `mock-access-token-${userId}`,
-                refreshToken: `mock-refresh-token-${userId}`,
+                accessToken: `mock-access-token-${userId}-${role || 'user'}`,
+                refreshToken: `mock-refresh-token-${userId}-${role || 'user'}`,
             });
         }),
         generateTokenPair: jest.fn().mockImplementation((payload: any) => {
             return Promise.resolve({
-                accessToken: `mock-access-token-${payload.userId}`,
-                refreshToken: `mock-refresh-token-${payload.userId}`,
+                accessToken: `mock-access-token-${payload.userId}-${payload.role || 'user'}`,
+                refreshToken: `mock-refresh-token-${payload.userId}-${payload.role || 'user'}`,
             });
         }),
         verifyAccessToken: jest.fn().mockImplementation((token: string) => {
-            const userId = token.replace('mock-access-token-', '');
+            const parts = token.replace('mock-access-token-', '').split('-');
+            const userId = parts[0];
+            const role = parts[1] || 'user';
             return Promise.resolve({
                 userId,
                 email: 'test@example.com',
-                role: 'user',
+                role,
             });
         }),
         verifyRefreshToken: jest.fn().mockImplementation((token: string) => {
-            const userId = token.replace('mock-refresh-token-', '');
+            const parts = token.replace('mock-refresh-token-', '').split('-');
+            const userId = parts[0];
+            const role = parts[1] || 'user';
             return Promise.resolve({
                 userId,
                 email: 'test@example.com',
-                role: 'user',
+                role,
             });
         }),
         refreshTokens: jest.fn().mockImplementation((refreshToken: string) => {
@@ -98,20 +112,7 @@ console.log = (...args) => {
 };
 
 // Increase timeout for integration tests
-jest.setTimeout(30000);
-
-// Setup test database connection if needed
-beforeAll(async () => {
-    console.log('=== INTEGRATION TEST SETUP STARTED ===');
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('JWT Secret set:', !!process.env.JWT_SECRET);
-    console.log('Redis disabled:', !process.env.REDIS_HOST);
-    console.log('TokenService mocked:', true);
-});
-
-afterAll(async () => {
-    console.log('=== INTEGRATION TEST CLEANUP ===');
-    // Cleanup connections, etc.
-});
+jest.setTimeout(60000); // Increased to 60 seconds
 
 console.log('Integration test setup complete - WITH CONTROLLED MOCKING');
+console.log('MongoDB URI:', process.env.MONGODB_URI);

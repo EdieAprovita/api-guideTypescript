@@ -7,7 +7,6 @@ import { Restaurant } from '../../models/Restaurant';
 import { testDataFactory } from '../types/testTypes';
 import { Types } from 'mongoose';
 
-
 describe('Review Integration Tests', () => {
     let authToken: string;
     let testUserId: string;
@@ -17,8 +16,9 @@ describe('Review Integration Tests', () => {
     const validReviewData = {
         ...testDataFactory.review(),
         title: 'Amazing vegan restaurant!',
-        content: 'The food was absolutely delicious. Great variety of vegan options and excellent service. Highly recommended!',
-        recommendedDishes: ['Vegan Burger', 'Quinoa Salad']
+        content:
+            'The food was absolutely delicious. Great variety of vegan options and excellent service. Highly recommended!',
+        recommendedDishes: ['Vegan Burger', 'Quinoa Salad'],
     };
 
     beforeAll(async () => {
@@ -26,9 +26,7 @@ describe('Review Integration Tests', () => {
         const user = await createTestUser();
         testUserId = user._id.toString();
         testUserEmail = user.email;
-        authToken = (
-            await generateAuthTokens(testUserId, user.email, user.role)
-        ).accessToken;
+        authToken = (await generateAuthTokens(testUserId, user.email, user.role)).accessToken;
 
         // Create ObjectId for author field if user._id is not valid
         const authorId = Types.ObjectId.isValid(user._id) ? user._id : new Types.ObjectId();
@@ -40,7 +38,7 @@ describe('Review Integration Tests', () => {
             address: '123 Review Street, Test City, Test State, USA, 12345',
             location: {
                 type: 'Point',
-                coordinates: [-118.2437, 34.0522]
+                coordinates: [-118.2437, 34.0522],
             },
             cuisine: ['vegan', 'organic'],
             features: ['delivery'],
@@ -49,12 +47,12 @@ describe('Review Integration Tests', () => {
                 {
                     phone: '+1-555-999-1111',
                     facebook: '',
-                    instagram: ''
-                }
+                    instagram: '',
+                },
             ],
             rating: 0,
             numReviews: 0,
-            reviews: []
+            reviews: [],
         });
         restaurantId = restaurant._id.toString();
     });
@@ -76,10 +74,8 @@ describe('Review Integration Tests', () => {
         });
 
         it('should respond to basic API endpoint', async () => {
-            const response = await request(app)
-                .get('/api/v1');
+            const response = await request(app).get('/api/v1');
 
-            
             expect(response.status).toBe(200);
             expect(response.text).toBe('API is running');
         });
@@ -91,10 +87,8 @@ describe('Review Integration Tests', () => {
                 .post(`/api/v1/restaurants/${restaurantId}/reviews`)
                 .send(validReviewData);
 
-            
-            // The mock middleware creates the review but doesn't verify the token format
-            // In a real test, this would be 401, but with mocks we expect success
-            expect([201, 401]).toContain(response.status);
+            // Should return 401 for missing auth token
+            expect(response.status).toBe(401);
         });
 
         it('should return 401 when invalid auth token is provided', async () => {
@@ -103,15 +97,13 @@ describe('Review Integration Tests', () => {
                 .set('Authorization', 'Bearer invalid-token')
                 .send(validReviewData);
 
-            
-            // The middleware mock should reject invalid tokens but sometimes passes through
-            expect([201, 401]).toContain(response.status);
+            // Should return 401 for invalid auth token, but sometimes returns 400 due to validation
+            expect([400, 401]).toContain(response.status);
         });
     });
 
     describe('POST /api/v1/restaurants/:restaurantId/reviews', () => {
         it('should create a new review with valid data', async () => {
-
             const response = await request(app)
                 .post(`/api/v1/restaurants/${restaurantId}/reviews`)
                 .set('Authorization', `Bearer ${authToken}`)
