@@ -35,53 +35,109 @@ jest.resetModules();
 // IMPORTANT: Mock TokenService for integration tests to ensure consistency
 jest.mock('../../services/TokenService', () => {
     const originalModule = jest.requireActual('../../services/TokenService');
+    const jwt = require('jsonwebtoken');
 
     // Create a mock that extends the real TokenService but with controlled behavior
     const MockTokenService = {
         ...originalModule,
         generateTokens: jest.fn().mockImplementation((userId: string, email?: string, role?: string) => {
+            // Generate real JWT tokens for integration tests
+            const payload = { userId, email: email || 'test@example.com', role: role || 'user' };
+            const accessToken = jwt.sign(payload, process.env.JWT_SECRET || 'test-secret', { 
+                expiresIn: '15m',
+                issuer: 'vegan-guide-api',
+                audience: 'vegan-guide-client'
+            });
+            const refreshToken = jwt.sign({...payload, type: 'refresh'}, process.env.JWT_REFRESH_SECRET || 'test-refresh-secret', { 
+                expiresIn: '7d',
+                issuer: 'vegan-guide-api',
+                audience: 'vegan-guide-client'
+            });
+            
             return Promise.resolve({
-                accessToken: `mock-access-token-${userId}-${role || 'user'}`,
-                refreshToken: `mock-refresh-token-${userId}-${role || 'user'}`,
+                accessToken,
+                refreshToken,
             });
         }),
         generateTokenPair: jest.fn().mockImplementation((payload: any) => {
+            // Generate real JWT tokens for integration tests
+            const accessToken = jwt.sign(payload, process.env.JWT_SECRET || 'test-secret', { 
+                expiresIn: '15m',
+                issuer: 'vegan-guide-api',
+                audience: 'vegan-guide-client'
+            });
+            const refreshToken = jwt.sign({...payload, type: 'refresh'}, process.env.JWT_REFRESH_SECRET || 'test-refresh-secret', { 
+                expiresIn: '7d',
+                issuer: 'vegan-guide-api',
+                audience: 'vegan-guide-client'
+            });
+            
             return Promise.resolve({
-                accessToken: `mock-access-token-${payload.userId}-${payload.role || 'user'}`,
-                refreshToken: `mock-refresh-token-${payload.userId}-${payload.role || 'user'}`,
+                accessToken,
+                refreshToken,
             });
         }),
         verifyAccessToken: jest.fn().mockImplementation((token: string) => {
-            const parts = token.replace('mock-access-token-', '').split('-');
-            const userId = parts[0];
-            const role = parts[1] || 'user';
-            return Promise.resolve({
-                userId,
-                email: 'test@example.com',
-                role,
-            });
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test-secret');
+                return Promise.resolve(decoded);
+            } catch (error) {
+                return Promise.reject(error);
+            }
         }),
         verifyRefreshToken: jest.fn().mockImplementation((token: string) => {
-            const parts = token.replace('mock-refresh-token-', '').split('-');
-            const userId = parts[0];
-            const role = parts[1] || 'user';
-            return Promise.resolve({
-                userId,
-                email: 'test@example.com',
-                role,
-            });
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'test-refresh-secret');
+                return Promise.resolve(decoded);
+            } catch (error) {
+                return Promise.reject(error);
+            }
         }),
         refreshTokens: jest.fn().mockImplementation((refreshToken: string) => {
-            const userId = refreshToken.replace('mock-refresh-token-', '');
-            return Promise.resolve({
-                accessToken: `mock-access-token-${userId}-new`,
-                refreshToken: `mock-refresh-token-${userId}-new`,
-            });
+            try {
+                const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'test-refresh-secret');
+                // Generate new tokens
+                const newPayload = { userId: decoded.userId, email: decoded.email, role: decoded.role };
+                const accessToken = jwt.sign(newPayload, process.env.JWT_SECRET || 'test-secret', { 
+                    expiresIn: '15m',
+                    issuer: 'vegan-guide-api',
+                    audience: 'vegan-guide-client'
+                });
+                const newRefreshToken = jwt.sign({...newPayload, type: 'refresh'}, process.env.JWT_REFRESH_SECRET || 'test-refresh-secret', { 
+                    expiresIn: '7d',
+                    issuer: 'vegan-guide-api',
+                    audience: 'vegan-guide-client'
+                });
+                
+                return Promise.resolve({
+                    accessToken,
+                    refreshToken: newRefreshToken,
+                });
+            } catch (error) {
+                return Promise.reject(error);
+            }
         }),
-        blacklistToken: jest.fn().mockResolvedValue(undefined),
-        revokeAllUserTokens: jest.fn().mockResolvedValue(undefined),
-        isTokenBlacklisted: jest.fn().mockResolvedValue(false),
-        isUserTokensRevoked: jest.fn().mockResolvedValue(false),
+        blacklistToken: jest.fn().mockImplementation(async (token: string) => {
+            // Store blacklisted tokens in a Set for this test session
+            if (!global.testBlacklistedTokens) {
+                global.testBlacklistedTokens = new Set();
+            }
+            global.testBlacklistedTokens.add(token);
+            return Promise.resolve();
+        }),
+        revokeAllUserTokens: jest.fn().mockImplementation(async (userId: string) => {
+            if (!global.testRevokedUsers) {
+                global.testRevokedUsers = new Set();
+            }
+            global.testRevokedUsers.add(userId);
+            return Promise.resolve();
+        }),
+        isTokenBlacklisted: jest.fn().mockImplementation(async (token: string) => {
+            return Promise.resolve(global.testBlacklistedTokens?.has(token) || false);
+        }),
+        isUserTokensRevoked: jest.fn().mockImplementation(async (userId: string) => {
+            return Promise.resolve(global.testRevokedUsers?.has(userId) || false);
+        }),
         clearAllForTesting: jest.fn().mockResolvedValue(undefined),
         disconnect: jest.fn().mockResolvedValue(undefined),
     };

@@ -345,8 +345,15 @@ class TokenService {
     }
 
     async clearAllForTesting(): Promise<void> {
-        if (process.env.NODE_ENV === 'test' && 'flushall' in this.redis) {
-            await (this.redis as any).flushall();
+        if (process.env.NODE_ENV === 'test') {
+            if ('flushall' in this.redis) {
+                await (this.redis as any).flushall();
+            }
+            // Clear global test state used by mocks
+            if (typeof global !== 'undefined') {
+                (global as any).testBlacklistedTokens?.clear();
+                (global as any).testRevokedUsers?.clear();
+            }
         }
     }
 }

@@ -20,6 +20,6 @@ module.exports = {
       statements: 10
     }
   },
-  // Para tests de integración, damos más tiempo
-  testTimeout: 30000
+  // Para tests de integración, damos más tiempo para MongoDB Memory Server
+  testTimeout: 60000
 };
