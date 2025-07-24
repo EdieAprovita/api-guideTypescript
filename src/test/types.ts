@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
+import { vi, MockedFunction } from 'vitest';
 import { 
     MockRestaurant, 
     MockBusiness, 
@@ -77,13 +78,13 @@ export interface MockPost {
 }
 
 export interface MockReviewService {
-    getTopRatedReviews: jest.MockedFunction<() => Promise<MockReview[]>>;
-    addReview: jest.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
-    getAll: jest.MockedFunction<() => Promise<MockReview[]>>;
-    findById: jest.MockedFunction<(id: string) => Promise<MockReview | null>>;
-    create: jest.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
-    updateById: jest.MockedFunction<(id: string, data: Partial<MockReview>) => Promise<MockReview | null>>;
-    deleteById: jest.MockedFunction<(id: string) => Promise<void>>;
+    getTopRatedReviews: MockedFunction<() => Promise<MockReview[]>>;
+    addReview: MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
+    getAll: MockedFunction<() => Promise<MockReview[]>>;
+    findById: MockedFunction<(id: string) => Promise<MockReview | null>>;
+    create: MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
+    updateById: MockedFunction<(id: string, data: Partial<MockReview>) => Promise<MockReview | null>>;
+    deleteById: MockedFunction<(id: string) => Promise<void>>;
 }
 
 // Tipos para middleware mocking
@@ -92,13 +93,13 @@ export type TestController = (req: Request, res: Response) => void | Promise<voi
 
 // Utilidades para mocking
 export interface AuthMock {
-    protect: jest.MockedFunction<TestMiddleware>;
-    admin: jest.MockedFunction<TestMiddleware>;
-    professional: jest.MockedFunction<TestMiddleware>;
-    requireAuth: jest.MockedFunction<TestMiddleware>;
-    checkOwnership: jest.MockedFunction<() => TestMiddleware>;
-    logout: jest.MockedFunction<TestController>;
-    refreshToken: jest.MockedFunction<TestController>;
+    protect: MockedFunction<TestMiddleware>;
+    admin: MockedFunction<TestMiddleware>;
+    professional: MockedFunction<TestMiddleware>;
+    requireAuth: MockedFunction<TestMiddleware>;
+    checkOwnership: MockedFunction<() => TestMiddleware>;
+    logout: MockedFunction<TestController>;
+    refreshToken: MockedFunction<TestController>;
 }
 
 // Type guards

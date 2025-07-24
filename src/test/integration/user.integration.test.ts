@@ -15,16 +15,16 @@ import request from 'supertest';
 console.log('Loading user integration test file...');
 
 // Clear all mocks to ensure clean state
-jest.clearAllMocks();
-jest.resetAllMocks();
+vi.clearAllMocks();
+vi.resetAllMocks();
 
 // Use real implementations for integration tests
-jest.unmock('../../services/TokenService');
-jest.unmock('../../services/UserService');
-jest.unmock('../../middleware/authMiddleware');
+vi.unmock('../../services/TokenService');
+vi.unmock('../../services/UserService');
+vi.unmock('../../middleware/authMiddleware');
 
-// Force Jest to use real implementations by resetting module registry
-jest.resetModules();
+// Force Vitest to use real implementations by resetting module registry
+vi.resetModules();
 
 import app from '../../app';
 import { setupTestCleanup } from './helpers/testCleanup';
@@ -35,7 +35,7 @@ import { connect, closeDatabase } from './helpers/testDb';
 setupTestCleanup();
 
 // Aumentar el timeout global para todos los tests de integración
-jest.setTimeout(45000);
+vi.setTimeout(45000);
 
 describe('User API Integration Tests', () => {
     beforeAll(async () => {
@@ -50,7 +50,7 @@ describe('User API Integration Tests', () => {
 
     beforeEach(() => {
         // Clear all mocks before each test
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should get current user profile', async () => {

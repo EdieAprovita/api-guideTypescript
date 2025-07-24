@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+import type { Mocked } from 'vitest';
 import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import express from 'express';
@@ -8,12 +10,12 @@ import testConfig from '../testConfig';
 import { expectErrorResponse, expectValidationErrorResponse, expectServerError } from '../utils/responseExpectations';
 
 // Mock logger
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../utils/logger', () => ({
     default: {
-        error: jest.fn(),
-        warn: jest.fn(),
-        info: jest.fn(),
-        debug: jest.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
     },
 }));
 
@@ -135,10 +137,10 @@ app.get('/duplicate-key-error', (_req, _res, next) => {
 app.use(errorHandler);
 
 describe('Error Handler Middleware Tests', () => {
-    const mockedLogger = logger as jest.Mocked<typeof logger>;
+    const mockedLogger = logger as Mocked<typeof logger>;
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         process.env.NODE_ENV = 'test';
     });
 

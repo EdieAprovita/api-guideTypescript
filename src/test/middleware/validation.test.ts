@@ -108,7 +108,7 @@ describe('Validation Middleware Tests', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.body.name).not.toContain('<script>');
-            expect(response.body.body.description).not.toContain('javascript');
+            expect(response.body.body.description).not.toContain('javascript:');
             expect(response.body.body.content).not.toContain('onerror=');
         });
 

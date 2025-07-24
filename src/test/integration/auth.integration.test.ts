@@ -1,5 +1,6 @@
 // IMPORTANT: Set environment variables BEFORE any imports
 // Load test environment variables
+import { vi } from 'vitest';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.test' });
 
@@ -11,31 +12,25 @@ import request from 'supertest';
 import bcrypt from 'bcryptjs';
 
 // Clear all mocks to ensure integration tests use real implementations
-jest.clearAllMocks();
-jest.resetAllMocks();
+vi.clearAllMocks();
+vi.resetAllMocks();
 
 // CRITICAL: Disable all automatic mocks for integration tests
-jest.unmock('../../app');
-jest.unmock('../../services/UserService');
-jest.unmock('../../controllers/userControllers');
-jest.unmock('../../middleware/authMiddleware');
-jest.unmock('../../middleware/validation');
-jest.unmock('../../middleware/security');
-jest.unmock('../../utils/validators');
-jest.unmock('../../models/User');
-jest.unmock('../../services/TokenService');
-jest.unmock('bcryptjs');
+vi.unmock('../../app');
+vi.unmock('../../services/UserService');
+vi.unmock('../../controllers/userControllers');
+vi.unmock('../../middleware/authMiddleware');
+vi.unmock('../../middleware/validation');
+vi.unmock('../../middleware/security');
+vi.unmock('../../utils/validators');
+vi.unmock('../../models/User');
+vi.unmock('../../services/TokenService');
+vi.unmock('bcryptjs');
 
-// Force Jest to use real implementations by resetting module registry
-jest.resetModules();
+// Vitest handles module registry automatically
 
 import app from '../../app';
-import {
-    connect as connectTestDB,
-    closeDatabase as disconnectTestDB,
-    clearDatabase as clearTestDB,
-    connectToLocalDB,
-} from './helpers/testDb';
+import { closeDatabase as disconnectTestDB, clearDatabase as clearTestDB, connectToLocalDB } from './helpers/testDb';
 import { createTestUser, createAdminUser } from './helpers/testFixtures';
 import { generateAuthTokens } from './helpers/testFixtures';
 import { logTestError } from './helpers/errorLogger';
@@ -49,8 +44,7 @@ import { setupTestCleanup } from './helpers/testCleanup';
 // Setup automatic database cleanup after each test
 setupTestCleanup();
 
-// Aumentar el timeout global para todos los tests de integración
-jest.setTimeout(45000);
+// Timeout is handled by vitest.config.ts testTimeout setting
 
 // Interfaces for type safety
 interface ApiResponse {
@@ -189,22 +183,9 @@ const setupUserAndTokens = async (isAdmin = false): Promise<{ user: TestUser; to
 describe('Authentication Flow Integration Tests', () => {
     beforeAll(async () => {
         try {
-            // First try to connect to memory server
-            try {
-                await connectTestDB();
-                console.log('Test database connected successfully (memory server)');
-            } catch (memoryError) {
-                console.warn('Memory server failed, trying local MongoDB:', memoryError);
-
-                // Fallback to local MongoDB
-                try {
-                    await connectToLocalDB();
-                    console.log('Test database connected successfully (local MongoDB)');
-                } catch (localError) {
-                    console.error('Both memory server and local MongoDB failed:', localError);
-                    throw localError;
-                }
-            }
+            // Use configured MongoDB directly for integration tests
+            await connectToLocalDB();
+            console.log('Test database connected successfully');
 
             // Ensure database is clean before starting tests
             await clearTestDB();
@@ -246,16 +227,12 @@ describe('Authentication Flow Integration Tests', () => {
             clearPasswordCache();
 
             const userData = createUserData();
-            console.log('=== TEST DEBUG: userData ===', userData);
 
             const response = await request(app)
                 .post('/api/v1/users/register')
                 .set('User-Agent', 'test-agent')
                 .set('API-Version', 'v1')
                 .send(userData);
-
-            console.log('=== TEST DEBUG: response status ===', response.status);
-            console.log('=== TEST DEBUG: response body ===', JSON.stringify(response.body, null, 2));
 
             expectSuccessResponse(response, 201);
             expect(response.body).toHaveProperty('token');

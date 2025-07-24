@@ -84,35 +84,64 @@ export const validate = (schema: ValidationSchema) => {
 
 // Sanitization middleware
 export const sanitizeInput = () => {
-    // In test environment, return a minimal no-op middleware array
+    // In test environment, return a minimal sanitization middleware
     if (process.env.NODE_ENV === 'test') {
         return [
             (req: Request, _res: Response, next: NextFunction) => {
-                // Minimal sanitization for tests - just pass through
+                // Basic sanitization for tests
+                const sanitizeValue = (value: unknown): unknown => {
+                    if (typeof value === 'string') {
+                        // Remove script tags and dangerous content
+                        return value
+                            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                            .replace(/javascript:/gi, '')
+                            .replace(/on\w+\s*=/gi, '')
+                            .replace(/[\u0000-\u001F\u007F]/g, '');
+                    }
+                    if (Array.isArray(value)) {
+                        return value.map(sanitizeValue);
+                    }
+                    if (value && typeof value === 'object') {
+                        const sanitized: Record<string, unknown> = {};
+                        for (const [key, val] of Object.entries(value)) {
+                            sanitized[key] = sanitizeValue(val);
+                        }
+                        return sanitized;
+                    }
+                    return value;
+                };
+
+                req.body = sanitizeValue(req.body);
                 next();
-            }
+            },
         ];
     }
-    
+
     const middlewares: Array<(req: Request, res: Response, next: NextFunction) => void> = [];
-    
+
     // Use mongo sanitization in non-test environments
     middlewares.push(mongoSanitize());
-    
+
     // Add custom sanitization middleware
     middlewares.push(
-
         // Enhanced XSS and injection protection
         (req: Request, _res: Response, next: NextFunction) => {
             // Fields that should not be sanitized (passwords, tokens, etc.)
-            const skipSanitization = ['password', 'currentPassword', 'newPassword', 'confirmPassword', 'token', 'refreshToken'];
-            
+            const skipSanitization = [
+                'password',
+                'currentPassword',
+                'newPassword',
+                'confirmPassword',
+                'token',
+                'refreshToken',
+            ];
+
             const sanitizeValue = (value: unknown, fieldName?: string): unknown => {
                 // Skip sanitization for password fields
                 if (fieldName && skipSanitization.includes(fieldName)) {
                     return value;
                 }
-                
+
                 if (typeof value === 'string') {
                     // Enhanced XSS protection patterns - using non-backtracking regex
                     return (
@@ -210,7 +239,7 @@ export const sanitizeInput = () => {
             next();
         }
     );
-    
+
     return middlewares;
 };
 
@@ -218,25 +247,27 @@ export const sanitizeInput = () => {
 export const createRateLimit = (
     config: Partial<{ windowMs: number; max: number; message: string }> = {}
 ): RateLimitRequestHandler => {
-    // Disable rate limiting in test environment
-    if (process.env.NODE_ENV === 'test') {
-        return ((_req: Request, _res: Response, next: NextFunction) => {
-            next();
-        }) as RateLimitRequestHandler;
-    }
-    
+    // Use test-friendly rate limiting in test environment
+    const testConfig =
+        process.env.NODE_ENV === 'test'
+            ? {
+                  windowMs: 1000, // 1 second for tests
+                  max: 5, // 5 requests per second for tests
+                  ...config,
+              }
+            : config;
+
     return rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100,
+        windowMs: testConfig.windowMs || 15 * 60 * 1000, // 15 minutes
+        max: testConfig.max || 100,
         standardHeaders: true,
         legacyHeaders: false,
         handler: (_req: Request, res: Response) => {
             res.status(429).json({
                 success: false,
-                message: config.message ?? 'Too many requests from this IP, please try again later.',
+                message: testConfig.message ?? 'Too many requests from this IP, please try again later.',
             });
         },
-        ...config,
     });
 };
 

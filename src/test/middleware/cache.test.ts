@@ -1,15 +1,17 @@
+import { vi } from 'vitest';
+import type { MockedFunction, Mocked } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { cacheMiddleware } from '../../middleware/cache';
 import { cacheService } from '../../services/CacheService';
 
 // Mock the cache service
-jest.mock('../../services/CacheService', () => ({
+vi.mock('../../services/CacheService', () => ({
   cacheService: {
-    get: jest.fn(),
-    set: jest.fn(),
-    delete: jest.fn(),
-    getStats: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    getStats: vi.fn(),
   }
 }));
 
@@ -50,10 +52,10 @@ app.get('/custom-key/:category/:id',
 );
 
 describe('Cache Middleware Tests', () => {
-  const mockedCacheService = cacheService as jest.Mocked<typeof cacheService>;
+  const mockedCacheService = cacheService as Mocked<typeof cacheService>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Cache Hit Scenarios', () => {
@@ -208,7 +210,7 @@ describe('Cache Middleware Tests', () => {
       await request(app).get('/cached-route/methods');
       expect(mockedCacheService.get).toHaveBeenCalled();
 
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       // POST should not use cache
       await request(app).post('/invalidate/methods');

@@ -80,4 +80,4 @@ const professionSchema: Schema = new mongoose.Schema<IProfession>(
 
 professionSchema.index({ location: '2dsphere' });
 
-export const Profession = mongoose.model<IProfession>('Profession', professionSchema);
+export const Profession = mongoose.models.Profession || mongoose.model<IProfession>('Profession', professionSchema);

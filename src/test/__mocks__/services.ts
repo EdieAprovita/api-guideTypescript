@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 // Factory para crear mocks básicos de servicios
 import testConfig from '../testConfig';
@@ -6,11 +7,11 @@ import testConfig from '../testConfig';
 const tokenDataStorage = new Map<string, { userId: string; email: string; role: string }>();
 
 export const createBasicServiceMock = (serviceName: string) => ({
-    getAll: jest.fn().mockResolvedValue([]),
-    findById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
-    create: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
-    updateById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
-    deleteById: jest.fn().mockResolvedValue('Deleted successfully'),
+    getAll: vi.fn().mockResolvedValue([]),
+    findById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
+    create: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
+    updateById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
+    deleteById: vi.fn().mockResolvedValue('Deleted successfully'),
 });
 
 // Mocks específicos por servicio con métodos personalizados
@@ -18,35 +19,35 @@ export const serviceMocks = {
     // User Service
     userService: {
         ...createBasicServiceMock('User'),
-        registerUser: jest.fn().mockResolvedValue({
+        registerUser: vi.fn().mockResolvedValue({
             _id: faker.database.mongodbObjectId(),
             email: faker.internet.email(),
             firstName: 'Test',
             lastName: 'User',
         }),
-        loginUser: jest.fn().mockResolvedValue({
+        loginUser: vi.fn().mockResolvedValue({
             token: testConfig.generateTestPassword(),
             user: { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
         }),
-        findAllUsers: jest.fn().mockResolvedValue([
+        findAllUsers: vi.fn().mockResolvedValue([
             { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
             { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
         ]),
-        findUserById: jest
+        findUserById: vi
             .fn()
             .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: faker.internet.email() }),
-        updateUserById: jest
+        updateUserById: vi
             .fn()
             .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: faker.internet.email() }),
-        deleteUserById: jest.fn().mockResolvedValue('User deleted successfully'),
+        deleteUserById: vi.fn().mockResolvedValue('User deleted successfully'),
     },
 
     // Post Service
     postService: {
         ...createBasicServiceMock('Post'),
-        likePost: jest.fn().mockResolvedValue([]),
-        unlikePost: jest.fn().mockResolvedValue([]),
-        addComment: jest.fn().mockResolvedValue([]),
+        likePost: vi.fn().mockResolvedValue([]),
+        unlikePost: vi.fn().mockResolvedValue([]),
+        addComment: vi.fn().mockResolvedValue([]),
     },
 
     // Business Service
@@ -91,28 +92,28 @@ export const serviceMocks = {
 
     // Review Service
     reviewService: {
-        addReview: jest.fn().mockResolvedValue({ _id: 'review-id', rating: 5, comment: 'Great!' }),
-        getTopRatedReviews: jest.fn().mockResolvedValue([]),
-        getAll: jest.fn().mockResolvedValue([]),
-        findById: jest.fn().mockResolvedValue({ _id: 'review-id', rating: 5 }),
-        create: jest.fn().mockResolvedValue({ _id: 'new-review-id', rating: 4 }),
-        updateById: jest.fn().mockResolvedValue({ _id: 'updated-review-id', rating: 5 }),
-        deleteById: jest.fn().mockResolvedValue('Review deleted successfully'),
+        addReview: vi.fn().mockResolvedValue({ _id: 'review-id', rating: 5, comment: 'Great!' }),
+        getTopRatedReviews: vi.fn().mockResolvedValue([]),
+        getAll: vi.fn().mockResolvedValue([]),
+        findById: vi.fn().mockResolvedValue({ _id: 'review-id', rating: 5 }),
+        create: vi.fn().mockResolvedValue({ _id: 'new-review-id', rating: 4 }),
+        updateById: vi.fn().mockResolvedValue({ _id: 'updated-review-id', rating: 5 }),
+        deleteById: vi.fn().mockResolvedValue('Review deleted successfully'),
     },
 
     // Geo Service
     geoService: {
-        validateCoordinates: jest.fn().mockReturnValue(true),
-        calculateDistance: jest.fn().mockReturnValue(10.5),
-        findNearby: jest.fn().mockResolvedValue([]),
-        geocodeAddress: jest.fn().mockResolvedValue({ lat: 40.7128, lng: -74.006 }),
+        validateCoordinates: vi.fn().mockReturnValue(true),
+        calculateDistance: vi.fn().mockReturnValue(10.5),
+        findNearby: vi.fn().mockResolvedValue([]),
+        geocodeAddress: vi.fn().mockResolvedValue({ lat: 40.7128, lng: -74.006 }),
     },
 
     // Token Service
     tokenService: {
-        generateTokenPair: jest.fn().mockImplementation(payload => {
-            // Ensure userId is a valid ObjectId
-            const validUserId = payload.userId.length === 24 ? payload.userId : faker.database.mongodbObjectId();
+        generateTokenPair: vi.fn().mockImplementation(payload => {
+            // Ensure userId is a valid ObjectId - handle undefined/null cases
+            const validUserId = (payload && payload.userId && payload.userId.length === 24) ? payload.userId : faker.database.mongodbObjectId();
             const tokenId = Math.random().toString(36).substring(2, 11);
             const accessToken = `mock-access-token-${tokenId}`;
             const refreshToken = `mock-refresh-token-${tokenId}`;
@@ -120,13 +121,13 @@ export const serviceMocks = {
             // Store token data for later verification
             tokenDataStorage.set(accessToken, {
                 userId: validUserId,
-                email: payload.email,
-                role: payload.role || 'user'
+                email: (payload && payload.email) || 'test@example.com',
+                role: (payload && payload.role) || 'user'
             });
             tokenDataStorage.set(refreshToken, {
                 userId: validUserId,
-                email: payload.email,
-                role: payload.role || 'user'
+                email: (payload && payload.email) || 'test@example.com',
+                role: (payload && payload.role) || 'user'
             });
             
             return Promise.resolve({
@@ -134,9 +135,9 @@ export const serviceMocks = {
                 refreshToken,
             });
         }),
-        generateTokens: jest.fn().mockImplementation((userId, email, role) => {
-            // Ensure userId is a valid ObjectId
-            const validUserId = userId.length === 24 ? userId : faker.database.mongodbObjectId();
+        generateTokens: vi.fn().mockImplementation((userId, email, role) => {
+            // Ensure userId is a valid ObjectId - handle undefined/null cases
+            const validUserId = (userId && userId.length === 24) ? userId : faker.database.mongodbObjectId();
             const tokenId = Math.random().toString(36).substring(2, 11);
             const accessToken = `mock-access-token-${tokenId}`;
             const refreshToken = `mock-refresh-token-${tokenId}`;
@@ -158,7 +159,7 @@ export const serviceMocks = {
                 refreshToken,
             });
         }),
-        verifyAccessToken: jest.fn().mockImplementation(token => {
+        verifyAccessToken: vi.fn().mockImplementation(token => {
             // Check if token data is stored
             const storedData = tokenDataStorage.get(token);
             if (storedData) {
@@ -181,7 +182,7 @@ export const serviceMocks = {
                 role,
             });
         }),
-        verifyRefreshToken: jest.fn().mockImplementation(token => {
+        verifyRefreshToken: vi.fn().mockImplementation(token => {
             // Check if token data is stored
             const storedData = tokenDataStorage.get(token);
             if (storedData) {
@@ -214,7 +215,7 @@ export const serviceMocks = {
                 role,
             });
         }),
-        refreshTokens: jest.fn().mockImplementation(refreshToken => {
+        refreshTokens: vi.fn().mockImplementation(refreshToken => {
             // Get original token data
             const originalData = tokenDataStorage.get(refreshToken);
             if (originalData) {
@@ -251,23 +252,23 @@ export const serviceMocks = {
                 refreshToken: `mock-refresh-token-${userId}-${role}-new`,
             });
         }),
-        blacklistToken: jest.fn().mockResolvedValue(undefined),
-        revokeAllUserTokens: jest.fn().mockResolvedValue(undefined),
-        isTokenBlacklisted: jest.fn().mockResolvedValue(false),
-        isUserTokensRevoked: jest.fn().mockResolvedValue(false),
-        clearAllForTesting: jest.fn().mockImplementation(() => {
+        blacklistToken: vi.fn().mockResolvedValue(undefined),
+        revokeAllUserTokens: vi.fn().mockResolvedValue(undefined),
+        isTokenBlacklisted: vi.fn().mockResolvedValue(false),
+        isUserTokensRevoked: vi.fn().mockResolvedValue(false),
+        clearAllForTesting: vi.fn().mockImplementation(() => {
             tokenDataStorage.clear();
             return Promise.resolve(undefined);
         }),
-        disconnect: jest.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn().mockResolvedValue(undefined),
     },
 };
 
 // Mock para modelos
 export const modelMocks = {
     User: {
-        findById: jest.fn().mockReturnValue({
-            select: jest.fn().mockResolvedValue({
+        findById: vi.fn().mockReturnValue({
+            select: vi.fn().mockResolvedValue({
                 _id: 'mockUserId',
                 username: 'mockUser',
                 email: 'mock@example.com',
@@ -277,20 +278,20 @@ export const modelMocks = {
                 isActive: true,
             }),
         }),
-        findOne: jest.fn().mockResolvedValue({
+        findOne: vi.fn().mockResolvedValue({
             _id: 'mockUserId',
             email: 'mock@example.com',
         }),
-        create: jest.fn().mockResolvedValue({
+        create: vi.fn().mockResolvedValue({
             _id: faker.database.mongodbObjectId(),
             email: 'new@example.com',
         }),
-        find: jest.fn().mockResolvedValue([]),
-        findByIdAndUpdate: jest.fn().mockResolvedValue({
+        find: vi.fn().mockResolvedValue([]),
+        findByIdAndUpdate: vi.fn().mockResolvedValue({
             _id: 'updatedUserId',
             email: faker.internet.email(),
         }),
-        findByIdAndDelete: jest.fn().mockResolvedValue({
+        findByIdAndDelete: vi.fn().mockResolvedValue({
             _id: 'deletedUserId',
         }),
     },
@@ -299,7 +300,7 @@ export const modelMocks = {
 // Mock para librerías externas
 export const externalMocks = {
     jsonwebtoken: {
-        verify: jest.fn().mockImplementation((token) => {
+        verify: vi.fn().mockImplementation((token) => {
             // Try to decode the mock token format to extract the actual user data
             const tokenStr = token as string;
             try {
@@ -341,14 +342,14 @@ export const externalMocks = {
                 exp: Math.floor(Date.now() / 1000) + 3600,
             };
         }),
-        sign: jest.fn().mockImplementation((payload) => {
+        sign: vi.fn().mockImplementation((payload) => {
             // Preserve the actual userId from the payload or generate a valid one if missing
             const actualUserId = payload && payload.userId ? payload.userId : faker.database.mongodbObjectId();
             const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
             const actualRole = payload && payload.role ? payload.role : 'user';
             return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}\",\"email\":\"${actualEmail}\",\"role\":\"${actualRole}\"}.mock-signature`;
         }),
-        decode: jest.fn().mockImplementation((token: string) => {
+        decode: vi.fn().mockImplementation((token: string) => {
             // Try to decode the mock token format to extract the actual user data
             try {
                 if (token.includes('mock-signature')) {
@@ -379,7 +380,14 @@ export const externalMocks = {
         }),
     },
     bcrypt: {
-        hash: jest.fn().mockResolvedValue(testConfig.generateTestPassword()),
-        compare: jest.fn().mockResolvedValue(true),
+        __esModule: true,
+        default: {
+            hash: vi.fn().mockResolvedValue('hashed_password'),
+            compare: vi.fn().mockResolvedValue(true),
+            genSalt: vi.fn().mockResolvedValue('salt'),
+        },
+        hash: vi.fn().mockResolvedValue('hashed_password'),
+        compare: vi.fn().mockResolvedValue(true),
+        genSalt: vi.fn().mockResolvedValue('salt'),
     },
 };

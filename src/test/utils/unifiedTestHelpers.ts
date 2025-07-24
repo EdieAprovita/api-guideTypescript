@@ -1,3 +1,4 @@
+import { vi, MockedFunction } from 'vitest';
 /**
  * Unified Test Helpers - Eliminates duplication across test files
  * Single source of truth for all test utilities and helpers
@@ -8,7 +9,7 @@ import { Application } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import { faker } from '@faker-js/faker';
 import { Response as SupertestResponse } from 'supertest';
-import { MockedFunction } from 'jest-mock';
+
 import jwt from 'jsonwebtoken';
 
 // ===== TYPE DEFINITIONS =====
@@ -36,9 +37,9 @@ interface TestResponse {
 }
 
 interface MockResponse {
-    status: jest.MockedFunction<(code: number) => MockResponse>;
-    json: jest.MockedFunction<(data: unknown) => MockResponse>;
-    send: jest.MockedFunction<(data: unknown) => MockResponse>;
+    status: MockedFunction<(code: number) => MockResponse>;
+    json: MockedFunction<(data: unknown) => MockResponse>;
+    send: MockedFunction<(data: unknown) => MockResponse>;
 }
 
 // ===== CONSTANTS =====
@@ -170,19 +171,19 @@ export const createMockRequest = (
 });
 
 export const createMockResponse = (): MockResponse => ({
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
-    send: jest.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
 });
 
-export const createMockNext = (): jest.MockedFunction<NextFunction> => jest.fn();
+export const createMockNext = (): MockedFunction<NextFunction> => vi.fn();
 
 export const createServiceMocks = (serviceName: string) => ({
-    getAll: jest.fn().mockResolvedValue([]),
-    findById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
-    create: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
-    updateById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
-    deleteById: jest.fn().mockResolvedValue('Deleted successfully'),
+    getAll: vi.fn().mockResolvedValue([]),
+    findById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
+    create: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
+    updateById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
+    deleteById: vi.fn().mockResolvedValue('Deleted successfully'),
 });
 
 // ===== DATA GENERATORS =====
@@ -259,7 +260,7 @@ export const expectMockToHaveBeenCalledWith = <T extends unknown[]>(
     expect(mockFn).toHaveBeenCalledWith(...expectedArgs);
 };
 
-export const expectMockToHaveBeenCalledTimes = (mockFn: jest.Mock, times: number) => {
+export const expectMockToHaveBeenCalledTimes = (mockFn: MockedFunction<(...args: unknown[]) => unknown>, times: number) => {
     expect(mockFn).toHaveBeenCalledTimes(times);
 };
 
@@ -268,7 +269,7 @@ export const setupTestEnvironment = (envVars: Record<string, string> = {}) => {
     Object.entries(envVars).forEach(([key, value]) => {
         process.env[key] = value;
     });
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 };
 
 export const teardownTestEnvironment = () => {
@@ -276,8 +277,8 @@ export const teardownTestEnvironment = () => {
 };
 
 export const resetMocks = () => {
-    jest.clearAllMocks();
-    jest.resetAllMocks();
+    vi.clearAllMocks();
+    vi.resetAllMocks();
 };
 
 // ===== MOCK DATA FACTORY =====

@@ -181,7 +181,7 @@ export const setupMiddlewareTest = () => {
     const app = createTestApp();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     return { app };

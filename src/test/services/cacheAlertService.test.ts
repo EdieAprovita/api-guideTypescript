@@ -1,14 +1,15 @@
+import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import { CacheAlertService, AlertConfig } from '../../services/CacheAlertService';
 import { cacheService } from '../../services/CacheService';
 import logger from '../../utils/logger';
 
 // Mock dependencies
-jest.mock('../../services/CacheService');
-jest.mock('../../utils/logger');
+vi.mock('../../services/CacheService');
+vi.mock('../../utils/logger');
 
-const mockedCacheService = cacheService as jest.Mocked<typeof cacheService>;
-const mockedLogger = logger as jest.Mocked<typeof logger>;
+const mockedCacheService = cacheService as ReturnType<typeof vi.mocked<typeof cacheService>>;
+const mockedLogger = logger as ReturnType<typeof vi.mocked<typeof logger>>;
 
 describe('CacheAlertService', () => {
     let alertService: CacheAlertService;
@@ -25,14 +26,14 @@ describe('CacheAlertService', () => {
     };
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        jest.useFakeTimers();
+        vi.clearAllMocks();
+        vi.useFakeTimers();
         alertService = new CacheAlertService(defaultConfig);
     });
 
     afterEach(() => {
-        alertService.stopMonitoring();
-        jest.useRealTimers();
+        alertService?.stopMonitoring();
+        vi.useRealTimers();
     });
 
     describe('Constructor', () => {
@@ -120,7 +121,7 @@ describe('CacheAlertService', () => {
             alertService.startMonitoring();
 
             // Wait for immediate check
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedCacheService.getStats).toHaveBeenCalled();
         });
@@ -161,7 +162,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.warn).toHaveBeenCalledWith(
                 expect.stringContaining('🚨 CACHE ALERT [WARNING]: Cache hit ratio is below threshold: 60% < 70%')
@@ -180,7 +181,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.error).toHaveBeenCalledWith(
                 expect.stringContaining('🚨 CACHE ALERT [CRITICAL]: Cache hit ratio is below threshold: 40% < 70%')
@@ -199,7 +200,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             // Should not have any alert logs
             expect(mockedLogger.warn).not.toHaveBeenCalledWith(expect.stringContaining('🚨 CACHE ALERT'));
@@ -220,7 +221,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.warn).toHaveBeenCalledWith(
                 expect.stringContaining('🚨 CACHE ALERT [WARNING]: Cache memory usage is above threshold: 60M > 50M')
@@ -239,7 +240,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.error).toHaveBeenCalledWith(
                 expect.stringContaining('🚨 CACHE ALERT [CRITICAL]: Cache memory usage is above threshold: 80M > 50M')
@@ -260,7 +261,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.warn).toHaveBeenCalledWith(
                 expect.stringContaining('🚨 CACHE ALERT [WARNING]: Cache size is below threshold: 5 < 10 keys')
@@ -280,7 +281,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.set.mockRejectedValue(new Error('Redis connection failed'));
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.error).toHaveBeenCalledWith(
                 expect.stringContaining('🚨 CACHE ALERT [CRITICAL]: Redis connectivity check failed')
@@ -299,7 +300,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             // Should not create connectivity alert
             expect(mockedLogger.error).not.toHaveBeenCalledWith(
@@ -322,7 +323,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             // Verify alert was created
             const alertsAfterFirstCheck = alertService.getActiveAlerts();
@@ -338,8 +339,8 @@ describe('CacheAlertService', () => {
             });
 
             // Trigger next check cycle
-            jest.advanceTimersByTime(1000); // Advance 1 second
-            await jest.runOnlyPendingTimersAsync();
+            vi.advanceTimersByTime(1000); // Advance 1 second
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('✅ CACHE ALERT RESOLVED'));
         });
@@ -350,7 +351,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.getStats.mockRejectedValue(new Error('Redis error'));
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.error).toHaveBeenCalledWith('Error checking cache metrics:', expect.any(Error));
 
@@ -391,7 +392,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             const activeAlerts = alertService.getActiveAlerts();
             expect(activeAlerts.length).toBeGreaterThan(0);
@@ -412,7 +413,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             alertService.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             const allAlerts = alertService.getAllAlerts();
             expect(allAlerts.length).toBeGreaterThan(0);
@@ -499,7 +500,7 @@ describe('CacheAlertService', () => {
             mockedCacheService.get.mockResolvedValue({ timestamp: new Date() });
 
             serviceWithNotifications.startMonitoring();
-            await jest.runOnlyPendingTimersAsync();
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.info).toHaveBeenCalledWith('🔗 Webhook notification sent');
             expect(mockedLogger.info).toHaveBeenCalledWith(`📧 Email notification sent to ${testEmail}`);

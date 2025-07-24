@@ -1,3 +1,4 @@
+import { vi, Mock } from 'vitest';
 // User Controllers Test - Uses isolated setup to test controllers with real service calls
 // This test bypasses global service mocks to test actual controller logic
 
@@ -8,19 +9,19 @@ import { generateTestPassword } from '../utils/passwordGenerator';
 
 // Mock UserService específicamente para este test
 const mockUserService = {
-    registerUser: jest.fn(),
-    loginUser: jest.fn(),
-    findAllUsers: jest.fn(),
-    findUserById: jest.fn(),
-    updateUserById: jest.fn(),
-    deleteUserById: jest.fn(),
-    forgotPassword: jest.fn(),
-    resetPassword: jest.fn(),
-    logoutUser: jest.fn(),
+    registerUser: vi.fn(),
+    loginUser: vi.fn(),
+    findAllUsers: vi.fn(),
+    findUserById: vi.fn(),
+    updateUserById: vi.fn(),
+    deleteUserById: vi.fn(),
+    forgotPassword: vi.fn(),
+    resetPassword: vi.fn(),
+    logoutUser: vi.fn(),
 };
 
 // Mock específico para UserService sin interferir con setup global
-jest.doMock('../../services/UserService', () => ({
+vi.doMock('../../services/UserService', () => ({
     __esModule: true,
     default: mockUserService,
 }));
@@ -44,17 +45,17 @@ const createMockReqRes = (body = {}, params = {}, user: { _id?: string; role?: s
     } as Request;
 
     const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn().mockReturnThis(),
     } as unknown as Response;
 
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
 
     return { req, res, next };
 };
 
 beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 });
 
 // Generate test passwords using faker instead of hardcoded values
@@ -207,7 +208,7 @@ describe('User Controllers', () => {
             await updateUserProfile(req, res, next);
 
             expect(next).toHaveBeenCalledTimes(1);
-            const calledError = (next as jest.MockedFunction<NextFunction>).mock.calls[0][0];
+            const calledError = (next as Mock).mock.calls[0][0];
             expect(calledError).toHaveProperty('statusCode', 500);
             expect(calledError).toHaveProperty('message', 'User not found');
         });

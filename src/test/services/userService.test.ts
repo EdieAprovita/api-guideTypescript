@@ -1,27 +1,28 @@
+import { vi } from 'vitest';
 import { Response } from 'express';
 import UserService from '../../services/UserService';
 import { User, IUser } from '../../models/User';
 import { HttpError } from '../../types/Errors';
 import generateTokenAndSetCookie from '../../utils/generateToken';
 import { faker } from '@faker-js/faker';
-import { jest } from '@jest/globals';
+
 import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
 
 // Mock dependencies
-jest.mock('../../models/User');
-jest.mock('../../utils/generateToken');
-jest.mock('../../utils/logger');
-jest.mock('bcryptjs');
+vi.mock('../../models/User');
+vi.mock('../../utils/generateToken');
+vi.mock('../../utils/logger');
+vi.mock('bcryptjs');
 
 // Mock Response object for testing
 const mockResponse = {
-    cookie: jest.fn(),
-    clearCookie: jest.fn(),
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
-    send: jest.fn().mockReturnThis(),
-    setHeader: jest.fn(),
-    end: jest.fn(),
+    cookie: vi.fn(),
+    clearCookie: vi.fn(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+    setHeader: vi.fn(),
+    end: vi.fn(),
 } as unknown as Response;
 
 // Test data using centralized password generator
@@ -30,22 +31,22 @@ const WRONG_PASSWORD = generateTestPassword();
 
 // Mock User model
 const mockUserModel = {
-    findOne: jest.fn<Promise<IUser | null>, [Record<string, unknown>]>(),
-    create: jest.fn<Promise<IUser>, [Partial<IUser>]>(),
-    findById: jest.fn<Promise<IUser | null>, [string]>(),
-    findByIdAndDelete: jest.fn<Promise<IUser | null>, [string]>(),
-    find: jest.fn<Promise<IUser[]>, []>(),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    findById: vi.fn(),
+    findByIdAndDelete: vi.fn(),
+    find: vi.fn(),
 };
 
 // Apply mock to User
 Object.assign(User, mockUserModel);
 
 // Mock generateTokenAndSetCookie
-const mockGenerateTokenAndSetCookie = generateTokenAndSetCookie as jest.MockedFunction<typeof generateTokenAndSetCookie>;
+const mockGenerateTokenAndSetCookie = generateTokenAndSetCookie as ReturnType<typeof vi.fn>;
 
 describe('UserService', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('registerUser', () => {
@@ -117,11 +118,11 @@ describe('UserService', () => {
                 email: email,
                 role: 'user',
                 photo: 'default.png',
-                matchPassword: jest.fn().mockResolvedValue(true),
+                matchPassword: vi.fn().mockResolvedValue(true),
             };
 
             const mockQuery = {
-                select: jest.fn().mockResolvedValue(mockUser),
+                select: vi.fn().mockResolvedValue(mockUser),
             };
 
             mockUserModel.findOne.mockReturnValue(mockQuery);
@@ -155,11 +156,11 @@ describe('UserService', () => {
                 email: email,
                 role: 'user',
                 photo: 'default.png',
-                matchPassword: jest.fn().mockResolvedValue(false),
+                matchPassword: vi.fn().mockResolvedValue(false),
             };
 
             const mockQuery = {
-                select: jest.fn().mockResolvedValue(mockUser),
+                select: vi.fn().mockResolvedValue(mockUser),
             };
 
             mockUserModel.findOne.mockReturnValue(mockQuery);
@@ -172,7 +173,7 @@ describe('UserService', () => {
             const password = TEST_PASSWORD;
             
             const mockQuery = {
-                select: jest.fn().mockResolvedValue(null),
+                select: vi.fn().mockResolvedValue(null),
             };
 
             mockUserModel.findOne.mockReturnValue(mockQuery);
@@ -200,7 +201,7 @@ describe('UserService', () => {
                 email: faker.internet.email(),
                 role: 'user',
                 photo: 'default.png',
-                save: jest.fn().mockResolvedValue(updatedUser),
+                save: vi.fn().mockResolvedValue(updatedUser),
             };
 
             mockUserModel.findById.mockResolvedValue(mockUser);

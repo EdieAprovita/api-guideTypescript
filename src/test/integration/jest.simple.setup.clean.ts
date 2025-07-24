@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // Simple integration test setup - minimal mocks
 import { faker } from '@faker-js/faker';
 import { generateTestPassword } from '../utils/passwordGenerator';
@@ -20,12 +21,12 @@ process.env.EMAIL_PASS = generateTestPassword();
 process.env.CLIENT_URL = 'http://localhost:3000';
 
 // CRITICAL: Mock TokenService BEFORE any imports that might use it
-jest.mock('../../services/TokenService', () => {
+vi.mock('../../services/TokenService', () => {
     const jwt = require('jsonwebtoken');
     
     // Create a mock instance that matches the singleton pattern
     const mockTokenService = {
-        verifyAccessToken: jest.fn().mockImplementation(async (token) => {
+        verifyAccessToken: vi.fn().mockImplementation(async (token) => {
             console.log('=== TokenService.verifyAccessToken MOCK CALLED ===');
             console.log('TokenService.verifyAccessToken called with token:', token ? token.substring(0, 20) + '...' : 'null/undefined');
             
@@ -46,23 +47,23 @@ jest.mock('../../services/TokenService', () => {
             }
         }),
         
-        isUserTokensRevoked: jest.fn().mockImplementation(async (userId) => {
+        isUserTokensRevoked: vi.fn().mockImplementation(async (userId) => {
             return false; // Never revoked in tests
         }),
         
-        isTokenBlacklisted: jest.fn().mockImplementation(async (token) => {
+        isTokenBlacklisted: vi.fn().mockImplementation(async (token) => {
             return false; // Never blacklisted in tests
         }),
         
-        blacklistToken: jest.fn().mockImplementation(async (token) => {
+        blacklistToken: vi.fn().mockImplementation(async (token) => {
             return true;
         }),
         
-        revokeAllUserTokens: jest.fn().mockImplementation(async (userId) => {
+        revokeAllUserTokens: vi.fn().mockImplementation(async (userId) => {
             return true;
         }),
         
-        generateTokenPair: jest.fn().mockImplementation(async (payload) => {
+        generateTokenPair: vi.fn().mockImplementation(async (payload) => {
             const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
                 expiresIn: '15m',
                 issuer: 'vegan-guide-api',
@@ -84,6 +85,6 @@ jest.mock('../../services/TokenService', () => {
 });
 
 // Increase timeout for integration tests
-jest.setTimeout(30000);
+vi.setTimeout(30000);
 
 console.log('Integration test setup complete');

@@ -1,24 +1,23 @@
+import { vi } from 'vitest';
 import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
 import { MockBusiness } from '../types';
 
-// Mock BaseService with shared utility
-const mockData = [
-    { _id: '1', namePlace: 'Test Business 1' },
-    { _id: '2', namePlace: 'Test Business 2' }
-];
+// Mock BaseService with shared utility - define mockData inline to avoid hoisting issues
+vi.mock('../../services/BaseService', () => {
+    const mockData = [
+        { _id: '1', namePlace: 'Test Business 1' },
+        { _id: '2', namePlace: 'Test Business 2' },
+    ];
+    return createBaseServiceMock(mockData);
+});
 
-jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
+import { businessService } from '../../services/BusinessService';
 
-import { businessService } from "../../services/BusinessService";
-
-describe("BusinessService", () => {
+describe('BusinessService', () => {
     const testUtils = setupServiceTest('BusinessService');
 
-    it("delegates getAll to the model", async () => {
-        const result = (await testUtils.testGetAll(
-            businessService,
-            2
-        )) as Array<MockBusiness>;
+    it('delegates getAll to the model', async () => {
+        const result = (await testUtils.testGetAll(businessService, 2)) as Array<MockBusiness>;
         expect(result[0].namePlace).toBe('Test Business 1');
     });
 });

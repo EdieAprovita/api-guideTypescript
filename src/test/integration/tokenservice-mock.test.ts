@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // IMPORTANT: Set environment variables BEFORE any imports
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
@@ -13,36 +14,36 @@ process.env.REDIS_PORT = '';
 import { faker } from '@faker-js/faker';
 
 // Clear all mocks to ensure clean state
-jest.clearAllMocks();
-jest.resetAllMocks();
+vi.clearAllMocks();
+vi.resetAllMocks();
 
 // CRITICAL: Mock the TokenService
 const mockTokenService = {
-    generateTokens: jest.fn(),
-    generateTokenPair: jest.fn(),
-    verifyAccessToken: jest.fn(),
-    verifyRefreshToken: jest.fn(),
-    refreshTokens: jest.fn(),
-    blacklistToken: jest.fn(),
-    revokeAllUserTokens: jest.fn(),
-    isTokenBlacklisted: jest.fn(),
-    isUserTokensRevoked: jest.fn(),
-    clearAllForTesting: jest.fn(),
-    disconnect: jest.fn(),
+    generateTokens: vi.fn(),
+    generateTokenPair: vi.fn(),
+    verifyAccessToken: vi.fn(),
+    verifyRefreshToken: vi.fn(),
+    refreshTokens: vi.fn(),
+    blacklistToken: vi.fn(),
+    revokeAllUserTokens: vi.fn(),
+    isTokenBlacklisted: vi.fn(),
+    isUserTokensRevoked: vi.fn(),
+    clearAllForTesting: vi.fn(),
+    disconnect: vi.fn(),
 };
 
-jest.mock('../../services/TokenService', () => mockTokenService);
+vi.mock('../../services/TokenService', () => mockTokenService);
 
-// Force Jest to use real implementations by resetting module registry
-jest.resetModules();
+// Force Vitest to use real implementations by resetting module registry
+vi.resetModules();
 
-// Aumentar el timeout global para todos los tests de integración
-jest.setTimeout(45000);
+// Set test timeout
+import { beforeEach } from 'vitest';
 
 describe('TokenService Mock Test', () => {
     beforeEach(() => {
         // Clear all mocks before each test
-        jest.clearAllMocks();
+        vi.clearAllMocks();
 
         // Setup default mock implementations
         mockTokenService.generateTokens.mockImplementation((userId: string) => {

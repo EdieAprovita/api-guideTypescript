@@ -49,7 +49,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         let payload;
         try {
             payload = await TokenService.verifyAccessToken(token);
-            
+
             // Debug logging for test environment
             if (process.env.NODE_ENV === 'test') {
                 console.log('🔍 Auth Middleware Debug:');

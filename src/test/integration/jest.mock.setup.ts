@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 // MOCK INTEGRATION TEST SETUP
 // This setup is for integration tests that use complete mocks
 
@@ -19,83 +20,83 @@ process.env.EMAIL_PASS = 'test_password';
 process.env.CLIENT_URL = 'http://localhost:3000';
 
 // CRITICAL: Clear any existing mocks before setting up
-jest.clearAllMocks();
-jest.resetModules();
+vi.clearAllMocks();
+vi.resetModules();
 
 // IMPORTANT: Use the service mocks from __mocks__/services.ts
-jest.mock('../../services/TokenService', () => {
+vi.mock('../../services/TokenService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.tokenService;
 });
 
-jest.mock('../../services/UserService', () => {
+vi.mock('../../services/UserService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.userService;
 });
 
 // Mock other services as needed
-jest.mock('../../services/PostService', () => {
+vi.mock('../../services/PostService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.postService;
 });
 
-jest.mock('../../services/BusinessService', () => {
+vi.mock('../../services/BusinessService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.businessService;
 });
 
-jest.mock('../../services/DoctorService', () => {
+vi.mock('../../services/DoctorService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.doctorService;
 });
 
-jest.mock('../../services/MarketsService', () => {
+vi.mock('../../services/MarketsService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.marketsService;
 });
 
-jest.mock('../../services/RestaurantService', () => {
+vi.mock('../../services/RestaurantService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.restaurantService;
 });
 
-jest.mock('../../services/RecipesService', () => {
+vi.mock('../../services/RecipesService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.recipesService;
 });
 
-jest.mock('../../services/SanctuaryService', () => {
+vi.mock('../../services/SanctuaryService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.sanctuaryService;
 });
 
-jest.mock('../../services/ProfessionService', () => {
+vi.mock('../../services/ProfessionService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.professionService;
 });
 
-jest.mock('../../services/ProfessionProfileService', () => {
+vi.mock('../../services/ProfessionProfileService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.professionProfileService;
 });
 
-jest.mock('../../services/ReviewService', () => {
+vi.mock('../../services/ReviewService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.reviewService;
 });
 
-jest.mock('../../services/GeoService', () => {
+vi.mock('../../services/GeoService', () => {
     const { serviceMocks } = require('../__mocks__/services');
     return serviceMocks.geoService;
 });
 
 // Mock external libraries
-jest.mock('jsonwebtoken', () => {
+vi.mock('jsonwebtoken', () => {
     const { externalMocks } = require('../__mocks__/services');
     return externalMocks.jsonwebtoken;
 });
 
-jest.mock('bcryptjs', () => {
+vi.mock('bcryptjs', () => {
     const { externalMocks } = require('../__mocks__/services');
     return externalMocks.bcrypt;
 });
@@ -109,7 +110,7 @@ console.log = (...args) => {
 };
 
 // Increase timeout for integration tests
-jest.setTimeout(30000);
+vi.setTimeout(30000);
 
 // Setup test database connection if needed
 beforeAll(async () => {

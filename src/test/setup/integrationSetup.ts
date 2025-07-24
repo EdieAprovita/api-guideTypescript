@@ -1,4 +1,32 @@
-import { vi } from 'vitest';
+// Integration test setup for Vitest - uses real middleware and components
+import { vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { faker } from '@faker-js/faker';
+import { generateTestPassword } from '../utils/passwordGenerator';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+
+let mongoServer: MongoMemoryServer;
+
+// Set faker seed for consistent test results
+faker.seed(12345);
+
+// Set test environment variables BEFORE any imports
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
+process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_12345';
+process.env.JWT_EXPIRES_IN = '15m';
+process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+process.env.BCRYPT_SALT_ROUNDS = '10';
+
+// Disable Redis for tests
+process.env.REDIS_HOST = '';
+process.env.REDIS_PORT = '';
+
+// Email configuration for tests
+process.env.EMAIL_USER = faker.internet.email();
+process.env.EMAIL_PASS = generateTestPassword();
+process.env.CLIENT_URL = 'http://localhost:3000';
+
 // CRITICAL: Mock jsonwebtoken BEFORE TokenService to ensure proper mocking
 vi.mock('jsonwebtoken', () => {
     const { faker } = require('@faker-js/faker');
@@ -7,14 +35,14 @@ vi.mock('jsonwebtoken', () => {
     return {
         __esModule: true,
         default: {
-            sign: vi.fn().mockImplementation(payload => {
+            sign: vi.fn().mockImplementation((payload) => {
                 // Preserve the actual userId from the payload or generate a valid one if missing
                 const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
                 const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
                 const actualRole = payload && payload.role ? payload.role : 'user';
                 return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
             }),
-            verify: vi.fn().mockImplementation(token => {
+            verify: vi.fn().mockImplementation((token) => {
                 // Try to decode the mock token format to extract the actual user data
                 const tokenStr = token as string;
                 try {
@@ -51,14 +79,14 @@ vi.mock('jsonwebtoken', () => {
                 exp: Math.floor(Date.now() / 1000) + 3600,
             })),
         },
-        sign: vi.fn().mockImplementation(payload => {
+        sign: vi.fn().mockImplementation((payload) => {
             // Preserve the actual userId from the payload or generate a valid one if missing
             const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
             const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
             const actualRole = payload && payload.role ? payload.role : 'user';
             return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
         }),
-        verify: vi.fn().mockImplementation(token => {
+        verify: vi.fn().mockImplementation((token) => {
             // Try to decode the mock token format to extract the actual user data
             const tokenStr = token as string;
             try {
@@ -88,7 +116,7 @@ vi.mock('jsonwebtoken', () => {
                 exp: Math.floor(Date.now() / 1000) + 3600,
             };
         }),
-        decode: vi.fn().mockImplementation(token => {
+        decode: vi.fn().mockImplementation((token) => {
             // Try to decode the mock token format to extract the actual user data
             const tokenStr = token as string;
             try {
@@ -132,7 +160,7 @@ vi.mock('../../services/TokenService', () => {
 
     // Create a mock instance that matches the singleton pattern
     const mockTokenService = {
-        verifyAccessToken: vi.fn().mockImplementation(async token => {
+        verifyAccessToken: vi.fn().mockImplementation(async (token) => {
             console.log('=== TokenService.verifyAccessToken MOCK CALLED ===');
             console.log('Token received:', token ? token.substring(0, 20) + '...' : 'null/undefined');
 
@@ -163,7 +191,7 @@ vi.mock('../../services/TokenService', () => {
             }
         }),
 
-        verifyRefreshToken: vi.fn().mockImplementation(async token => {
+        verifyRefreshToken: vi.fn().mockImplementation(async (token) => {
             console.log('=== TokenService.verifyRefreshToken MOCK CALLED ===');
 
             if (!token) {
@@ -197,7 +225,7 @@ vi.mock('../../services/TokenService', () => {
             }
         }),
 
-        generateTokenPair: vi.fn().mockImplementation(async payload => {
+        generateTokenPair: vi.fn().mockImplementation(async (payload) => {
             // Add timestamp and random element to ensure unique tokens
             const tokenPayload = {
                 ...payload,
@@ -218,7 +246,7 @@ vi.mock('../../services/TokenService', () => {
             return mockTokenService.generateTokenPair(payload);
         }),
 
-        refreshTokens: vi.fn().mockImplementation(async refreshToken => {
+        refreshTokens: vi.fn().mockImplementation(async (refreshToken) => {
             console.log('=== TokenService.refreshTokens MOCK CALLED ===');
             console.log(
                 'Refresh token received:',
@@ -241,74 +269,99 @@ vi.mock('../../services/TokenService', () => {
             }
         }),
 
-        isUserTokensRevoked: vi.fn().mockImplementation(async userId => {
+        isUserTokensRevoked: vi.fn().mockImplementation(async (userId) => {
             console.log('=== TokenService.isUserTokensRevoked MOCK CALLED ===');
             console.log('userId:', userId);
             return revokedUserTokens.has(userId);
         }),
 
-        isTokenBlacklisted: vi.fn().mockImplementation(async token => {
+        isTokenBlacklisted: vi.fn().mockImplementation(async (token) => {
             console.log('=== TokenService.isTokenBlacklisted MOCK CALLED ===');
             console.log('token:', token ? token.substring(0, 20) + '...' : 'null/undefined');
             return blacklistedTokens.has(token);
         }),
 
-        blacklistToken: vi.fn().mockImplementation(async token => {
+        blacklistToken: vi.fn().mockImplementation(async (token) => {
             console.log('=== TokenService.blacklistToken MOCK CALLED ===');
             blacklistedTokens.add(token);
             return true;
         }),
 
-        revokeAllUserTokens: vi.fn().mockImplementation(async userId => {
+        revokeAllUserTokens: vi.fn().mockImplementation(async (userId) => {
             console.log('=== TokenService.revokeAllUserTokens MOCK CALLED ===');
             revokedUserTokens.add(userId);
             return true;
         }),
 
-        revokeRefreshToken: vi.fn().mockImplementation(async userId => {
+        revokeRefreshToken: vi.fn().mockImplementation(async (userId) => {
             console.log('=== TokenService.revokeRefreshToken MOCK CALLED ===');
             return true;
         }),
     };
 
-    return mockTokenService;
+    return {
+        __esModule: true,
+        default: mockTokenService,
+    };
 });
 
-// CRITICAL: For integration tests, we want to use REAL middleware, not mocks
-// This allows us to test actual authentication behavior
-vi.unmock('../../middleware/authMiddleware');
-vi.unmock('../../middleware/validation');
-vi.unmock('../../middleware/security');
+// Database setup for integration tests
+beforeAll(async () => {
+    console.log('🔧 Setting up integration test database...');
+    
+    // Use MongoDB Memory Server if no local MongoDB URI is provided
+    if (!process.env.MONGODB_URI?.includes('localhost')) {
+        try {
+            mongoServer = await MongoMemoryServer.create({
+                binary: {
+                    version: '6.0.0',
+                },
+                instance: {
+                    dbName: 'test-integration-db',
+                },
+            });
+            
+            const mongoUri = mongoServer.getUri();
+            process.env.MONGODB_URI = mongoUri;
+            
+            console.log('✅ MongoDB Memory Server started for integration tests:', mongoUri);
+        } catch (error) {
+            console.error('❌ Failed to start MongoDB Memory Server:', error);
+            throw error;
+        }
+    }
+});
 
-// Ensure UserService is NOT mocked for integration tests
-vi.unmock('../../services/UserService');
+beforeEach(async () => {
+    // Clear mocks between tests
+    vi.clearAllMocks();
+    
+    // Clear database collections if connected
+    if (mongoose.connection.readyState === 1) {
+        const collections = mongoose.connection.db.collections();
+        for (let collection of await collections) {
+            await collection.deleteMany({});
+        }
+    }
+});
 
-// Ensure controllers are NOT mocked for integration tests
-vi.unmock('../../controllers/userControllers');
-vi.unmock('../../controllers/reviewControllers');
-vi.unmock('../../controllers/restaurantControllers');
+afterAll(async () => {
+    console.log('🧹 Cleaning up integration test environment...');
+    
+    // Close mongoose connection
+    if (mongoose.connection.readyState === 1) {
+        await mongoose.connection.close();
+    }
+    
+    // Stop MongoDB Memory Server
+    if (mongoServer) {
+        try {
+            await mongoServer.stop();
+            console.log('✅ MongoDB Memory Server stopped');
+        } catch (error) {
+            console.error('❌ Error stopping MongoDB Memory Server:', error);
+        }
+    }
+});
 
-// Simple integration test setup - minimal mocks
-import { faker } from '@faker-js/faker';
-import { generateTestPassword } from '../utils/passwordGenerator';
-
-// Set test environment variables
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
-process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_12345';
-process.env.JWT_EXPIRES_IN = '15m';
-process.env.JWT_REFRESH_EXPIRES_IN = '7d';
-process.env.BCRYPT_SALT_ROUNDS = '10';
-
-// Disable Redis for tests
-process.env.REDIS_HOST = '';
-process.env.REDIS_PORT = '';
-
-// Email configuration for tests
-process.env.EMAIL_USER = faker.internet.email();
-process.env.EMAIL_PASS = generateTestPassword();
-process.env.CLIENT_URL = 'http://localhost:3000';
-
-// Timeout is handled by vitest.config.ts testTimeout setting
-
-console.log('Integration test setup complete - Using REAL middleware for authentication tests');
+console.log('✅ Integration test setup complete - Using REAL middleware for authentication tests');

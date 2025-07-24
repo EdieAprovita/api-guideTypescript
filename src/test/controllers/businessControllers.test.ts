@@ -1,3 +1,4 @@
+import { vi, Mock } from 'vitest';
 // Business Controllers Test - Refactored to eliminate duplication
 import request from 'supertest';
 import { setupCommonMocks, resetMocks, createMockBusiness } from '../utils/testHelpers';
@@ -7,30 +8,30 @@ import testConfig from '../testConfig';
 setupCommonMocks();
 
 // Mock services with proper structure - including cache methods
-jest.mock('../../services/BusinessService', () => ({
+vi.mock('../../services/BusinessService', () => ({
     businessService: {
-        getAll: jest.fn(),
-        getAllCached: jest.fn(),
-        findById: jest.fn(),
-        findByIdCached: jest.fn(),
-        create: jest.fn(),
-        createCached: jest.fn(),
-        updateById: jest.fn(),
-        updateByIdCached: jest.fn(),
-        deleteById: jest.fn(),
+        getAll: vi.fn(),
+        getAllCached: vi.fn(),
+        findById: vi.fn(),
+        findByIdCached: vi.fn(),
+        create: vi.fn(),
+        createCached: vi.fn(),
+        updateById: vi.fn(),
+        updateByIdCached: vi.fn(),
+        deleteById: vi.fn(),
     },
 }));
 
-jest.mock('../../services/GeoService', () => ({
+vi.mock('../../services/GeoService', () => ({
     __esModule: true,
     default: {
-        geocodeAddress: jest.fn(),
+        geocodeAddress: vi.fn(),
     },
 }));
 
-jest.mock('../../services/ReviewService', () => ({
+vi.mock('../../services/ReviewService', () => ({
     reviewService: {
-        addReview: jest.fn(),
+        addReview: vi.fn(),
     },
 }));
 
@@ -49,7 +50,7 @@ describe('Business Controllers Tests', () => {
         it('should get all businesses', async () => {
             const mockBusinesses = [createMockBusiness()];
 
-            (businessService.getAllCached as jest.Mock).mockResolvedValueOnce(mockBusinesses);
+            (businessService.getAllCached as Mock).mockResolvedValueOnce(mockBusinesses);
 
             const response = await request(app).get('/api/v1/businesses');
 
@@ -67,7 +68,7 @@ describe('Business Controllers Tests', () => {
         it('should get business by id', async () => {
             const mockBusiness = createMockBusiness();
 
-            (businessService.findByIdCached as jest.Mock).mockResolvedValueOnce(mockBusiness);
+            (businessService.findByIdCached as Mock).mockResolvedValueOnce(mockBusiness);
 
             const response = await request(app).get(`/api/v1/businesses/${mockBusiness._id}`);
 
@@ -83,8 +84,8 @@ describe('Business Controllers Tests', () => {
 
     describe('Create business', () => {
         it('sets location when geocoding succeeds', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 1, lng: 2 });
-            (businessService.create as jest.Mock).mockResolvedValue({ id: '1' });
+            (geoService.geocodeAddress as Mock).mockResolvedValue({ lat: 1, lng: 2 });
+            (businessService.create as Mock).mockResolvedValue({ id: '1' });
 
             const businessData = {
                 name: 'My Shop',
@@ -107,8 +108,8 @@ describe('Business Controllers Tests', () => {
         });
 
         it('leaves location unset when geocoding fails', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockResolvedValue(null);
-            (businessService.create as jest.Mock).mockResolvedValue({ id: '1' });
+            (geoService.geocodeAddress as Mock).mockResolvedValue(null);
+            (businessService.create as Mock).mockResolvedValue({ id: '1' });
 
             const businessData = {
                 name: 'Shop',
@@ -126,8 +127,8 @@ describe('Business Controllers Tests', () => {
         });
 
         it('handles geocoding errors gracefully', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockRejectedValue(new Error('Geocoding failed'));
-            (businessService.create as jest.Mock).mockResolvedValue({ id: '1' });
+            (geoService.geocodeAddress as Mock).mockRejectedValue(new Error('Geocoding failed'));
+            (businessService.create as Mock).mockResolvedValue({ id: '1' });
 
             const businessData = {
                 name: 'BoomCo',
@@ -147,8 +148,8 @@ describe('Business Controllers Tests', () => {
 
     describe('Update business', () => {
         it('geocodes updated address', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 2, lng: 3 });
-            (businessService.updateById as jest.Mock).mockResolvedValue({ id: '1' });
+            (geoService.geocodeAddress as Mock).mockResolvedValue({ lat: 2, lng: 3 });
+            (businessService.updateById as Mock).mockResolvedValue({ id: '1' });
 
             const businessData = {
                 name: 'Updated Shop',
@@ -172,8 +173,8 @@ describe('Business Controllers Tests', () => {
         });
 
         it('does not set location when geocoding returns null', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockResolvedValue(null);
-            (businessService.updateById as jest.Mock).mockResolvedValue({ id: '1' });
+            (geoService.geocodeAddress as Mock).mockResolvedValue(null);
+            (businessService.updateById as Mock).mockResolvedValue({ id: '1' });
 
             const businessData = {
                 name: 'Shop',
@@ -200,7 +201,7 @@ describe('Business Controllers Tests', () => {
                 comment: 'Great business!',
             };
 
-            (reviewService.addReview as jest.Mock).mockResolvedValueOnce(mockReview);
+            (reviewService.addReview as Mock).mockResolvedValueOnce(mockReview);
 
             const reviewData = {
                 rating: 5,
@@ -224,7 +225,7 @@ describe('Business Controllers Tests', () => {
 
     describe('Delete business', () => {
         it('should delete business', async () => {
-            (businessService.deleteById as jest.Mock).mockResolvedValueOnce(undefined);
+            (businessService.deleteById as Mock).mockResolvedValueOnce(undefined);
 
             const response = await request(app).delete('/api/v1/businesses/businessId');
 

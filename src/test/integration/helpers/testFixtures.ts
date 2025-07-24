@@ -79,7 +79,7 @@ interface UserOverrides {
 export const createTestUser = async (overrides: UserOverrides = {}) => {
     try {
         // Use a plain-text password from overrides or generate one if not provided
-        const plainPassword = overrides.password || generateTestPassword();
+        const plainPassword = overrides.password || generateTestPassword() || 'TestPassword123!';
 
         if (!plainPassword) {
             throw new Error('Password is required for test user creation');

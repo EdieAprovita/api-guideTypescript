@@ -9,8 +9,9 @@ process.env.JWT_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 
 // Temporarily restore the real JWT module for this test
-const originalJWT = jest.requireActual('jsonwebtoken');
-jest.doMock('jsonwebtoken', () => originalJWT);
+import { vi } from 'vitest';
+const originalJWT = vi.importActual('jsonwebtoken');
+vi.doMock('jsonwebtoken', () => originalJWT);
 
 describe('TokenService Real Tests', () => {
     it('should generate tokens with correct userId using real JWT', async () => {

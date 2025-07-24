@@ -79,4 +79,4 @@ reviewSchema.index({ author: 1, restaurant: 1 }, { unique: true });
 reviewSchema.index({ restaurant: 1, rating: -1 });
 reviewSchema.index({ author: 1 });
 
-export const Review = mongoose.model<IReview>('Review', reviewSchema);
+export const Review = mongoose.models.Review || mongoose.model<IReview>('Review', reviewSchema);
