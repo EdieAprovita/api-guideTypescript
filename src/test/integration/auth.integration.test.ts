@@ -38,7 +38,7 @@ import { User } from '../../models/User';
 import TokenService from '../../services/TokenService';
 import testConfig from '../testConfig';
 import { generateExpiredToken } from '../utils/testHelpers';
-import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
+import { generateTestPassword, generateWeakPassword, clearPasswordCache } from '../utils/passwordGenerator';
 import { setupTestCleanup } from './helpers/testCleanup';
 
 // Setup automatic database cleanup after each test
@@ -185,13 +185,10 @@ describe('Authentication Flow Integration Tests', () => {
         try {
             // Use configured MongoDB directly for integration tests
             await connectToLocalDB();
-            console.log('Test database connected successfully');
 
             // Ensure database is clean before starting tests
             await clearTestDB();
-            console.log('Test database cleared before starting tests');
         } catch (error) {
-            console.error('Failed to connect test database:', error);
             throw error;
         }
     });
@@ -223,7 +220,6 @@ describe('Authentication Flow Integration Tests', () => {
     describe('POST /api/v1/users/register', () => {
         it('should register a new user and return JWT tokens', async () => {
             // Clear password cache to ensure we get a fresh password with correct special chars
-            const { clearPasswordCache } = require('../utils/passwordGenerator');
             clearPasswordCache();
 
             const userData = createUserData();
@@ -261,7 +257,6 @@ describe('Authentication Flow Integration Tests', () => {
 
         it('should prevent duplicate email registration', async () => {
             // Clear password cache to ensure we get a fresh password with correct special chars
-            const { clearPasswordCache } = require('../utils/passwordGenerator');
             clearPasswordCache();
 
             const email = 'duplicate@example.com';

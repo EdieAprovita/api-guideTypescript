@@ -1,10 +1,8 @@
 // Global test setup for Vitest - Centralized and optimized
 import { vi, beforeEach, afterEach } from 'vitest';
 import { faker } from '@faker-js/faker';
+import { Request, Response, NextFunction } from 'express';
 import { generateTestPassword } from '../utils/passwordGenerator';
-import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from '../__mocks__/middleware';
-import { serviceMocks, modelMocks } from '../__mocks__/services';
-import { dbConfigMocks } from '../__mocks__/database';
 
 // Set faker seed for consistent test results
 faker.seed(12345);
@@ -12,279 +10,20 @@ faker.seed(12345);
 // Mock environment variables with faker-generated values
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = generateTestPassword();
-process.env.JWT_REFRESH_SECRET = generateTestPassword();
 process.env.BCRYPT_SALT_ROUNDS = '10';
+process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/test-db';
+process.env.REDIS_HOST = 'localhost';
+process.env.REDIS_PORT = '6379';
 
-// === CRITICAL: Mocks must be defined BEFORE any imports that use them ===
+// === CRITICAL: Mocks must be defined BEFORE any imports ===
 
 // Mock database connection first - prevents connection attempts
-vi.mock('../config/db', () => dbConfigMocks);
-
-// Mock auth middleware - CRITICAL for authRoutes.ts
-vi.mock('../middleware/authMiddleware', () => ({
+vi.mock('../../config/db', () => ({
     __esModule: true,
-    ...authMiddlewareMocks,
+    default: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock validation middleware
-vi.mock('../middleware/validation', () => ({
-    __esModule: true,
-    ...validationMocks,
-}));
-
-// Mock security middleware
-vi.mock('../middleware/security', () => ({
-    __esModule: true,
-    ...securityMocks,
-}));
-
-// Mock user controllers (used in authRoutes)
-vi.mock('../controllers/userControllers', () => ({
-    __esModule: true,
-    ...userControllerMocks,
-}));
-
-// Mock TokenService to prevent Redis connection issues
-vi.mock('../services/TokenService', () => ({
-    __esModule: true,
-    default: {
-        generateTokenPair: vi.fn().mockImplementation(payload => {
-            const { faker } = require('@faker-js/faker');
-            const validUserId =
-                payload && payload.userId && payload.userId.length === 24
-                    ? payload.userId
-                    : faker.database.mongodbObjectId();
-            const tokenId = Math.random().toString(36).substring(2, 11);
-            const accessToken = `mock-access-token-${tokenId}`;
-            const refreshToken = `mock-refresh-token-${tokenId}`;
-
-            return Promise.resolve({
-                accessToken,
-                refreshToken,
-            });
-        }),
-        generateTokens: vi.fn().mockImplementation((userId, email, role) => {
-            const { faker } = require('@faker-js/faker');
-            const validUserId = userId && userId.length === 24 ? userId : faker.database.mongodbObjectId();
-            const tokenId = Math.random().toString(36).substring(2, 11);
-            const accessToken = `mock-access-token-${tokenId}`;
-            const refreshToken = `mock-refresh-token-${tokenId}`;
-
-            return Promise.resolve({
-                accessToken,
-                refreshToken,
-            });
-        }),
-        verifyAccessToken: vi.fn().mockImplementation(token => {
-            const { faker } = require('@faker-js/faker');
-            // Handle different token formats
-            let userId = faker.database.mongodbObjectId();
-            let email = 'test@example.com';
-            let role = 'user';
-
-            if (token && typeof token === 'string') {
-                if (token.startsWith('mock-access-token-')) {
-                    const parts = token.replace('mock-access-token-', '').split('-');
-                    userId = parts[0] || userId;
-                    role = parts[1] || role;
-                } else if (token.startsWith('Bearer ')) {
-                    // Handle Bearer token format
-                    const tokenValue = token.replace('Bearer ', '');
-                    if (tokenValue.startsWith('mock-access-token-')) {
-                        const parts = tokenValue.replace('mock-access-token-', '').split('-');
-                        userId = parts[0] || userId;
-                        role = parts[1] || role;
-                    }
-                }
-            }
-
-            return Promise.resolve({
-                userId,
-                email,
-                role,
-            });
-        }),
-        verifyRefreshToken: vi.fn().mockImplementation(token => {
-            const { faker } = require('@faker-js/faker');
-            // Handle different token formats
-            let userId = faker.database.mongodbObjectId();
-            let email = 'test@example.com';
-            let role = 'user';
-
-            if (token && typeof token === 'string') {
-                if (token.startsWith('mock-refresh-token-')) {
-                    const parts = token.replace('mock-refresh-token-', '').split('-');
-                    userId = parts[0] || userId;
-                    role = parts[1] || role;
-                }
-            }
-
-            return Promise.resolve({
-                userId,
-                email,
-                role,
-                type: 'refresh',
-            });
-        }),
-        refreshTokens: vi.fn().mockImplementation(refreshToken => {
-            const { faker } = require('@faker-js/faker');
-            const tokenId = Math.random().toString(36).substring(2, 11);
-            const newAccessToken = `mock-access-token-${tokenId}`;
-            const newRefreshToken = `mock-refresh-token-${tokenId}`;
-
-            return Promise.resolve({
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-            });
-        }),
-        blacklistToken: vi.fn().mockResolvedValue(undefined),
-        isTokenBlacklisted: vi.fn().mockResolvedValue(false),
-        revokeRefreshToken: vi.fn().mockResolvedValue(undefined),
-        revokeAllUserTokens: vi.fn().mockResolvedValue(undefined),
-        isUserTokensRevoked: vi.fn().mockResolvedValue(false),
-        cleanup: vi.fn().mockResolvedValue(undefined),
-        disconnect: vi.fn().mockResolvedValue(undefined),
-        clearAllForTesting: vi.fn().mockResolvedValue(undefined),
-        getTokenInfo: vi.fn().mockResolvedValue({
-            isValid: true,
-            payload: {
-                userId: faker.database.mongodbObjectId(),
-                email: 'test@example.com',
-                role: 'user',
-            },
-        }),
-    },
-}));
-
-// Mock User model
-vi.mock('../models/User', () => ({
-    __esModule: true,
-    User: modelMocks.User,
-    default: modelMocks.User,
-}));
-
-// Mock external libraries
-vi.mock('jsonwebtoken', () => {
-    const { faker } = require('@faker-js/faker');
-    const generateValidObjectId = () => faker.database.mongodbObjectId();
-
-    return {
-        __esModule: true,
-        default: {
-            sign: vi.fn().mockImplementation(payload => {
-                // Preserve the actual userId from the payload or generate a valid one if missing
-                const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
-                const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
-                const actualRole = payload && payload.role ? payload.role : 'user';
-                return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
-            }),
-            verify: vi.fn().mockImplementation(token => {
-                // Try to decode the mock token format to extract the actual user data
-                const tokenStr = token as string;
-                try {
-                    if (tokenStr.includes('mock-signature')) {
-                        const payloadPart = tokenStr.split('.')[1];
-                        // Mock payload extraction since it's base64-like but not real base64
-                        const match = payloadPart.match(/"userId":"([^"]+)"/);
-                        const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
-                        const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
-
-                        return {
-                            userId: match ? match[1] : generateValidObjectId(),
-                            email: emailMatch ? emailMatch[1] : 'test@email.com',
-                            role: roleMatch ? roleMatch[1] : 'user',
-                            exp: Math.floor(Date.now() / 1000) + 3600,
-                        };
-                    }
-                } catch (e) {
-                    // Fallback
-                }
-
-                // Fallback for other token formats
-                return {
-                    userId: generateValidObjectId(),
-                    email: 'test@email.com',
-                    role: 'user',
-                    exp: Math.floor(Date.now() / 1000) + 3600,
-                };
-            }),
-            decode: vi.fn().mockImplementation(() => ({
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            })),
-        },
-        sign: vi.fn().mockImplementation(payload => {
-            // Preserve the actual userId from the payload or generate a valid one if missing
-            const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
-            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
-            const actualRole = payload && payload.role ? payload.role : 'user';
-            return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
-        }),
-        verify: vi.fn().mockImplementation(token => {
-            // Try to decode the mock token format to extract the actual user data
-            const tokenStr = token as string;
-            try {
-                if (tokenStr.includes('mock-signature')) {
-                    const payloadPart = tokenStr.split('.')[1];
-                    // Mock payload extraction since it's base64-like but not real base64
-                    const match = payloadPart.match(/"userId":"([^"]+)"/);
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
-
-                    return {
-                        userId: match ? match[1] : generateValidObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600,
-                    };
-                }
-            } catch (e) {
-                // Fallback
-            }
-
-            // Fallback for other token formats
-            return {
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            };
-        }),
-        decode: vi.fn().mockImplementation(token => {
-            // Try to decode the mock token format to extract the actual user data
-            const tokenStr = token as string;
-            try {
-                if (tokenStr.includes('mock-signature')) {
-                    const payloadPart = tokenStr.split('.')[1];
-                    // Mock payload extraction since it's base64-like but not real base64
-                    const match = payloadPart.match(/"userId":"([^"]+)"/);
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
-
-                    return {
-                        userId: match ? match[1] : generateValidObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600,
-                    };
-                }
-            } catch (e) {
-                // Fallback
-            }
-
-            // Fallback for other token formats
-            return {
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            };
-        }),
-    };
-});
-
+// Mock bcryptjs with proper ESM structure
 vi.mock('bcryptjs', () => ({
     __esModule: true,
     default: {
@@ -297,8 +36,184 @@ vi.mock('bcryptjs', () => ({
     genSalt: vi.fn().mockResolvedValue('salt'),
 }));
 
-// Mock logger to prevent file system operations
-vi.mock('../utils/logger', () => ({
+// Mock JWT for token generation
+vi.mock('jsonwebtoken', () => ({
+    __esModule: true,
+    default: {
+        sign: vi.fn().mockReturnValue('mock_token'),
+        verify: vi.fn().mockReturnValue({
+            userId: 'user123',
+            email: 'test@example.com',
+            role: 'user',
+        }),
+        decode: vi.fn().mockReturnValue({
+            userId: 'user123',
+            email: 'test@example.com',
+            role: 'user',
+        }),
+    },
+    sign: vi.fn().mockReturnValue('mock_token'),
+    verify: vi.fn().mockReturnValue({
+        userId: 'user123',
+        email: 'test@example.com',
+        role: 'user',
+    }),
+    decode: vi.fn().mockReturnValue({
+        userId: 'user123',
+        email: 'test@example.com',
+        role: 'user',
+    }),
+}));
+
+// Mock Redis for caching
+vi.mock('ioredis', () => ({
+    __esModule: true,
+    default: vi.fn().mockImplementation(() => ({
+        get: vi.fn().mockResolvedValue(null),
+        set: vi.fn().mockResolvedValue('OK'),
+        setex: vi.fn().mockResolvedValue('OK'),
+        del: vi.fn().mockResolvedValue(1),
+        exists: vi.fn().mockResolvedValue(0),
+        expire: vi.fn().mockResolvedValue(1),
+        ttl: vi.fn().mockResolvedValue(-1),
+        keys: vi.fn().mockResolvedValue([]),
+        flushdb: vi.fn().mockResolvedValue('OK'),
+        connect: vi.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn(),
+        off: vi.fn(),
+        ping: vi.fn().mockResolvedValue('PONG'),
+        info: vi.fn().mockResolvedValue('redis_version:6.0.0'),
+        memory: vi.fn().mockResolvedValue({ used_memory: 1024 }),
+    })),
+}));
+
+// Create test user helper
+interface TestUser {
+    _id: string;
+    email: string;
+    username: string;
+    role: 'user' | 'professional' | 'admin';
+    isActive: boolean;
+    isDeleted: boolean;
+    firstName: string;
+    lastName: string;
+    photo: string;
+    createdAt: Date;
+    updatedAt: Date;
+    isAdmin?: boolean;
+}
+
+const createTestUser = (overrides: Partial<TestUser> = {}): TestUser => ({
+    _id: faker.database.mongodbObjectId(),
+    email: faker.internet.email(),
+    username: faker.internet.userName(),
+    role: 'user' as const,
+    isActive: true,
+    isDeleted: false,
+    firstName: faker.person.firstName(),
+    lastName: faker.person.lastName(),
+    photo: faker.image.avatar(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+});
+
+// Mock authentication middleware with proper user setup
+interface RequestWithUser extends Request {
+    user?: TestUser;
+}
+
+vi.mock('../../middleware/authMiddleware', () => ({
+    protect: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as RequestWithUser;
+        reqWithUser.user = createTestUser();
+        next();
+    }),
+    admin: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as RequestWithUser;
+        reqWithUser.user = createTestUser({ role: 'admin', isAdmin: true });
+        next();
+    }),
+    professional: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as RequestWithUser;
+        reqWithUser.user = createTestUser({ role: 'professional' });
+        next();
+    }),
+    requireAuth: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as RequestWithUser;
+        reqWithUser.user = createTestUser();
+        next();
+    }),
+    checkOwnership: vi.fn(() => (req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as RequestWithUser;
+        reqWithUser.user = createTestUser();
+        next();
+    }),
+    logout: vi.fn(async (req: Request, res: Response, next: NextFunction) => {
+        res.json({ success: true, message: 'Logged out successfully' });
+        if (next) next();
+    }),
+    refreshToken: vi.fn(async (req: Request, res: Response) => {
+        res.json({
+            success: true,
+            message: 'Tokens refreshed successfully',
+            data: {
+                accessToken: 'mock_access_token',
+                refreshToken: 'mock_refresh_token',
+            },
+        });
+    }),
+    revokeAllTokens: vi.fn(async (req: Request, res: Response) => {
+        res.json({ success: true, message: 'All tokens revoked successfully' });
+    }),
+}));
+
+// Mock validation middleware
+vi.mock('../../middleware/validation', () => ({
+    validate: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
+    sanitizeInput: vi
+        .fn()
+        .mockReturnValue([
+            (req: Request, res: Response, next: NextFunction) => next(),
+            (req: Request, res: Response, next: NextFunction) => next(),
+        ]),
+    validateInputLength: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
+    securityHeaders: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    handleValidationError: vi.fn((error: unknown, req: Request, res: Response, next: NextFunction) => next()),
+    rateLimits: {
+        auth: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+        register: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+        api: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+        search: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+        upload: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    },
+}));
+
+// Mock security middleware
+vi.mock('../../middleware/security', () => ({
+    configureHelmet: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
+    enforceHTTPS: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    detectSuspiciousActivity: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    limitRequestSize: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
+    validateUserAgent: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    addCorrelationId: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    requireAPIVersion: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
+}));
+
+// Mock express-validator to always pass validation
+vi.mock('express-validator', () => ({
+    validationResult: vi.fn().mockReturnValue({
+        isEmpty: () => true,
+        array: () => [],
+    }),
+    body: vi.fn().mockReturnValue({ isLength: vi.fn().mockReturnThis(), matches: vi.fn().mockReturnThis() }),
+    param: vi.fn().mockReturnValue({ isMongoId: vi.fn().mockReturnThis() }),
+    query: vi.fn().mockReturnValue({ isOptional: vi.fn().mockReturnThis() }),
+}));
+
+// Mock logger
+vi.mock('../../utils/logger', () => ({
     __esModule: true,
     default: {
         info: vi.fn(),
@@ -308,23 +223,68 @@ vi.mock('../utils/logger', () => ({
     },
 }));
 
-// Global test utilities - Suppress console output in tests
-global.console = {
-    ...console,
-    log: vi.fn(),
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: console.warn, // Keep warnings visible
-    error: console.error, // Keep errors visible
-};
+// Mock external services
+vi.mock('../../utils/geocodeLocation', () => ({
+    __esModule: true,
+    default: vi.fn().mockResolvedValue({ lat: 40.7128, lng: -74.006 }),
+    geocodeAndAssignLocation: vi.fn().mockImplementation(async (body: Record<string, unknown>) => {
+        if (body.address) {
+            body.location = {
+                type: 'Point',
+                coordinates: [-74.006, 40.7128],
+            };
+        }
+    }),
+}));
 
-// Setup global test hooks
+// Mock TokenService
+vi.mock('../../services/TokenService', () => ({
+    __esModule: true,
+    default: {
+        generateTokenPair: vi.fn().mockResolvedValue({
+            accessToken: 'mock_access_token',
+            refreshToken: 'mock_refresh_token',
+        }),
+        generateTokens: vi.fn().mockResolvedValue({
+            accessToken: 'mock_access_token',
+            refreshToken: 'mock_refresh_token',
+        }),
+        verifyAccessToken: vi.fn().mockResolvedValue({
+            userId: 'user123',
+            email: 'test@example.com',
+            role: 'user',
+        }),
+        verifyRefreshToken: vi.fn().mockResolvedValue({
+            userId: 'user123',
+            email: 'test@example.com',
+            role: 'user',
+        }),
+        blacklistToken: vi.fn().mockResolvedValue(undefined),
+        revokeAllUserTokens: vi.fn().mockResolvedValue(undefined),
+        isUserTokensRevoked: vi.fn().mockResolvedValue(false),
+    },
+}));
+
+// Global setup and teardown
 beforeEach(() => {
-    // Only clear mock calls, not the mock implementations
     vi.clearAllMocks();
+
+    // Reset validation result mock
+    const { validationResult } = require('express-validator');
+    if (validationResult && typeof validationResult.mockReturnValue === 'function') {
+        validationResult.mockReturnValue({
+            isEmpty: () => true,
+            array: () => [],
+        });
+    }
 });
 
 afterEach(() => {
-    // Clean up any test-specific changes
     vi.restoreAllMocks();
 });
+
+// Export the generateValidObjectId function that's used in tests
+export const generateValidObjectId = () => faker.database.mongodbObjectId();
+
+// Export test user helper
+export { createTestUser };

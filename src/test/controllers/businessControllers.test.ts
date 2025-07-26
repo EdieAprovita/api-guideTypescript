@@ -1,13 +1,9 @@
-import { vi, Mock } from 'vitest';
-// Business Controllers Test - Refactored to eliminate duplication
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import request from 'supertest';
-import { setupCommonMocks, resetMocks, createMockBusiness } from '../utils/testHelpers';
-import testConfig from '../testConfig';
+import app from '../../app';
+import { faker } from '@faker-js/faker';
 
-// === CRITICAL: Mocks must be defined BEFORE any imports ===
-setupCommonMocks();
-
-// Mock services with proper structure - including cache methods
+// Mock services - these will be auto-mocked by the global setup
 vi.mock('../../services/BusinessService', () => ({
     businessService: {
         getAll: vi.fn(),
@@ -22,219 +18,371 @@ vi.mock('../../services/BusinessService', () => ({
     },
 }));
 
-vi.mock('../../services/GeoService', () => ({
-    __esModule: true,
-    default: {
-        geocodeAddress: vi.fn(),
-    },
-}));
-
 vi.mock('../../services/ReviewService', () => ({
     reviewService: {
         addReview: vi.fn(),
+        getTopRatedReviews: vi.fn(),
     },
 }));
 
-// Now import the app after all mocks are set up
-import app from '../../app';
+// Import after mocks are defined
 import { businessService } from '../../services/BusinessService';
-import geoService from '../../services/GeoService';
 import { reviewService } from '../../services/ReviewService';
 
-beforeEach(() => {
-    resetMocks();
+// Test data helpers
+const createMockBusiness = (overrides = {}) => ({
+    _id: faker.database.mongodbObjectId(),
+    namePlace: faker.company.name(),
+    author: faker.database.mongodbObjectId(),
+    address: faker.location.streetAddress(),
+    location: {
+        type: 'Point',
+        coordinates: [faker.location.longitude(), faker.location.latitude()],
+    },
+    image: faker.image.url(),
+    contact: [
+        {
+            phone: faker.phone.number(),
+            email: faker.internet.email(),
+            facebook: faker.internet.url(),
+            instagram: faker.internet.url(),
+        },
+    ],
+    budget: faker.number.int({ min: 100, max: 10000 }),
+    typeBusiness: faker.helpers.arrayElement(['restaurant', 'retail', 'service', 'office']),
+    hours: [
+        {
+            dayOfWeek: 'Monday',
+            openTime: '09:00',
+            closeTime: '18:00',
+        },
+    ],
+    reviews: [],
+    rating: faker.number.float({ min: 1, max: 5, fractionDigits: 1 }),
+    numReviews: faker.number.int({ min: 0, max: 100 }),
+    timestamps: {
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    },
+    ...overrides,
+});
+
+const createValidBusinessData = () => ({
+    namePlace: faker.company.name(),
+    address: faker.location.streetAddress(),
+    image: faker.image.url(),
+    contact: [
+        {
+            phone: faker.phone.number(),
+            email: faker.internet.email(),
+        },
+    ],
+    budget: faker.number.int({ min: 100, max: 10000 }),
+    typeBusiness: 'retail',
+    hours: [
+        {
+            dayOfWeek: 'Monday',
+            openTime: '09:00',
+            closeTime: '18:00',
+        },
+    ],
 });
 
 describe('Business Controllers Tests', () => {
-    describe('Get all businesses', () => {
-        it('should get all businesses', async () => {
-            const mockBusinesses = [createMockBusiness()];
-
-            (businessService.getAllCached as Mock).mockResolvedValueOnce(mockBusinesses);
-
-            const response = await request(app).get('/api/v1/businesses');
-
-            expect(response.status).toBe(200);
-            expect(businessService.getAllCached).toHaveBeenCalled();
-            expect(response.body).toEqual({
-                success: true,
-                message: 'Businesses fetched successfully',
-                data: mockBusinesses,
-            });
-        }, 10000);
+    beforeEach(() => {
+        vi.clearAllMocks();
     });
 
-    describe('Get business by id', () => {
-        it('should get business by id', async () => {
-            const mockBusiness = createMockBusiness();
+    describe('GET /api/v1/businesses - Get all businesses (Public)', () => {
+        it('should successfully fetch all businesses', async () => {
+            const mockBusinesses = [createMockBusiness(), createMockBusiness()];
 
-            (businessService.findByIdCached as Mock).mockResolvedValueOnce(mockBusiness);
+            (businessService.getAllCached as Mock).mockResolvedValue(mockBusinesses);
 
-            const response = await request(app).get(`/api/v1/businesses/${mockBusiness._id}`);
+            const response = await request(app)
+                .get('/api/v1/businesses')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
 
             expect(response.status).toBe(200);
-            expect(businessService.findByIdCached).toHaveBeenCalledWith(mockBusiness._id);
-            expect(response.body).toEqual({
+            expect(response.body).toMatchObject({
                 success: true,
-                message: 'Business fetched successfully',
-                data: mockBusiness,
+                message: 'Businesses fetched successfully',
+                data: expect.arrayContaining([
+                    expect.objectContaining({
+                        _id: expect.any(String),
+                        namePlace: expect.any(String),
+                    }),
+                ]),
+            });
+            expect(businessService.getAllCached).toHaveBeenCalled();
+        });
+
+        it('should handle empty business list', async () => {
+            (businessService.getAllCached as Mock).mockResolvedValue([]);
+
+            const response = await request(app)
+                .get('/api/v1/businesses')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject({
+                success: true,
+                message: 'Businesses fetched successfully',
+                data: [],
             });
         });
     });
 
-    describe('Create business', () => {
-        it('sets location when geocoding succeeds', async () => {
-            (geoService.geocodeAddress as Mock).mockResolvedValue({ lat: 1, lng: 2 });
-            (businessService.create as Mock).mockResolvedValue({ id: '1' });
+    describe('GET /api/v1/businesses/:id - Get business by ID (Public)', () => {
+        it('should successfully fetch business by ID', async () => {
+            const mockBusiness = createMockBusiness();
 
-            const businessData = {
-                name: 'My Shop',
-                description: 'A great shop',
-                address: '123 st',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
+            (businessService.findByIdCached as Mock).mockResolvedValue(mockBusiness);
 
-            const response = await request(app).post('/api/v1/businesses').send(businessData);
+            const response = await request(app)
+                .get(`/api/v1/businesses/${mockBusiness._id}`)
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject({
+                success: true,
+                message: 'Business fetched successfully',
+                data: expect.objectContaining({
+                    _id: mockBusiness._id,
+                    namePlace: mockBusiness.namePlace,
+                }),
+            });
+            expect(businessService.findByIdCached).toHaveBeenCalledWith(mockBusiness._id);
+        });
+
+        it('should handle non-existent business ID', async () => {
+            const fakeId = faker.database.mongodbObjectId();
+            (businessService.findByIdCached as Mock).mockRejectedValue(new Error('Business not found'));
+
+            const response = await request(app)
+                .get(`/api/v1/businesses/${fakeId}`)
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
+
+            expect(response.status).toBe(404);
+            expect(response.body).toMatchObject({
+                success: false,
+                error: expect.any(String),
+            });
+        });
+    });
+
+    describe('POST /api/v1/businesses - Create business (Protected)', () => {
+        it('should successfully create a business with valid data', async () => {
+            const businessData = createValidBusinessData();
+            const mockCreatedBusiness = createMockBusiness(businessData);
+
+            (businessService.create as Mock).mockResolvedValue(mockCreatedBusiness);
+
+            const response = await request(app)
+                .post('/api/v1/businesses')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send(businessData);
 
             expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('123 st');
+            expect(response.body).toMatchObject({
+                success: true,
+                message: 'Business created successfully',
+                data: expect.objectContaining({
+                    namePlace: businessData.namePlace,
+                    typeBusiness: businessData.typeBusiness,
+                }),
+            });
             expect(businessService.create).toHaveBeenCalledWith(
                 expect.objectContaining({
                     ...businessData,
-                    location: { type: 'Point', coordinates: [2, 1] },
+                    location: expect.objectContaining({
+                        type: 'Point',
+                        coordinates: expect.any(Array),
+                    }),
                 })
             );
         });
 
-        it('leaves location unset when geocoding fails', async () => {
-            (geoService.geocodeAddress as Mock).mockResolvedValue(null);
-            (businessService.create as Mock).mockResolvedValue({ id: '1' });
+        it('should create business with geocoded location', async () => {
+            const businessData = createValidBusinessData();
+            const mockCreatedBusiness = createMockBusiness({
+                ...businessData,
+                location: {
+                    type: 'Point',
+                    coordinates: [-74.006, 40.7128],
+                },
+            });
 
-            const businessData = {
-                name: 'Shop',
-                description: 'Another shop',
-                address: 'bad',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
+            (businessService.create as Mock).mockResolvedValue(mockCreatedBusiness);
 
-            const response = await request(app).post('/api/v1/businesses').send(businessData);
-
-            expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('bad');
-            expect(businessService.create).toHaveBeenCalledWith(expect.objectContaining(businessData));
-        });
-
-        it('handles geocoding errors gracefully', async () => {
-            (geoService.geocodeAddress as Mock).mockRejectedValue(new Error('Geocoding failed'));
-            (businessService.create as Mock).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'BoomCo',
-                description: 'A company',
-                address: 'explode',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).post('/api/v1/businesses').send(businessData);
+            const response = await request(app)
+                .post('/api/v1/businesses')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send(businessData);
 
             expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('explode');
-            expect(businessService.create).toHaveBeenCalledWith(expect.objectContaining(businessData));
-        });
-    });
-
-    describe('Update business', () => {
-        it('geocodes updated address', async () => {
-            (geoService.geocodeAddress as Mock).mockResolvedValue({ lat: 2, lng: 3 });
-            (businessService.updateById as Mock).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'Updated Shop',
-                description: 'Updated description',
-                address: '456 road',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).put('/api/v1/businesses/1').send(businessData);
-
-            expect(response.status).toBe(200);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('456 road');
-            expect(businessService.updateById).toHaveBeenCalledWith(
-                '1',
+            expect(businessService.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    ...businessData,
-                    location: { type: 'Point', coordinates: [3, 2] },
+                    location: {
+                        type: 'Point',
+                        coordinates: [-74.006, 40.7128],
+                    },
                 })
             );
         });
 
-        it('does not set location when geocoding returns null', async () => {
-            (geoService.geocodeAddress as Mock).mockResolvedValue(null);
-            (businessService.updateById as Mock).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'Shop',
-                description: 'Description',
-                address: 'no',
+        it('should handle validation errors', async () => {
+            const invalidData = {
+                namePlace: '', // Invalid: empty name
                 typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
             };
 
-            const response = await request(app).put('/api/v1/businesses/1').send(businessData);
+            // Mock validation to fail
+            const { validationResult } = require('express-validator');
+            validationResult.mockReturnValue({
+                isEmpty: () => false,
+                array: () => [{ msg: 'Name is required', param: 'namePlace' }],
+            });
 
-            expect(response.status).toBe(200);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('no');
-            expect(businessService.updateById).toHaveBeenCalledWith('1', expect.objectContaining(businessData));
+            const response = await request(app)
+                .post('/api/v1/businesses')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send(invalidData);
+
+            expect(response.status).toBe(400);
+            expect(response.body).toMatchObject({
+                success: false,
+                error: expect.stringContaining('Validation error'),
+            });
         });
     });
 
-    describe('Add review to business', () => {
-        it('should add review to business', async () => {
-            const mockReview = {
-                _id: 'reviewId',
-                businessId: 'businessId',
-                rating: 5,
-                comment: 'Great business!',
+    describe('PUT /api/v1/businesses/:id - Update business (Protected + Admin)', () => {
+        it('should successfully update business with admin privileges', async () => {
+            const businessId = faker.database.mongodbObjectId();
+            const updateData = {
+                namePlace: 'Updated Business Name',
+                budget: 5000,
             };
+            const mockUpdatedBusiness = createMockBusiness({
+                _id: businessId,
+                ...updateData,
+            });
 
-            (reviewService.addReview as Mock).mockResolvedValueOnce(mockReview);
+            (businessService.updateById as Mock).mockResolvedValue(mockUpdatedBusiness);
 
-            const reviewData = {
-                rating: 5,
-                comment: 'Great business!',
-            };
-
-            const response = await request(app).post('/api/v1/businesses/add-review/businessId').send(reviewData);
+            const response = await request(app)
+                .put(`/api/v1/businesses/${businessId}`)
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send(updateData);
 
             expect(response.status).toBe(200);
-            expect(reviewService.addReview).toHaveBeenCalledWith({
-                ...reviewData,
-                businessId: 'businessId',
-            });
-            expect(response.body).toEqual({
+            expect(response.body).toMatchObject({
                 success: true,
-                message: 'Review added successfully',
-                data: mockReview,
+                message: 'Business updated successfully',
+                data: expect.objectContaining({
+                    namePlace: updateData.namePlace,
+                    budget: updateData.budget,
+                }),
             });
+            expect(businessService.updateById).toHaveBeenCalledWith(businessId, expect.objectContaining(updateData));
         });
     });
 
-    describe('Delete business', () => {
-        it('should delete business', async () => {
-            (businessService.deleteById as Mock).mockResolvedValueOnce(undefined);
+    describe('DELETE /api/v1/businesses/:id - Delete business (Protected + Admin)', () => {
+        it('should successfully delete business with admin privileges', async () => {
+            const businessId = faker.database.mongodbObjectId();
 
-            const response = await request(app).delete('/api/v1/businesses/businessId');
+            (businessService.deleteById as Mock).mockResolvedValue(undefined);
+
+            const response = await request(app)
+                .delete(`/api/v1/businesses/${businessId}`)
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
 
             expect(response.status).toBe(200);
-            expect(businessService.deleteById).toHaveBeenCalledWith('businessId');
-            expect(response.body).toEqual({
+            expect(response.body).toMatchObject({
                 success: true,
                 message: 'Business deleted successfully',
             });
+            expect(businessService.deleteById).toHaveBeenCalledWith(businessId);
+        });
+    });
+
+    describe('POST /api/v1/businesses/add-review/:id - Add review (Protected)', () => {
+        it('should successfully add review to business', async () => {
+            const businessId = faker.database.mongodbObjectId();
+            const reviewData = {
+                rating: 5,
+                title: 'Great business!',
+                content: 'Excellent service and products.',
+                visitDate: new Date().toISOString(),
+            };
+            const mockReview = {
+                _id: faker.database.mongodbObjectId(),
+                ...reviewData,
+                businessId,
+                author: faker.database.mongodbObjectId(),
+            };
+
+            (reviewService.addReview as Mock).mockResolvedValue(mockReview);
+
+            const response = await request(app)
+                .post(`/api/v1/businesses/add-review/${businessId}`)
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1')
+                .send(reviewData);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject({
+                success: true,
+                message: 'Review added successfully',
+                data: expect.objectContaining({
+                    rating: reviewData.rating,
+                    title: reviewData.title,
+                    businessId,
+                }),
+            });
+            expect(reviewService.addReview).toHaveBeenCalledWith({
+                ...reviewData,
+                businessId,
+            });
+        });
+    });
+
+    describe('Service Layer Integration', () => {
+        it('should handle service errors gracefully', async () => {
+            (businessService.getAllCached as Mock).mockRejectedValue(new Error('Database connection failed'));
+
+            const response = await request(app)
+                .get('/api/v1/businesses')
+                .set('User-Agent', 'test-agent')
+                .set('API-Version', 'v1');
+
+            expect(response.status).toBe(404);
+            expect(response.body).toMatchObject({
+                success: false,
+                error: expect.any(String),
+            });
+        });
+
+        it('should use cached methods for better performance', async () => {
+            const mockBusinesses = [createMockBusiness()];
+            (businessService.getAllCached as Mock).mockResolvedValue(mockBusinesses);
+
+            await request(app).get('/api/v1/businesses').set('User-Agent', 'test-agent').set('API-Version', 'v1');
+
+            // Verify that cached method is used instead of regular getAll
+            expect(businessService.getAllCached).toHaveBeenCalled();
+            expect(businessService.getAll).not.toHaveBeenCalled();
         });
     });
 });

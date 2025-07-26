@@ -30,9 +30,33 @@ export const authMiddlewareMocks = {
         };
         next();
     }),
-    professional: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
-    requireAuth: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
-    checkOwnership: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
+    professional: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: TestUser };
+        reqWithUser.user = {
+            _id: faker.database.mongodbObjectId(),
+            role: 'professional',
+            email: faker.internet.email(),
+        };
+        next();
+    }),
+    requireAuth: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: TestUser };
+        reqWithUser.user = {
+            _id: faker.database.mongodbObjectId(),
+            role: 'user',
+            email: faker.internet.email(),
+        };
+        next();
+    }),
+    checkOwnership: vi.fn(() => (req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: TestUser };
+        reqWithUser.user = {
+            _id: faker.database.mongodbObjectId(),
+            role: 'user',
+            email: faker.internet.email(),
+        };
+        next();
+    }),
     logout: vi.fn(async (req: Request, res: Response, next: NextFunction) => {
         res.json({
             success: true,

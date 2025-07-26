@@ -577,7 +577,7 @@ describe('CacheWarmingService', () => {
 
     describe('Singleton Instance', () => {
         it('should have singleton exported', () => {
-            const { cacheWarmingService } = require('../../services/CacheWarmingService');
+            const { cacheWarmingService } = require('../../../src/services/CacheWarmingService');
             expect(cacheWarmingService).toBeInstanceOf(CacheWarmingService);
         });
     });

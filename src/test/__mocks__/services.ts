@@ -1,393 +1,353 @@
-import { vi } from 'vitest';
+import { vi, type MockedFunction } from 'vitest';
 import { faker } from '@faker-js/faker';
-// Factory para crear mocks básicos de servicios
 import testConfig from '../testConfig';
 
-// Storage for token data to maintain consistency between generation and verification
-const tokenDataStorage = new Map<string, { userId: string; email: string; role: string }>();
+// Tipos estrictos para usuarios y entidades
+interface MockUser {
+    _id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    password?: string;
+    username?: string;
+    role?: string;
+    isAdmin?: boolean;
+    isActive?: boolean;
+    isDeleted?: boolean;
+    photo?: string;
+}
 
-export const createBasicServiceMock = (serviceName: string) => ({
-    getAll: vi.fn().mockResolvedValue([]),
-    findById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
-    create: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
-    updateById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
-    deleteById: vi.fn().mockResolvedValue('Deleted successfully'),
+interface TokenPair {
+    accessToken: string;
+    refreshToken: string;
+}
+
+interface LoginResult {
+    token: string;
+    refreshToken: string;
+    user: MockUser;
+}
+
+interface RegisterResult extends MockUser {
+    token: string;
+    refreshToken: string;
+}
+
+// Almacenamiento en memoria para usuarios simulados
+const mockUsers: MockUser[] = [];
+
+// UserService mock - Mejorado para tests unitarios
+const userService = {
+    registerUser: vi.fn().mockImplementation((userData: Partial<MockUser>, res?: unknown): Promise<RegisterResult> => {
+        const user: MockUser = {
+            _id: faker.database.mongodbObjectId(),
+            email: userData.email || faker.internet.email(),
+            firstName: userData.firstName || 'Test',
+            lastName: userData.lastName || 'User',
+            password: userData.password || testConfig.generateTestPassword(),
+            username: userData.username || faker.internet.userName(),
+            role: userData.role || 'user',
+            isAdmin: userData.isAdmin ?? false,
+            isActive: userData.isActive ?? true,
+            isDeleted: userData.isDeleted ?? false,
+            photo: userData.photo || 'default.png',
+        };
+        mockUsers.push(user);
+
+        const token = `mock-access-token-${user._id}`;
+        const refreshToken = `mock-refresh-token-${user._id}`;
+
+        return Promise.resolve({
+            ...user,
+            token,
+            refreshToken,
+        });
+    }),
+
+    loginUser: vi.fn().mockImplementation((email: string, password: string, res?: unknown): Promise<LoginResult> => {
+        const user = mockUsers.find(u => u.email === email && u.password === password);
+        if (!user) {
+            return Promise.reject(new Error('Invalid credentials'));
+        }
+
+        const token = `mock-access-token-${user._id}`;
+        const refreshToken = `mock-refresh-token-${user._id}`;
+
+        return Promise.resolve({
+            token,
+            refreshToken,
+            user,
+        });
+    }),
+
+    findAllUsers: vi.fn().mockResolvedValue(mockUsers),
+
+    findUserById: vi.fn().mockImplementation((id: string): Promise<MockUser | null> => {
+        const user = mockUsers.find(u => u._id === id);
+        return Promise.resolve(user || null);
+    }),
+
+    updateUserById: vi.fn().mockImplementation((id: string, update: Partial<MockUser>): Promise<MockUser | null> => {
+        const user = mockUsers.find(u => u._id === id);
+        if (user) {
+            Object.assign(user, update);
+            return Promise.resolve(user);
+        }
+        return Promise.resolve(null);
+    }),
+
+    deleteUserById: vi.fn().mockImplementation((id: string): Promise<string> => {
+        const idx = mockUsers.findIndex(u => u._id === id);
+        if (idx !== -1) {
+            mockUsers.splice(idx, 1);
+        }
+        return Promise.resolve('User deleted successfully');
+    }),
+
+    forgotPassword: vi.fn().mockResolvedValue(undefined),
+    resetPassword: vi.fn().mockResolvedValue(undefined),
+    logoutUser: vi.fn().mockResolvedValue(undefined),
+
+    getUsers: vi.fn().mockResolvedValue(mockUsers),
+
+    getUserById: vi.fn().mockImplementation((id: string): Promise<MockUser | null> => {
+        const user = mockUsers.find(u => u._id === id);
+        return Promise.resolve(user || null);
+    }),
+
+    updateUserProfile: vi.fn().mockImplementation((id: string, update: Partial<MockUser>): Promise<MockUser | null> => {
+        const user = mockUsers.find(u => u._id === id);
+        if (user) {
+            Object.assign(user, update);
+            return Promise.resolve(user);
+        }
+        return Promise.resolve(null);
+    }),
+};
+
+// TokenService mock - Mejorado para tests unitarios
+const tokenService = {
+    generateTokens: vi.fn().mockImplementation((userId: string, email?: string, role?: string): Promise<TokenPair> => {
+        return Promise.resolve({
+            accessToken: `mock-access-token-${userId}-${role || 'user'}`,
+            refreshToken: `mock-refresh-token-${userId}-${role || 'user'}`,
+        });
+    }),
+
+    generateTokenPair: vi
+        .fn()
+        .mockImplementation((payload: { userId: string; email: string; role?: string }): Promise<TokenPair> => {
+            return Promise.resolve({
+                accessToken: `mock-access-token-${payload.userId}-${payload.role || 'user'}`,
+                refreshToken: `mock-refresh-token-${payload.userId}-${payload.role || 'user'}`,
+            });
+        }),
+
+    verifyAccessToken: vi
+        .fn()
+        .mockImplementation((token: string): Promise<{ userId: string; email: string; role: string }> => {
+            const parts = token.replace('mock-access-token-', '').split('-');
+            const userId = parts[0];
+            const role = parts[1] || 'user';
+            return Promise.resolve({
+                userId,
+                email: 'test@example.com',
+                role,
+            });
+        }),
+
+    verifyRefreshToken: vi
+        .fn()
+        .mockImplementation((token: string): Promise<{ userId: string; email: string; role: string; type: string }> => {
+            const parts = token.replace('mock-refresh-token-', '').split('-');
+            const userId = parts[0];
+            const role = parts[1] || 'user';
+            return Promise.resolve({
+                userId,
+                email: 'test@example.com',
+                role,
+                type: 'refresh',
+            });
+        }),
+
+    refreshTokens: vi.fn().mockImplementation((refreshToken: string): Promise<TokenPair> => {
+        const userId = refreshToken.replace('mock-refresh-token-', '').split('-')[0];
+        return Promise.resolve({
+            accessToken: `mock-access-token-${userId}-new`,
+            refreshToken: `mock-refresh-token-${userId}-new`,
+        });
+    }),
+
+    blacklistToken: vi.fn().mockResolvedValue(undefined),
+    revokeAllUserTokens: vi.fn().mockResolvedValue(undefined),
+    isTokenBlacklisted: vi.fn().mockResolvedValue(false),
+    isUserTokensRevoked: vi.fn().mockResolvedValue(false),
+    clearAllForTesting: vi.fn().mockResolvedValue(undefined),
+    disconnect: vi.fn().mockResolvedValue(undefined),
+};
+
+// Factory para mocks básicos de servicios CRUD
+function createCrudMock<T extends { _id: string }>(entityName: string, entityFactory: () => T) {
+    const storage: T[] = [];
+    return {
+        getAll: vi.fn().mockResolvedValue(storage),
+        getAllCached: vi.fn().mockResolvedValue(storage),
+        findById: vi.fn().mockImplementation((id: string): Promise<T | null> => {
+            return Promise.resolve(storage.find(e => e._id === id) || null);
+        }),
+        findByIdCached: vi.fn().mockImplementation((id: string): Promise<T | null> => {
+            return Promise.resolve(storage.find(e => e._id === id) || null);
+        }),
+        create: vi.fn().mockImplementation((data: Partial<T>): Promise<T> => {
+            const entity = { ...entityFactory(), ...data };
+            storage.push(entity);
+            return Promise.resolve(entity);
+        }),
+        createCached: vi.fn().mockImplementation((data: Partial<T>): Promise<T> => {
+            const entity = { ...entityFactory(), ...data };
+            storage.push(entity);
+            return Promise.resolve(entity);
+        }),
+        updateById: vi.fn().mockImplementation((id: string, update: Partial<T>): Promise<T | null> => {
+            const entity = storage.find(e => e._id === id);
+            if (entity) {
+                Object.assign(entity, update);
+                return Promise.resolve(entity);
+            }
+            return Promise.resolve(null);
+        }),
+        updateByIdCached: vi.fn().mockImplementation((id: string, update: Partial<T>): Promise<T | null> => {
+            const entity = storage.find(e => e._id === id);
+            if (entity) {
+                Object.assign(entity, update);
+                return Promise.resolve(entity);
+            }
+            return Promise.resolve(null);
+        }),
+        deleteById: vi.fn().mockImplementation((id: string): Promise<void> => {
+            const idx = storage.findIndex(e => e._id === id);
+            if (idx !== -1) {
+                storage.splice(idx, 1);
+            }
+            return Promise.resolve();
+        }),
+    };
+}
+
+// Factories para entidades de ejemplo
+const createBusiness = (): { _id: string; name: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    name: 'Mock Business',
 });
 
-// Mocks específicos por servicio con métodos personalizados
+const createDoctor = (): { _id: string; doctorName: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    doctorName: 'Mock Doctor',
+});
+
+const createMarket = (): { _id: string; marketName: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    marketName: 'Mock Market',
+});
+
+const createPost = (): { _id: string; title: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    title: 'Mock Post',
+});
+
+const createProfession = (): { _id: string; name: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    name: 'Mock Profession',
+});
+
+const createProfessionProfile = (): { _id: string; userId: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    userId: faker.database.mongodbObjectId(),
+});
+
+const createRecipe = (): { _id: string; title: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    title: 'Mock Recipe',
+});
+
+const createRestaurant = (): { _id: string; restaurantName: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    restaurantName: 'Mock Restaurant',
+});
+
+const createReview = (): { _id: string; rating: number } => ({
+    _id: faker.database.mongodbObjectId(),
+    rating: 5,
+});
+
+const createSanctuary = (): { _id: string; sanctuaryName: string } => ({
+    _id: faker.database.mongodbObjectId(),
+    sanctuaryName: 'Mock Sanctuary',
+});
+
+// Mocks de servicios CRUD
+const businessService = createCrudMock('Business', createBusiness);
+const doctorService = createCrudMock('Doctor', createDoctor);
+const marketsService = createCrudMock('Market', createMarket);
+const postService = createCrudMock('Post', createPost);
+const professionService = createCrudMock('Profession', createProfession);
+const professionProfileService = createCrudMock('ProfessionProfile', createProfessionProfile);
+const recipesService = createCrudMock('Recipe', createRecipe);
+const restaurantService = createCrudMock('Restaurant', createRestaurant);
+const reviewService = createCrudMock('Review', createReview);
+const sanctuaryService = createCrudMock('Sanctuary', createSanctuary);
+
+// GeoService mock
+const geoService = {
+    geocodeAddress: vi.fn().mockResolvedValue({ lat: 1, lng: 2 }),
+    reverseGeocode: vi.fn().mockResolvedValue({ address: 'Mock Address' }),
+    calculateDistance: vi.fn().mockReturnValue(1000),
+};
+
+// Exportar todos los mocks en un objeto tipado
 export const serviceMocks = {
-    // User Service
-    userService: {
-        ...createBasicServiceMock('User'),
-        registerUser: vi.fn().mockResolvedValue({
-            _id: faker.database.mongodbObjectId(),
-            email: faker.internet.email(),
-            firstName: 'Test',
-            lastName: 'User',
-        }),
-        loginUser: vi.fn().mockResolvedValue({
-            token: testConfig.generateTestPassword(),
-            user: { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
-        }),
-        findAllUsers: vi.fn().mockResolvedValue([
-            { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
-            { _id: faker.database.mongodbObjectId(), email: faker.internet.email() },
-        ]),
-        findUserById: vi
-            .fn()
-            .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: faker.internet.email() }),
-        updateUserById: vi
-            .fn()
-            .mockResolvedValue({ _id: faker.database.mongodbObjectId(), email: faker.internet.email() }),
-        deleteUserById: vi.fn().mockResolvedValue('User deleted successfully'),
-    },
-
-    // Post Service
-    postService: {
-        ...createBasicServiceMock('Post'),
-        likePost: vi.fn().mockResolvedValue([]),
-        unlikePost: vi.fn().mockResolvedValue([]),
-        addComment: vi.fn().mockResolvedValue([]),
-    },
-
-    // Business Service
-    businessService: {
-        ...createBasicServiceMock('Business'),
-    },
-
-    // Doctor Service
-    doctorService: {
-        ...createBasicServiceMock('Doctor'),
-    },
-
-    // Markets Service
-    marketsService: {
-        ...createBasicServiceMock('Market'),
-    },
-
-    // Restaurant Service
-    restaurantService: {
-        ...createBasicServiceMock('Restaurant'),
-    },
-
-    // Recipes Service
-    recipesService: {
-        ...createBasicServiceMock('Recipe'),
-    },
-
-    // Sanctuary Service
-    sanctuaryService: {
-        ...createBasicServiceMock('Sanctuary'),
-    },
-
-    // Profession Service
-    professionService: {
-        ...createBasicServiceMock('Profession'),
-    },
-
-    // Profession Profile Service
-    professionProfileService: {
-        ...createBasicServiceMock('ProfessionProfile'),
-    },
-
-    // Review Service
-    reviewService: {
-        addReview: vi.fn().mockResolvedValue({ _id: 'review-id', rating: 5, comment: 'Great!' }),
-        getTopRatedReviews: vi.fn().mockResolvedValue([]),
-        getAll: vi.fn().mockResolvedValue([]),
-        findById: vi.fn().mockResolvedValue({ _id: 'review-id', rating: 5 }),
-        create: vi.fn().mockResolvedValue({ _id: 'new-review-id', rating: 4 }),
-        updateById: vi.fn().mockResolvedValue({ _id: 'updated-review-id', rating: 5 }),
-        deleteById: vi.fn().mockResolvedValue('Review deleted successfully'),
-    },
-
-    // Geo Service
-    geoService: {
-        validateCoordinates: vi.fn().mockReturnValue(true),
-        calculateDistance: vi.fn().mockReturnValue(10.5),
-        findNearby: vi.fn().mockResolvedValue([]),
-        geocodeAddress: vi.fn().mockResolvedValue({ lat: 40.7128, lng: -74.006 }),
-    },
-
-    // Token Service
-    tokenService: {
-        generateTokenPair: vi.fn().mockImplementation(payload => {
-            // Ensure userId is a valid ObjectId - handle undefined/null cases
-            const validUserId = (payload && payload.userId && payload.userId.length === 24) ? payload.userId : faker.database.mongodbObjectId();
-            const tokenId = Math.random().toString(36).substring(2, 11);
-            const accessToken = `mock-access-token-${tokenId}`;
-            const refreshToken = `mock-refresh-token-${tokenId}`;
-            
-            // Store token data for later verification
-            tokenDataStorage.set(accessToken, {
-                userId: validUserId,
-                email: (payload && payload.email) || 'test@example.com',
-                role: (payload && payload.role) || 'user'
-            });
-            tokenDataStorage.set(refreshToken, {
-                userId: validUserId,
-                email: (payload && payload.email) || 'test@example.com',
-                role: (payload && payload.role) || 'user'
-            });
-            
-            return Promise.resolve({
-                accessToken,
-                refreshToken,
-            });
-        }),
-        generateTokens: vi.fn().mockImplementation((userId, email, role) => {
-            // Ensure userId is a valid ObjectId - handle undefined/null cases
-            const validUserId = (userId && userId.length === 24) ? userId : faker.database.mongodbObjectId();
-            const tokenId = Math.random().toString(36).substring(2, 11);
-            const accessToken = `mock-access-token-${tokenId}`;
-            const refreshToken = `mock-refresh-token-${tokenId}`;
-            
-            // Store token data for later verification
-            tokenDataStorage.set(accessToken, {
-                userId: validUserId,
-                email: email || 'test@example.com',
-                role: role || 'user'
-            });
-            tokenDataStorage.set(refreshToken, {
-                userId: validUserId,
-                email: email || 'test@example.com',
-                role: role || 'user'
-            });
-            
-            return Promise.resolve({
-                accessToken,
-                refreshToken,
-            });
-        }),
-        verifyAccessToken: vi.fn().mockImplementation(token => {
-            // Check if token data is stored
-            const storedData = tokenDataStorage.get(token);
-            if (storedData) {
-                return Promise.resolve(storedData);
-            }
-            
-            // Fallback for old format tokens or unknown tokens
-            const parts = token.replace('mock-access-token-', '').split('-');
-            let userId = parts[0];
-            const role = parts[1] || 'user';
-            
-            // Ensure userId is a valid ObjectId
-            if (userId.length !== 24) {
-                userId = faker.database.mongodbObjectId();
-            }
-            
-            return Promise.resolve({
-                userId,
-                email: 'test@example.com',
-                role,
-            });
-        }),
-        verifyRefreshToken: vi.fn().mockImplementation(token => {
-            // Check if token data is stored
-            const storedData = tokenDataStorage.get(token);
-            if (storedData) {
-                return Promise.resolve(storedData);
-            }
-            
-            // If token is not found in storage and follows our new format, it should be invalid
-            if (token.startsWith('mock-refresh-token-') && token.includes('-new')) {
-                return Promise.reject(new Error('Invalid or expired refresh token: Token not found or invalid'));
-            }
-            
-            // Fallback for old format tokens (backwards compatibility)
-            const parts = token.replace('mock-refresh-token-', '').split('-');
-            let userId = parts[0];
-            const role = parts[1] || 'user';
-            
-            // For new format tokens without stored data, reject
-            if (parts.length === 1 && userId.length === 9) { // New format without stored data
-                return Promise.reject(new Error('Invalid or expired refresh token: Token not found or invalid'));
-            }
-            
-            // Ensure userId is a valid ObjectId for old format
-            if (userId.length !== 24) {
-                userId = faker.database.mongodbObjectId();
-            }
-            
-            return Promise.resolve({
-                userId,
-                email: 'test@example.com',
-                role,
-            });
-        }),
-        refreshTokens: vi.fn().mockImplementation(refreshToken => {
-            // Get original token data
-            const originalData = tokenDataStorage.get(refreshToken);
-            if (originalData) {
-                // Generate new tokens with same data
-                const tokenId = Math.random().toString(36).substring(2, 11);
-                const newAccessToken = `mock-access-token-${tokenId}-new`;
-                const newRefreshToken = `mock-refresh-token-${tokenId}-new`;
-                
-                // Store new token data
-                tokenDataStorage.set(newAccessToken, originalData);
-                tokenDataStorage.set(newRefreshToken, originalData);
-                
-                // Remove old refresh token
-                tokenDataStorage.delete(refreshToken);
-                
-                return Promise.resolve({
-                    accessToken: newAccessToken,
-                    refreshToken: newRefreshToken,
-                });
-            }
-            
-            // Fallback for old format tokens
-            const parts = refreshToken.replace('mock-refresh-token-', '').split('-');
-            let userId = parts[0];
-            const role = parts[1] || 'user';
-            
-            // Ensure userId is a valid ObjectId
-            if (userId.length !== 24) {
-                userId = faker.database.mongodbObjectId();
-            }
-            
-            return Promise.resolve({
-                accessToken: `mock-access-token-${userId}-${role}-new`,
-                refreshToken: `mock-refresh-token-${userId}-${role}-new`,
-            });
-        }),
-        blacklistToken: vi.fn().mockResolvedValue(undefined),
-        revokeAllUserTokens: vi.fn().mockResolvedValue(undefined),
-        isTokenBlacklisted: vi.fn().mockResolvedValue(false),
-        isUserTokensRevoked: vi.fn().mockResolvedValue(false),
-        clearAllForTesting: vi.fn().mockImplementation(() => {
-            tokenDataStorage.clear();
-            return Promise.resolve(undefined);
-        }),
-        disconnect: vi.fn().mockResolvedValue(undefined),
-    },
+    userService,
+    tokenService,
+    businessService,
+    doctorService,
+    marketsService,
+    postService,
+    professionService,
+    professionProfileService,
+    recipesService,
+    restaurantService,
+    reviewService,
+    sanctuaryService,
+    geoService,
 };
 
-// Mock para modelos
-export const modelMocks = {
-    User: {
-        findById: vi.fn().mockReturnValue({
-            select: vi.fn().mockResolvedValue({
-                _id: 'mockUserId',
-                username: 'mockUser',
-                email: 'mock@example.com',
-                isAdmin: true,
-                isProfessional: true,
-                isDeleted: false,
-                isActive: true,
-            }),
-        }),
-        findOne: vi.fn().mockResolvedValue({
-            _id: 'mockUserId',
-            email: 'mock@example.com',
-        }),
-        create: vi.fn().mockResolvedValue({
-            _id: faker.database.mongodbObjectId(),
-            email: 'new@example.com',
-        }),
-        find: vi.fn().mockResolvedValue([]),
-        findByIdAndUpdate: vi.fn().mockResolvedValue({
-            _id: 'updatedUserId',
-            email: faker.internet.email(),
-        }),
-        findByIdAndDelete: vi.fn().mockResolvedValue({
-            _id: 'deletedUserId',
-        }),
-    },
-};
-
-// Mock para librerías externas
-export const externalMocks = {
-    jsonwebtoken: {
-        verify: vi.fn().mockImplementation((token) => {
-            // Try to decode the mock token format to extract the actual user data
-            const tokenStr = token as string;
-            try {
-                if (tokenStr.includes('mock-signature')) {
-                    const payloadPart = tokenStr.split('.')[1];
-                    // Mock payload extraction since it's base64-like but not real base64
-                    const match = payloadPart.match(/"userId":"([^"]+)"/); 
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
-                    
-                    return {
-                        userId: match ? match[1] : faker.database.mongodbObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600
-                    };
-                }
-                // Handle mock-access-token format for backwards compatibility
-                if (token.includes('mock-access-token-')) {
-                    const parts = token.replace('mock-access-token-', '').split('-');
-                    const userId = parts[0];
-                    const role = parts[1] || 'user';
-                    return {
-                        userId,
-                        email: 'test@email.com',
-                        role,
-                        exp: Math.floor(Date.now() / 1000) + 3600,
-                    };
-                }
-            } catch (e) {
-                // Fallback
-            }
-            
-            // Fallback for other token formats
-            return {
-                userId: faker.database.mongodbObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            };
-        }),
-        sign: vi.fn().mockImplementation((payload) => {
-            // Preserve the actual userId from the payload or generate a valid one if missing
-            const actualUserId = payload && payload.userId ? payload.userId : faker.database.mongodbObjectId();
-            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
-            const actualRole = payload && payload.role ? payload.role : 'user';
-            return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}\",\"email\":\"${actualEmail}\",\"role\":\"${actualRole}\"}.mock-signature`;
-        }),
-        decode: vi.fn().mockImplementation((token: string) => {
-            // Try to decode the mock token format to extract the actual user data
-            try {
-                if (token.includes('mock-signature')) {
-                    const payloadPart = token.split('.')[1];
-                    // Mock payload extraction since it's base64-like but not real base64
-                    const match = payloadPart.match(/"userId":"([^"]+)"/); 
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
-                    
-                    return {
-                        userId: match ? match[1] : faker.database.mongodbObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600
-                    };
-                }
-            } catch (e) {
-                // Fallback
-            }
-            
-            // Fallback for other token formats
-            return {
-                userId: faker.database.mongodbObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            };
-        }),
-    },
-    bcrypt: {
-        __esModule: true,
-        default: {
-            hash: vi.fn().mockResolvedValue('hashed_password'),
-            compare: vi.fn().mockResolvedValue(true),
-            genSalt: vi.fn().mockResolvedValue('salt'),
-        },
-        hash: vi.fn().mockResolvedValue('hashed_password'),
-        compare: vi.fn().mockResolvedValue(true),
-        genSalt: vi.fn().mockResolvedValue('salt'),
-    },
-};
+/**
+ * USO PARA TESTS UNITARIOS:
+ *
+ * 1. Importar los mocks:
+ * import { serviceMocks } from '../__mocks__/services';
+ *
+ * 2. Configurar mocks en el test:
+ * vi.mock('../../services/UserService', () => ({
+ *     userService: serviceMocks.userService
+ * }));
+ *
+ * 3. Sobrescribir métodos localmente en el test:
+ * serviceMocks.userService.registerUser.mockImplementationOnce((userData) => {
+ *     return Promise.resolve({
+ *         _id: 'custom-id',
+ *         email: userData.email,
+ *         // ... otros campos
+ *     });
+ * });
+ *
+ * 4. Verificar llamadas:
+ * expect(serviceMocks.userService.registerUser).toHaveBeenCalledWith(expectedData);
+ *
+ * 5. Limpiar mocks entre tests:
+ * beforeEach(() => {
+ *     vi.clearAllMocks();
+ *     // Limpiar datos de prueba si es necesario
+ *     mockUsers.length = 0;
+ * });
+ */

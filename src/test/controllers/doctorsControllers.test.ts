@@ -1,15 +1,16 @@
 import { vi } from 'vitest';
 // Doctors Controllers Test - Refactored to use centralized mocking system
+import '../setup'; // Import test setup to apply mocks
 import request from 'supertest';
 import app from '../../app';
 import { doctorService } from '../../services/DoctorService';
 import { reviewService } from '../../services/ReviewService';
-import { 
-    expectSuccessResponse, 
-    expectResourceCreated, 
-    expectResourceUpdated, 
+import {
+    expectSuccessResponse,
+    expectResourceCreated,
+    expectResourceUpdated,
     expectResourceDeleted,
-    createMockData 
+    createMockData,
 } from '../utils/testHelpers';
 import { MockDoctorService, MockReviewService } from '../types';
 
@@ -53,9 +54,9 @@ describe('Doctor Controllers', () => {
     describe('GET /api/v1/doctors/:id', () => {
         it('should get doctor by id', async () => {
             const doctorId = 'doctor-123';
-            const mockDoctor = createMockData.doctor({ 
-                _id: doctorId, 
-                doctorName: 'Dr. Specific'
+            const mockDoctor = createMockData.doctor({
+                _id: doctorId,
+                doctorName: 'Dr. Specific',
             });
             mockDoctorService.findById.mockResolvedValue(mockDoctor);
 
@@ -71,18 +72,16 @@ describe('Doctor Controllers', () => {
         it('should create a new doctor', async () => {
             const newDoctorData = {
                 doctorName: 'Dr. New',
-                location: { type: 'Point', coordinates: [40.7128, -74.0060] },
+                location: { type: 'Point', coordinates: [40.7128, -74.006] },
                 address: 'New Doctor Address',
             };
-            const createdDoctor = createMockData.doctor({ 
-                ...newDoctorData, 
-                _id: 'new-doctor-id' 
+            const createdDoctor = createMockData.doctor({
+                ...newDoctorData,
+                _id: 'new-doctor-id',
             });
             mockDoctorService.create.mockResolvedValue(createdDoctor);
 
-            const response = await request(app)
-                .post('/api/v1/doctors')
-                .send(newDoctorData);
+            const response = await request(app).post('/api/v1/doctors').send(newDoctorData);
 
             expectResourceCreated(response);
             expect(mockDoctorService.create).toHaveBeenCalledWith(newDoctorData);
@@ -93,18 +92,16 @@ describe('Doctor Controllers', () => {
     describe('PUT /api/v1/doctors/:id', () => {
         it('should update a doctor', async () => {
             const doctorId = 'doctor-123';
-            const updateData = { 
-                doctorName: 'Dr. Updated'
+            const updateData = {
+                doctorName: 'Dr. Updated',
             };
-            const updatedDoctor = createMockData.doctor({ 
-                ...updateData, 
-                _id: doctorId 
+            const updatedDoctor = createMockData.doctor({
+                ...updateData,
+                _id: doctorId,
             });
             mockDoctorService.updateById.mockResolvedValue(updatedDoctor);
 
-            const response = await request(app)
-                .put(`/api/v1/doctors/${doctorId}`)
-                .send(updateData);
+            const response = await request(app).put(`/api/v1/doctors/${doctorId}`).send(updateData);
 
             expectResourceUpdated(response);
             expect(mockDoctorService.updateById).toHaveBeenCalledWith(doctorId, updateData);
@@ -127,13 +124,13 @@ describe('Doctor Controllers', () => {
     describe('Doctor with Reviews Integration', () => {
         it('should handle doctor with reviews', async () => {
             const doctorId = 'doctor-with-reviews';
-            const mockDoctor = createMockData.doctor({ 
+            const mockDoctor = createMockData.doctor({
                 _id: doctorId,
-                doctorName: 'Dr. With Reviews'
+                doctorName: 'Dr. With Reviews',
             });
             const mockReviews = [
                 { _id: 'review1', rating: 5, comment: 'Excellent doctor!' },
-                { _id: 'review2', rating: 4, comment: 'Very professional!' }
+                { _id: 'review2', rating: 4, comment: 'Very professional!' },
             ];
 
             mockDoctorService.findById.mockResolvedValue(mockDoctor);
@@ -150,10 +147,10 @@ describe('Doctor Controllers', () => {
     describe('Geolocation Integration', () => {
         it('should handle doctors with location data', async () => {
             const mockDoctors = [
-                createMockData.doctor({ 
+                createMockData.doctor({
                     doctorName: 'Location Doctor',
-                    location: { type: 'Point', coordinates: [40.7128, -74.0060] }
-                })
+                    location: { type: 'Point', coordinates: [40.7128, -74.006] },
+                }),
             ];
             mockDoctorService.getAll.mockResolvedValue(mockDoctors);
 

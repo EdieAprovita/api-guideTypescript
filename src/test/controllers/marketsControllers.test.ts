@@ -1,15 +1,16 @@
 import { vi } from 'vitest';
 // Markets Controllers Test - Refactored to use centralized mocking system
+import '../setup'; // Import test setup to apply mocks
 import request from 'supertest';
 import app from '../../app';
 import { marketsService } from '../../services/MarketsService';
 import { reviewService } from '../../services/ReviewService';
-import { 
-    expectSuccessResponse, 
-    expectResourceCreated, 
-    expectResourceUpdated, 
+import {
+    expectSuccessResponse,
+    expectResourceCreated,
+    expectResourceUpdated,
     expectResourceDeleted,
-    createMockData 
+    createMockData,
 } from '../utils/testHelpers';
 import { MockMarketService, MockReviewService } from '../types';
 
@@ -53,9 +54,9 @@ describe('Markets Controllers', () => {
     describe('GET /api/v1/markets/:id', () => {
         it('should get market by id', async () => {
             const marketId = 'market-123';
-            const mockMarket = createMockData.market({ 
-                _id: marketId, 
-                marketName: 'Specific Market'
+            const mockMarket = createMockData.market({
+                _id: marketId,
+                marketName: 'Specific Market',
             });
             mockMarketsService.findById.mockResolvedValue(mockMarket);
 
@@ -71,18 +72,16 @@ describe('Markets Controllers', () => {
         it('should create a new market', async () => {
             const newMarketData = {
                 marketName: 'New Market',
-                location: { type: 'Point', coordinates: [40.7128, -74.0060] },
+                location: { type: 'Point', coordinates: [40.7128, -74.006] },
                 address: 'New Market Address',
             };
-            const createdMarket = createMockData.market({ 
-                ...newMarketData, 
-                _id: 'new-market-id' 
+            const createdMarket = createMockData.market({
+                ...newMarketData,
+                _id: 'new-market-id',
             });
             mockMarketsService.create.mockResolvedValue(createdMarket);
 
-            const response = await request(app)
-                .post('/api/v1/markets')
-                .send(newMarketData);
+            const response = await request(app).post('/api/v1/markets').send(newMarketData);
 
             expectResourceCreated(response);
             expect(mockMarketsService.create).toHaveBeenCalledWith(newMarketData);
@@ -93,18 +92,16 @@ describe('Markets Controllers', () => {
     describe('PUT /api/v1/markets/:id', () => {
         it('should update a market', async () => {
             const marketId = 'market-123';
-            const updateData = { 
-                marketName: 'Updated Market Name'
+            const updateData = {
+                marketName: 'Updated Market Name',
             };
-            const updatedMarket = createMockData.market({ 
-                ...updateData, 
-                _id: marketId 
+            const updatedMarket = createMockData.market({
+                ...updateData,
+                _id: marketId,
             });
             mockMarketsService.updateById.mockResolvedValue(updatedMarket);
 
-            const response = await request(app)
-                .put(`/api/v1/markets/${marketId}`)
-                .send(updateData);
+            const response = await request(app).put(`/api/v1/markets/${marketId}`).send(updateData);
 
             expectResourceUpdated(response);
             expect(mockMarketsService.updateById).toHaveBeenCalledWith(marketId, updateData);
@@ -127,13 +124,13 @@ describe('Markets Controllers', () => {
     describe('Market with Reviews Integration', () => {
         it('should handle market with reviews', async () => {
             const marketId = 'market-with-reviews';
-            const mockMarket = createMockData.market({ 
+            const mockMarket = createMockData.market({
                 _id: marketId,
-                marketName: 'Market with Reviews'
+                marketName: 'Market with Reviews',
             });
             const mockReviews = [
                 { _id: 'review1', rating: 5, comment: 'Great market!' },
-                { _id: 'review2', rating: 4, comment: 'Good selection!' }
+                { _id: 'review2', rating: 4, comment: 'Good selection!' },
             ];
 
             mockMarketsService.findById.mockResolvedValue(mockMarket);
@@ -150,10 +147,10 @@ describe('Markets Controllers', () => {
     describe('Geolocation Integration', () => {
         it('should handle markets with location data', async () => {
             const mockMarkets = [
-                createMockData.market({ 
+                createMockData.market({
                     marketName: 'Location Market',
-                    location: { type: 'Point', coordinates: [40.7128, -74.0060] }
-                })
+                    location: { type: 'Point', coordinates: [40.7128, -74.006] },
+                }),
             ];
             mockMarketsService.getAll.mockResolvedValue(mockMarkets);
 

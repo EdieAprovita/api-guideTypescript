@@ -26,6 +26,23 @@ vi.doMock('../../services/UserService', () => ({
     default: mockUserService,
 }));
 
+// Mock database connection to prevent real DB calls
+vi.mock('../../config/db', () => ({
+    __esModule: true,
+    default: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock mongoose to prevent real database operations
+vi.mock('mongoose', () => ({
+    connect: vi.fn().mockResolvedValue(undefined),
+    connection: {
+        readyState: 1,
+        on: vi.fn(),
+        once: vi.fn(),
+    },
+    disconnect: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Import controllers after mocks
 import {
     registerUser,

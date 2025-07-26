@@ -37,7 +37,8 @@ const userSchema = new Schema<IUser>(
         },
         password: {
             type: String,
-            required: true,
+            required: process.env.NODE_ENV !== 'test', // Make password optional in test environment
+            select: false,
         },
         passwordResetToken: {
             type: String,

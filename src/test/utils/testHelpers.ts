@@ -285,7 +285,10 @@ export const expectMockToHaveBeenCalledWith = <T extends unknown[]>(
 /**
  * Helper to assert that a mock was called a specific number of times
  */
-export const expectMockToHaveBeenCalledTimes = (mockFn: MockedFunction<(...args: unknown[]) => unknown>, times: number) => {
+export const expectMockToHaveBeenCalledTimes = (
+    mockFn: MockedFunction<(...args: unknown[]) => unknown>,
+    times: number
+) => {
     expect(mockFn).toHaveBeenCalledTimes(times);
 };
 
@@ -311,9 +314,86 @@ export const createMockMiddleware = () => ({
 });
 
 export const createMockAuthMiddleware = () => ({
-    protect: (_req: Request, _res: Response, next: NextFunction) => next(),
-    admin: (_req: Request, _res: Response, next: NextFunction) => next(),
-    professional: (_req: Request, _res: Response, next: NextFunction) => next(),
+    protect: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: any };
+        reqWithUser.user = {
+            _id: faker.database.mongodbObjectId(),
+            email: faker.internet.email(),
+            username: faker.internet.userName(),
+            role: 'user',
+            isActive: true,
+            isDeleted: false,
+            firstName: faker.person.firstName(),
+            lastName: faker.person.lastName(),
+            photo: faker.image.avatar(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        next();
+    }),
+    admin: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: any };
+        reqWithUser.user = {
+            _id: faker.database.mongodbObjectId(),
+            email: faker.internet.email(),
+            username: faker.internet.userName(),
+            role: 'admin',
+            isAdmin: true,
+            isActive: true,
+            isDeleted: false,
+            firstName: faker.person.firstName(),
+            lastName: faker.person.lastName(),
+            photo: faker.image.avatar(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        next();
+    }),
+    professional: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: any };
+        reqWithUser.user = {
+            _id: faker.database.mongodbObjectId(),
+            email: faker.internet.email(),
+            username: faker.internet.userName(),
+            role: 'professional',
+            isActive: true,
+            isDeleted: false,
+            firstName: faker.person.firstName(),
+            lastName: faker.person.lastName(),
+            photo: faker.image.avatar(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        next();
+    }),
+    requireAuth: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: any };
+        reqWithUser.user = {
+            _id: faker.database.mongodbObjectId(),
+            email: faker.internet.email(),
+            username: faker.internet.userName(),
+            role: 'user',
+            isActive: true,
+            isDeleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        next();
+    }),
+    checkOwnership: vi.fn(() => (req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: any };
+        reqWithUser.user = {
+            _id: faker.database.mongodbObjectId(),
+            email: faker.internet.email(),
+            username: faker.internet.userName(),
+            role: 'user',
+            isActive: true,
+            isDeleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        next();
+    }),
     refreshToken: (_req: Request, res: Response) => res.status(200).json({ success: true }),
     logout: (_req: Request, res: Response) => res.status(200).json({ success: true }),
     revokeAllTokens: (_req: Request, res: Response) => res.status(200).json({ success: true }),
@@ -483,7 +563,9 @@ export const setupJWTMocks = (
     const accessToken = options.accessToken || generateMockToken('access');
     const refreshToken = options.refreshToken || generateMockToken('refresh');
 
-    (mockJwt.sign as MockedFunction<typeof jwt.sign>).mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
+    (mockJwt.sign as MockedFunction<typeof jwt.sign>)
+        .mockReturnValueOnce(accessToken)
+        .mockReturnValueOnce(refreshToken);
 
     return { accessToken, refreshToken };
 };
@@ -492,7 +574,13 @@ export const setupJWTMocks = (
  * Create Redis mock setup for token tests
  */
 export const setupRedisMocks = (
-    mockRedis: Mocked<{ setex: MockedFunction<(key: string, ttl: number, value: string) => Promise<string>>; get: MockedFunction<(key: string) => Promise<string | null>>; del: MockedFunction<(key: string) => Promise<number>>; keys: MockedFunction<(pattern: string) => Promise<string[]>>; ttl: MockedFunction<(key: string) => Promise<number>> }>
+    mockRedis: Mocked<{
+        setex: MockedFunction<(key: string, ttl: number, value: string) => Promise<string>>;
+        get: MockedFunction<(key: string) => Promise<string | null>>;
+        del: MockedFunction<(key: string) => Promise<number>>;
+        keys: MockedFunction<(pattern: string) => Promise<string[]>>;
+        ttl: MockedFunction<(key: string) => Promise<number>>;
+    }>
 ) => {
     mockRedis.setex.mockResolvedValue('OK');
     mockRedis.get.mockResolvedValue(null);
@@ -576,7 +664,13 @@ export const testTokenError = async (
  * Create Redis key expectation helper
  */
 export const expectRedisKeyOperation = (
-    mockRedis: Mocked<{ setex: MockedFunction<(key: string, ttl: number, value: string) => Promise<string>>; get: MockedFunction<(key: string) => Promise<string | null>>; del: MockedFunction<(key: string) => Promise<number>>; keys: MockedFunction<(pattern: string) => Promise<string[]>>; ttl: MockedFunction<(key: string) => Promise<number>> }>,
+    mockRedis: Mocked<{
+        setex: MockedFunction<(key: string, ttl: number, value: string) => Promise<string>>;
+        get: MockedFunction<(key: string) => Promise<string | null>>;
+        del: MockedFunction<(key: string) => Promise<number>>;
+        keys: MockedFunction<(pattern: string) => Promise<string[]>>;
+        ttl: MockedFunction<(key: string) => Promise<number>>;
+    }>,
     operation: 'get' | 'del' | 'setex',
     key: string,
     value?: unknown

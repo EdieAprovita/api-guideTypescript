@@ -10,13 +10,11 @@ export const connectToLocalDB = async (): Promise<void> => {
     try {
         // Skip if already connected
         if (mongoose.connection.readyState === 1) {
-            console.log('MongoDB already connected');
             return;
         }
 
         const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/test-db';
-        console.log('Connecting to local MongoDB instance:', mongoUri);
-
+        
         await mongoose.connect(mongoUri, {
             maxPoolSize: 1,
             serverSelectionTimeoutMS: 10000,
@@ -25,11 +23,7 @@ export const connectToLocalDB = async (): Promise<void> => {
             retryWrites: true,
             retryReads: true,
         });
-
-        console.log('Connected to local MongoDB instance successfully');
-        console.log('Connection state:', mongoose.connection.readyState);
     } catch (error) {
-        console.error('Error connecting to local MongoDB:', error);
         throw error;
     }
 };
@@ -41,11 +35,8 @@ export const connect = async (): Promise<void> => {
     try {
         // Skip if already connected
         if (mongoose.connection.readyState === 1) {
-            console.log('MongoDB already connected');
             return;
         }
-
-        console.log('Connecting to MongoDB memory server...');
 
         // Create MongoMemoryServer instance with default configuration.
         // Simplified config prevents binary incompatibilities (e.g. on macOS-ARM)
@@ -58,7 +49,6 @@ export const connect = async (): Promise<void> => {
         });
 
         const uri = mongoServer.getUri();
-        console.log('MongoDB memory server URI:', uri);
 
         await mongoose.connect(uri, {
             maxPoolSize: 1,
@@ -69,25 +59,18 @@ export const connect = async (): Promise<void> => {
             retryWrites: true,
             retryReads: true,
         });
-
-        console.log('Connected to MongoDB memory server successfully');
-        console.log('Connection state:', mongoose.connection.readyState);
     } catch (error) {
-        console.error('Error connecting to MongoDB memory server:', error);
-
         // If memory server fails, try to use a local MongoDB instance as fallback
         if (process.env.MONGODB_URI) {
-            console.log('Attempting to connect to local MongoDB instance...');
             try {
                 await mongoose.connect(process.env.MONGODB_URI, {
                     maxPoolSize: 1,
                     serverSelectionTimeoutMS: 10000,
                     socketTimeoutMS: 10000,
                 });
-                console.log('Connected to local MongoDB instance successfully');
                 return;
             } catch (fallbackError) {
-                console.error('Failed to connect to local MongoDB as well:', fallbackError);
+                // Silent fallback failure, will throw original error
             }
         }
 
@@ -121,16 +104,13 @@ export const clearDatabase = async (): Promise<void> => {
             const collection = collections[key];
             try {
                 await collection.deleteMany({});
-                console.log(`Cleared collection: ${key}`);
             } catch (error) {
-                console.error(`Error clearing collection ${key}:`, error);
+                // Silent failure - individual collection errors don't need to be logged
             }
         });
 
         await Promise.all(clearPromises);
-        console.log('All collections cleared successfully');
     } catch (error) {
-        console.error('Error in clearDatabase:', error);
         throw error;
     }
 };

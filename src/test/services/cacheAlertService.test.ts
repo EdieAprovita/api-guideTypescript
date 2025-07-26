@@ -510,13 +510,15 @@ describe('CacheAlertService', () => {
 
     describe('Singleton Instance', () => {
         it('should have singleton configured for production', () => {
-            // Test the exported singleton
-            const { cacheAlertService } = require('../../services/CacheAlertService');
+            // Test the exported singleton - we need to import it separately since it's not in the main import
+            const { cacheAlertService } = require('../../../src/services/CacheAlertService');
             const config = cacheAlertService.getConfig();
 
             expect(config.checkIntervalSeconds).toBe(60);
             expect(config.thresholds.minHitRatio).toBe(70);
             expect(config.thresholds.maxMemoryUsage).toBe('50M');
+            expect(config.thresholds.maxResponseTime).toBe(100);
+            expect(config.thresholds.minCacheSize).toBe(10);
         });
     });
 });

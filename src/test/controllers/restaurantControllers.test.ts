@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 // Restaurant Controllers Test - Refactored to use centralized mocking system
+import '../setup'; // Import test setup to apply mocks
 import request from 'supertest';
 import app from '../../app';
 import { restaurantService } from '../../services/RestaurantService';

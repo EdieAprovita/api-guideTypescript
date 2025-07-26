@@ -68,7 +68,7 @@ describe('CacheService', () => {
         });
 
         it('should use environment variables for Redis configuration', () => {
-            const { TEST_REDIS_CONFIG } = require('../../testConfig');
+            const { TEST_REDIS_CONFIG } = require('../testConfig');
             process.env.REDIS_HOST = 'test-host';
             process.env.REDIS_PORT = '6380';
             process.env.REDIS_PASSWORD = TEST_REDIS_CONFIG.password;

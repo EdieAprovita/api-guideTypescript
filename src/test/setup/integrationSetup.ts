@@ -32,120 +32,73 @@ vi.mock('jsonwebtoken', () => {
     const { faker } = require('@faker-js/faker');
     const generateValidObjectId = () => faker.database.mongodbObjectId();
 
+    const mockSign = vi.fn().mockImplementation(payload => {
+        // Preserve the actual userId from the payload or generate a valid one if missing
+        const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
+        const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
+        const actualRole = payload && payload.role ? payload.role : 'user';
+        const type = payload && payload.type ? payload.type : 'access';
+
+        // Create a more realistic mock JWT token
+        const header = { alg: 'HS256', typ: 'JWT' };
+        const payloadData = {
+            userId: actualUserId,
+            email: actualEmail,
+            role: actualRole,
+            type: type,
+            iat: Math.floor(Date.now() / 1000),
+            exp: Math.floor(Date.now() / 1000) + 3600,
+            jti: Math.random().toString(36).substring(2, 11),
+        };
+
+        // Create a mock JWT-like string
+        const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64').replace(/=/g, '');
+        const payloadB64 = Buffer.from(JSON.stringify(payloadData)).toString('base64').replace(/=/g, '');
+        const signature = 'mock-signature-' + Math.random().toString(36).substring(2, 11);
+
+        return `${headerB64}.${payloadB64}.${signature}`;
+    });
+
+    const mockVerify = vi.fn().mockImplementation(token => {
+        // Try to decode the mock token format to extract the actual user data
+        const tokenStr = token as string;
+        try {
+            if (tokenStr.includes('.')) {
+                const parts = tokenStr.split('.');
+                if (parts.length === 3) {
+                    const payloadPart = parts[1];
+                    const decodedPayload = JSON.parse(Buffer.from(payloadPart, 'base64').toString());
+                    return decodedPayload;
+                }
+            }
+        } catch (e) {
+            // Fallback
+        }
+
+        // Fallback for other token formats
+        return {
+            userId: generateValidObjectId(),
+            email: 'test@email.com',
+            role: 'user',
+            type: 'access',
+            exp: Math.floor(Date.now() / 1000) + 3600,
+        };
+    });
+
+    const mockDecode = vi.fn().mockImplementation(token => {
+        return mockVerify(token);
+    });
+
     return {
         __esModule: true,
         default: {
-            sign: vi.fn().mockImplementation((payload) => {
-                // Preserve the actual userId from the payload or generate a valid one if missing
-                const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
-                const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
-                const actualRole = payload && payload.role ? payload.role : 'user';
-                return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
-            }),
-            verify: vi.fn().mockImplementation((token) => {
-                // Try to decode the mock token format to extract the actual user data
-                const tokenStr = token as string;
-                try {
-                    if (tokenStr.includes('mock-signature')) {
-                        const payloadPart = tokenStr.split('.')[1];
-                        // Mock payload extraction since it's base64-like but not real base64
-                        const match = payloadPart.match(/"userId":"([^"]+)"/);
-                        const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
-                        const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
-
-                        return {
-                            userId: match ? match[1] : generateValidObjectId(),
-                            email: emailMatch ? emailMatch[1] : 'test@email.com',
-                            role: roleMatch ? roleMatch[1] : 'user',
-                            exp: Math.floor(Date.now() / 1000) + 3600,
-                        };
-                    }
-                } catch (e) {
-                    // Fallback
-                }
-
-                // Fallback for other token formats
-                return {
-                    userId: generateValidObjectId(),
-                    email: 'test@email.com',
-                    role: 'user',
-                    exp: Math.floor(Date.now() / 1000) + 3600,
-                };
-            }),
-            decode: vi.fn().mockImplementation(() => ({
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            })),
+            sign: mockSign,
+            verify: mockVerify,
+            decode: mockDecode,
         },
-        sign: vi.fn().mockImplementation((payload) => {
-            // Preserve the actual userId from the payload or generate a valid one if missing
-            const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
-            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
-            const actualRole = payload && payload.role ? payload.role : 'user';
-            return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
-        }),
-        verify: vi.fn().mockImplementation((token) => {
-            // Try to decode the mock token format to extract the actual user data
-            const tokenStr = token as string;
-            try {
-                if (tokenStr.includes('mock-signature')) {
-                    const payloadPart = tokenStr.split('.')[1];
-                    // Mock payload extraction since it's base64-like but not real base64
-                    const match = payloadPart.match(/"userId":"([^"]+)"/);
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
-
-                    return {
-                        userId: match ? match[1] : generateValidObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600,
-                    };
-                }
-            } catch (e) {
-                // Fallback
-            }
-
-            // Fallback for other token formats
-            return {
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            };
-        }),
-        decode: vi.fn().mockImplementation((token) => {
-            // Try to decode the mock token format to extract the actual user data
-            const tokenStr = token as string;
-            try {
-                if (tokenStr.includes('mock-signature')) {
-                    const payloadPart = tokenStr.split('.')[1];
-                    // Mock payload extraction since it's base64-like but not real base64
-                    const match = payloadPart.match(/"userId":"([^"]+)"/);
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
-
-                    return {
-                        userId: match ? match[1] : generateValidObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600,
-                    };
-                }
-            } catch (e) {
-                // Fallback
-            }
-
-            // Fallback for other token formats
-            return {
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            };
-        }),
+        sign: mockSign,
+        verify: mockVerify,
+        decode: mockDecode,
     };
 });
 
@@ -160,7 +113,7 @@ vi.mock('../../services/TokenService', () => {
 
     // Create a mock instance that matches the singleton pattern
     const mockTokenService = {
-        verifyAccessToken: vi.fn().mockImplementation(async (token) => {
+        verifyAccessToken: vi.fn().mockImplementation(async token => {
             console.log('=== TokenService.verifyAccessToken MOCK CALLED ===');
             console.log('Token received:', token ? token.substring(0, 20) + '...' : 'null/undefined');
 
@@ -191,7 +144,7 @@ vi.mock('../../services/TokenService', () => {
             }
         }),
 
-        verifyRefreshToken: vi.fn().mockImplementation(async (token) => {
+        verifyRefreshToken: vi.fn().mockImplementation(async token => {
             console.log('=== TokenService.verifyRefreshToken MOCK CALLED ===');
 
             if (!token) {
@@ -219,13 +172,17 @@ vi.mock('../../services/TokenService', () => {
                     userId: decoded.userId,
                     email: decoded.email,
                     role: decoded.role,
+                    type: 'refresh',
                 };
             } catch (error) {
                 throw new Error('Invalid refresh token format');
             }
         }),
 
-        generateTokenPair: vi.fn().mockImplementation(async (payload) => {
+        generateTokenPair: vi.fn().mockImplementation(async payload => {
+            console.log('=== TokenService.generateTokenPair MOCK CALLED ===');
+            console.log('Payload received:', payload);
+
             // Add timestamp and random element to ensure unique tokens
             const tokenPayload = {
                 ...payload,
@@ -234,19 +191,27 @@ vi.mock('../../services/TokenService', () => {
             };
             const accessToken = jwt.sign(tokenPayload);
             const refreshToken = jwt.sign({ ...tokenPayload, type: 'refresh' });
-            return { accessToken, refreshToken };
+
+            const result = { accessToken, refreshToken };
+            console.log('Generated tokens:', result);
+            return result;
         }),
 
         generateTokens: vi.fn().mockImplementation(async (userId, email, role) => {
+            console.log('=== TokenService.generateTokens MOCK CALLED ===');
+            console.log('Parameters:', { userId, email, role });
+
             const payload = {
                 userId,
                 email: email || 'test@example.com',
                 role: role || 'user',
             };
-            return mockTokenService.generateTokenPair(payload);
+            const result = await mockTokenService.generateTokenPair(payload);
+            console.log('generateTokens result:', result);
+            return result;
         }),
 
-        refreshTokens: vi.fn().mockImplementation(async (refreshToken) => {
+        refreshTokens: vi.fn().mockImplementation(async refreshToken => {
             console.log('=== TokenService.refreshTokens MOCK CALLED ===');
             console.log(
                 'Refresh token received:',
@@ -269,33 +234,44 @@ vi.mock('../../services/TokenService', () => {
             }
         }),
 
-        isUserTokensRevoked: vi.fn().mockImplementation(async (userId) => {
+        isUserTokensRevoked: vi.fn().mockImplementation(async userId => {
             console.log('=== TokenService.isUserTokensRevoked MOCK CALLED ===');
             console.log('userId:', userId);
             return revokedUserTokens.has(userId);
         }),
 
-        isTokenBlacklisted: vi.fn().mockImplementation(async (token) => {
+        isTokenBlacklisted: vi.fn().mockImplementation(async token => {
             console.log('=== TokenService.isTokenBlacklisted MOCK CALLED ===');
             console.log('token:', token ? token.substring(0, 20) + '...' : 'null/undefined');
             return blacklistedTokens.has(token);
         }),
 
-        blacklistToken: vi.fn().mockImplementation(async (token) => {
+        blacklistToken: vi.fn().mockImplementation(async token => {
             console.log('=== TokenService.blacklistToken MOCK CALLED ===');
             blacklistedTokens.add(token);
             return true;
         }),
 
-        revokeAllUserTokens: vi.fn().mockImplementation(async (userId) => {
+        revokeAllUserTokens: vi.fn().mockImplementation(async userId => {
             console.log('=== TokenService.revokeAllUserTokens MOCK CALLED ===');
             revokedUserTokens.add(userId);
             return true;
         }),
 
-        revokeRefreshToken: vi.fn().mockImplementation(async (userId) => {
+        revokeRefreshToken: vi.fn().mockImplementation(async userId => {
             console.log('=== TokenService.revokeRefreshToken MOCK CALLED ===');
             return true;
+        }),
+
+        clearAllForTesting: vi.fn().mockImplementation(async () => {
+            console.log('=== TokenService.clearAllForTesting MOCK CALLED ===');
+            blacklistedTokens.clear();
+            usedRefreshTokens.clear();
+            revokedUserTokens.clear();
+        }),
+
+        disconnect: vi.fn().mockImplementation(async () => {
+            console.log('=== TokenService.disconnect MOCK CALLED ===');
         }),
     };
 
@@ -308,7 +284,7 @@ vi.mock('../../services/TokenService', () => {
 // Database setup for integration tests
 beforeAll(async () => {
     console.log('🔧 Setting up integration test database...');
-    
+
     // Use MongoDB Memory Server if no local MongoDB URI is provided
     if (!process.env.MONGODB_URI?.includes('localhost')) {
         try {
@@ -320,10 +296,10 @@ beforeAll(async () => {
                     dbName: 'test-integration-db',
                 },
             });
-            
+
             const mongoUri = mongoServer.getUri();
             process.env.MONGODB_URI = mongoUri;
-            
+
             console.log('✅ MongoDB Memory Server started for integration tests:', mongoUri);
         } catch (error) {
             console.error('❌ Failed to start MongoDB Memory Server:', error);
@@ -335,9 +311,9 @@ beforeAll(async () => {
 beforeEach(async () => {
     // Clear mocks between tests
     vi.clearAllMocks();
-    
+
     // Clear database collections if connected
-    if (mongoose.connection.readyState === 1) {
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
         const collections = mongoose.connection.db.collections();
         for (let collection of await collections) {
             await collection.deleteMany({});
@@ -347,12 +323,12 @@ beforeEach(async () => {
 
 afterAll(async () => {
     console.log('🧹 Cleaning up integration test environment...');
-    
+
     // Close mongoose connection
     if (mongoose.connection.readyState === 1) {
         await mongoose.connection.close();
     }
-    
+
     // Stop MongoDB Memory Server
     if (mongoServer) {
         try {
