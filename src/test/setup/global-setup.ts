@@ -1,15 +1,20 @@
 import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
-import { setupTestEnvironment, setupDatabase, teardownDatabase, clearDatabase } from '../config/database-setup';
-import { setupAllMocks } from '../config/vitest-mocks';
-import { generateValidObjectId, createTestUser, createAdminUser, createProfessionalUser } from '../config/test-utils';
+import { 
+    setupMasterTestEnvironment, 
+    setupAllMasterMocks,
+    setupMasterDatabase,
+    teardownMasterDatabase,
+    clearMasterDatabase,
+    generateMasterTestData
+} from '../config/master-test-config';
 
 // ============================================================================
-// GLOBAL SETUP
+// GLOBAL SETUP - USING MASTER CONFIGURATION
 // ============================================================================
 
 // Setup environment variables and mocks
-setupTestEnvironment();
-setupAllMocks();
+setupMasterTestEnvironment();
+setupAllMasterMocks();
 
 // ============================================================================
 // GLOBAL HOOKS
@@ -20,7 +25,7 @@ beforeAll(async () => {
 
     // Setup database for integration tests
     if (process.env.TEST_TYPE === 'integration') {
-        await setupDatabase();
+        await setupMasterDatabase();
     }
 
     console.log('✅ Test environment ready');
@@ -31,7 +36,7 @@ afterAll(async () => {
 
     // Cleanup database
     if (process.env.TEST_TYPE === 'integration') {
-        await teardownDatabase();
+        await teardownMasterDatabase();
     }
 
     console.log('✅ Test environment cleaned up');
@@ -40,7 +45,7 @@ afterAll(async () => {
 beforeEach(async () => {
     // Clear database between tests for integration tests
     if (process.env.TEST_TYPE === 'integration') {
-        await clearDatabase();
+        await clearMasterDatabase();
     }
 });
 
@@ -67,10 +72,10 @@ process.on('uncaughtException', error => {
 
 // Make common testing utilities globally available
 globalThis.testUtils = {
-    generateValidObjectId,
-    createTestUser,
-    createAdminUser,
-    createProfessionalUser,
+    generateValidObjectId: () => '507f1f77bcf86cd799439011', // Consistent test ID
+    createTestUser: generateMasterTestData.user,
+    createAdminUser: () => generateMasterTestData.user({ role: 'admin', isAdmin: true }),
+    createProfessionalUser: () => generateMasterTestData.user({ role: 'professional' }),
 };
 
 console.log('✅ Global test setup complete');

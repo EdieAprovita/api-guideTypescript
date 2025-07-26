@@ -17,12 +17,92 @@ export interface TestUser {
     _id: string;
     username: string;
     email: string;
-    role: string;
+    role: 'user' | 'admin' | 'professional';
     isActive: boolean;
     isDeleted: boolean;
     password?: string;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface TestBusiness {
+    _id: string;
+    namePlace: string;
+    author: string;
+    address: string;
+    location: {
+        type: 'Point';
+        coordinates: [number, number];
+    };
+    image: string;
+    contact: Array<{
+        phone?: string;
+        email?: string;
+        facebook?: string;
+        instagram?: string;
+    }>;
+    budget: number;
+    typeBusiness: 'restaurant' | 'cafe' | 'store' | 'service' | 'retail';
+    hours: Array<{
+        dayOfWeek: string;
+        openTime: string;
+        closeTime: string;
+    }>;
+    rating: number;
+    numReviews: number;
+    reviews: string[];
+}
+
+export interface TestRestaurant {
+    _id: string;
+    restaurantName: string;
+    author: string;
+    typePlace: 'restaurant' | 'cafe' | 'bar';
+    address: string;
+    location: {
+        type: 'Point';
+        coordinates: [number, number];
+    };
+    image: string;
+    budget: '$' | '$$' | '$$$' | '$$$$';
+    contact: Array<{
+        phone?: string;
+        facebook?: string;
+        instagram?: string;
+    }>;
+    cuisine: string[];
+    rating: number;
+    numReviews: number;
+    reviews: string[];
+}
+
+export interface TestReview {
+    _id: string;
+    rating: number;
+    title: string;
+    content: string;
+    visitDate: Date;
+    author: string;
+    restaurant: string;
+    helpfulCount: number;
+    helpfulVotes: string[];
+}
+
+export interface TestRecipe {
+    _id: string;
+    title: string;
+    author: string;
+    description: string;
+    instructions: string;
+    ingredients: string[];
+    typeDish: 'breakfast' | 'lunch' | 'dinner' | 'dessert';
+    image: string;
+    cookingTime: number;
+    difficulty: 'easy' | 'medium' | 'hard';
+    budget: '$' | '$$' | '$$$';
+    rating: number;
+    numReviews: number;
+    reviews: string[];
 }
 
 export interface MockRequest extends Partial<Request> {
@@ -88,7 +168,7 @@ export const generateTestData = {
     admin: createAdminUser,
     professional: createProfessionalUser,
 
-    business: (overrides = {}) => ({
+    business: (overrides: Partial<TestBusiness> = {}): TestBusiness => ({
         _id: generateValidObjectId(),
         namePlace: faker.company.name(),
         author: generateValidObjectId(),
@@ -107,15 +187,21 @@ export const generateTestData = {
             },
         ],
         budget: faker.number.int({ min: 1, max: 4 }),
-        typeBusiness: faker.helpers.arrayElement(['restaurant', 'cafe', 'store']),
-        hours: [],
+        typeBusiness: faker.helpers.arrayElement(['restaurant', 'cafe', 'store', 'service', 'retail']),
+        hours: [
+            {
+                dayOfWeek: 'Monday',
+                openTime: '09:00',
+                closeTime: '18:00',
+            },
+        ],
         rating: 0,
         numReviews: 0,
         reviews: [],
         ...overrides,
     }),
 
-    restaurant: (overrides = {}) => ({
+    restaurant: (overrides: Partial<TestRestaurant> = {}): TestRestaurant => ({
         _id: generateValidObjectId(),
         restaurantName: faker.company.name(),
         author: generateValidObjectId(),
@@ -141,7 +227,7 @@ export const generateTestData = {
         ...overrides,
     }),
 
-    review: (overrides = {}) => ({
+    review: (overrides: Partial<TestReview> = {}): TestReview => ({
         _id: generateValidObjectId(),
         rating: faker.number.int({ min: 1, max: 5 }),
         title: faker.lorem.sentence(),
@@ -154,7 +240,7 @@ export const generateTestData = {
         ...overrides,
     }),
 
-    recipe: (overrides = {}) => ({
+    recipe: (overrides: Partial<TestRecipe> = {}): TestRecipe => ({
         _id: generateValidObjectId(),
         title: faker.lorem.words(3),
         author: generateValidObjectId(),
@@ -210,7 +296,7 @@ export const makeRequest = {
 // ============================================================================
 
 export const expectResponse = {
-    success: (response: any, expectedStatus = 200) => {
+    success: (response: TestResponse, expectedStatus = 200): void => {
         expect(response.status).toBe(expectedStatus);
         expect(response.body.success).toBe(true);
         if (expectedStatus === 201) {
@@ -218,55 +304,58 @@ export const expectResponse = {
         }
     },
 
-    error: (response: any, expectedStatus = 400) => {
+    error: (response: TestResponse, expectedStatus = 400): void => {
         expect(response.status).toBe(expectedStatus);
         expect(response.body.success).toBe(false);
         expect(response.body.message || response.body.error).toBeDefined();
     },
 
-    validation: (response: any) => {
+    validation: (response: TestResponse): void => {
         expect(response.status).toBe(400);
         expect(response.body.success).toBe(false);
         expect(response.body.errors || response.body.message).toBeDefined();
     },
 
-    unauthorized: (response: any) => {
+    unauthorized: (response: TestResponse): void => {
         expect(response.status).toBe(401);
         expect(response.body.success).toBe(false);
     },
 
-    forbidden: (response: any) => {
+    forbidden: (response: TestResponse): void => {
         expect(response.status).toBe(403);
         expect(response.body.success).toBe(false);
     },
 
-    notFound: (response: any) => {
+    notFound: (response: TestResponse): void => {
         expect(response.status).toBe(404);
         expect(response.body.success).toBe(false);
     },
 
-    created: (response: any) => {
+    created: (response: TestResponse): void => {
         expect(response.status).toBe(201);
         expect(response.body.success).toBe(true);
         expect(response.body.data).toBeDefined();
     },
 
-    deleted: (response: any) => {
+    deleted: (response: TestResponse): void => {
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
     },
 
-    paginated: (response: any) => {
+    paginated: (response: TestResponse): void => {
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
         expect(response.body.data).toBeDefined();
         expect(Array.isArray(response.body.data)).toBe(true);
     },
 
-    withToken: (response: any) => {
+    withToken: (response: TestResponse): void => {
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
-        expect(response.body.token || response.body.data?.accessToken).toBeDefined();
+        const hasToken = response.body.data && 
+            typeof response.body.data === 'object' && 
+            'accessToken' in response.body.data;
+        expect(hasToken).toBe(true);
     },
 };
 
