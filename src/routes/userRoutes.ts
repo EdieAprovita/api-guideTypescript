@@ -22,12 +22,26 @@ const router = express.Router();
 router.use(securityHeaders);
 
 // Apply input sanitization to all routes
-router.use(...sanitizeInput());
+const sanitizationMiddlewares = sanitizeInput();
+if (Array.isArray(sanitizationMiddlewares)) {
+    router.use(...sanitizationMiddlewares);
+}
 
 // Routes with validation and rate limiting
 router.get('/', rateLimits.api, protect, admin, validate({ query: querySchemas.search }), getUsers);
 
 router.get('/profile', rateLimits.api, protect, getCurrentUserProfile);
+
+router.put(
+    '/profile',
+    rateLimits.api,
+    validateInputLength(4096), // 4KB limit for profile updates
+    protect,
+    validate({
+        body: userSchemas.updateProfile,
+    }),
+    updateUserProfile
+);
 
 router.post(
     '/login',
@@ -88,7 +102,7 @@ router.put(
     updateUserProfile
 );
 
-router.get('/:id', rateLimits.api, protect, validate({ params: paramSchemas.id }), getUserById);
+router.get('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), getUserById);
 
 router.delete('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), deleteUserById);
 

@@ -1,3 +1,4 @@
+import { vi, Mock } from 'vitest';
 import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import { setupCommonMocks, resetMocks, createMockRecipe } from '../utils/testHelpers';
@@ -6,13 +7,13 @@ import { setupCommonMocks, resetMocks, createMockRecipe } from '../utils/testHel
 setupCommonMocks();
 
 // Mock services with proper structure
-jest.mock('../../services/RecipesService', () => ({
+vi.mock('../../services/RecipesService', () => ({
     recipeService: {
-        getAll: jest.fn(),
-        findById: jest.fn(),
-        create: jest.fn(),
-        updateById: jest.fn(),
-        deleteById: jest.fn(),
+        getAll: vi.fn(),
+        findById: vi.fn(),
+        create: vi.fn(),
+        updateById: vi.fn(),
+        deleteById: vi.fn(),
     },
 }));
 
@@ -29,7 +30,7 @@ describe('Recipes Controllers', () => {
         it('should get all recipes', async () => {
             const mockRecipes = [createMockRecipe(), createMockRecipe()];
 
-            (recipeService.getAll as jest.Mock).mockResolvedValueOnce(mockRecipes);
+            (recipeService.getAll as Mock).mockResolvedValueOnce(mockRecipes);
 
             const response = await request(app).get('/api/v1/recipes');
 
@@ -46,7 +47,7 @@ describe('Recipes Controllers', () => {
         it('should get recipe by id', async () => {
             const mockRecipe = createMockRecipe();
 
-            (recipeService.findById as jest.Mock).mockResolvedValueOnce(mockRecipe);
+            (recipeService.findById as Mock).mockResolvedValueOnce(mockRecipe);
 
             const response = await request(app).get(`/api/v1/recipes/${mockRecipe._id}`);
 
@@ -72,7 +73,7 @@ describe('Recipes Controllers', () => {
             };
 
             const createdRecipe = { ...recipeData, _id: 'recipe123' };
-            (recipeService.create as jest.Mock).mockResolvedValueOnce(createdRecipe);
+            (recipeService.create as Mock).mockResolvedValueOnce(createdRecipe);
 
             const response = await request(app).post('/api/v1/recipes').send(recipeData);
 
@@ -94,7 +95,7 @@ describe('Recipes Controllers', () => {
             };
 
             const updatedRecipe = { ...updateData, _id: recipeId };
-            (recipeService.updateById as jest.Mock).mockResolvedValueOnce(updatedRecipe);
+            (recipeService.updateById as Mock).mockResolvedValueOnce(updatedRecipe);
 
             const response = await request(app).put(`/api/v1/recipes/${recipeId}`).send(updateData);
 
@@ -111,7 +112,7 @@ describe('Recipes Controllers', () => {
         it('should delete recipe by id', async () => {
             const recipeId = 'recipe123';
 
-            (recipeService.deleteById as jest.Mock).mockResolvedValueOnce(undefined);
+            (recipeService.deleteById as Mock).mockResolvedValueOnce(undefined);
 
             const response = await request(app).delete(`/api/v1/recipes/${recipeId}`);
 

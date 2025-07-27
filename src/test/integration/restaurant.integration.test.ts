@@ -5,8 +5,7 @@ import { createTestRestaurant } from './helpers/testFixtures';
 import { setupTestDB, refreshAdmin, AdminAuth } from './helpers/testSetup';
 import { Restaurant } from '../../models/Restaurant';
 
-// Integration skipped pending environment setup
-describe.skip('Restaurant API Integration Tests', () => {
+describe('Restaurant API Integration Tests', () => {
     setupTestDB();
     let admin: AdminAuth;
 
@@ -20,7 +19,7 @@ describe.skip('Restaurant API Integration Tests', () => {
         budget: '$$' as const,
         contact: [
             {
-                phone: faker.phone.number(),
+                phone: faker.string.numeric(10),
                 facebook: faker.internet.url(),
                 instagram: `@${faker.internet.userName()}`,
             },
@@ -37,7 +36,7 @@ describe.skip('Restaurant API Integration Tests', () => {
         rating: 0,
         numReviews: 0,
         // Author is provided explicitly for test data consistency
-        author: admin.adminId,
+        author: admin.adminObjectId,
     });
 
     it('should create a restaurant', async () => {
@@ -58,8 +57,8 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should get all restaurants', async () => {
-        await createTestRestaurant(admin.adminId);
-        await createTestRestaurant(admin.adminId);
+        await createTestRestaurant(admin.adminObjectId);
+        await createTestRestaurant(admin.adminObjectId);
 
         const response = await request(app).get('/api/v1/restaurants');
 
@@ -70,7 +69,7 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should get a restaurant by id', async () => {
-        const restaurant = await createTestRestaurant(admin.adminId);
+        const restaurant = await createTestRestaurant(admin.adminObjectId);
 
         const response = await request(app).get(
             `/api/v1/restaurants/${restaurant._id}`
@@ -82,7 +81,7 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should update a restaurant', async () => {
-        const restaurant = await createTestRestaurant(admin.adminId);
+        const restaurant = await createTestRestaurant(admin.adminObjectId);
 
         const response = await request(app)
             .put(`/api/v1/restaurants/${restaurant._id}`)
@@ -94,7 +93,7 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should delete a restaurant', async () => {
-        const restaurant = await createTestRestaurant(admin.adminId);
+        const restaurant = await createTestRestaurant(admin.adminObjectId);
 
         const response = await request(app)
             .delete(`/api/v1/restaurants/${restaurant._id}`)
@@ -106,7 +105,7 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should search restaurants by location', async () => {
-        const restaurants = await createTestRestaurant(admin.adminId);
+        const restaurants = await createTestRestaurant(admin.adminObjectId);
 
         const [lng, lat] = restaurants.location.coordinates;
 

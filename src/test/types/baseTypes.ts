@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { MockedFunction } from 'vitest';
 
 // Base interfaces to reduce duplication
 export interface BaseLocation {
@@ -54,15 +55,15 @@ export interface MockSanctuary extends BaseMockEntity {
 
 // Service mock base interface
 export interface MockServiceMethods<T> {
-    getAll: jest.MockedFunction<() => Promise<T[]>>;
-    getAllCached: jest.MockedFunction<() => Promise<T[]>>;
-    findById: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    findByIdCached: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    create: jest.MockedFunction<(data: Partial<T>) => Promise<T>>;
-    createCached: jest.MockedFunction<(data: Partial<T>) => Promise<T>>;
-    updateById: jest.MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
-    updateByIdCached: jest.MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
-    deleteById: jest.MockedFunction<(id: string) => Promise<void>>;
+    getAll: MockedFunction<() => Promise<T[]>>;
+    getAllCached: MockedFunction<() => Promise<T[]>>;
+    findById: MockedFunction<(id: string) => Promise<T | null>>;
+    findByIdCached: MockedFunction<(id: string) => Promise<T | null>>;
+    create: MockedFunction<(data: Partial<T>) => Promise<T>>;
+    createCached: MockedFunction<(data: Partial<T>) => Promise<T>>;
+    updateById: MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
+    updateByIdCached: MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
+    deleteById: MockedFunction<(id: string) => Promise<void>>;
 }
 
 // Specific service interfaces

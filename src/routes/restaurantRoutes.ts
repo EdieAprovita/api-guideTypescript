@@ -60,7 +60,7 @@ router.put(
     admin,
     validate({
         params: paramSchemas.id,
-        body: restaurantSchemas.create,
+        body: restaurantSchemas.update,
     }),
     updateRestaurant
 );
