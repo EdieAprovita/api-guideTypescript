@@ -19,7 +19,7 @@ describe('Restaurant API Integration Tests', () => {
         budget: '$$' as const,
         contact: [
             {
-                phone: faker.phone.number(),
+                phone: faker.string.numeric(10),
                 facebook: faker.internet.url(),
                 instagram: `@${faker.internet.userName()}`,
             },

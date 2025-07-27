@@ -180,7 +180,7 @@ export const generateTestData = {
         image: faker.image.url(),
         contact: [
             {
-                phone: faker.phone.number(),
+                phone: faker.string.numeric(10),
                 email: faker.internet.email(),
                 facebook: faker.internet.url(),
                 instagram: `@${faker.internet.userName()}`,
@@ -215,7 +215,7 @@ export const generateTestData = {
         budget: faker.helpers.arrayElement(['$', '$$', '$$$', '$$$$']),
         contact: [
             {
-                phone: faker.phone.number(),
+                phone: faker.string.numeric(10),
                 facebook: faker.internet.url(),
                 instagram: `@${faker.internet.userName()}`,
             },

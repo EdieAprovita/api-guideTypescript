@@ -1,57 +1,43 @@
-import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
-import { 
-    setupMasterTestEnvironment, 
-    setupAllMasterMocks,
-    setupMasterDatabase,
-    teardownMasterDatabase,
-    clearMasterDatabase,
-    generateMasterTestData
-} from '../config/master-test-config';
+/**
+ * Simplified Global Test Setup
+ * Using the new unified configuration system
+ */
+
+import { beforeAll, afterAll, beforeEach } from 'vitest';
+import { setupTest } from '../config/unified-test-config';
 
 // ============================================================================
-// GLOBAL SETUP - USING MASTER CONFIGURATION
+// GLOBAL SETUP - MINIMAL AND CLEAN
 // ============================================================================
 
-// Setup environment variables and mocks
-setupMasterTestEnvironment();
-setupAllMasterMocks();
+// Setup hooks for different test types
+const unitTestHooks = setupTest();
+const integrationTestHooks = setupTest({ withDatabase: true });
+
+// Determine which hooks to use based on test file or environment
+const isIntegrationTest = process.env.TEST_TYPE === 'integration' || 
+                         process.argv.some(arg => arg.includes('integration'));
+
+const hooks = isIntegrationTest ? integrationTestHooks : unitTestHooks;
 
 // ============================================================================
 // GLOBAL HOOKS
 // ============================================================================
 
 beforeAll(async () => {
-    console.log('🔧 Setting up test environment...');
-
-    // Setup database for integration tests
-    if (process.env.TEST_TYPE === 'integration') {
-        await setupMasterDatabase();
-    }
-
+    console.log(`🔧 Setting up ${isIntegrationTest ? 'integration' : 'unit'} test environment...`);
+    await hooks.beforeAll();
     console.log('✅ Test environment ready');
 });
 
 afterAll(async () => {
     console.log('🧹 Cleaning up test environment...');
-
-    // Cleanup database
-    if (process.env.TEST_TYPE === 'integration') {
-        await teardownMasterDatabase();
-    }
-
+    await hooks.afterAll();
     console.log('✅ Test environment cleaned up');
 });
 
 beforeEach(async () => {
-    // Clear database between tests for integration tests
-    if (process.env.TEST_TYPE === 'integration') {
-        await clearMasterDatabase();
-    }
-});
-
-afterEach(() => {
-    // Clear all mocks between tests
-    vi.clearAllMocks();
+    await hooks.beforeEach();
 });
 
 // ============================================================================
@@ -65,17 +51,5 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', error => {
     console.error('Uncaught Exception:', error);
 });
-
-// ============================================================================
-// GLOBAL UTILITIES
-// ============================================================================
-
-// Make common testing utilities globally available
-globalThis.testUtils = {
-    generateValidObjectId: () => '507f1f77bcf86cd799439011', // Consistent test ID
-    createTestUser: generateMasterTestData.user,
-    createAdminUser: () => generateMasterTestData.user({ role: 'admin', isAdmin: true }),
-    createProfessionalUser: () => generateMasterTestData.user({ role: 'professional' }),
-};
 
 console.log('✅ Global test setup complete');

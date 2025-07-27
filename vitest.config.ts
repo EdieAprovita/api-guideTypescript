@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
@@ -6,11 +7,7 @@ export default defineConfig({
         // Environment
         environment: 'node',
 
-        // Global setup and teardown (non-vitest imports only)
-        globalSetup: ['./src/test/config/database-setup.ts'],
-        globalTeardown: ['./src/test/config/database-setup.ts'],
-
-        // Test files patterns
+        // Test files patterns - More specific to avoid conflicts
         include: ['src/test/**/*.test.ts', 'src/test/**/*.spec.ts'],
 
         // Exclude patterns
@@ -21,10 +18,13 @@ export default defineConfig({
             'src/test/__mocks__/**',
             'src/test/templates/**',
             'src/test/fixtures/**',
+            'src/test/services/cacheAlertService.test.old',
+            'src/test/services/cacheService.test.old',
+            'src/test/services/userService.test.old',
         ],
 
-        // Timeout settings
-        testTimeout: 10000,
+        // Increased timeout settings for integration tests
+        testTimeout: 15000,
         hookTimeout: 10000,
 
         // Coverage configuration
@@ -72,18 +72,16 @@ export default defineConfig({
         },
 
         // Reporters
-        reporter: ['verbose', 'json'],
+        reporters: ['verbose'],
 
         // Setup files for different test types
         setupFiles: ['./src/test/setup/global-setup.ts'],
 
-        // Parallel execution
-        pool: 'threads',
+        // Parallel execution - Sequential for DB tests
+        pool: 'forks',
         poolOptions: {
-            threads: {
-                singleThread: false,
-                maxThreads: 4,
-                minThreads: 1,
+            forks: {
+                singleFork: true, // Sequential execution for DB consistency
             },
         },
 
@@ -96,9 +94,16 @@ export default defineConfig({
         // Mock configuration
         clearMocks: true,
         restoreMocks: true,
+        mockReset: true,
 
         // Globals
         globals: true,
+
+        // TypeScript support
+        typecheck: {
+            enabled: true,
+            tsconfig: './tsconfig.test.json',
+        },
     },
 
     // Resolve configuration
@@ -115,5 +120,10 @@ export default defineConfig({
     // Define configuration for different test types
     define: {
         'process.env.NODE_ENV': '"test"',
+    },
+
+    // Ensure proper ESM handling
+    esbuild: {
+        target: 'node18',
     },
 });

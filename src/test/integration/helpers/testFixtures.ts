@@ -98,6 +98,11 @@ export const createTestUser = async (overrides: UserOverrides = {}) => {
             throw new Error('User.create() returned null or undefined');
         }
 
+        // Ensure user has toObject method (Mongoose document)
+        if (typeof user.toObject !== 'function') {
+            throw new Error('Created user is not a valid Mongoose document');
+        }
+
         // Return user object with mock password for compatibility with test expectations
         return { ...user.toObject(), password: plainPassword };
     } catch (error) {
@@ -236,7 +241,7 @@ export const createTestBusiness = async (authorId: string, overrides: BusinessOv
         image: faker.image.url(),
         contact: [
             {
-                phone: faker.phone.number('##########'), // Generate simple 10-digit number
+                phone: faker.string.numeric(10), // Generate simple 10-digit number
                 email: faker.internet.email(),
                 facebook: faker.internet.url(),
                 instagram: `@${faker.internet.userName()}`,

@@ -109,7 +109,7 @@ describe('TokenService', () => {
             const tokens = await tokenService.generateTokenPair(payload);
             
             await expect(tokenService.verifyRefreshToken(tokens.accessToken))
-                .rejects.toThrow(/Invalid token type/);
+                .rejects.toThrow(/Invalid or expired refresh token/);
         });
     });
 

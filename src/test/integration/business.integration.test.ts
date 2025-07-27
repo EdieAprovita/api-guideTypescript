@@ -19,7 +19,7 @@ describe('Business API Integration Tests', () => {
         image: faker.image.url(), // Add required image field
         contact: [
             {
-                phone: faker.phone.number().toString(),
+                phone: faker.string.numeric(10),
                 email: faker.internet.email(),
             },
         ],

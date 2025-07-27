@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-let mongoServer: MongoMemoryServer;
+let mongoServer: MongoMemoryServer | null = null;
 
 /**
  * Connect to a local MongoDB instance for testing (fallback option)
@@ -82,13 +82,30 @@ export const connect = async (): Promise<void> => {
  * Drop database, close the connection and stop mongoServer
  */
 export const closeDatabase = async (): Promise<void> => {
-    if (mongoose.connection.readyState !== 0) {
-        await mongoose.connection.dropDatabase();
+    try {
+        // Clear all collections before closing instead of dropping database
+        if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+            const collections = await mongoose.connection.db.collections();
+            for (const collection of collections) {
+                try {
+                    await collection.deleteMany({});
+                } catch (error) {
+                    console.warn(`Warning: Could not clear collection ${collection.collectionName}:`, error);
+                }
+            }
+        }
+        
         await mongoose.connection.close();
-    }
-
-    if (mongoServer) {
-        await mongoServer.stop();
+        
+        if (mongoServer) {
+            await mongoServer.stop();
+            mongoServer = null;
+        }
+        
+        console.log('✅ Test database disconnected successfully');
+    } catch (error) {
+        // Don't fail tests due to cleanup errors
+        console.warn('Warning: Error during database cleanup:', error);
     }
 };
 

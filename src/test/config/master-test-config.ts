@@ -574,7 +574,7 @@ export const generateMasterTestData = {
         image: faker.image.url(),
         contact: [
             {
-                phone: faker.phone.number('##########'),
+                phone: faker.string.numeric(10),
                 email: faker.internet.email(),
                 facebook: faker.internet.url(),
                 instagram: `@${faker.internet.userName()}`,
