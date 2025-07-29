@@ -24,8 +24,8 @@ export default defineConfig({
         ],
 
         // Increased timeout settings for integration tests
-        testTimeout: 15000,
-        hookTimeout: 10000,
+        testTimeout: 30000,
+        hookTimeout: 15000,
 
         // Coverage configuration
         coverage: {
@@ -82,8 +82,10 @@ export default defineConfig({
         poolOptions: {
             forks: {
                 singleFork: true, // Sequential execution for DB consistency
+                isolate: false, // Share context between tests to improve performance
             },
         },
+        maxConcurrency: 1, // Run tests sequentially to avoid DB conflicts
 
         // File watching
         watch: false,
@@ -126,4 +128,17 @@ export default defineConfig({
     esbuild: {
         target: 'node18',
     },
+
+    // SSR configuration for Mongoose ESM compatibility
+    ssr: {
+        noExternal: ['mongoose', 'bcryptjs'],
+    },
+
+    // Alternative deps configuration for older Vitest versions
+    // test: {
+    //     deps: {
+    //         inline: ['mongoose', 'bcryptjs'],
+    //         interopDefault: true,
+    //     }
+    // }
 });

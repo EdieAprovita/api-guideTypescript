@@ -363,25 +363,25 @@ export const expectResponse = {
 // SERVICE MOCKS
 // ============================================================================
 
-export const createServiceMock = <T = unknown>(mockData: T[] = []) => ({
+export const createServiceMock = <T extends { _id: string }>(mockData: T[] = []) => ({
     getAll: vi.fn().mockResolvedValue(mockData),
     getAllCached: vi.fn().mockResolvedValue(mockData),
     findById: vi
         .fn()
-        .mockImplementation((id: string) => Promise.resolve(mockData.find((item: any) => item._id === id) || null)),
+        .mockImplementation((id: string) => Promise.resolve(mockData.find((item: T) => item._id === id) || null)),
     findByIdCached: vi
         .fn()
-        .mockImplementation((id: string) => Promise.resolve(mockData.find((item: any) => item._id === id) || null)),
+        .mockImplementation((id: string) => Promise.resolve(mockData.find((item: T) => item._id === id) || null)),
     create: vi
         .fn()
-        .mockImplementation((data: Partial<T>) => Promise.resolve({ _id: generateValidObjectId(), ...data })),
+        .mockImplementation((data: Partial<T>) => Promise.resolve({ _id: generateValidObjectId(), ...data } as T)),
     createCached: vi
         .fn()
-        .mockImplementation((data: Partial<T>) => Promise.resolve({ _id: generateValidObjectId(), ...data })),
-    updateById: vi.fn().mockImplementation((id: string, data: Partial<T>) => Promise.resolve({ _id: id, ...data })),
+        .mockImplementation((data: Partial<T>) => Promise.resolve({ _id: generateValidObjectId(), ...data } as T)),
+    updateById: vi.fn().mockImplementation((id: string, data: Partial<T>) => Promise.resolve({ _id: id, ...data } as T)),
     updateByIdCached: vi
         .fn()
-        .mockImplementation((id: string, data: Partial<T>) => Promise.resolve({ _id: id, ...data })),
+        .mockImplementation((id: string, data: Partial<T>) => Promise.resolve({ _id: id, ...data } as T)),
     deleteById: vi.fn().mockResolvedValue(undefined),
     invalidateCache: vi.fn().mockResolvedValue(undefined),
 });

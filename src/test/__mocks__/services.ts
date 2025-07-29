@@ -199,12 +199,12 @@ function createCrudMock<T extends { _id: string }>(entityName: string, entityFac
             return Promise.resolve(storage.find(e => e._id === id) || null);
         }),
         create: vi.fn().mockImplementation((data: Partial<T>): Promise<T> => {
-            const entity = { ...entityFactory(), ...data };
+            const entity = { ...entityFactory(), ...data } as T;
             storage.push(entity);
             return Promise.resolve(entity);
         }),
         createCached: vi.fn().mockImplementation((data: Partial<T>): Promise<T> => {
-            const entity = { ...entityFactory(), ...data };
+            const entity = { ...entityFactory(), ...data } as T;
             storage.push(entity);
             return Promise.resolve(entity);
         }),
@@ -234,68 +234,139 @@ function createCrudMock<T extends { _id: string }>(entityName: string, entityFac
     };
 }
 
+// Tipos para las entidades mock
+interface MockBusiness {
+    _id: string;
+    namePlace: string;
+    author: string;
+    typeBusiness: string;
+}
+
+interface MockDoctor {
+    _id: string;
+    doctorName: string;
+    author: string;
+}
+
+interface MockMarket {
+    _id: string;
+    marketName: string;
+    author: string;
+}
+
+interface MockPost {
+    _id: string;
+    title: string;
+    author: string;
+}
+
+interface MockProfession {
+    _id: string;
+    name: string;
+}
+
+interface MockProfessionProfile {
+    _id: string;
+    userId: string;
+}
+
+interface MockRecipe {
+    _id: string;
+    title: string;
+    author: string;
+}
+
+interface MockRestaurant {
+    _id: string;
+    restaurantName: string;
+    author: string;
+    typePlace: string;
+}
+
+interface MockReview {
+    _id: string;
+    rating: number;
+    author: string;
+}
+
+interface MockSanctuary {
+    _id: string;
+    sanctuaryName: string;
+    author: string;
+}
+
 // Factories para entidades de ejemplo
-const createBusiness = (): { _id: string; name: string } => ({
+const createBusiness = (): MockBusiness => ({
     _id: faker.database.mongodbObjectId(),
-    name: 'Mock Business',
+    namePlace: 'Mock Business',
+    author: faker.database.mongodbObjectId(),
+    typeBusiness: 'restaurant',
 });
 
-const createDoctor = (): { _id: string; doctorName: string } => ({
+const createDoctor = (): MockDoctor => ({
     _id: faker.database.mongodbObjectId(),
     doctorName: 'Mock Doctor',
+    author: faker.database.mongodbObjectId(),
 });
 
-const createMarket = (): { _id: string; marketName: string } => ({
+const createMarket = (): MockMarket => ({
     _id: faker.database.mongodbObjectId(),
     marketName: 'Mock Market',
+    author: faker.database.mongodbObjectId(),
 });
 
-const createPost = (): { _id: string; title: string } => ({
+const createPost = (): MockPost => ({
     _id: faker.database.mongodbObjectId(),
     title: 'Mock Post',
+    author: faker.database.mongodbObjectId(),
 });
 
-const createProfession = (): { _id: string; name: string } => ({
+const createProfession = (): MockProfession => ({
     _id: faker.database.mongodbObjectId(),
     name: 'Mock Profession',
 });
 
-const createProfessionProfile = (): { _id: string; userId: string } => ({
+const createProfessionProfile = (): MockProfessionProfile => ({
     _id: faker.database.mongodbObjectId(),
     userId: faker.database.mongodbObjectId(),
 });
 
-const createRecipe = (): { _id: string; title: string } => ({
+const createRecipe = (): MockRecipe => ({
     _id: faker.database.mongodbObjectId(),
     title: 'Mock Recipe',
+    author: faker.database.mongodbObjectId(),
 });
 
-const createRestaurant = (): { _id: string; restaurantName: string } => ({
+const createRestaurant = (): MockRestaurant => ({
     _id: faker.database.mongodbObjectId(),
     restaurantName: 'Mock Restaurant',
+    author: faker.database.mongodbObjectId(),
+    typePlace: 'restaurant',
 });
 
-const createReview = (): { _id: string; rating: number } => ({
+const createReview = (): MockReview => ({
     _id: faker.database.mongodbObjectId(),
     rating: 5,
+    author: faker.database.mongodbObjectId(),
 });
 
-const createSanctuary = (): { _id: string; sanctuaryName: string } => ({
+const createSanctuary = (): MockSanctuary => ({
     _id: faker.database.mongodbObjectId(),
     sanctuaryName: 'Mock Sanctuary',
+    author: faker.database.mongodbObjectId(),
 });
 
 // Mocks de servicios CRUD
-const businessService = createCrudMock('Business', createBusiness);
-const doctorService = createCrudMock('Doctor', createDoctor);
-const marketsService = createCrudMock('Market', createMarket);
-const postService = createCrudMock('Post', createPost);
-const professionService = createCrudMock('Profession', createProfession);
-const professionProfileService = createCrudMock('ProfessionProfile', createProfessionProfile);
-const recipesService = createCrudMock('Recipe', createRecipe);
-const restaurantService = createCrudMock('Restaurant', createRestaurant);
-const reviewService = createCrudMock('Review', createReview);
-const sanctuaryService = createCrudMock('Sanctuary', createSanctuary);
+const businessService = createCrudMock<MockBusiness>('Business', createBusiness);
+const doctorService = createCrudMock<MockDoctor>('Doctor', createDoctor);
+const marketsService = createCrudMock<MockMarket>('Market', createMarket);
+const postService = createCrudMock<MockPost>('Post', createPost);
+const professionService = createCrudMock<MockProfession>('Profession', createProfession);
+const professionProfileService = createCrudMock<MockProfessionProfile>('ProfessionProfile', createProfessionProfile);
+const recipesService = createCrudMock<MockRecipe>('Recipe', createRecipe);
+const restaurantService = createCrudMock<MockRestaurant>('Restaurant', createRestaurant);
+const reviewService = createCrudMock<MockReview>('Review', createReview);
+const sanctuaryService = createCrudMock<MockSanctuary>('Sanctuary', createSanctuary);
 
 // GeoService mock
 const geoService = {
