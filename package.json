@@ -14,6 +14,8 @@
         "postbuild": "cp swagger.yaml dist/ && (cp -r public dist/ 2>/dev/null || true)",
         "setup:env": "node scripts/setup-env.js",
         "test": "npm run test:unit && npm run test:integration",
+        "test:ci": "npm run test:unit && npm run test:integration",
+        "test:ci:verbose": "vitest run --config vitest.unit.config.ts --reporter=verbose && vitest run --config vitest.integration.config.ts --reporter=verbose",
         "test:unit": "vitest run --config vitest.unit.config.ts",
         "test:unit:watch": "vitest --config vitest.unit.config.ts",
         "test:unit:ui": "vitest --ui --config vitest.unit.config.ts",
