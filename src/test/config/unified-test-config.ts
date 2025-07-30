@@ -1,6 +1,6 @@
 /**
  * Unified Test Configuration - Clean and Simplified Test Setup
- * 
+ *
  * This replaces the bloated master-test-config.ts with a minimal, focused approach.
  * Only includes what's actually needed for testing.
  */
@@ -32,7 +32,7 @@ function setupTestEnvironment(): void {
     process.env.JWT_SECRET = 'test_secret_12345';
     process.env.JWT_REFRESH_SECRET = 'test_refresh_12345';
     process.env.BCRYPT_SALT_ROUNDS = '4';
-    
+
     // Prevent Redis connections
     process.env.REDIS_HOST = 'mock-redis';
     process.env.REDIS_PORT = '9999';
@@ -46,29 +46,45 @@ function setupTestEnvironment(): void {
 function setupCoreMocks(): void {
     // Only mock external dependencies that cause real connections
     vi.mock('ioredis', () => mockFactory.createRedisMockModule());
-    vi.mock('jsonwebtoken', () => mockFactory.createJWTMockModule());
     vi.mock('../../utils/logger', () => mockFactory.createLoggerMockModule());
-    
+
+    // Never mock jsonwebtoken - always use real implementation
+    // vi.mock('jsonwebtoken', () => mockFactory.createJWTMockModule());
+
     // Services that connect to external resources
     vi.mock('../../services/BaseService', () => ({
         __esModule: true,
         default: class BaseService {
             constructor() {}
-            async findAll() { return []; }
-            async findById() { return null; }
-            async create() { return {}; }
-            async update() { return {}; }
-            async delete() { return {}; }
-        }
+            async findAll() {
+                return [];
+            }
+            async findById() {
+                return null;
+            }
+            async create() {
+                return {};
+            }
+            async update() {
+                return {};
+            }
+            async delete() {
+                return {};
+            }
+        },
     }));
     vi.mock('../../services/CacheService', () => mockFactory.createCacheServiceMockModule());
     vi.mock('../../services/CacheAlertService', () => mockFactory.createCacheAlertServiceMockModule());
-    vi.mock('../../services/TokenService', () => mockFactory.createTokenServiceMockModule());
-    vi.mock('../../services/UserService', () => mockFactory.createUserServiceMockModule());
-    
-    // Models
-    vi.mock('../../models/User', () => mockFactory.createUserModelMockModule());
-    
+
+    // Only mock UserService for unit tests, not integration tests
+    if (!process.env.INTEGRATION_TEST) {
+        vi.mock('../../services/UserService', () => mockFactory.createUserServiceMockModule());
+        vi.mock('../../models/User', () => mockFactory.createUserModelMockModule());
+    }
+
+    // Never mock TokenService - always use real implementation
+    // vi.mock('../../services/TokenService', () => mockFactory.createTokenServiceMockModule());
+
     // Utilities
     vi.mock('../../utils/generateToken', () => mockFactory.createGenerateTokenMock());
 }

@@ -4,7 +4,18 @@
  * that import '../utils/testHelpers'. Redirects to the new unified system.
  */
 
-import { mockFactory } from '../config/unified-test-config';
+// Only import mocks if not in integration test mode
+let mockFactory: any = null;
+if (process.env.NODE_ENV === 'test' && !process.env.INTEGRATION_TEST) {
+    try {
+        const { mockFactory: importedMockFactory } = require('../config/unified-test-config');
+        mockFactory = importedMockFactory;
+    } catch (error) {
+        // Mock factory not available, continue without it
+        console.warn('Mock factory not available, continuing without mocks');
+    }
+}
+
 import { faker } from '@faker-js/faker';
 import type { TestRequest, TestResponse, TestUser } from '../types/test-types';
 
@@ -13,10 +24,30 @@ faker.seed(12345);
 
 // Legacy request/response creators
 export function createMockRequest(overrides: Partial<TestRequest> = {}): TestRequest {
+    if (!mockFactory) {
+        // Return a basic mock request for integration tests
+        return {
+            params: {},
+            query: {},
+            body: {},
+            headers: {},
+            user: undefined,
+            ...overrides,
+        } as TestRequest;
+    }
     return mockFactory.createExpressRequestMock(overrides);
 }
 
 export function createMockResponse(): TestResponse {
+    if (!mockFactory) {
+        // Return a basic mock response for integration tests
+        return {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn().mockReturnThis(),
+            send: vi.fn().mockReturnThis(),
+            set: vi.fn().mockReturnThis(),
+        } as TestResponse;
+    }
     return mockFactory.createExpressResponseMock();
 }
 
@@ -179,3 +210,68 @@ export const createMockData = {
 // Re-export vitest functions for convenience
 import { vi } from 'vitest';
 export { vi };
+
+// Token generation utilities
+import jwt from 'jsonwebtoken';
+
+/**
+ * Generates an expired JWT token for testing
+ */
+export const generateExpiredToken = (userId: string = 'test-user-id'): string => {
+    const payload = {
+        userId: userId,
+        email: 'test@example.com',
+        role: 'user'
+    };
+
+    const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
+    
+    return jwt.sign(payload, secret, {
+        expiresIn: '-1h', // Expired 1 hour ago
+        issuer: 'vegan-guide-api',
+        audience: 'vegan-guide-client'
+    });
+};
+
+/**
+ * Generates a valid JWT token for testing
+ */
+export const generateValidToken = (userId: string = 'test-user-id', role: string = 'user'): string => {
+    const payload = {
+        userId: userId,
+        email: 'test@example.com',
+        role: role
+    };
+
+    const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
+    
+    return jwt.sign(payload, secret, {
+        expiresIn: '1h',
+        issuer: 'vegan-guide-api',
+        audience: 'vegan-guide-client'
+    });
+};
+
+/**
+ * Generates an invalid JWT token for testing
+ */
+export const generateInvalidToken = (): string => {
+    return 'invalid.jwt.token';
+};
+
+/**
+ * Generates a token with wrong secret for testing
+ */
+export const generateTokenWithWrongSecret = (userId: string = 'test-user-id'): string => {
+    const payload = {
+        userId: userId,
+        email: 'test@example.com',
+        role: 'user'
+    };
+
+    return jwt.sign(payload, 'wrong-secret', {
+        expiresIn: '1h',
+        issuer: 'vegan-guide-api',
+        audience: 'vegan-guide-client'
+    });
+};

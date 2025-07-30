@@ -36,10 +36,24 @@ vi.mock('bcryptjs', () => ({
     genSalt: vi.fn().mockResolvedValue('salt'),
 }));
 
-// Mock JWT for token generation
-vi.mock('jsonwebtoken', () => ({
-    __esModule: true,
-    default: {
+// Only mock JWT for unit tests, not integration tests
+if (!process.env.INTEGRATION_TEST) {
+    // Mock JWT for token generation
+    vi.mock('jsonwebtoken', () => ({
+        __esModule: true,
+        default: {
+            sign: vi.fn().mockReturnValue('mock_token'),
+            verify: vi.fn().mockReturnValue({
+                userId: 'user123',
+                email: 'test@example.com',
+                role: 'user',
+            }),
+            decode: vi.fn().mockReturnValue({
+                userId: 'user123',
+                email: 'test@example.com',
+                role: 'user',
+            }),
+        },
         sign: vi.fn().mockReturnValue('mock_token'),
         verify: vi.fn().mockReturnValue({
             userId: 'user123',
@@ -51,19 +65,8 @@ vi.mock('jsonwebtoken', () => ({
             email: 'test@example.com',
             role: 'user',
         }),
-    },
-    sign: vi.fn().mockReturnValue('mock_token'),
-    verify: vi.fn().mockReturnValue({
-        userId: 'user123',
-        email: 'test@example.com',
-        role: 'user',
-    }),
-    decode: vi.fn().mockReturnValue({
-        userId: 'user123',
-        email: 'test@example.com',
-        role: 'user',
-    }),
-}));
+    }));
+}
 
 // Mock Redis for caching
 vi.mock('ioredis', () => ({

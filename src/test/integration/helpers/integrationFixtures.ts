@@ -112,7 +112,10 @@ export const createTestUserData = (overrides: Partial<TestUserData> = {}): TestU
     ...overrides,
 });
 
-export const createTestBusinessData = (authorId: mongoose.Types.ObjectId, overrides: Partial<TestBusinessData> = {}): TestBusinessData => ({
+export const createTestBusinessData = (
+    authorId: mongoose.Types.ObjectId,
+    overrides: Partial<TestBusinessData> = {}
+): TestBusinessData => ({
     namePlace: faker.company.name(),
     address: faker.location.streetAddress(),
     image: faker.image.url(),
@@ -141,7 +144,10 @@ export const createTestBusinessData = (authorId: mongoose.Types.ObjectId, overri
     ...overrides,
 });
 
-export const createTestRestaurantData = (authorId: mongoose.Types.ObjectId, overrides: Partial<TestRestaurantData> = {}): TestRestaurantData => ({
+export const createTestRestaurantData = (
+    authorId: mongoose.Types.ObjectId,
+    overrides: Partial<TestRestaurantData> = {}
+): TestRestaurantData => ({
     restaurantName: faker.company.name(),
     address: faker.location.streetAddress(),
     image: faker.image.url(),
@@ -170,20 +176,20 @@ export const createTestRestaurantData = (authorId: mongoose.Types.ObjectId, over
 export const createUserInDb = async (overrides: Partial<TestUserData> = {}): Promise<CreatedTestUser> => {
     const userData = createTestUserData(overrides);
     const plainPassword = userData.password;
-    
+
     try {
         // Importación correcta usando default import
         const UserModule = await import('../../../models/User');
         console.log('UserModule keys:', Object.keys(UserModule));
         console.log('UserModule.User type:', typeof UserModule.User);
         console.log('UserModule.User:', UserModule.User);
-        
+
         const User = UserModule.User; // Acceder al modelo exportado
-        
+
         if (typeof User !== 'function') {
             throw new Error(`User is not a constructor. Type: ${typeof User}, Value: ${User}`);
         }
-        
+
         // Crear el usuario directamente sin hash porque el pre-hook se encarga de eso
         const user = new User({
             username: userData.username,
@@ -213,10 +219,9 @@ export const createUserInDb = async (overrides: Partial<TestUserData> = {}): Pro
             ...savedUser.toObject(),
             plainPassword, // Incluir password sin hash para pruebas de login
         } as CreatedTestUser;
-        
     } catch (error) {
         console.error('Error creating user in DB:', error);
-        
+
         // Información más detallada del error
         if (error instanceof Error) {
             console.error('Error details:', {
@@ -225,7 +230,7 @@ export const createUserInDb = async (overrides: Partial<TestUserData> = {}): Pro
                 stack: error.stack,
             });
         }
-        
+
         throw new Error(`Failed to create test user: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 };
@@ -238,14 +243,17 @@ export const createAdminUserInDb = async (overrides: Partial<TestUserData> = {})
     });
 };
 
-export const createBusinessInDb = async (authorId: mongoose.Types.ObjectId, overrides: Partial<TestBusinessData> = {}): Promise<IBusiness> => {
+export const createBusinessInDb = async (
+    authorId: mongoose.Types.ObjectId,
+    overrides: Partial<TestBusinessData> = {}
+): Promise<IBusiness> => {
     const businessData = createTestBusinessData(authorId, overrides);
-    
+
     try {
         // Importación correcta usando default import
         const BusinessModule = await import('../../../models/Business');
         const Business = BusinessModule.Business;
-        
+
         const business = await Business.create({
             ...businessData,
             rating: 0,
@@ -262,21 +270,23 @@ export const createBusinessInDb = async (authorId: mongoose.Types.ObjectId, over
         }
 
         return business;
-        
     } catch (error) {
         console.error('Error creating business in DB:', error);
         throw new Error(`Failed to create test business: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 };
 
-export const createRestaurantInDb = async (authorId: mongoose.Types.ObjectId, overrides: Partial<TestRestaurantData> = {}): Promise<IRestaurant> => {
+export const createRestaurantInDb = async (
+    authorId: mongoose.Types.ObjectId,
+    overrides: Partial<TestRestaurantData> = {}
+): Promise<IRestaurant> => {
     const restaurantData = createTestRestaurantData(authorId, overrides);
-    
+
     try {
         // Importación correcta usando default import
         const RestaurantModule = await import('../../../models/Restaurant');
         const Restaurant = RestaurantModule.Restaurant;
-        
+
         const restaurant = await Restaurant.create({
             ...restaurantData,
             rating: 0,
@@ -293,10 +303,11 @@ export const createRestaurantInDb = async (authorId: mongoose.Types.ObjectId, ov
         }
 
         return restaurant;
-        
     } catch (error) {
         console.error('Error creating restaurant in DB:', error);
-        throw new Error(`Failed to create test restaurant: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+            `Failed to create test restaurant: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
     }
 };
 
@@ -310,32 +321,67 @@ export interface AuthTokens {
 }
 
 export const generateAuthTokens = async (userId: string, email: string, role: string): Promise<AuthTokens> => {
-    const TokenService = (await import('../../../services/TokenService')).default;
-    
     try {
         console.log('🎯 Generating tokens for:', { userId, email, role });
-        const tokens = await TokenService.generateTokens(userId, email, role);
-        console.log('🎯 Raw tokens result:', tokens);
-        console.log('🎯 TokenService type:', typeof TokenService);
-        console.log('🎯 TokenService keys:', Object.getOwnPropertyNames(TokenService));
-        
+
+        // Import the TokenService instance
+        const TokenServiceModule = await import('../../../services/TokenService');
+        const tokenService = TokenServiceModule.default;
+
+        console.log('🎯 TokenService type:', typeof tokenService);
+        console.log('🎯 TokenService keys:', Object.getOwnPropertyNames(tokenService));
+        console.log('🎯 TokenService methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(tokenService)));
+
+        // Check if generateTokens method exists
+        if (typeof tokenService.generateTokens !== 'function') {
+            throw new Error(
+                `generateTokens method not found on TokenService. Available methods: ${Object.getOwnPropertyNames(Object.getPrototypeOf(tokenService)).join(', ')}`
+            );
+        }
+
+        console.log('🎯 About to call generateTokens with:', { userId, email, role });
+        console.log('🎯 TokenService secrets:', {
+            accessTokenSecret: tokenService.accessTokenSecret ? 'SET' : 'NOT SET',
+            refreshTokenSecret: tokenService.refreshTokenSecret ? 'SET' : 'NOT SET',
+            accessTokenExpiry: tokenService.accessTokenExpiry,
+            refreshTokenExpiry: tokenService.refreshTokenExpiry,
+        });
+
+        let tokens;
+        try {
+            console.log('🎯 About to call generateTokenPair directly...');
+            const payload = { userId, email: email || '', ...(role && { role }) };
+            console.log('🎯 Payload for generateTokenPair:', payload);
+
+            tokens = await tokenService.generateTokenPair(payload);
+            console.log('🎯 Raw tokens result from generateTokenPair:', tokens);
+        } catch (error) {
+            console.error('🎯 Error calling generateTokenPair:', error);
+            throw error;
+        }
+
         if (!tokens) {
             throw new Error('TokenService.generateTokens returned null/undefined');
         }
-        
+
         if (!tokens.accessToken || !tokens.refreshToken) {
             throw new Error(`Invalid tokens structure: ${JSON.stringify(tokens)}`);
         }
-        
+
         console.log('🎯 Generated tokens:', {
             accessToken: tokens.accessToken.substring(0, 50) + '...',
-            refreshToken: tokens.refreshToken.substring(0, 50) + '...'
+            refreshToken: tokens.refreshToken.substring(0, 50) + '...',
         });
-        
-        // Verificar que el token se puede decodificar
-        const tokenInfo = await TokenService.getTokenInfo(tokens.accessToken);
-        console.log('🎯 Token info:', tokenInfo);
-        
+
+        // Verificar que el token es un JWT válido (tiene 3 partes separadas por puntos)
+        if (!tokens.accessToken.includes('.') || tokens.accessToken.split('.').length !== 3) {
+            throw new Error(`Invalid JWT format for access token: ${tokens.accessToken.substring(0, 50)}...`);
+        }
+
+        if (!tokens.refreshToken.includes('.') || tokens.refreshToken.split('.').length !== 3) {
+            throw new Error(`Invalid JWT format for refresh token: ${tokens.refreshToken.substring(0, 50)}...`);
+        }
+
         return {
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
@@ -362,11 +408,11 @@ export const createCompleteTestSetup = async (): Promise<TestSetupData> => {
         // Crear usuarios
         const admin = await createAdminUserInDb();
         const regularUser = await createUserInDb();
-        
+
         // Generar tokens
         const adminTokens = await generateAuthTokens(admin._id.toString(), admin.email, admin.role);
         const userTokens = await generateAuthTokens(regularUser._id.toString(), regularUser.email, regularUser.role);
-        
+
         return {
             admin,
             adminTokens,
@@ -375,6 +421,8 @@ export const createCompleteTestSetup = async (): Promise<TestSetupData> => {
         };
     } catch (error) {
         console.error('Error in complete test setup:', error);
-        throw new Error(`Failed to create complete test setup: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+            `Failed to create complete test setup: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
     }
 };

@@ -271,38 +271,48 @@ export const createRateLimit = (
     });
 };
 
+// Helper function to create rate limit or bypass for tests
+const createRateLimitOrBypass = (config: { windowMs: number; max: number; message: string }) => {
+    // If rate limiting is disabled for tests, return a no-op middleware
+    if (process.env.DISABLE_RATE_LIMIT === 'true') {
+        return (req: Request, res: Response, next: NextFunction) => next();
+    }
+    
+    return createRateLimit(config);
+};
+
 // Predefined rate limits for different endpoints
 export const rateLimits = {
     // Authentication endpoints - stricter limits
-    auth: createRateLimit({
+    auth: createRateLimitOrBypass({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 5, // 5 attempts per window
         message: 'Too many authentication attempts. Please try again in 15 minutes.',
     }),
 
     // Registration endpoint - very strict
-    register: createRateLimit({
+    register: createRateLimitOrBypass({
         windowMs: 60 * 60 * 1000, // 1 hour
         max: 3, // 3 registration attempts per hour
         message: 'Too many registration attempts. Please try again in 1 hour.',
     }),
 
     // General API endpoints
-    api: createRateLimit({
+    api: createRateLimitOrBypass({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 100, // 100 requests per window
         message: 'API rate limit exceeded. Please slow down your requests.',
     }),
 
     // Search endpoints - moderate limits
-    search: createRateLimit({
+    search: createRateLimitOrBypass({
         windowMs: 1 * 60 * 1000, // 1 minute
         max: 30, // 30 searches per minute
         message: 'Search rate limit exceeded. Please wait before searching again.',
     }),
 
     // Upload endpoints - stricter limits
-    upload: createRateLimit({
+    upload: createRateLimitOrBypass({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 10, // 10 uploads per window
         message: 'Upload rate limit exceeded. Please try again later.',

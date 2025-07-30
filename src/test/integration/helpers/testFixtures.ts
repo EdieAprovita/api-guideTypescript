@@ -128,12 +128,45 @@ export const createProfessionalUser = async (overrides: UserOverrides = {}) => {
 
 export const generateAuthTokens = async (userId: string, email: string, role?: string) => {
     try {
+        // Ensure consistent JWT configuration across all tests
+        const requiredEnvVars = {
+            JWT_SECRET: 'test-jwt-secret-key-for-integration-tests-very-long-and-secure-key',
+            JWT_REFRESH_SECRET: 'test-refresh-secret-key-for-integration-tests-very-long-and-secure-key',
+            JWT_EXPIRES_IN: '15m',
+            JWT_REFRESH_EXPIRES_IN: '7d',
+        };
+
+        // Set all required environment variables
+        Object.entries(requiredEnvVars).forEach(([key, value]) => {
+            if (!process.env[key]) {
+                process.env[key] = value;
+            }
+        });
+
+        // Ensure we have a valid userId
+        if (!userId) {
+            throw new Error('userId is required for token generation');
+        }
+
+        // Ensure we have a valid email
+        const userEmail = email || 'test@example.com';
+
         // Dynamically import TokenService to ensure we get the real one
         const { default: TokenServiceInstance } = await import('../../../services/TokenService');
-        const tokenPair = await TokenServiceInstance.generateTokens(userId, email, role || 'user');
+
+        const tokenPair = await TokenServiceInstance.generateTokens(userId, userEmail, role || 'user');
 
         if (!tokenPair || !tokenPair.accessToken || !tokenPair.refreshToken) {
             throw new Error('TokenService.generateTokens returned invalid token pair');
+        }
+
+        // Verify the tokens are valid by attempting to verify them
+        try {
+            await TokenServiceInstance.verifyAccessToken(tokenPair.accessToken);
+        } catch (error) {
+            throw new Error(
+                `Generated access token is invalid: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
         }
 
         return {
@@ -141,6 +174,7 @@ export const generateAuthTokens = async (userId: string, email: string, role?: s
             refreshToken: tokenPair.refreshToken,
         };
     } catch (error) {
+        console.error('Token generation error:', error);
         throw new Error(`Failed to generate auth tokens: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 };

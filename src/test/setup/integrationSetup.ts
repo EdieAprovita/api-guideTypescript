@@ -27,80 +27,83 @@ process.env.EMAIL_USER = faker.internet.email();
 process.env.EMAIL_PASS = generateTestPassword();
 process.env.CLIENT_URL = 'http://localhost:3000';
 
-// CRITICAL: Mock jsonwebtoken BEFORE TokenService to ensure proper mocking
-vi.mock('jsonwebtoken', () => {
-    const { faker } = require('@faker-js/faker');
-    const generateValidObjectId = () => faker.database.mongodbObjectId();
+// Only mock jsonwebtoken for unit tests, not integration tests
+if (!process.env.INTEGRATION_TEST) {
+    // CRITICAL: Mock jsonwebtoken BEFORE TokenService to ensure proper mocking
+    vi.mock('jsonwebtoken', () => {
+        const { faker } = require('@faker-js/faker');
+        const generateValidObjectId = () => faker.database.mongodbObjectId();
 
-    const mockSign = vi.fn().mockImplementation(payload => {
-        // Preserve the actual userId from the payload or generate a valid one if missing
-        const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
-        const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
-        const actualRole = payload && payload.role ? payload.role : 'user';
-        const type = payload && payload.type ? payload.type : 'access';
+        const mockSign = vi.fn().mockImplementation(payload => {
+            // Preserve the actual userId from the payload or generate a valid one if missing
+            const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
+            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
+            const actualRole = payload && payload.role ? payload.role : 'user';
+            const type = payload && payload.type ? payload.type : 'access';
 
-        // Create a more realistic mock JWT token
-        const header = { alg: 'HS256', typ: 'JWT' };
-        const payloadData = {
-            userId: actualUserId,
-            email: actualEmail,
-            role: actualRole,
-            type: type,
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + 3600,
-            jti: Math.random().toString(36).substring(2, 11),
-        };
+            // Create a more realistic mock JWT token
+            const header = { alg: 'HS256', typ: 'JWT' };
+            const payloadData = {
+                userId: actualUserId,
+                email: actualEmail,
+                role: actualRole,
+                type: type,
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(Date.now() / 1000) + 3600,
+                jti: Math.random().toString(36).substring(2, 11),
+            };
 
-        // Create a mock JWT-like string
-        const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64').replace(/=/g, '');
-        const payloadB64 = Buffer.from(JSON.stringify(payloadData)).toString('base64').replace(/=/g, '');
-        const signature = 'mock-signature-' + Math.random().toString(36).substring(2, 11);
+            // Create a mock JWT-like string
+            const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64').replace(/=/g, '');
+            const payloadB64 = Buffer.from(JSON.stringify(payloadData)).toString('base64').replace(/=/g, '');
+            const signature = 'mock-signature-' + Math.random().toString(36).substring(2, 11);
 
-        return `${headerB64}.${payloadB64}.${signature}`;
-    });
+            return `${headerB64}.${payloadB64}.${signature}`;
+        });
 
-    const mockVerify = vi.fn().mockImplementation(token => {
-        // Try to decode the mock token format to extract the actual user data
-        const tokenStr = token as string;
-        try {
-            if (tokenStr.includes('.')) {
-                const parts = tokenStr.split('.');
-                if (parts.length === 3) {
-                    const payloadPart = parts[1];
-                    const decodedPayload = JSON.parse(Buffer.from(payloadPart, 'base64').toString());
-                    return decodedPayload;
+        const mockVerify = vi.fn().mockImplementation(token => {
+            // Try to decode the mock token format to extract the actual user data
+            const tokenStr = token as string;
+            try {
+                if (tokenStr.includes('.')) {
+                    const parts = tokenStr.split('.');
+                    if (parts.length === 3) {
+                        const payloadPart = parts[1];
+                        const decodedPayload = JSON.parse(Buffer.from(payloadPart, 'base64').toString());
+                        return decodedPayload;
+                    }
                 }
+            } catch (e) {
+                // Fallback
             }
-        } catch (e) {
-            // Fallback
-        }
 
-        // Fallback for other token formats
+            // Fallback for other token formats
+            return {
+                userId: generateValidObjectId(),
+                email: 'test@email.com',
+                role: 'user',
+                type: 'access',
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            };
+        });
+
+        const mockDecode = vi.fn().mockImplementation(token => {
+            return mockVerify(token);
+        });
+
         return {
-            userId: generateValidObjectId(),
-            email: 'test@email.com',
-            role: 'user',
-            type: 'access',
-            exp: Math.floor(Date.now() / 1000) + 3600,
-        };
-    });
-
-    const mockDecode = vi.fn().mockImplementation(token => {
-        return mockVerify(token);
-    });
-
-    return {
-        __esModule: true,
-        default: {
+            __esModule: true,
+            default: {
+                sign: mockSign,
+                verify: mockVerify,
+                decode: mockDecode,
+            },
             sign: mockSign,
             verify: mockVerify,
             decode: mockDecode,
-        },
-        sign: mockSign,
-        verify: mockVerify,
-        decode: mockDecode,
-    };
-});
+        };
+    });
+}
 
 // CRITICAL: Mock TokenService BEFORE any imports that might use it
 vi.mock('../../services/TokenService', () => {

@@ -54,127 +54,130 @@ vi.mock('../models/User', () => ({
     default: modelMocks.User,
 }));
 
-// Mock external libraries
-vi.mock('jsonwebtoken', () => {
-    const { faker } = require('@faker-js/faker');
-    const generateValidObjectId = () => faker.database.mongodbObjectId();
-    
-    return {
-        __esModule: true,
-        default: {
-            sign: vi.fn().mockImplementation((payload) => {
+// Only mock jsonwebtoken for unit tests, not integration tests
+if (!process.env.INTEGRATION_TEST) {
+    // Mock external libraries
+    vi.mock('jsonwebtoken', () => {
+        const { faker } = require('@faker-js/faker');
+        const generateValidObjectId = () => faker.database.mongodbObjectId();
+
+        return {
+            __esModule: true,
+            default: {
+                sign: vi.fn().mockImplementation(payload => {
+                    // Preserve the actual userId from the payload or generate a valid one if missing
+                    const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
+                    const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
+                    const actualRole = payload && payload.role ? payload.role : 'user';
+                    return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
+                }),
+                verify: vi.fn().mockImplementation(token => {
+                    // Try to decode the mock token format to extract the actual user data
+                    const tokenStr = token as string;
+                    try {
+                        if (tokenStr.includes('mock-signature')) {
+                            const payloadPart = tokenStr.split('.')[1];
+                            // Mock payload extraction since it's base64-like but not real base64
+                            const match = payloadPart.match(/"userId":"([^"]+)"/);
+                            const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
+                            const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
+
+                            return {
+                                userId: match ? match[1] : generateValidObjectId(),
+                                email: emailMatch ? emailMatch[1] : 'test@email.com',
+                                role: roleMatch ? roleMatch[1] : 'user',
+                                exp: Math.floor(Date.now() / 1000) + 3600,
+                            };
+                        }
+                    } catch (e) {
+                        // Fallback
+                    }
+
+                    // Fallback for other token formats
+                    return {
+                        userId: generateValidObjectId(),
+                        email: 'test@email.com',
+                        role: 'user',
+                        exp: Math.floor(Date.now() / 1000) + 3600,
+                    };
+                }),
+                decode: vi.fn().mockImplementation(() => ({
+                    userId: generateValidObjectId(),
+                    email: 'test@email.com',
+                    role: 'user',
+                    exp: Math.floor(Date.now() / 1000) + 3600,
+                })),
+            },
+            sign: vi.fn().mockImplementation(payload => {
                 // Preserve the actual userId from the payload or generate a valid one if missing
                 const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
                 const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
                 const actualRole = payload && payload.role ? payload.role : 'user';
                 return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
             }),
-            verify: vi.fn().mockImplementation((token) => {
+            verify: vi.fn().mockImplementation(token => {
                 // Try to decode the mock token format to extract the actual user data
                 const tokenStr = token as string;
                 try {
                     if (tokenStr.includes('mock-signature')) {
                         const payloadPart = tokenStr.split('.')[1];
                         // Mock payload extraction since it's base64-like but not real base64
-                        const match = payloadPart.match(/"userId":"([^"]+)"/); 
-                        const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
-                        const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
-                        
+                        const match = payloadPart.match(/"userId":"([^"]+)"/);
+                        const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
+                        const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
+
                         return {
                             userId: match ? match[1] : generateValidObjectId(),
                             email: emailMatch ? emailMatch[1] : 'test@email.com',
                             role: roleMatch ? roleMatch[1] : 'user',
-                            exp: Math.floor(Date.now() / 1000) + 3600
+                            exp: Math.floor(Date.now() / 1000) + 3600,
                         };
                     }
                 } catch (e) {
                     // Fallback
                 }
-                
+
                 // Fallback for other token formats
                 return {
                     userId: generateValidObjectId(),
                     email: 'test@email.com',
                     role: 'user',
-                    exp: Math.floor(Date.now() / 1000) + 3600
+                    exp: Math.floor(Date.now() / 1000) + 3600,
                 };
             }),
-            decode: vi.fn().mockImplementation(() => ({ 
-                userId: generateValidObjectId(), 
-                email: 'test@email.com', 
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600 
-            })),
-        },
-        sign: vi.fn().mockImplementation((payload) => {
-            // Preserve the actual userId from the payload or generate a valid one if missing
-            const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
-            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
-            const actualRole = payload && payload.role ? payload.role : 'user';
-            return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
-        }),
-        verify: vi.fn().mockImplementation((token) => {
-            // Try to decode the mock token format to extract the actual user data
-            const tokenStr = token as string;
-            try {
-                if (tokenStr.includes('mock-signature')) {
-                    const payloadPart = tokenStr.split('.')[1];
-                    // Mock payload extraction since it's base64-like but not real base64
-                    const match = payloadPart.match(/"userId":"([^"]+)"/); 
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
-                    
-                    return {
-                        userId: match ? match[1] : generateValidObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600
-                    };
+            decode: vi.fn().mockImplementation(token => {
+                // Try to decode the mock token format to extract the actual user data
+                const tokenStr = token as string;
+                try {
+                    if (tokenStr.includes('mock-signature')) {
+                        const payloadPart = tokenStr.split('.')[1];
+                        // Mock payload extraction since it's base64-like but not real base64
+                        const match = payloadPart.match(/"userId":"([^"]+)"/);
+                        const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
+                        const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
+
+                        return {
+                            userId: match ? match[1] : generateValidObjectId(),
+                            email: emailMatch ? emailMatch[1] : 'test@email.com',
+                            role: roleMatch ? roleMatch[1] : 'user',
+                            exp: Math.floor(Date.now() / 1000) + 3600,
+                        };
+                    }
+                } catch (e) {
+                    // Fallback
                 }
-            } catch (e) {
-                // Fallback
-            }
-            
-            // Fallback for other token formats
-            return {
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600
-            };
-        }),
-        decode: vi.fn().mockImplementation((token) => {
-            // Try to decode the mock token format to extract the actual user data
-            const tokenStr = token as string;
-            try {
-                if (tokenStr.includes('mock-signature')) {
-                    const payloadPart = tokenStr.split('.')[1];
-                    // Mock payload extraction since it's base64-like but not real base64
-                    const match = payloadPart.match(/"userId":"([^"]+)"/); 
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/); 
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/); 
-                    
-                    return {
-                        userId: match ? match[1] : generateValidObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600
-                    };
-                }
-            } catch (e) {
-                // Fallback
-            }
-            
-            // Fallback for other token formats
-            return {
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600
-            };
-        }),
-    };
-});
+
+                // Fallback for other token formats
+                return {
+                    userId: generateValidObjectId(),
+                    email: 'test@email.com',
+                    role: 'user',
+                    exp: Math.floor(Date.now() / 1000) + 3600,
+                };
+            }),
+        };
+    });
+}
 
 vi.mock('bcryptjs', () => ({
     __esModule: true,

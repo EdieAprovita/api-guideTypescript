@@ -1,9 +1,5 @@
 // IMPORTANT: Set environment variables BEFORE any imports
 process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
-process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_12345';
-process.env.JWT_EXPIRES_IN = '15m';
-process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 process.env.BCRYPT_SALT_ROUNDS = '10';
 
 // Disable Redis for tests
@@ -11,6 +7,7 @@ process.env.REDIS_HOST = '';
 process.env.REDIS_PORT = '';
 
 import request from 'supertest';
+import { vi, describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 console.log('Loading user integration test file...');
 
@@ -35,7 +32,7 @@ import { connect, closeDatabase } from './helpers/testDb';
 setupTestCleanup();
 
 // Aumentar el timeout global para todos los tests de integración
-vi.setTimeout(45000);
+vi.setConfig({ testTimeout: 45000 });
 
 describe('User API Integration Tests', () => {
     beforeAll(async () => {
