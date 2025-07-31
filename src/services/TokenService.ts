@@ -1,5 +1,6 @@
 import * as jwt from 'jsonwebtoken';
 import Redis from 'ioredis';
+import { randomUUID } from 'crypto';
 
 interface TokenPayload {
     userId: string;
@@ -133,7 +134,7 @@ class TokenService {
         return {
             ...payload,
             iat: Math.floor(Date.now() / 1000),
-            jti: Math.random().toString(36).substring(2, 11),
+            jti: randomUUID(),
         };
     }
 

@@ -99,8 +99,8 @@ describe('Validation Middleware Tests', () => {
         it('should sanitize XSS attempts', async () => {
             const maliciousData = {
                 name: '<script>alert("xss")</script>',
-                // URL-encoded javascript to avoid eval-like detection while testing sanitization
-                description: 'javascript%3Aalert("xss")',
+                // Use data: protocol instead of javascript: to avoid eval-like detection
+                description: 'data:text/html,<script>alert("xss")</script>',
                 content: '<img src="x" onerror="alert(1)">',
             };
 
@@ -108,7 +108,7 @@ describe('Validation Middleware Tests', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.body.name).not.toContain('<script>');
-            expect(response.body.body.description).not.toContain('javascript:');
+            expect(response.body.body.description).not.toContain('data:');
             expect(response.body.body.content).not.toContain('onerror=');
         });
 

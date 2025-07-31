@@ -22,8 +22,25 @@ function validateAndSanitizeEmail(email: string): string {
 
     // Sanitize email: remove any potential injection characters and validate format
     const sanitizedEmail = email.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(sanitizedEmail)) {
+
+    // Safer email validation without backtracking
+    const atIndex = sanitizedEmail.indexOf('@');
+    const dotIndex = sanitizedEmail.lastIndexOf('.');
+
+    // Basic validation without regex
+    if (
+        atIndex === -1 ||
+        atIndex === 0 ||
+        dotIndex === -1 ||
+        dotIndex <= atIndex + 1 ||
+        dotIndex === sanitizedEmail.length - 1
+    ) {
+        throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid email format'));
+    }
+
+    // Check for valid characters only
+    const validChars = /^[a-zA-Z0-9._%+-@]+$/;
+    if (!validChars.test(sanitizedEmail)) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid email format'));
     }
 

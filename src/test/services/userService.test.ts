@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTest } from '../config/unified-test-config';
 import { mockFactory } from '../mocks/unified-mock-factory';
 import type { MockedUserService } from '../types/test-types';
+import testConfig from '../testConfig';
 
 // Mock the UserService module
 vi.mock('../../services/UserService', () => mockFactory.createUserServiceMockModule());
@@ -29,7 +30,7 @@ describe('UserService', () => {
             const userData = {
                 username: 'testuser',
                 email: 'test@example.com',
-                password: 'password123',
+                password: testConfig.generateTestPassword(),
             };
 
             const result = await userService.registerUser(userData);
@@ -37,15 +38,17 @@ describe('UserService', () => {
             expect(result).toBeDefined();
             expect(result.success).toBe(true);
             expect(result.user).toBeDefined();
-            expect(result.user.email).toBe(userData.email);
-            expect(result.user.username).toBe(userData.username);
+            if (result.user) {
+                expect(result.user.email).toBe(userData.email);
+                expect(result.user.username).toBe(userData.username);
+            }
         });
 
         it('should handle duplicate email error', async () => {
             const userData = {
                 username: 'testuser',
                 email: 'existing@example.com',
-                password: 'password123',
+                password: testConfig.generateTestPassword(),
             };
 
             const result = await userService.registerUser(userData);
@@ -60,7 +63,7 @@ describe('UserService', () => {
         it('should login user successfully', async () => {
             const credentials = {
                 email: 'test@example.com',
-                password: 'password123',
+                password: testConfig.generateTestPassword(),
             };
 
             const result = await userService.loginUser(credentials);
@@ -74,7 +77,7 @@ describe('UserService', () => {
         it('should handle invalid credentials', async () => {
             const credentials = {
                 email: 'test@example.com',
-                password: 'wrongpassword',
+                password: testConfig.generateTestPassword(),
             };
 
             const result = await userService.loginUser(credentials);
@@ -91,7 +94,9 @@ describe('UserService', () => {
             const user = await userService.getUserById(userId);
 
             expect(user).toBeDefined();
-            expect(user._id).toBe(userId);
+            if (user) {
+                expect(user._id).toBe(userId);
+            }
         });
 
         it('should return null for non-existent user', async () => {
@@ -115,7 +120,9 @@ describe('UserService', () => {
             expect(result).toBeDefined();
             expect(result.success).toBe(true);
             expect(result.user).toBeDefined();
-            expect(result.user.username).toBe(updateData.username);
+            if (result.user) {
+                expect(result.user.username).toBe(updateData.username);
+            }
         });
     });
 

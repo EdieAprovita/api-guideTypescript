@@ -57,7 +57,7 @@ export const configureHelmet = () => {
 };
 
 /**
- * HTTPS enforcement middleware with proper redirect handling
+ * HTTPS enforcement middleware without user-controlled redirects
  */
 export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) => {
     if (process.env.NODE_ENV === 'production') {
@@ -68,95 +68,12 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
         const isHttps = isSecure || isForwardedHttps || isForwardedSsl;
 
         if (!isHttps) {
-            const host = req.get('host');
+            // Instead of redirecting based on user input, return an error
+            // or redirect to a predefined secure URL
+            const secureBaseUrl = process.env.SECURE_BASE_URL || 'https://localhost';
 
-            if (!host) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid request - missing host header',
-                });
-            }
-
-            // Validate host header to prevent redirect attacks
-            const validHostPattern = /^[a-zA-Z0-9.-]+(:\d+)?$/;
-            if (!validHostPattern.test(host)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid host header format',
-                });
-            }
-
-            // Additional security checks for redirect prevention
-            // 1. Validate host format more strictly
-            const strictHostPattern =
-                /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(:[0-9]{1,5})?$/;
-            if (!strictHostPattern.test(host)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid host header format',
-                });
-            }
-
-            // 2. Check for suspicious patterns in host and URL
-            const suspiciousPatterns = [
-                /[<>"'&]/g, // HTML entities
-                /javascript:/gi, // JavaScript protocol
-                /data:/gi, // Data protocol
-                /vbscript:/gi, // VBScript protocol
-                /on\w+\s*=/gi, // Event handlers
-                /<script/gi, // Script tags
-                /\\/g, // Backslashes
-                /\.\./g, // Path traversal
-            ];
-
-            const hasSuspiciousContent = suspiciousPatterns.some(
-                pattern => pattern.test(host) || pattern.test(req.originalUrl)
-            );
-
-            if (hasSuspiciousContent) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid request parameters',
-                });
-            }
-
-            // 3. Validate URL path to prevent path traversal
-            const urlPath = req.originalUrl.split('?')[0]; // Remove query parameters
-            if (urlPath.includes('..') || urlPath.includes('\\')) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid URL path',
-                });
-            }
-
-            // 4. Only allow redirects to the same host (prevent open redirects)
-            const requestHost = req.get('host');
-            if (requestHost && host !== requestHost) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Host mismatch',
-                });
-            }
-
-            // 5. Build redirect URL with additional validation
-            const sanitizedPath = urlPath.replace(/[^\w\-\.\/]/g, ''); // Only allow safe characters
-            const redirectURL = `https://${host}${sanitizedPath}`;
-
-            // 6. Final validation of the complete redirect URL
-            try {
-                const url = new URL(redirectURL);
-                if (url.protocol !== 'https:' || url.hostname !== host.split(':')[0]) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Invalid redirect URL',
-                    });
-                }
-            } catch (error) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid redirect URL format',
-                });
-            }
+            // Build redirect URL using only trusted environment variables
+            const redirectURL = `${secureBaseUrl}${req.path}`;
 
             return res.redirect(302, redirectURL);
         }

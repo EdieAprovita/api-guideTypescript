@@ -6,6 +6,7 @@ import {
     makeMasterRequest,
     type MasterTestContext,
 } from '../config/master-test-config';
+import testConfig from '../testConfig';
 
 // Setup master configuration for unit tests
 const testHooks = setupMasterTest('unit');
@@ -57,8 +58,12 @@ describe('User Controllers Tests', () => {
     });
 
     describe('POST /api/v1/auth/register - User registration', () => {
-        it('should register a new user successfully', async () => {
-            const userData = createValidUserData();
+        it('should register a new user successfully with valid data', async () => {
+            const userData = {
+                username: 'testuser2',
+                email: 'test2@example.com',
+                password: testConfig.generateTestPassword(),
+            };
             const createdUser = generateMasterTestData.user({
                 _id: faker.database.mongodbObjectId(),
                 ...userData,
@@ -76,7 +81,7 @@ describe('User Controllers Tests', () => {
         it('should handle registration with invalid data', async () => {
             const invalidData = {
                 email: 'invalid-email', // Invalid email format
-                password: '123', // Too short password
+                password: testConfig.generateWeakPassword(), // Too short password
             };
 
             const response = await makeMasterRequest.post(app, '/api/v1/auth/register', invalidData);
@@ -108,14 +113,14 @@ describe('User Controllers Tests', () => {
         });
 
         it('should handle invalid credentials', async () => {
-            const invalidCredentials = {
-                email: faker.internet.email(),
-                password: 'wrongpassword',
+            const loginData = {
+                email: 'test@example.com',
+                password: testConfig.generateWeakPassword(),
             };
 
             mockUserService.loginUser.mockRejectedValue(new Error('Invalid credentials'));
 
-            const response = await makeMasterRequest.post(app, '/api/v1/auth/login', invalidCredentials);
+            const response = await makeMasterRequest.post(app, '/api/v1/auth/login', loginData);
 
             // Should return authentication error
             expect(response.status).toBeGreaterThanOrEqual(400);
