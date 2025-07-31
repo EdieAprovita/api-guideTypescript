@@ -14,60 +14,13 @@ import {
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
-import { enforceHTTPS } from '../../middleware/security';
-
-// Mock Express types
-interface MockRequest extends Partial<Request> {
-    protocol?: string;
-    get?: (name: string) => string | undefined;
-    originalUrl?: string;
-    headers?: Record<string, string>;
-}
-
-interface MockResponse extends Partial<Response> {
-    status: (code: number) => MockResponse;
-    json: (data: any) => MockResponse;
-    redirect: (status: number, url: string) => MockResponse;
-    _status?: number;
-    _json?: any;
-    _redirect?: { status: number; url: string };
-}
-
-const createMockRequest = (overrides: Partial<MockRequest> = {}): MockRequest => ({
-    protocol: 'http',
-    get: vi.fn(),
-    originalUrl: '/test',
-    headers: {},
-    ...overrides,
-});
-
-const createMockResponse = (): MockResponse => {
-    const res: MockResponse = {
-        status: vi.fn().mockReturnThis(),
-        json: vi.fn().mockReturnThis(),
-        redirect: vi.fn().mockReturnThis(),
-    };
-
-    // Store the values for assertions
-    res.status = vi.fn().mockImplementation((code: number) => {
-        res._status = code;
-        return res;
-    });
-
-    res.json = vi.fn().mockImplementation((data: any) => {
-        res._json = data;
-        return res;
-    });
-
-    res.redirect = vi.fn().mockImplementation((status: number, url: string) => {
-        res._redirect = { status, url };
-        return res;
-    });
-
-    return res;
-};
-
-const createMockNext = (): NextFunction => vi.fn();
+import {
+    createMockRequest,
+    createMockResponse,
+    createMockNext,
+    type MockRequest,
+    type MockResponse,
+} from './security-test-helpers';
 
 const app = express();
 app.use(express.json());
