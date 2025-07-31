@@ -13,6 +13,7 @@ import { Restaurant, IRestaurant } from '../../../models/Restaurant';
 import { Business } from '../../../models/Business';
 import { logTestError } from './errorLogger';
 import { generateTestPassword } from '../../utils/passwordGenerator';
+import { generateSecureUniqueId } from '../../utils/secureRandom';
 import testConfig from '../../testConfig';
 
 // Import real bcrypt for integration tests
@@ -76,7 +77,7 @@ export const createTestUser = async (overrides: UserOverrides = {}) => {
         const plainPassword = overrides.password || generateTestPassword();
 
         // Generate unique username and email to avoid conflicts
-        const uniqueId = Date.now().toString() + Math.random().toString(36).substring(2);
+        const uniqueId = generateSecureUniqueId();
 
         // Create user data without password since it's causing issues in test environment
         const userData = {

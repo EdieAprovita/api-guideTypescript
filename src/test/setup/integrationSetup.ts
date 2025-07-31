@@ -1,6 +1,8 @@
 // Integration test setup for Vitest - uses real middleware and components
+import { vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { faker } from '@faker-js/faker';
 import { generateTestPassword } from '../utils/passwordGenerator';
+import { generateSecureJti, generateSecureSignature, generateSecureNonce } from '../utils/secureRandom';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 
@@ -49,13 +51,13 @@ if (!process.env.INTEGRATION_TEST) {
                 type: type,
                 iat: Math.floor(Date.now() / 1000),
                 exp: Math.floor(Date.now() / 1000) + 3600,
-                jti: Math.random().toString(36).substring(2, 11),
+                jti: generateSecureJti(),
             };
 
             // Create a mock JWT-like string
             const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64').replace(/=/g, '');
             const payloadB64 = Buffer.from(JSON.stringify(payloadData)).toString('base64').replace(/=/g, '');
-            const signature = 'mock-signature-' + Math.random().toString(36).substring(2, 11);
+            const signature = generateSecureSignature();
 
             return `${headerB64}.${payloadB64}.${signature}`;
         });
@@ -189,7 +191,7 @@ vi.mock('../../services/TokenService', () => {
             const tokenPayload = {
                 ...payload,
                 iat: Math.floor(Date.now() / 1000),
-                nonce: Math.random().toString(36).substring(7),
+                nonce: generateSecureNonce(),
             };
             const accessToken = jwt.sign(tokenPayload);
             const refreshToken = jwt.sign({ ...tokenPayload, type: 'refresh' });
