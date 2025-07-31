@@ -26,10 +26,10 @@ export const allMocks = {
 
 // Helper function to reset all mocks
 export const resetAllMocks = () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 };
 
 // Helper function to restore all mocks
 export const restoreAllMocks = () => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 };

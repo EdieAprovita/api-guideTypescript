@@ -1,9 +1,10 @@
+import { vi } from 'vitest';
 // Global test setup - Centralized and optimized
-import { jest } from '@jest/globals';
+
 import { faker } from '@faker-js/faker';
 import { generateTestPassword } from './utils/passwordGenerator';
 import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from './__mocks__/middleware';
-import { serviceMocks, modelMocks, externalMocks } from './__mocks__/services';
+import { serviceMocks, modelMocks } from './__mocks__/services';
 import { dbConfigMocks } from './__mocks__/database';
 
 // Mock environment variables with faker-generated values
@@ -14,78 +15,129 @@ process.env.BCRYPT_SALT_ROUNDS = '10';
 // === CRITICAL: Mocks must be defined BEFORE any imports that use them ===
 
 // Mock database connection first - prevents connection attempts
-jest.mock('../config/db', () => dbConfigMocks);
+vi.mock('../config/db', () => dbConfigMocks);
 
 // Mock auth middleware - CRITICAL for authRoutes.ts
-jest.mock('../middleware/authMiddleware', () => ({
+vi.mock('../middleware/authMiddleware', () => ({
     __esModule: true,
     ...authMiddlewareMocks,
 }));
 
 // Mock validation middleware
-jest.mock('../middleware/validation', () => ({
+vi.mock('../middleware/validation', () => ({
     __esModule: true,
     ...validationMocks,
 }));
 
 // Mock security middleware
-jest.mock('../middleware/security', () => ({
+vi.mock('../middleware/security', () => ({
     __esModule: true,
     ...securityMocks,
 }));
 
 // Mock user controllers (used in authRoutes)
-jest.mock('../controllers/userControllers', () => ({
+vi.mock('../controllers/userControllers', () => ({
     __esModule: true,
     ...userControllerMocks,
 }));
 
 // Mock TokenService to prevent Redis connection issues
-jest.mock('../services/TokenService', () => ({
+vi.mock('../services/TokenService', () => ({
     __esModule: true,
     default: serviceMocks.tokenService,
 }));
 
 // Mock User model
-jest.mock('../models/User', () => ({
+vi.mock('../models/User', () => ({
     __esModule: true,
     User: modelMocks.User,
     default: modelMocks.User,
 }));
 
-// Mock external libraries
-jest.mock('jsonwebtoken', () => ({
+// Only mock jsonwebtoken for unit tests, not integration tests
+if (!process.env.INTEGRATION_TEST) {
+    // Mock external libraries
+    vi.mock('jsonwebtoken', () => {
+        const { faker } = require('@faker-js/faker');
+        const generateValidObjectId = () => faker.database.mongodbObjectId();
+
+        const createMockToken = (payload: any) => {
+            const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
+            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
+            const actualRole = payload && payload.role ? payload.role : 'user';
+            return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
+        };
+
+        const extractTokenData = (token: string) => {
+            try {
+                if (token.includes('mock-signature')) {
+                    const payloadPart = token.split('.')[1];
+                    const match = payloadPart.match(/"userId":"([^"]+)"/);
+                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
+                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
+
+                    return {
+                        userId: match ? match[1] : generateValidObjectId(),
+                        email: emailMatch ? emailMatch[1] : 'test@email.com',
+                        role: roleMatch ? roleMatch[1] : 'user',
+                        exp: Math.floor(Date.now() / 1000) + 3600,
+                    };
+                }
+            } catch (e) {
+                // Fallback
+            }
+
+            return {
+                userId: generateValidObjectId(),
+                email: 'test@email.com',
+                role: 'user',
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            };
+        };
+
+        return {
+            __esModule: true,
+            default: {
+                sign: vi.fn().mockImplementation(createMockToken),
+                verify: vi.fn().mockImplementation(extractTokenData),
+                decode: vi.fn().mockImplementation(() => extractTokenData('mock-token')),
+            },
+            sign: vi.fn().mockImplementation(createMockToken),
+            verify: vi.fn().mockImplementation(extractTokenData),
+            decode: vi.fn().mockImplementation((token: string) => extractTokenData(token || 'mock-token')),
+        };
+    });
+}
+
+vi.mock('bcryptjs', () => ({
     __esModule: true,
     default: {
-        sign: jest.fn().mockReturnValue(generateTestPassword()),
-        verify: jest.fn().mockReturnValue({ userId: 'someUserId' }),
+        hash: vi.fn().mockResolvedValue('hashed_password'),
+        compare: vi.fn().mockResolvedValue(true),
+        genSalt: vi.fn().mockResolvedValue('salt'),
     },
-    sign: jest.fn().mockReturnValue(generateTestPassword()),
-    verify: jest.fn().mockReturnValue({ userId: 'someUserId' }),
-}));
-
-jest.mock('bcryptjs', () => ({
-    __esModule: true,
-    ...externalMocks.bcrypt,
+    hash: vi.fn().mockResolvedValue('hashed_password'),
+    compare: vi.fn().mockResolvedValue(true),
+    genSalt: vi.fn().mockResolvedValue('salt'),
 }));
 
 // Mock logger to prevent file system operations
-jest.mock('../utils/logger', () => ({
+vi.mock('../utils/logger', () => ({
     __esModule: true,
     default: {
-        info: jest.fn(),
-        error: jest.fn(),
-        warn: jest.fn(),
-        debug: jest.fn(),
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
     },
 }));
 
 // Global test utilities - Suppress console output in tests
 global.console = {
     ...console,
-    log: jest.fn(),
-    debug: jest.fn(),
-    info: jest.fn(),
+    log: vi.fn(),
+    debug: vi.fn(),
+    info: vi.fn(),
     warn: console.warn, // Keep warnings visible
     error: console.error, // Keep errors visible
 };
@@ -93,10 +145,10 @@ global.console = {
 // Setup global test hooks
 beforeEach(() => {
     // Only clear mock calls, not the mock implementations
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 });
 
 afterEach(() => {
     // Clean up any test-specific changes
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 });

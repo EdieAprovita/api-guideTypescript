@@ -110,6 +110,7 @@ export const userSchemas = {
     }),
 
     updateProfile: Joi.object({
+        username: createNameSchema(false),
         firstName: createNameSchema(false),
         lastName: createNameSchema(false),
         dateOfBirth: Joi.date().max('now').optional(),
@@ -143,23 +144,45 @@ export const businessSchemas = {
 // Restaurant validation schemas
 export const restaurantSchemas = {
     create: Joi.object({
-        ...createBusinessBaseSchema(true),
-        cuisine: Joi.array().items(Joi.string().trim()).min(1).required(),
-        priceRange: Joi.string().valid('$', '$$', '$$$', '$$$$').required(),
-        features: Joi.array()
+        restaurantName: Joi.string().trim().min(2).max(100).required(),
+        address: Joi.string().trim().max(200).required(),
+        location: createLocationSchema(false), // Optional for restaurants
+        contact: Joi.array()
             .items(
-                Joi.string().valid(
-                    'outdoor-seating',
-                    'delivery',
-                    'takeout',
-                    'reservations',
-                    'wheelchair-accessible',
-                    'parking',
-                    'wifi',
-                    'live-music'
-                )
+                Joi.object({
+                    phone: Joi.string().optional(),
+                    facebook: Joi.string().optional(),
+                    instagram: Joi.string().optional(),
+                })
             )
             .optional(),
+        cuisine: Joi.array().items(Joi.string().trim()).min(1).required(),
+        budget: Joi.string().valid('$', '$$', '$$$', '$$$$').optional(),
+        rating: Joi.number().min(0).max(5).default(0),
+        reviews: Joi.array().default([]),
+        numReviews: Joi.number().min(0).default(0),
+        author: commonSchemas.objectId.required(),
+    }),
+
+    update: Joi.object({
+        restaurantName: Joi.string().trim().min(2).max(100).optional(),
+        address: Joi.string().trim().max(200).optional(),
+        location: createLocationSchema(false), // Optional for restaurants
+        contact: Joi.array()
+            .items(
+                Joi.object({
+                    phone: Joi.string().optional(),
+                    facebook: Joi.string().optional(),
+                    instagram: Joi.string().optional(),
+                })
+            )
+            .optional(),
+        cuisine: Joi.array().items(Joi.string().trim()).min(1).optional(),
+        budget: Joi.string().valid('$', '$$', '$$$', '$$$$').optional(),
+        rating: Joi.number().min(0).max(5).optional(),
+        reviews: Joi.array().optional(),
+        numReviews: Joi.number().min(0).optional(),
+        author: commonSchemas.objectId.optional(),
     }),
 };
 

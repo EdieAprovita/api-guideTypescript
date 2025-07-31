@@ -180,4 +180,4 @@ const professionalProfileSchema = new Schema<IProfessionProfile>(
     { timestamps: true }
 );
 
-export const ProfessionalProfile = mongoose.model<IProfessionProfile>('ProfessionalProfile', professionalProfileSchema);
+export const ProfessionalProfile = (mongoose.models.ProfessionalProfile as mongoose.Model<IProfessionProfile>) || mongoose.model<IProfessionProfile>('ProfessionalProfile', professionalProfileSchema);

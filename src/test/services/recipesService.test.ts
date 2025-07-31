@@ -1,6 +1,7 @@
+import { vi } from 'vitest';
 import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
 
-jest.mock('../../services/BaseService', () => createBaseServiceMock());
+vi.mock('../../services/BaseService', () => createBaseServiceMock());
 
 import { recipeService } from "../../services/RecipesService";
 

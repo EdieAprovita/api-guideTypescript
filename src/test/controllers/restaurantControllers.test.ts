@@ -1,4 +1,6 @@
+import { vi } from 'vitest';
 // Restaurant Controllers Test - Refactored to use centralized mocking system
+import '../setup'; // Import test setup to apply mocks
 import request from 'supertest';
 import app from '../../app';
 import { restaurantService } from '../../services/RestaurantService';
@@ -13,15 +15,15 @@ import {
 import { MockRestaurantService, MockReviewService } from '../types';
 
 // Only mock the specific services used in this test
-jest.mock('../../services/RestaurantService');
-jest.mock('../../services/ReviewService');
+vi.mock('../../services/RestaurantService');
+vi.mock('../../services/ReviewService');
 
 const mockRestaurantService = restaurantService as unknown as MockRestaurantService;
 const mockReviewService = reviewService as unknown as MockReviewService;
 
 describe('Restaurant Controllers', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('GET /api/v1/restaurants', () => {

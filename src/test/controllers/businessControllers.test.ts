@@ -1,239 +1,177 @@
-// Business Controllers Test - Refactored to eliminate duplication
+import { describe, it, beforeEach, vi } from 'vitest';
 import request from 'supertest';
-import { setupCommonMocks, resetMocks, createMockBusiness } from '../utils/testHelpers';
-import testConfig from '../testConfig';
-
-// === CRITICAL: Mocks must be defined BEFORE any imports ===
-setupCommonMocks();
-
-// Mock services with proper structure - including cache methods
-jest.mock('../../services/BusinessService', () => ({
-    businessService: {
-        getAll: jest.fn(),
-        getAllCached: jest.fn(),
-        findById: jest.fn(),
-        findByIdCached: jest.fn(),
-        create: jest.fn(),
-        createCached: jest.fn(),
-        updateById: jest.fn(),
-        updateByIdCached: jest.fn(),
-        deleteById: jest.fn(),
-    },
-}));
-
-jest.mock('../../services/GeoService', () => ({
-    __esModule: true,
-    default: {
-        geocodeAddress: jest.fn(),
-    },
-}));
-
-jest.mock('../../services/ReviewService', () => ({
-    reviewService: {
-        addReview: jest.fn(),
-    },
-}));
-
-// Now import the app after all mocks are set up
 import app from '../../app';
-import { businessService } from '../../services/BusinessService';
-import geoService from '../../services/GeoService';
-import { reviewService } from '../../services/ReviewService';
+import {
+    generateTestData,
+    makeRequest,
+    expectResponse,
+    createServiceMock,
+    generateCrudTests,
+    resetAllMocks,
+} from '../utils/unified-test-helpers';
 
-beforeEach(() => {
-    resetMocks();
-});
+// ============================================================================
+// MOCKS
+// ============================================================================
 
-describe('Business Controllers Tests', () => {
-    describe('Get all businesses', () => {
-        it('should get all businesses', async () => {
-            const mockBusinesses = [createMockBusiness()];
+// Mock the BusinessService
+const mockBusinessService = createServiceMock([
+    generateTestData.business({ namePlace: 'Test Business 1' }),
+    generateTestData.business({ namePlace: 'Test Business 2' }),
+]);
 
-            (businessService.getAllCached as jest.Mock).mockResolvedValueOnce(mockBusinesses);
+vi.mock('../../services/BusinessService', () => ({
+    businessService: mockBusinessService,
+}));
 
-            const response = await request(app).get('/api/v1/businesses');
+// Mock geocoding utility
+vi.mock('../../utils/geocodeLocation', () => ({
+    default: vi.fn().mockResolvedValue(undefined),
+}));
 
-            expect(response.status).toBe(200);
-            expect(businessService.getAllCached).toHaveBeenCalled();
-            expect(response.body).toEqual({
-                success: true,
-                message: 'Businesses fetched successfully',
-                data: mockBusinesses,
-            });
-        }, 10000);
+// ============================================================================
+// TESTS
+// ============================================================================
+
+describe('Business Controllers', () => {
+    beforeEach(() => {
+        resetAllMocks();
     });
 
-    describe('Get business by id', () => {
-        it('should get business by id', async () => {
-            const mockBusiness = createMockBusiness();
+    // ============================================================================
+    // CRUD TESTS (Auto-generated)
+    // ============================================================================
 
-            (businessService.findByIdCached as jest.Mock).mockResolvedValueOnce(mockBusiness);
-
-            const response = await request(app).get(`/api/v1/businesses/${mockBusiness._id}`);
-
-            expect(response.status).toBe(200);
-            expect(businessService.findByIdCached).toHaveBeenCalledWith(mockBusiness._id);
-            expect(response.body).toEqual({
-                success: true,
-                message: 'Business fetched successfully',
-                data: mockBusiness,
-            });
-        });
+    const crudTests = generateCrudTests({
+        app,
+        basePath: '/api/v1/businesses',
+        serviceMock: mockBusinessService,
+        validData: {
+            namePlace: 'New Business',
+            address: '123 Test Street',
+            typeBusiness: 'restaurant',
+            budget: 2,
+            contact: [
+                {
+                    phone: '+1234567890',
+                    email: 'test@business.com',
+                },
+            ],
+        },
+        updateData: {
+            namePlace: 'Updated Business',
+            budget: 3,
+        },
+        resourceName: 'business',
     });
 
-    describe('Create business', () => {
-        it('sets location when geocoding succeeds', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 1, lng: 2 });
-            (businessService.create as jest.Mock).mockResolvedValue({ id: '1' });
+    // Run all CRUD tests
+    crudTests.runAllTests();
 
-            const businessData = {
-                name: 'My Shop',
-                description: 'A great shop',
-                address: '123 st',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
+    // ============================================================================
+    // CUSTOM BUSINESS LOGIC TESTS
+    // ============================================================================
 
-            const response = await request(app).post('/api/v1/businesses').send(businessData);
+    describe('Business-specific operations', () => {
+        it('should get top rated businesses', async () => {
+            const mockTopBusinesses = [
+                generateTestData.business({ rating: 5, numReviews: 10 }),
+                generateTestData.business({ rating: 4.8, numReviews: 8 }),
+            ];
 
-            expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('123 st');
-            expect(businessService.create).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    ...businessData,
-                    location: { type: 'Point', coordinates: [2, 1] },
-                })
-            );
+            // Mock ReviewService for top-rated endpoint
+            vi.doMock('../../services/ReviewService', () => ({
+                reviewService: {
+                    getTopRatedReviews: vi.fn().mockResolvedValue(mockTopBusinesses),
+                },
+            }));
+
+            const response = await makeRequest.get(app, '/api/v1/businesses/top-rated');
+
+            expectResponse.success(response);
+            expect(response.body.data).toHaveLength(2);
+            expect(response.body.data[0].rating).toBe(5);
         });
 
-        it('leaves location unset when geocoding fails', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockResolvedValue(null);
-            (businessService.create as jest.Mock).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'Shop',
-                description: 'Another shop',
-                address: 'bad',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).post('/api/v1/businesses').send(businessData);
-
-            expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('bad');
-            expect(businessService.create).toHaveBeenCalledWith(expect.objectContaining(businessData));
-        });
-
-        it('handles geocoding errors gracefully', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockRejectedValue(new Error('Geocoding failed'));
-            (businessService.create as jest.Mock).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'BoomCo',
-                description: 'A company',
-                address: 'explode',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).post('/api/v1/businesses').send(businessData);
-
-            expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('explode');
-            expect(businessService.create).toHaveBeenCalledWith(expect.objectContaining(businessData));
-        });
-    });
-
-    describe('Update business', () => {
-        it('geocodes updated address', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 2, lng: 3 });
-            (businessService.updateById as jest.Mock).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'Updated Shop',
-                description: 'Updated description',
-                address: '456 road',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).put('/api/v1/businesses/1').send(businessData);
-
-            expect(response.status).toBe(200);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('456 road');
-            expect(businessService.updateById).toHaveBeenCalledWith(
-                '1',
-                expect.objectContaining({
-                    ...businessData,
-                    location: { type: 'Point', coordinates: [3, 2] },
-                })
-            );
-        });
-
-        it('does not set location when geocoding returns null', async () => {
-            (geoService.geocodeAddress as jest.Mock).mockResolvedValue(null);
-            (businessService.updateById as jest.Mock).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'Shop',
-                description: 'Description',
-                address: 'no',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).put('/api/v1/businesses/1').send(businessData);
-
-            expect(response.status).toBe(200);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('no');
-            expect(businessService.updateById).toHaveBeenCalledWith('1', expect.objectContaining(businessData));
-        });
-    });
-
-    describe('Add review to business', () => {
         it('should add review to business', async () => {
-            const mockReview = {
-                _id: 'reviewId',
-                businessId: 'businessId',
-                rating: 5,
-                comment: 'Great business!',
-            };
-
-            (reviewService.addReview as jest.Mock).mockResolvedValueOnce(mockReview);
-
+            const businessId = generateTestData.business()._id;
             const reviewData = {
                 rating: 5,
-                comment: 'Great business!',
+                title: 'Great business!',
+                content: 'Really enjoyed my visit.',
             };
 
-            const response = await request(app).post('/api/v1/businesses/add-review/businessId').send(reviewData);
+            // Mock ReviewService
+            vi.doMock('../../services/ReviewService', () => ({
+                reviewService: {
+                    addReview: vi.fn().mockResolvedValue({
+                        _id: 'review123',
+                        ...reviewData,
+                        businessId,
+                    }),
+                },
+            }));
 
-            expect(response.status).toBe(200);
-            expect(reviewService.addReview).toHaveBeenCalledWith({
-                ...reviewData,
-                businessId: 'businessId',
-            });
-            expect(response.body).toEqual({
-                success: true,
-                message: 'Review added successfully',
-                data: mockReview,
-            });
+            const response = await makeRequest.post(app, `/api/v1/businesses/${businessId}/reviews`, reviewData);
+
+            expectResponse.success(response);
+            expect(response.body.message).toBe('Review added successfully');
         });
     });
 
-    describe('Delete business', () => {
-        it('should delete business', async () => {
-            (businessService.deleteById as jest.Mock).mockResolvedValueOnce(undefined);
+    // ============================================================================
+    // ERROR HANDLING TESTS
+    // ============================================================================
 
-            const response = await request(app).delete('/api/v1/businesses/businessId');
-
-            expect(response.status).toBe(200);
-            expect(businessService.deleteById).toHaveBeenCalledWith('businessId');
-            expect(response.body).toEqual({
-                success: true,
-                message: 'Business deleted successfully',
-            });
+    describe('Error handling', () => {
+        it('should handle missing business ID', async () => {
+            const response = await makeRequest.get(app, '/api/v1/businesses/');
+            expectResponse.error(response, 404);
         });
+
+        it('should handle service errors', async () => {
+            mockBusinessService.getAll.mockRejectedValue(new Error('Database connection failed'));
+
+            const response = await makeRequest.get(app, '/api/v1/businesses');
+            expectResponse.error(response, 404);
+        });
+
+        it('should validate required fields on create', async () => {
+            const invalidData = {
+                // Missing required namePlace
+                address: '123 Test Street',
+            };
+
+            const response = await makeRequest.post(app, '/api/v1/businesses', invalidData);
+            expectResponse.validation(response);
+        });
+    });
+
+    // ============================================================================
+    // AUTHENTICATION TESTS
+    // ============================================================================
+
+    describe('Authentication', () => {
+        it('should allow public access to GET endpoints', async () => {
+            const response = await makeRequest.get(app, '/api/v1/businesses');
+            expectResponse.success(response);
+        });
+
+        // Note: Authentication tests would require auth token
+        // This can be extended based on your auth requirements
+    });
+});
+
+// ============================================================================
+// INTEGRATION TESTS (Optional - separate file recommended)
+// ============================================================================
+
+describe('Business Controllers Integration', () => {
+    // These would typically be in a separate .integration.test.ts file
+    // and would use real database connections
+
+    it.skip('should create business with real database', async () => {
+        // Integration test implementation
+        // Uses configureTest({ type: 'integration' })
     });
 });

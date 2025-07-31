@@ -33,11 +33,9 @@ describe('Validation Middleware Tests', () => {
     describe('Input Validation', () => {
         it('should validate user registration data correctly', async () => {
             const validUserData = {
-                firstName: 'John',
-                lastName: 'Doe',
+                username: 'johndoe',
                 email: 'john.doe@example.com',
                 password: TEST_PASSWORD,
-                dateOfBirth: '1990-01-01',
             };
 
             const response = await request(app).post('/test-user-validation').send(validUserData);
@@ -49,11 +47,9 @@ describe('Validation Middleware Tests', () => {
 
         it('should reject invalid email format', async () => {
             const invalidUserData = {
-                firstName: 'John',
-                lastName: 'Doe',
+                username: 'johndoe',
                 email: 'invalid-email',
                 password: TEST_PASSWORD,
-                dateOfBirth: '1990-01-01',
             };
 
             const response = await request(app).post('/test-user-validation').send(invalidUserData);
@@ -67,11 +63,9 @@ describe('Validation Middleware Tests', () => {
 
         it('should reject weak passwords', async () => {
             const weakPasswordData = {
-                firstName: 'John',
-                lastName: 'Doe',
+                username: 'johndoe',
                 email: 'john.doe@example.com',
                 password: getWeakPassword(), // Dynamically generated weak password for validation testing
-                dateOfBirth: '1990-01-01',
             };
 
             const response = await request(app).post('/test-user-validation').send(weakPasswordData);
@@ -105,8 +99,8 @@ describe('Validation Middleware Tests', () => {
         it('should sanitize XSS attempts', async () => {
             const maliciousData = {
                 name: '<script>alert("xss")</script>',
-                // URL-encoded javascript to avoid eval-like detection while testing sanitization
-                description: 'javascript%3Aalert("xss")',
+                // Use data: protocol instead of javascript: to avoid eval-like detection
+                description: 'data:text/html,<script>alert("xss")</script>',
                 content: '<img src="x" onerror="alert(1)">',
             };
 
@@ -114,7 +108,7 @@ describe('Validation Middleware Tests', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.body.name).not.toContain('<script>');
-            expect(response.body.body.description).not.toContain('javascript');
+            expect(response.body.body.description).not.toContain('data:');
             expect(response.body.body.content).not.toContain('onerror=');
         });
 

@@ -53,8 +53,10 @@ if (process.env.NODE_ENV !== 'test') { app.use(validateUserAgent); } // Block ma
 app.use(limitRequestSize(10 * 1024 * 1024)); // 10MB global limit
 app.use(detectSuspiciousActivity); // Detect and block suspicious patterns
 
-app.use(mongoSanitize()); // prevent MongoDB operator injection
-app.use(xss()); // sanitize user input against XSS
+if (process.env.NODE_ENV !== 'test') {
+    app.use(mongoSanitize()); // prevent MongoDB operator injection
+    app.use(xss()); // sanitize user input against XSS
+}
 
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));

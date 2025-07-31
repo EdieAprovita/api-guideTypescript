@@ -52,11 +52,12 @@ function safeStringify(value: unknown): string {
  * Generar clave de cache basada en la request
  */
 function generateCacheKey(req: Request): string {
-    const { method, originalUrl, query, params } = req;
-    
-    // Crear clave base
-    let key = `${method}:${originalUrl}`;
-    
+    const { method, originalUrl, query } = req;
+
+    // Crear clave base - usar pathname en lugar de originalUrl para evitar duplicación
+    const url = new URL(originalUrl, 'http://localhost');
+    let key = `${method}:${url.pathname}`;
+
     // Agregar parámetros de query si existen
     if (Object.keys(query).length > 0) {
         const sortedQuery = Object.keys(query)
@@ -65,16 +66,17 @@ function generateCacheKey(req: Request): string {
             .join('&');
         key += `?${sortedQuery}`;
     }
-    
-    // Agregar parámetros de ruta
-    if (Object.keys(params).length > 0) {
-        const sortedParams = Object.keys(params)
-            .sort((a, b) => a.localeCompare(b))
-            .map(k => `${k}=${safeStringify(params[k])}`)
-            .join('&');
-        key += `|${sortedParams}`;
-    }
-    
+
+    // Agregar parámetros de ruta solo si no están ya en la URL
+    // Skip adding route parameters as they're already part of the URL
+    // if (Object.keys(params).length > 0 && !originalUrl.includes(':')) {
+    //     const sortedParams = Object.keys(params)
+    //         .sort((a, b) => a.localeCompare(b))
+    //         .map(k => `${k}=${safeStringify(params[k])}`)
+    //         .join('&');
+    //     key += `|${sortedParams}`;
+    // }
+
     return key;
 }
 
@@ -97,34 +99,42 @@ export function cacheMiddleware(
         if (req.method !== 'GET') {
             return next();
         }
-        
+
         // Verificar si se debe saltar cache
         if (options.skipIf?.(req)) {
             req.skipCache = true;
             return next();
         }
-        
+
         // Generar clave de cache
         const cacheKey = options.keyGenerator ? options.keyGenerator(req) : generateCacheKey(req);
         req.cacheKey = cacheKey;
         req.cacheType = type;
-        
+
         try {
             // Intentar obtener del cache
             const cachedData = await cacheService.get(cacheKey);
-            
+
             if (cachedData) {
                 // Cache HIT - devolver datos cacheados
                 logger.debug(`🎯 Cache HIT: ${cacheKey}`);
-                return res.status(200).json(cachedData);
+                // Parse cached data if it's a string, otherwise use as is
+                let parsedData;
+                try {
+                    parsedData = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
+                } catch (parseError) {
+                    // If parsing fails, use the original data
+                    parsedData = cachedData;
+                }
+                return res.status(200).json(parsedData);
             }
-            
+
             // Cache MISS - continuar con el procesamiento normal
             logger.debug(`❌ Cache MISS: ${cacheKey}`);
-            
+
             // Interceptar el método json() para cachear la respuesta
             const originalJson = res.json;
-            res.json = function(data: unknown) {
+            res.json = function (data: unknown) {
                 // Store in cache only for successful responses
                 if (res.statusCode >= 200 && res.statusCode < 300) {
                     const cacheOptions: CacheMiddlewareOptions = {};
@@ -134,16 +144,16 @@ export function cacheMiddleware(
                         logger.error(`Error caching response for ${cacheKey}:`, error);
                     });
                 }
-                
+
                 // Llamar al método original
                 return originalJson.call(this, data);
             };
-            
+
             next();
-            
         } catch (error) {
             logger.error(`Cache middleware error for ${cacheKey}:`, error);
             // En caso de error del cache, continuar sin cache
+            // Error is intentionally caught to prevent cache failures from breaking the application
             next();
         }
     };
@@ -156,14 +166,14 @@ export function geoLocationCacheMiddleware(radiusKm: number = 5) {
     return cacheMiddleware('geolocation', {
         ttl: 1800, // 30 minutos
         tags: ['geolocation', 'location'],
-        keyGenerator: (req) => {
+        keyGenerator: req => {
             const { lat, lng, radius = radiusKm } = req.query;
             return `geo:${safeStringify(lat)}:${safeStringify(lng)}:${safeStringify(radius)}`;
         },
-        skipIf: (req) => {
+        skipIf: req => {
             // Saltar cache si faltan coordenadas
             return !req.query.lat || !req.query.lng;
-        }
+        },
     });
 }
 
@@ -174,14 +184,11 @@ export function restaurantCacheMiddleware() {
     return cacheMiddleware('restaurants', {
         ttl: 300, // 5 minutos
         tags: ['restaurants', 'listings'],
-        keyGenerator: (req) => {
+        keyGenerator: req => {
             const { category, city, rating, price } = req.query;
-            const filters = [category, city, rating, price]
-                .filter(Boolean)
-                .map(safeStringify)
-                .join(':');
+            const filters = [category, city, rating, price].filter(Boolean).map(safeStringify).join(':');
             return `restaurants:${req.path}:${filters}`;
-        }
+        },
     });
 }
 
@@ -192,14 +199,14 @@ export function userProfileCacheMiddleware() {
     return cacheMiddleware('users', {
         ttl: 900, // 15 minutos
         tags: ['users', 'profiles'],
-        keyGenerator: (req) => {
+        keyGenerator: req => {
             const userId = req.params.id ?? req.user?._id;
             return `user:profile:${safeStringify(userId)}`;
         },
-        skipIf: (req) => {
+        skipIf: req => {
             // Saltar cache si no hay ID de usuario
             return !req.params.id && !req.user?._id;
-        }
+        },
     });
 }
 
@@ -210,14 +217,14 @@ export function searchCacheMiddleware() {
     return cacheMiddleware('search', {
         ttl: 600, // 10 minutos
         tags: ['search'],
-        keyGenerator: (req) => {
+        keyGenerator: req => {
             const { q, type, limit = 10, offset = 0 } = req.query;
             return `search:${safeStringify(q)}:${safeStringify(type)}:${safeStringify(limit)}:${safeStringify(offset)}`;
         },
-        skipIf: (req) => {
+        skipIf: req => {
             // Saltar cache si no hay query
             return !req.query.q || (req.query.q as string).length < 2;
-        }
+        },
     });
 }
 
@@ -228,19 +235,18 @@ export function cacheInvalidationMiddleware(tags: string[]) {
     return async (_req: Request, res: Response, next: NextFunction) => {
         // Interceptar respuestas exitosas de escritura
         const originalJson = res.json;
-        res.json = function(data: unknown) {
+        res.json = function (data: unknown) {
             // Solo invalidar en operaciones exitosas
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 // Invalidar de forma asíncrona
-                Promise.all(tags.map(tag => cacheService.invalidateByTag(tag)))
-                    .catch(error => {
-                        logger.error('Error invalidating cache tags:', error);
-                    });
+                Promise.all(tags.map(tag => cacheService.invalidateByTag(tag))).catch(error => {
+                    logger.error('Error invalidating cache tags:', error);
+                });
             }
-            
+
             return originalJson.call(this, data);
         };
-        
+
         next();
     };
 }
@@ -257,14 +263,14 @@ export function cacheStatsMiddleware() {
                 data: {
                     ...stats,
                     hitRatio: `${stats.hitRatio}%`,
-                    status: getStatusFromHitRatio(stats.hitRatio)
-                }
+                    status: getStatusFromHitRatio(stats.hitRatio),
+                },
             });
         } catch (error) {
             logger.error('Error getting cache stats:', error);
             res.status(500).json({
                 success: false,
-                error: 'Error retrieving cache statistics'
+                error: 'Error retrieving cache statistics',
             });
         }
     };
@@ -279,13 +285,13 @@ export function cacheFlushMiddleware() {
             await cacheService.flush();
             res.json({
                 success: true,
-                message: 'Cache flushed successfully'
+                message: 'Cache flushed successfully',
             });
         } catch (error) {
             logger.error('Error flushing cache:', error);
             res.status(500).json({
                 success: false,
-                error: 'Error flushing cache'
+                error: 'Error flushing cache',
             });
         }
     };

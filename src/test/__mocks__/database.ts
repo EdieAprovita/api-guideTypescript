@@ -1,19 +1,20 @@
+import { vi } from 'vitest';
 // Mock para la conexión de base de datos
 export const databaseMocks = {
-    connectDB: jest.fn().mockResolvedValue(undefined),
+    connectDB: vi.fn().mockResolvedValue(undefined),
     mongoose: {
-        connect: jest.fn().mockResolvedValue(undefined),
+        connect: vi.fn().mockResolvedValue(undefined),
         connection: {
             readyState: 1, // Connected
-            on: jest.fn(),
-            once: jest.fn(),
+            on: vi.fn(),
+            once: vi.fn(),
         },
-        disconnect: jest.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn().mockResolvedValue(undefined),
     },
 };
 
 // Mock para configuración de base de datos
 export const dbConfigMocks = {
-    default: jest.fn().mockResolvedValue(undefined),
+    default: vi.fn().mockResolvedValue(undefined),
     __esModule: true,
 };

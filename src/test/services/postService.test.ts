@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import { Types } from 'mongoose';
 import { postService } from "../../services/PostService";
@@ -13,7 +14,7 @@ const createMockPost = (id: string, likes: any[] = [], comments: any[] = []) => 
         _id: id,
         likes: [...likes],
         comments: [...comments],
-        save: jest.fn().mockResolvedValue(true)
+        save: vi.fn().mockResolvedValue(true)
     };
     
     // Add array methods to likes
@@ -25,7 +26,7 @@ const createMockPost = (id: string, likes: any[] = [], comments: any[] = []) => 
 };
 
 // Mock BaseService to avoid modelName issues
-jest.mock('../../services/BaseService', () => {
+vi.mock('../../services/BaseService', () => {
     return {
         __esModule: true,
         default: class MockBaseService {
@@ -48,7 +49,7 @@ jest.mock('../../services/BaseService', () => {
 
 describe("PostService", () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it("likes a post when not already liked", async () => {

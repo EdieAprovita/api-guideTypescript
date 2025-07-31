@@ -1,0 +1,208 @@
+name: 'CI/CD Pipeline'
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main, develop]
+    workflow_dispatch:
+
+# Cancelar ejecuciones previas en la misma rama para ahorrar recursos
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    NODE_VERSION: '20.x'
+    CI: true
+
+jobs:
+    quality-checks:
+        name: Quality Checks
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Type check
+              run: npm run type-check
+
+            - name: Lint code
+              run: npm run lint
+
+            - name: Format check
+              run: npm run format:check
+              continue-on-error: false
+
+    test:
+        name: Tests
+        runs-on: ubuntu-latest
+        needs: quality-checks
+
+        services:
+            mongodb:
+                image: mongo:6.0
+                ports:
+                    - 27017:27017
+                options: >-
+                    --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run unit tests
+              run: npm run test:unit
+              env:
+                  NODE_ENV: test
+                  MONGODB_URI: mongodb://localhost:27017/vegan-city-guide-test
+                  JWT_SECRET: test-jwt-secret-key-for-github-actions
+                  REDIS_HOST: localhost
+                  REDIS_PORT: 6379
+
+            - name: Run integration tests
+              run: npm run test:integration
+              env:
+                  NODE_ENV: test
+                  MONGODB_URI: mongodb://localhost:27017/vegan-city-guide-test
+                  JWT_SECRET: test-jwt-secret-key-for-github-actions
+                  REDIS_HOST: localhost
+                  REDIS_PORT: 6379
+
+            - name: Generate coverage report
+              run: npm run test:coverage
+              env:
+                  NODE_ENV: test
+                  MONGODB_URI: mongodb://localhost:27017/vegan-city-guide-test
+                  JWT_SECRET: test-jwt-secret-key-for-github-actions
+                  REDIS_HOST: localhost
+                  REDIS_PORT: 6379
+
+            - name: Upload coverage reports to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./coverage/lcov.info
+                  flags: unittests
+                  name: codecov-umbrella
+              continue-on-error: true
+
+            - name: Upload coverage artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-reports
+                  path: coverage/
+                  retention-days: 30
+
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        needs: test
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build application
+              run: npm run build
+
+            - name: Archive build artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: dist-files
+                  path: dist/
+                  retention-days: 30
+
+    security:
+        name: Security Audit
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci --omit=dev
+
+            - name: Run security audit (Critical vulnerabilities)
+              run: npm audit --audit-level critical --production
+
+            - name: Run security audit (High vulnerabilities)
+              run: npm audit --audit-level high --production
+              continue-on-error: true
+
+            - name: Run security audit (All vulnerabilities)
+              run: npm audit --production
+              continue-on-error: true
+
+    deploy:
+        name: Deploy
+        runs-on: ubuntu-latest
+        needs: [build, security]
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+        steps:
+            - name: Download build artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: dist-files
+                  path: dist/
+
+            - name: Deploy placeholder
+              run: |
+                  echo "🚀 Deployment step"
+                  echo "📦 Build artifacts downloaded to ./dist/"
+                  echo "🔧 Configure your deployment strategy here"
+                  echo "   - AWS, Vercel, Railway, Heroku, etc."
+                  echo "   - Docker deployment"
+                  echo "   - Server deployment" 

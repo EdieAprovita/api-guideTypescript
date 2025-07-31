@@ -1,74 +1,114 @@
 # GitHub Actions Workflows
 
-## Mejoras Implementadas
+## 🚀 CI/CD Pipeline (`ci-cd.yml`)
 
-Este directorio contiene los workflows de GitHub Actions optimizados para el proyecto. Se han implementado las siguientes mejoras:
+Este es el workflow principal y consolidado que reemplaza todos los workflows anteriores.
 
-### ✅ Cambios Realizados
+### 📋 **Características:**
 
-1. **Unificación de Workflows**
+- **Quality Checks**: Type checking, linting y format checking
+- **Testing**: Unit tests, integration tests y coverage reports
+- **Build**: Compilación de la aplicación
+- **Security**: Auditoría de seguridad
+- **Deploy**: Preparación para deployment
 
-    - Consolidado `test`, `build` y `security` en un flujo más eficiente
-    - Eliminado workflow duplicado `build-test.yml` (obsoleto)
+### 🔄 **Flujo de Ejecución:**
 
-2. **Optimización de Cache**
+```mermaid
+graph TD
+    A[Push/PR] --> B[Quality Checks]
+    B --> C[Tests]
+    C --> D[Build]
+    D --> E[Security Audit]
+    E --> F[Deploy]
 
-    - Implementado `cache: 'npm'` con `cache-dependency-path: package-lock.json`
-    - Cache compartido entre jobs para evitar instalaciones repetidas
+    B --> G[Type Check]
+    B --> H[Lint]
+    B --> I[Format Check]
 
-3. **Concurrencia y Cancelación**
+    C --> J[Unit Tests]
+    C --> K[Integration Tests]
+    C --> L[Coverage Report]
 
-    - Agregado `concurrency` para cancelar ejecuciones previas en la misma rama
-    - Ahorro de recursos y tiempo de ejecución
-
-4. **Versiones Actualizadas**
-
-    - Todas las acciones actualizadas a `@v4`
-    - Node.js unificado en versión `20.x`
-    - Eliminadas versiones obsoletas (14.x, 16.x)
-
-5. **Auditoría de Seguridad Optimizada**
-
-    - Ejecuta solo en push a `main` para reducir tiempo
-    - Separado en niveles críticos y altos
-    - Instalación solo de dependencias de producción
-
-6. **Variables de Entorno**
-
-    - `CI=true` establecido globalmente
-    - Mejor comportamiento de Jest y otras herramientas
-
-7. **Gestión de Artefactos**
-    - Retención de 7 días para artefactos de build
-    - Upload de coverage con `continue-on-error: true`
-
-### 🏗️ Estructura del Workflow Principal
-
-```yaml
-jobs:
-    test-and-build: # Pruebas, lint, type-check y build unificados
-    security: # Auditoría de seguridad (solo en main)
-    deploy: # Placeholder para deployment futuro
+    E --> M[Critical Vulnerabilities]
+    E --> N[High Vulnerabilities]
+    E --> O[All Vulnerabilities]
 ```
 
-### 📋 Comandos Disponibles
+### 🎯 **Jobs:**
 
-- `npm run test:ci` - Pruebas con coverage
-- `npm run type-check` - Verificación de tipos
-- `npm run lint` - Linting del código
-- `npm run format:check` - Verificación de formato
-- `npm run build` - Construcción del proyecto
+1. **Quality Checks** (Siempre ejecuta)
+    - Type checking con TypeScript
+    - Linting con ESLint
+    - Format checking con Prettier
 
-### 🔒 Seguridad
+2. **Tests** (Depende de Quality Checks)
+    - Unit tests con Vitest
+    - Integration tests con Vitest
+    - Coverage reports
+    - Upload a Codecov
+    - Artifacts de coverage
 
-- Auditoría de vulnerabilidades críticas y altas
-- Instalación solo de dependencias de producción para auditoría
-- Pinning de versiones de acciones para reproducibilidad
+3. **Build** (Depende de Tests)
+    - Compilación TypeScript
+    - Artifacts de build
 
-### 📈 Beneficios
+4. **Security** (Solo en main)
+    - Auditoría de vulnerabilidades críticas
+    - Auditoría de vulnerabilidades altas
+    - Auditoría completa
 
-- ⚡ Reducción del tiempo de ejecución
-- 💰 Menor consumo de recursos de GitHub Actions
-- 🔄 Eliminación de duplicación de código
-- 🛡️ Mejor seguridad y reproducibilidad
-- 📊 Mejor gestión de artefactos y coverage
+5. **Deploy** (Solo en main, depende de Build y Security)
+    - Descarga de artifacts
+    - Placeholder para deployment
+
+### 🔧 **Servicios:**
+
+- **MongoDB 6.0**: Para tests de integración
+- **Redis 7-alpine**: Para tests de integración
+
+### 📊 **Variables de Entorno:**
+
+```yaml
+NODE_ENV: test
+MONGODB_URI: mongodb://localhost:27017/vegan-city-guide-test
+JWT_SECRET: test-jwt-secret-key-for-github-actions
+REDIS_HOST: localhost
+REDIS_PORT: 6379
+```
+
+### ⚡ **Optimizaciones:**
+
+- **Concurrency**: Cancela ejecuciones previas en la misma rama
+- **Caching**: Cache de npm para dependencias
+- **Parallel Jobs**: Quality checks y tests se ejecutan en paralelo cuando es posible
+- **Conditional Jobs**: Security y Deploy solo en main
+
+### 🗑️ **Workflows Eliminados:**
+
+- `build.yml` - Consolidado en ci-cd.yml
+- `api-tests.yml` - Consolidado en ci-cd.yml
+- `build-test.yml` - Obsoleto, eliminado
+
+### 📈 **Métricas:**
+
+- **Tiempo de ejecución**: ~5-8 minutos
+- **Cobertura**: Automática con Codecov
+- **Artifacts**: Retención de 30 días
+- **Cache**: npm dependencies
+
+### 🔍 **Debugging:**
+
+Para debuggear el workflow:
+
+1. Revisa los logs de cada job
+2. Verifica las variables de entorno
+3. Comprueba la conectividad de servicios (MongoDB, Redis)
+4. Revisa los artifacts generados
+
+### 🚀 **Próximos Pasos:**
+
+1. Configurar deployment real (AWS, Vercel, etc.)
+2. Agregar E2E tests con Playwright
+3. Implementar notificaciones (Slack, Discord)
+4. Agregar performance testing

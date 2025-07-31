@@ -283,6 +283,11 @@ npm run test:unit
 # Run only integration tests
 npm run test:integration
 
+# Integration tests use **mongodb-memory-server** to start a temporary MongoDB
+# instance. The binary is downloaded on demand. If your environment lacks
+# internet access, set `MONGOMS_SYSTEM_BINARY` to point to a local `mongod`
+# executable or pre-download the binary using `MONGOMS_DOWNLOAD_URL`.
+
 # Type checking
 npm run type-check
 

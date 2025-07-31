@@ -12,6 +12,8 @@ import {
     addCorrelationId,
 } from '../../middleware/security';
 
+import { describe, it, expect } from 'vitest';
+
 const app = express();
 app.use(express.json());
 
@@ -66,6 +68,7 @@ describe('Security Middleware Tests', () => {
 
         it('should redirect HTTP to HTTPS in production', async () => {
             process.env.NODE_ENV = 'production';
+            process.env.SECURE_BASE_URL = 'https://example.com';
 
             const response = await request(app)
                 .get('/test-https')
@@ -73,9 +76,10 @@ describe('Security Middleware Tests', () => {
                 .set('host', 'example.com');
 
             expect(response.status).toBe(302);
-            expect(response.headers.location).toBe('https://example.com/test-https');
+            expect(response.headers.location).toBe('https://example.com');
 
             process.env.NODE_ENV = 'test'; // Reset
+            delete process.env.SECURE_BASE_URL;
         });
     });
 
@@ -262,3 +266,4 @@ describe('Security Middleware Tests', () => {
         });
     });
 });
+

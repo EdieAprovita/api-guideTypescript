@@ -7,6 +7,7 @@ import { createAdminUser, generateAuthTokens } from './testFixtures';
 
 export interface AdminAuth {
     adminId: string;
+    adminObjectId: import('mongoose').Types.ObjectId;
     adminToken: string;
 }
 
@@ -27,5 +28,9 @@ export const refreshAdmin = async (): Promise<AdminAuth> => {
     const admin = await createAdminUser();
     const adminId = admin._id.toString();
     const tokens = await generateAuthTokens(adminId, admin.email, admin.role);
-    return { adminId, adminToken: tokens.accessToken };
+    return { 
+        adminId, 
+        adminObjectId: admin._id, // Keep the ObjectId for MongoDB operations
+        adminToken: tokens.accessToken 
+    };
 };

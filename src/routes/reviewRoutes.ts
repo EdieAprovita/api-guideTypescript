@@ -2,13 +2,9 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware';
 import { validate, sanitizeInput, rateLimits, securityHeaders, validateInputLength } from '../middleware/validation';
 import { reviewSchemas, paramSchemas } from '../utils/validators';
-import {
-    getReviewById,
-    updateReview,
-    deleteReview
-} from '../controllers/reviewControllers';
+import { getReviewById, updateReview, deleteReview } from '../controllers/reviewControllers';
 import { reviewService as ReviewService } from '../services/ReviewService';
-import { restaurantService as RestaurantService } from '../services/RestaurantService';
+
 import asyncHandler from '../middleware/asyncHandler';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 
@@ -29,19 +25,13 @@ router.put(
     protect,
     validate({
         params: paramSchemas.id,
-        body: reviewSchemas.update
+        body: reviewSchemas.update,
     }),
     updateReview
 );
 
 // Delete review (requires authentication and ownership)
-router.delete(
-    '/:id',
-    rateLimits.api,
-    protect,
-    validate({ params: paramSchemas.id }),
-    deleteReview
-);
+router.delete('/:id', rateLimits.api, protect, validate({ params: paramSchemas.id }), deleteReview);
 
 // Mark review as helpful
 router.post(
@@ -52,7 +42,7 @@ router.post(
     asyncHandler(async (req, res) => {
         const { id } = req.params;
         const userId = req.user?._id;
-        
+
         if (!userId) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
         }
@@ -64,7 +54,7 @@ router.post(
         const review = await ReviewService.markAsHelpful(id, userId);
         res.status(200).json({
             success: true,
-            data: review
+            data: review,
         });
     })
 );
@@ -78,7 +68,7 @@ router.delete(
     asyncHandler(async (req, res) => {
         const { id } = req.params;
         const userId = req.user?._id;
-        
+
         if (!userId) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
         }
@@ -90,9 +80,9 @@ router.delete(
         const review = await ReviewService.removeHelpfulVote(id, userId);
         res.status(200).json({
             success: true,
-            data: review
+            data: review,
         });
     })
 );
 
-export default router; 
+export default router;
