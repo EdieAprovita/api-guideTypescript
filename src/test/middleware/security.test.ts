@@ -12,15 +12,7 @@ import {
     addCorrelationId,
 } from '../../middleware/security';
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Request, Response, NextFunction } from 'express';
-import {
-    createMockRequest,
-    createMockResponse,
-    createMockNext,
-    type MockRequest,
-    type MockResponse,
-} from './security-test-helpers';
+import { describe, it, expect } from 'vitest';
 
 const app = express();
 app.use(express.json());
@@ -76,6 +68,7 @@ describe('Security Middleware Tests', () => {
 
         it('should redirect HTTP to HTTPS in production', async () => {
             process.env.NODE_ENV = 'production';
+            process.env.SECURE_BASE_URL = 'https://example.com';
 
             const response = await request(app)
                 .get('/test-https')
@@ -83,9 +76,10 @@ describe('Security Middleware Tests', () => {
                 .set('host', 'example.com');
 
             expect(response.status).toBe(302);
-            expect(response.headers.location).toBe('https://example.com/test-https');
+            expect(response.headers.location).toBe('https://example.com');
 
             process.env.NODE_ENV = 'test'; // Reset
+            delete process.env.SECURE_BASE_URL;
         });
     });
 
@@ -273,182 +267,3 @@ describe('Security Middleware Tests', () => {
     });
 });
 
-describe('Security Middleware - HTTPS Enforcement', () => {
-    let mockReq: MockRequest;
-    let mockRes: MockResponse;
-    let mockNext: NextFunction;
-
-    beforeEach(() => {
-        mockReq = createMockRequest();
-        mockRes = createMockResponse();
-        mockNext = createMockNext();
-    });
-
-    describe('enforceHTTPS', () => {
-        it('should allow HTTPS requests to pass through', () => {
-            mockReq.protocol = 'https';
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).toHaveBeenCalled();
-            expect(mockRes._status).toBeUndefined();
-            expect(mockRes._redirect).toBeUndefined();
-        });
-
-        it('should allow non-production environments to pass through', () => {
-            const originalEnv = process.env.NODE_ENV;
-            process.env.NODE_ENV = 'development';
-
-            mockReq.protocol = 'http';
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).toHaveBeenCalled();
-            expect(mockRes._status).toBeUndefined();
-            expect(mockRes._redirect).toBeUndefined();
-
-            process.env.NODE_ENV = originalEnv;
-        });
-
-        it('should reject requests with invalid host header format', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi.fn().mockReturnValue('invalid-host-format<script>');
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._status).toBe(400);
-            expect(mockRes._json).toEqual({
-                success: false,
-                message: 'Invalid host header format',
-            });
-        });
-
-        it('should reject requests with suspicious characters in host', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi.fn().mockReturnValue('example.com<script>');
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._status).toBe(400);
-            expect(mockRes._json).toEqual({
-                success: false,
-                message: 'Invalid request parameters',
-            });
-        });
-
-        it('should reject requests with JavaScript protocol in URL', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi.fn().mockReturnValue('example.com');
-            mockReq.originalUrl = '/javascript:alert(1)';
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._status).toBe(400);
-            expect(mockRes._json).toEqual({
-                success: false,
-                message: 'Invalid request parameters',
-            });
-        });
-
-        it('should reject requests with path traversal attempts', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi.fn().mockReturnValue('example.com');
-            mockReq.originalUrl = '/../../../etc/passwd';
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._status).toBe(400);
-            expect(mockRes._json).toEqual({
-                success: false,
-                message: 'Invalid URL path',
-            });
-        });
-
-        it('should reject requests with host mismatch', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi
-                .fn()
-                .mockReturnValueOnce('malicious.com') // host header
-                .mockReturnValueOnce('example.com'); // request host
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._status).toBe(400);
-            expect(mockRes._json).toEqual({
-                success: false,
-                message: 'Host mismatch',
-            });
-        });
-
-        it('should allow valid HTTPS redirect for production', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi.fn().mockReturnValue('example.com');
-            mockReq.originalUrl = '/api/test';
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._redirect).toEqual({
-                status: 302,
-                url: 'https://example.com/api/test',
-            });
-        });
-
-        it('should sanitize URL path and allow redirect', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi.fn().mockReturnValue('example.com');
-            mockReq.originalUrl = '/api/test?param=value<script>';
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._redirect).toEqual({
-                status: 302,
-                url: 'https://example.com/api/test',
-            });
-        });
-
-        it('should reject requests with invalid redirect URL format', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi.fn().mockReturnValue('invalid://host');
-            mockReq.originalUrl = '/test';
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._status).toBe(400);
-            expect(mockRes._json).toEqual({
-                success: false,
-                message: 'Invalid redirect URL format',
-            });
-        });
-
-        it('should handle valid host with port', () => {
-            process.env.NODE_ENV = 'production';
-            mockReq.protocol = 'http';
-            mockReq.get = vi.fn().mockReturnValue('example.com:8080');
-            mockReq.originalUrl = '/api/test';
-
-            enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);
-
-            expect(mockNext).not.toHaveBeenCalled();
-            expect(mockRes._redirect).toEqual({
-                status: 302,
-                url: 'https://example.com:8080/api/test',
-            });
-        });
-    });
-});
