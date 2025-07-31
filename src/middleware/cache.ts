@@ -52,7 +52,7 @@ function safeStringify(value: unknown): string {
  * Generar clave de cache basada en la request
  */
 function generateCacheKey(req: Request): string {
-    const { method, originalUrl, query, params } = req;
+    const { method, originalUrl, query } = req;
 
     // Crear clave base - usar pathname en lugar de originalUrl para evitar duplicación
     const url = new URL(originalUrl, 'http://localhost');

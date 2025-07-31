@@ -3,6 +3,28 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { Types } from 'mongoose';
 
+// Define interfaces for pagination and stats
+interface PaginationInfo {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+}
+
+interface ReviewStats {
+    totalReviews: number;
+    averageRating: number;
+    ratingDistribution: {
+        1: number;
+        2: number;
+        3: number;
+        4: number;
+        5: number;
+    };
+}
+
 export interface IReviewService {
     addReview(reviewData: Partial<IReview>): Promise<IReview>;
     getReviewById(reviewId: string): Promise<IReview>;
@@ -14,8 +36,8 @@ export interface IReviewService {
         limit: number;
         rating?: number;
         sort: string;
-    }): Promise<{ data: IReview[]; pagination: any }>;
-    getReviewStats(restaurantId: string): Promise<any>;
+    }): Promise<{ data: IReview[]; pagination: PaginationInfo }>;
+    getReviewStats(restaurantId: string): Promise<ReviewStats>;
     markAsHelpful(reviewId: string, userId: string): Promise<IReview>;
     removeHelpfulVote(reviewId: string, userId: string): Promise<IReview>;
 }
@@ -98,7 +120,7 @@ class ReviewService implements IReviewService {
         limit: number;
         rating?: number;
         sort: string;
-    }): Promise<{ data: IReview[]; pagination: any }> {
+    }): Promise<{ data: IReview[]; pagination: PaginationInfo }> {
         const { page, limit, rating, sort } = options;
         
         // Validate ObjectId format to prevent injection
@@ -112,7 +134,7 @@ class ReviewService implements IReviewService {
         const skip = (sanitizedPage - 1) * sanitizedLimit;
 
         // Validate and sanitize rating filter
-        let query: any = { restaurant: new Types.ObjectId(restaurantId) };
+        let query: Record<string, unknown> = { restaurant: new Types.ObjectId(restaurantId) };
         if (rating !== undefined && rating !== null) {
             const sanitizedRating = Math.floor(Number(rating));
             if (sanitizedRating >= 1 && sanitizedRating <= 5) {
@@ -161,15 +183,17 @@ class ReviewService implements IReviewService {
         return {
             data: reviews,
             pagination: {
-                page: sanitizedPage,
-                limit: sanitizedLimit,
-                total,
-                pages
+                currentPage: sanitizedPage,
+                totalPages: pages,
+                totalItems: total,
+                itemsPerPage: sanitizedLimit,
+                hasNextPage: sanitizedPage < pages,
+                hasPrevPage: sanitizedPage > 1
             }
         };
     }
 
-    async getReviewStats(restaurantId: string): Promise<any> {
+    async getReviewStats(restaurantId: string): Promise<ReviewStats> {
         // Validate ObjectId format to prevent injection
         if (!Types.ObjectId.isValid(restaurantId)) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
@@ -193,13 +217,27 @@ class ReviewService implements IReviewService {
             return {
                 averageRating: 0,
                 totalReviews: 0,
-                ratingDistribution: {}
+                ratingDistribution: {
+                    1: 0,
+                    2: 0,
+                    3: 0,
+                    4: 0,
+                    5: 0
+                }
             };
         }
 
-        const ratingDistribution: { [key: number]: number } = {};
+        const ratingDistribution = {
+            1: 0,
+            2: 0,
+            3: 0,
+            4: 0,
+            5: 0
+        };
         stats[0].ratingDistribution.forEach((rating: number) => {
-            ratingDistribution[rating] = (ratingDistribution[rating] || 0) + 1;
+            if (rating >= 1 && rating <= 5) {
+                ratingDistribution[rating as keyof typeof ratingDistribution]++;
+            }
         });
 
         return {
@@ -265,7 +303,7 @@ class ReviewService implements IReviewService {
     }
 
     // Legacy methods for backward compatibility
-    async listReviewsForModel(refId: string, refModel: string): Promise<IReview[]> {
+    async listReviewsForModel(refId: string, _refModel: string): Promise<IReview[]> {
         // Validate ObjectId format to prevent injection
         if (!Types.ObjectId.isValid(refId)) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid reference ID format'));

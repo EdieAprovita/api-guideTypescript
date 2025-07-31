@@ -107,7 +107,6 @@
         "@types/joi": "^17.2.2",
         "@types/js-yaml": "^4.0.9",
         "@types/jsonwebtoken": "^9.0.10",
-        "@types/mongoose": "^5.11.97",
         "@types/morgan": "^1.9.9",
         "@types/node": "^20.10.2",
         "@types/nodemailer": "^6.4.17",

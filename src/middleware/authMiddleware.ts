@@ -5,6 +5,23 @@ import { errorHandler } from './errorHandler';
 import TokenService from '../services/TokenService';
 import mongoose from 'mongoose';
 
+// Define interface for authenticated user
+interface AuthenticatedUser {
+    _id: string;
+    email: string;
+    role: 'user' | 'professional' | 'admin';
+    isActive: boolean;
+}
+
+// Extend Express Request interface
+declare global {
+    namespace Express {
+        interface Request {
+            user?: AuthenticatedUser;
+        }
+    }
+}
+
 /**
  * @description Protect routes
  * @name protect
@@ -79,7 +96,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
                 email: payload.email,
                 role: payload.role || 'user',
                 isActive: true,
-            } as any;
+            } as AuthenticatedUser;
             return next();
         }
 
@@ -91,7 +108,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
                 email: payload.email,
                 role: payload.role || 'user',
                 isActive: true,
-            } as any;
+            } as AuthenticatedUser;
             return next();
         }
 
@@ -101,7 +118,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User session has been revoked');
         }
 
-        const currentUser = await User.findById(payload.userId).select('-password');
+        const currentUser = await User.findById(payload.userId).select('-password').exec();
 
         if (!currentUser) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');

@@ -275,7 +275,7 @@ export const createRateLimit = (
 const createRateLimitOrBypass = (config: { windowMs: number; max: number; message: string }) => {
     // If rate limiting is disabled for tests, return a no-op middleware
     if (process.env.DISABLE_RATE_LIMIT === 'true') {
-        return (req: Request, res: Response, next: NextFunction) => next();
+        return (_req: Request, _res: Response, next: NextFunction) => next();
     }
     
     return createRateLimit(config);

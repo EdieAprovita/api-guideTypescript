@@ -118,7 +118,7 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
     
     // Check if user is the author of the review
     const review = await ReviewService.getReviewById(id);
-    const userId = (req as any).user?._id;
+    const userId = req.user?._id;
     
     if (!userId) {
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
@@ -150,7 +150,7 @@ export const deleteReview = asyncHandler(async (req: Request, res: Response) => 
     
     // Check if user is the author of the review
     const review = await ReviewService.getReviewById(id);
-    const userId = (req as any).user?._id;
+    const userId = req.user?._id;
     
     if (!userId) {
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');

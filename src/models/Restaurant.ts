@@ -78,4 +78,4 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
 );
 restaurantSchema.index({ location: '2dsphere' });
 
-export const Restaurant = mongoose.models.Restaurant || mongoose.model<IRestaurant>('Restaurant', restaurantSchema);
+export const Restaurant = (mongoose.models.Restaurant as mongoose.Model<IRestaurant>) || mongoose.model<IRestaurant>('Restaurant', restaurantSchema);

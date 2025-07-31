@@ -8,7 +8,7 @@ import {
     deleteReview
 } from '../controllers/reviewControllers';
 import { reviewService as ReviewService } from '../services/ReviewService';
-import { restaurantService as RestaurantService } from '../services/RestaurantService';
+// import { restaurantService as RestaurantService } from '../services/RestaurantService';
 import asyncHandler from '../middleware/asyncHandler';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 

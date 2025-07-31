@@ -104,15 +104,41 @@ describe('Review Integration Tests', () => {
 
     describe('POST /api/v1/restaurants/:restaurantId/reviews', () => {
         it('should create a new review with valid data', async () => {
+            // Ensure restaurant exists in database before the test
+            let dbRestaurant = await Restaurant.findById(restaurantId);
+            
+            if (!dbRestaurant) {
+                // Recreate restaurant if it doesn't exist
+                const authorId = Types.ObjectId.isValid(testUserId) ? testUserId : new Types.ObjectId();
+                dbRestaurant = await Restaurant.create({
+                    restaurantName: 'Test Restaurant for Reviews',
+                    description: 'Test restaurant description',
+                    address: '123 Review Street, Test City, Test State, USA, 12345',
+                    location: {
+                        type: 'Point',
+                        coordinates: [-118.2437, 34.0522],
+                    },
+                    cuisine: ['vegan', 'organic'],
+                    features: ['delivery'],
+                    author: authorId,
+                    contact: [
+                        {
+                            phone: '+1-555-999-1111',
+                            facebook: '',
+                            instagram: '',
+                        },
+                    ],
+                    rating: 0,
+                    numReviews: 0,
+                    reviews: [],
+                });
+                restaurantId = dbRestaurant._id.toString();
+            }
+
             const response = await request(app)
                 .post(`/api/v1/restaurants/${restaurantId}/reviews`)
                 .set('Authorization', `Bearer ${authToken}`)
                 .send(validReviewData);
-
-            // Log the response for debugging
-            if (response.status !== 201) {
-                console.error('Error response:', response.body);
-            }
 
             expect(response.status).toBe(201);
             expect(response.body.success).toBe(true);

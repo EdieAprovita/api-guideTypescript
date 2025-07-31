@@ -1,8 +1,23 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import logger from '../utils/logger';
 
-export const errorHandler = (err: Error, req: Request, res: Response, next: any): void => {
+// Define specific error types for better type safety
+interface MongooseValidationError extends Error {
+    errors: Record<string, { path: string; message: string }>;
+}
+
+interface MongooseCastError extends Error {
+    value: string;
+    path: string;
+}
+
+interface MongooseDuplicateKeyError extends Error {
+    code: number;
+    keyPattern: Record<string, number>;
+}
+
+export const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction): void => {
     logger.error(`[Error] ${req.method} ${req.path}`, {
         error: err.message,
         stack: err.stack,
@@ -22,7 +37,8 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: any)
 
     // Handle Mongoose ValidationError
     if (err.name === 'ValidationError') {
-        const validationErrors = Object.values((err as any).errors).map((error: any) => ({
+        const mongooseErr = err as MongooseValidationError;
+        const validationErrors = Object.values(mongooseErr.errors).map((error) => ({
             field: error.path,
             message: error.message,
         }));
@@ -38,7 +54,7 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: any)
 
     // Handle Mongoose CastError (invalid ObjectId)
     if (err.name === 'CastError') {
-        const castError = err as any;
+        const castError = err as MongooseCastError;
         res.status(400).json({
             success: false,
             message: `Invalid _id: ${castError.value}`,
@@ -48,8 +64,8 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: any)
     }
 
     // Handle Mongoose duplicate key error
-    if ((err as any).code === 11000) {
-        const duplicateError = err as any;
+    if ((err as MongooseDuplicateKeyError).code === 11000) {
+        const duplicateError = err as MongooseDuplicateKeyError;
         const field = Object.keys(duplicateError.keyPattern)[0];
         res.status(400).json({
             success: false,

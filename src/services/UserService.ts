@@ -39,7 +39,7 @@ abstract class BaseService {
 
     protected async validateUserNotExists(email: string) {
         const sanitizedEmail = validateAndSanitizeEmail(email);
-        const existingUser = await User.findOne({ email: sanitizedEmail });
+        const existingUser = await User.findOne({ email: sanitizedEmail }).exec();
         if (existingUser) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('User already exists'));
         }
@@ -47,7 +47,7 @@ abstract class BaseService {
 
     protected async getUserByEmail(email: string) {
         const sanitizedEmail = validateAndSanitizeEmail(email);
-        const user = await User.findOne({ email: sanitizedEmail }).select('+password');
+        const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
         this.validateUserExists(user);
         return user!;
     }
@@ -95,7 +95,7 @@ abstract class BaseService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid token'));
         }
 
-        const user = await User.findById(decoded.userId);
+        const user = await User.findById(decoded.userId).exec();
         this.validateUserExists(user);
         return user!;
     }
@@ -163,7 +163,7 @@ class UserService extends BaseService {
 
     async loginUser(email: string, password: string, res: Response) {
         const sanitizedEmail = validateAndSanitizeEmail(email);
-        const user = await User.findOne({ email: sanitizedEmail }).select('+password');
+        const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
         await this.validateUserCredentials(user, password);
         const tokens = await TokenService.generateTokens(user!._id.toString(), user!.email, user!.role);
         generateTokenAndSetCookie(res, user!._id);
@@ -194,13 +194,13 @@ class UserService extends BaseService {
     }
 
     async findAllUsers() {
-        const users = await User.find({});
+        const users = await User.find({}).exec();
         return users.map(this.getUserResponse);
     }
 
     async findUserById(userId: string) {
         if (!userId) throw new UserIdRequiredError('User ID not found');
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).exec();
         return user;
     }
 
@@ -214,7 +214,7 @@ class UserService extends BaseService {
     }
 
     async deleteUserById(userId: string) {
-        await User.findByIdAndDelete(userId);
+        await User.findByIdAndDelete(userId).exec();
         return { message: 'User deleted successfully' };
     }
 
