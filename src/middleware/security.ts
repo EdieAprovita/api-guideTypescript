@@ -86,17 +86,78 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
                 });
             }
 
-            // Only redirect if the host is valid and doesn't contain suspicious characters
-            const suspiciousChars = /[<>\"'&]/;
-            if (suspiciousChars.test(host) || suspiciousChars.test(req.originalUrl)) {
+            // Additional security checks for redirect prevention
+            // 1. Validate host format more strictly
+            const strictHostPattern =
+                /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(:[0-9]{1,5})?$/;
+            if (!strictHostPattern.test(host)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid host header format',
+                });
+            }
+
+            // 2. Check for suspicious patterns in host and URL
+            const suspiciousPatterns = [
+                /[<>"'&]/g, // HTML entities
+                /javascript:/gi, // JavaScript protocol
+                /data:/gi, // Data protocol
+                /vbscript:/gi, // VBScript protocol
+                /on\w+\s*=/gi, // Event handlers
+                /<script/gi, // Script tags
+                /\\/g, // Backslashes
+                /\.\./g, // Path traversal
+            ];
+
+            const hasSuspiciousContent = suspiciousPatterns.some(
+                pattern => pattern.test(host) || pattern.test(req.originalUrl)
+            );
+
+            if (hasSuspiciousContent) {
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid request parameters',
                 });
             }
 
-            // Redirect to the same path but with HTTPS
-            const redirectURL = `https://${host}${req.originalUrl}`;
+            // 3. Validate URL path to prevent path traversal
+            const urlPath = req.originalUrl.split('?')[0]; // Remove query parameters
+            if (urlPath.includes('..') || urlPath.includes('\\')) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid URL path',
+                });
+            }
+
+            // 4. Only allow redirects to the same host (prevent open redirects)
+            const requestHost = req.get('host');
+            if (requestHost && host !== requestHost) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Host mismatch',
+                });
+            }
+
+            // 5. Build redirect URL with additional validation
+            const sanitizedPath = urlPath.replace(/[^\w\-\.\/]/g, ''); // Only allow safe characters
+            const redirectURL = `https://${host}${sanitizedPath}`;
+
+            // 6. Final validation of the complete redirect URL
+            try {
+                const url = new URL(redirectURL);
+                if (url.protocol !== 'https:' || url.hostname !== host.split(':')[0]) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Invalid redirect URL',
+                    });
+                }
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid redirect URL format',
+                });
+            }
+
             return res.redirect(302, redirectURL);
         }
     }

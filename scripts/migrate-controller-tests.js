@@ -210,8 +210,7 @@ function main() {
 
         const testDir = path.join(__dirname, '../src/test/controllers');
         if (fs.existsSync(testDir)) {
-            const files = fs
-                .readdirSync(testDir)
+            fs.readdirSync(testDir)
                 .filter(file => file.endsWith('.test.ts'))
                 .filter(file => !file.includes('business')) // Ya migrado
                 .forEach(file => {

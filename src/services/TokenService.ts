@@ -299,6 +299,7 @@ class TokenService {
             }
         } catch (error) {
             // If token decode fails, still blacklist with default TTL
+            // Error is intentionally caught to ensure token is blacklisted even if decode fails
             const blacklistKey = `blacklist:${token}`;
             await this.redis.setex(blacklistKey, 3600, 'revoked');
         }

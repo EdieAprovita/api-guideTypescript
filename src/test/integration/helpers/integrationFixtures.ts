@@ -1,6 +1,5 @@
 import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
-import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose'; // Importación default según documentación oficial
 
 // CRITICAL: Configurar variables de entorno antes de importar TokenService

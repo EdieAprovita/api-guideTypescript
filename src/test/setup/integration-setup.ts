@@ -3,10 +3,9 @@
  * Configuration for integration tests with real database
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import { vi } from 'vitest';
 
 let mongoServer: MongoMemoryServer;
 
@@ -42,68 +41,68 @@ vi.resetModules();
 
 // Database setup for integration tests
 beforeAll(async () => {
-  try {
-    // Start MongoDB Memory Server
-    mongoServer = await MongoMemoryServer.create({
-      binary: {
-        version: '6.0.0',
-      },
-    });
-    
-    const mongoUri = mongoServer.getUri();
-    process.env.MONGODB_URI = mongoUri;
-    
-    // Connect to the test database
-    await mongoose.connect(mongoUri, {
-      maxPoolSize: 1,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 5000,
-    });
-    
-    console.log('✅ Test database connected');
-  } catch (error) {
-    console.error('❌ Failed to setup test database:', error);
-    process.exit(1);
-  }
+    try {
+        // Start MongoDB Memory Server
+        mongoServer = await MongoMemoryServer.create({
+            binary: {
+                version: '6.0.0',
+            },
+        });
+
+        const mongoUri = mongoServer.getUri();
+        process.env.MONGODB_URI = mongoUri;
+
+        // Connect to the test database
+        await mongoose.connect(mongoUri, {
+            maxPoolSize: 1,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 5000,
+        });
+
+        console.log('✅ Test database connected');
+    } catch (error) {
+        console.error('❌ Failed to setup test database:', error);
+        process.exit(1);
+    }
 }, 60000);
 
 afterAll(async () => {
-  try {
-    // Disconnect from database
-    await mongoose.disconnect();
-    
-    // Stop MongoDB Memory Server
-    if (mongoServer) {
-      await mongoServer.stop();
+    try {
+        // Disconnect from database
+        await mongoose.disconnect();
+
+        // Stop MongoDB Memory Server
+        if (mongoServer) {
+            await mongoServer.stop();
+        }
+
+        console.log('✅ Test database disconnected');
+    } catch (error) {
+        console.error('❌ Failed to cleanup test database:', error);
     }
-    
-    console.log('✅ Test database disconnected');
-  } catch (error) {
-    console.error('❌ Failed to cleanup test database:', error);
-  }
 }, 30000);
 
 beforeEach(async () => {
-  // Clear all collections before each test
-  const collections = mongoose.connection.collections;
-  
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany({});
-  }
+    // Clear all collections before each test
+    const collections = mongoose.connection.collections;
 
-  // Clear any mock Redis storage if it exists
-  try {
-    const { default: TokenService } = await import('../../services/TokenService');
-    if (typeof TokenService.clearAllForTesting === 'function') {
-      await TokenService.clearAllForTesting();
+    for (const key in collections) {
+        const collection = collections[key];
+        await collection.deleteMany({});
     }
-  } catch (error) {
-    // Ignore errors if TokenService is not available
-  }
+
+    // Clear any mock Redis storage if it exists
+    try {
+        const { default: TokenService } = await import('../../services/TokenService');
+        if (typeof TokenService.clearAllForTesting === 'function') {
+            await TokenService.clearAllForTesting();
+        }
+    } catch (error) {
+        // Ignore errors if TokenService is not available
+    }
 });
 
 afterEach(async () => {
-  // Additional cleanup if needed
-  // This runs after each test
+    // Additional cleanup if needed
+    // This runs after each test
 });

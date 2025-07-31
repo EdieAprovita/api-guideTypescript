@@ -11,9 +11,7 @@ import { User } from '../../../models/User';
 import { Restaurant, IRestaurant } from '../../../models/Restaurant';
 import { Business } from '../../../models/Business';
 import { logTestError } from './errorLogger';
-import jwt from 'jsonwebtoken';
 import { generateTestPassword } from '../../utils/passwordGenerator';
-import TokenService from '../../../services/TokenService';
 
 // Import real bcrypt for integration tests
 const bcrypt = require('bcryptjs');

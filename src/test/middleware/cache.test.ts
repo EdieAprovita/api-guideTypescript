@@ -1,5 +1,4 @@
 import { vi } from 'vitest';
-import type { MockedFunction, Mocked } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { cacheMiddleware } from '../../middleware/cache';

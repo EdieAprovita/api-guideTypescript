@@ -1,10 +1,9 @@
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import {
     setupMasterTest,
     generateMasterTestData,
     makeMasterRequest,
-    expectMasterResponse,
     type MasterTestContext,
 } from '../config/master-test-config';
 
@@ -31,8 +30,8 @@ vi.mock('../../services/UserService', () => ({
     default: mockUserService,
 }));
 
-// Import UserService after mock
-import UserService from '../../services/UserService';
+// Import UserService after mock - used for type checking
+import type UserService from '../../services/UserService';
 
 // Use master test data generators
 const createValidUserData = () => ({
@@ -67,11 +66,7 @@ describe('User Controllers Tests', () => {
 
             mockUserService.registerUser.mockResolvedValue(createdUser);
 
-            const response = await makeMasterRequest.post(
-                app,
-                '/api/v1/auth/register',
-                userData
-            );
+            const response = await makeMasterRequest.post(app, '/api/v1/auth/register', userData);
 
             // Check if registration endpoint works (may return different status codes)
             expect(response.status).toBeGreaterThanOrEqual(200);
@@ -84,11 +79,7 @@ describe('User Controllers Tests', () => {
                 password: '123', // Too short password
             };
 
-            const response = await makeMasterRequest.post(
-                app,
-                '/api/v1/auth/register',
-                invalidData
-            );
+            const response = await makeMasterRequest.post(app, '/api/v1/auth/register', invalidData);
 
             // Should return validation error
             expect(response.status).toBeGreaterThanOrEqual(400);
@@ -109,11 +100,7 @@ describe('User Controllers Tests', () => {
 
             mockUserService.loginUser.mockResolvedValue(loginResult);
 
-            const response = await makeMasterRequest.post(
-                app,
-                '/api/v1/auth/login',
-                loginData
-            );
+            const response = await makeMasterRequest.post(app, '/api/v1/auth/login', loginData);
 
             // Check if login endpoint works
             expect(response.status).toBeGreaterThanOrEqual(200);
@@ -128,11 +115,7 @@ describe('User Controllers Tests', () => {
 
             mockUserService.loginUser.mockRejectedValue(new Error('Invalid credentials'));
 
-            const response = await makeMasterRequest.post(
-                app,
-                '/api/v1/auth/login',
-                invalidCredentials
-            );
+            const response = await makeMasterRequest.post(app, '/api/v1/auth/login', invalidCredentials);
 
             // Should return authentication error
             expect(response.status).toBeGreaterThanOrEqual(400);
@@ -157,11 +140,7 @@ describe('User Controllers Tests', () => {
 
             mockUserService.findAllUsers.mockResolvedValue(mockUsers);
 
-            const response = await makeMasterRequest.get(
-                app,
-                '/api/v1/users',
-                context.admin.token
-            );
+            const response = await makeMasterRequest.get(app, '/api/v1/users', context.admin.token);
 
             // Should handle the request appropriately
             expect(response.status).toBeGreaterThanOrEqual(200);
@@ -192,11 +171,7 @@ describe('User Controllers Tests', () => {
 
             mockUserService.findUserById.mockResolvedValue(mockUser);
 
-            const response = await makeMasterRequest.get(
-                app,
-                `/api/v1/users/${userId}`,
-                context.admin.token
-            );
+            const response = await makeMasterRequest.get(app, `/api/v1/users/${userId}`, context.admin.token);
 
             // Should handle the request appropriately
             expect(response.status).toBeGreaterThanOrEqual(200);
@@ -207,11 +182,7 @@ describe('User Controllers Tests', () => {
             const fakeId = faker.database.mongodbObjectId();
             mockUserService.findUserById.mockRejectedValue(new Error('User not found'));
 
-            const response = await makeMasterRequest.get(
-                app,
-                `/api/v1/users/${fakeId}`,
-                context.admin.token
-            );
+            const response = await makeMasterRequest.get(app, `/api/v1/users/${fakeId}`, context.admin.token);
 
             // Should handle not found appropriately
             expect(response.status).toBeGreaterThanOrEqual(400);
@@ -270,11 +241,7 @@ describe('User Controllers Tests', () => {
 
             mockUserService.deleteUserById.mockResolvedValue(undefined);
 
-            const response = await makeMasterRequest.delete(
-                app,
-                `/api/v1/users/${userId}`,
-                context.admin.token
-            );
+            const response = await makeMasterRequest.delete(app, `/api/v1/users/${userId}`, context.admin.token);
 
             // Should handle the deletion appropriately
             expect(response.status).toBeGreaterThanOrEqual(200);
@@ -285,11 +252,7 @@ describe('User Controllers Tests', () => {
             const fakeId = faker.database.mongodbObjectId();
             mockUserService.deleteUserById.mockRejectedValue(new Error('User not found'));
 
-            const response = await makeMasterRequest.delete(
-                app,
-                `/api/v1/users/${fakeId}`,
-                context.admin.token
-            );
+            const response = await makeMasterRequest.delete(app, `/api/v1/users/${fakeId}`, context.admin.token);
 
             // Should handle not found appropriately
             expect(response.status).toBeGreaterThanOrEqual(400);
@@ -301,11 +264,7 @@ describe('User Controllers Tests', () => {
         it('should handle service errors gracefully', async () => {
             mockUserService.findAllUsers.mockRejectedValue(new Error('Database connection failed'));
 
-            const response = await makeMasterRequest.get(
-                app,
-                '/api/v1/users',
-                context.admin.token
-            );
+            const response = await makeMasterRequest.get(app, '/api/v1/users', context.admin.token);
 
             // Should handle service errors appropriately
             expect(response.status).toBeGreaterThanOrEqual(400);
@@ -316,11 +275,7 @@ describe('User Controllers Tests', () => {
             const mockUsers = [generateMasterTestData.user()];
             mockUserService.findAllUsers.mockResolvedValue(mockUsers);
 
-            await makeMasterRequest.get(
-                app,
-                '/api/v1/users',
-                context.admin.token
-            );
+            await makeMasterRequest.get(app, '/api/v1/users', context.admin.token);
 
             // Verify that service method was called
             expect(mockUserService.findAllUsers).toHaveBeenCalled();

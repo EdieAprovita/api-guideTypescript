@@ -7,7 +7,6 @@
 
 import type { MockedFunction, MockedClass, Mocked } from 'vitest';
 import type { Request, Response } from 'express';
-import type Redis from 'ioredis';
 
 // ============================================================================
 // CORE TEST INTERFACES

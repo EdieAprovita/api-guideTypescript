@@ -17,7 +17,6 @@ if (process.env.NODE_ENV === 'test' && !process.env.INTEGRATION_TEST) {
 }
 
 import { faker } from '@faker-js/faker';
-import type { TestRequest, TestResponse, TestUser } from '../types/test-types';
 
 // Ensure faker uses deterministic data
 faker.seed(12345);

@@ -1,6 +1,6 @@
 /**
  * Unified Mock Factory - Single Source of Truth for All Test Mocks
- * 
+ *
  * This factory creates consistent, type-safe mocks for all services, models,
  * and utilities used throughout the application. It ensures no code duplication
  * and maintains consistency across all test files.
@@ -32,18 +32,18 @@ const TEST_CONSTANTS = {
     ADMIN_USERNAME: 'testadmin',
     ADMIN_TOKEN: 'master_test_token_admin',
     ADMIN_REFRESH_TOKEN: 'master_refresh_token_admin',
-    
+
     PROFESSIONAL_USER_ID: '507f1f77bcf86cd799439012',
     PROFESSIONAL_EMAIL: 'professional@test.com',
     PROFESSIONAL_USERNAME: 'testprofessional',
-    
+
     USER_ID: '507f1f77bcf86cd799439013',
     USER_EMAIL: 'user@test.com',
     USER_USERNAME: 'testuser',
-    
+
     JWT_SECRET: 'master_test_secret_key_12345',
     JWT_REFRESH_SECRET: 'master_refresh_secret_12345',
-    
+
     BUSINESS_ID: '507f1f77bcf86cd799439020',
     RESTAURANT_ID: '507f1f77bcf86cd799439021',
     REVIEW_ID: '507f1f77bcf86cd799439022',
@@ -52,6 +52,22 @@ const TEST_CONSTANTS = {
 // ============================================================================
 // FACTORY CLASS
 // ============================================================================
+
+// Common mock user creation function
+const createMockUser = (overrides: Partial<TestUser> = {}): TestUser => ({
+    _id: TEST_CONSTANTS.ADMIN_USER_ID,
+    userId: TEST_CONSTANTS.ADMIN_USER_ID,
+    username: TEST_CONSTANTS.ADMIN_USERNAME,
+    email: TEST_CONSTANTS.ADMIN_EMAIL,
+    role: 'admin',
+    isAdmin: true,
+    isActive: true,
+    isDeleted: false,
+    photo: 'default.png',
+    matchPassword: vi.fn().mockResolvedValue(true),
+    save: vi.fn().mockResolvedValue({} as TestUser),
+    ...overrides,
+});
 
 export class UnifiedMockFactory {
     private options: Required<MockFactoryOptions>;
@@ -95,9 +111,9 @@ export class UnifiedMockFactory {
 
     createRedisMockModule() {
         const mockRedis = this.createRedisMock();
-        
+
         const MockedRedisConstructor = vi.fn().mockImplementation(() => mockRedis);
-        
+
         return {
             __esModule: true,
             default: MockedRedisConstructor,
@@ -132,9 +148,9 @@ export class UnifiedMockFactory {
 
     createCacheServiceMockModule() {
         const mockInstance = this.createCacheServiceMock();
-        
+
         const MockedCacheServiceConstructor = vi.fn().mockImplementation(() => mockInstance);
-        
+
         return {
             __esModule: true,
             CacheService: MockedCacheServiceConstructor,
@@ -183,9 +199,9 @@ export class UnifiedMockFactory {
 
     createCacheAlertServiceMockModule() {
         const mockInstance = this.createCacheAlertServiceMock();
-        
+
         const MockedCacheAlertServiceConstructor = vi.fn().mockImplementation(() => mockInstance);
-        
+
         return {
             __esModule: true,
             CacheAlertService: MockedCacheAlertServiceConstructor,
@@ -206,55 +222,57 @@ export class UnifiedMockFactory {
                 accessToken: `access_token_${userId}`,
                 refreshToken: `refresh_token_${userId}`,
             })),
-            
+
             generateTokenPair: vi.fn().mockImplementation(async (payload: Record<string, unknown>) => {
-                const userId = payload.userId as string || TEST_CONSTANTS.ADMIN_USER_ID;
+                const userId = (payload.userId as string) || TEST_CONSTANTS.ADMIN_USER_ID;
                 return {
                     accessToken: `access_token_${userId}`,
                     refreshToken: `refresh_token_${userId}`,
                 };
             }),
-            
+
             verifyAccessToken: vi.fn().mockImplementation(async (token: string) => {
-                const userId = token.includes(TEST_CONSTANTS.ADMIN_USER_ID) 
-                    ? TEST_CONSTANTS.ADMIN_USER_ID 
+                const userId = token.includes(TEST_CONSTANTS.ADMIN_USER_ID)
+                    ? TEST_CONSTANTS.ADMIN_USER_ID
                     : TEST_CONSTANTS.USER_ID;
-                    
+
                 return {
                     userId,
-                    email: userId === TEST_CONSTANTS.ADMIN_USER_ID 
-                        ? TEST_CONSTANTS.ADMIN_EMAIL 
-                        : TEST_CONSTANTS.USER_EMAIL,
+                    email:
+                        userId === TEST_CONSTANTS.ADMIN_USER_ID
+                            ? TEST_CONSTANTS.ADMIN_EMAIL
+                            : TEST_CONSTANTS.USER_EMAIL,
                     role: userId === TEST_CONSTANTS.ADMIN_USER_ID ? 'admin' : 'user',
                 };
             }),
-            
+
             verifyRefreshToken: vi.fn().mockImplementation(async (token: string) => {
-                const userId = token.includes(TEST_CONSTANTS.ADMIN_USER_ID) 
-                    ? TEST_CONSTANTS.ADMIN_USER_ID 
+                const userId = token.includes(TEST_CONSTANTS.ADMIN_USER_ID)
+                    ? TEST_CONSTANTS.ADMIN_USER_ID
                     : TEST_CONSTANTS.USER_ID;
-                    
+
                 return {
                     userId,
-                    email: userId === TEST_CONSTANTS.ADMIN_USER_ID 
-                        ? TEST_CONSTANTS.ADMIN_EMAIL 
-                        : TEST_CONSTANTS.USER_EMAIL,
+                    email:
+                        userId === TEST_CONSTANTS.ADMIN_USER_ID
+                            ? TEST_CONSTANTS.ADMIN_EMAIL
+                            : TEST_CONSTANTS.USER_EMAIL,
                     role: userId === TEST_CONSTANTS.ADMIN_USER_ID ? 'admin' : 'user',
                     type: 'refresh',
                 };
             }),
-            
+
             refreshTokens: vi.fn().mockImplementation(async (refreshToken: string) => {
-                const userId = refreshToken.includes(TEST_CONSTANTS.ADMIN_USER_ID) 
-                    ? TEST_CONSTANTS.ADMIN_USER_ID 
+                const userId = refreshToken.includes(TEST_CONSTANTS.ADMIN_USER_ID)
+                    ? TEST_CONSTANTS.ADMIN_USER_ID
                     : TEST_CONSTANTS.USER_ID;
-                    
+
                 return {
                     accessToken: `new_access_token_${userId}`,
                     refreshToken: `new_refresh_token_${userId}`,
                 };
             }),
-            
+
             blacklistToken: vi.fn().mockResolvedValue(undefined),
             isTokenBlacklisted: vi.fn().mockResolvedValue(false),
             revokeAllUserTokens: vi.fn().mockResolvedValue(undefined),
@@ -267,7 +285,7 @@ export class UnifiedMockFactory {
 
     createTokenServiceMockModule() {
         const mockInstance = this.createTokenServiceMock();
-        
+
         return {
             __esModule: true,
             default: mockInstance,
@@ -280,48 +298,33 @@ export class UnifiedMockFactory {
     // ========================================================================
 
     createUserServiceMock(): MockedUserService {
-        const createMockUser = (overrides: Partial<TestUser> = {}): TestUser => ({
-            _id: TEST_CONSTANTS.ADMIN_USER_ID,
-            userId: TEST_CONSTANTS.ADMIN_USER_ID,
-            username: TEST_CONSTANTS.ADMIN_USERNAME,
-            email: TEST_CONSTANTS.ADMIN_EMAIL,
-            role: 'admin',
-            isAdmin: true,
-            isActive: true,
-            isDeleted: false,
-            photo: 'default.png',
-            matchPassword: vi.fn().mockResolvedValue(true),
-            save: vi.fn().mockResolvedValue({} as TestUser),
-            ...overrides,
-        });
-
         return {
             registerUser: vi.fn().mockImplementation(async (userData: unknown) => {
                 const data = userData as { email: string; username?: string; password?: string };
-                
+
                 // Simulate duplicate email error
                 if (data.email === 'existing@example.com') {
                     return {
                         success: false,
-                        error: 'User with this email already exists'
+                        error: 'User with this email already exists',
                     };
                 }
-                
-                const user = createMockUser({ 
+
+                const user = createMockUser({
                     email: data.email,
-                    username: data.username || 'testuser'
+                    username: data.username || 'testuser',
                 });
                 return {
                     success: true,
-                    user
+                    user,
                 };
             }),
-            
+
             loginUser: vi.fn().mockImplementation(async (credentials: { email: string; password: string }) => {
                 if (credentials.password === 'wrongpassword') {
                     return {
                         success: false,
-                        error: 'Invalid credentials'
+                        error: 'Invalid credentials',
                     };
                 }
                 const user = createMockUser({ email: credentials.email });
@@ -330,34 +333,34 @@ export class UnifiedMockFactory {
                     user,
                     tokens: {
                         access: 'mock-access-token',
-                        refresh: 'mock-refresh-token'
-                    }
+                        refresh: 'mock-refresh-token',
+                    },
                 };
             }),
-            
+
             getUserById: vi.fn().mockImplementation(async (id: string) => {
                 return id === 'nonexistent' ? null : createMockUser({ _id: id, userId: id });
             }),
-            
+
             updateUser: vi.fn().mockImplementation(async (id: string, updateData: unknown) => {
-                const user = createMockUser({ _id: id, userId: id, ...updateData as Partial<TestUser> });
+                const user = createMockUser({ _id: id, userId: id, ...(updateData as Partial<TestUser>) });
                 return {
                     success: true,
-                    user
+                    user,
                 };
             }),
-            
+
             deleteUser: vi.fn().mockImplementation(async (id: string) => {
                 if (id === 'nonexistent') {
                     return {
                         success: false,
-                        error: 'User not found'
+                        error: 'User not found',
                     };
                 }
                 const user = createMockUser({ _id: id, userId: id });
                 return {
                     success: true,
-                    user
+                    user,
                 };
             }),
 
@@ -369,9 +372,9 @@ export class UnifiedMockFactory {
 
     createUserServiceMockModule() {
         const mockInstance = this.createUserServiceMock();
-        
+
         const MockedUserServiceConstructor = vi.fn().mockImplementation(() => mockInstance);
-        
+
         return {
             __esModule: true,
             UserService: MockedUserServiceConstructor,
@@ -384,26 +387,11 @@ export class UnifiedMockFactory {
     // ========================================================================
 
     createUserModelMock(): MockedUserModel {
-        const createMockUser = (overrides: Partial<TestUser> = {}): TestUser => ({
-            _id: TEST_CONSTANTS.ADMIN_USER_ID,
-            userId: TEST_CONSTANTS.ADMIN_USER_ID,
-            username: TEST_CONSTANTS.ADMIN_USERNAME,
-            email: TEST_CONSTANTS.ADMIN_EMAIL,
-            role: 'admin',
-            isAdmin: true,
-            isActive: true,
-            isDeleted: false,
-            photo: 'default.png',
-            matchPassword: vi.fn().mockResolvedValue(true),
-            save: vi.fn().mockResolvedValue({} as TestUser),
-            ...overrides,
-        });
-
         return {
             create: vi.fn().mockImplementation(async (userData: unknown) => {
                 return createMockUser(userData as Partial<TestUser>);
             }),
-            
+
             findOne: vi.fn().mockImplementation(async (query: unknown) => {
                 const q = query as { email?: string; _id?: string };
                 if (q.email === 'nonexistent@test.com' || q._id === 'nonexistent') {
@@ -411,26 +399,28 @@ export class UnifiedMockFactory {
                 }
                 return createMockUser();
             }),
-            
+
             findById: vi.fn().mockImplementation(async (id: string) => {
                 return id === 'nonexistent' ? null : createMockUser({ _id: id, userId: id });
             }),
-            
+
             findByIdAndUpdate: vi.fn().mockImplementation(async (id: string, update: unknown, options?: unknown) => {
-                return id === 'nonexistent' ? null : createMockUser({ _id: id, userId: id, ...update as Partial<TestUser> });
+                return id === 'nonexistent'
+                    ? null
+                    : createMockUser({ _id: id, userId: id, ...(update as Partial<TestUser>) });
             }),
-            
+
             findByIdAndDelete: vi.fn().mockImplementation(async (id: string) => {
                 return id === 'nonexistent' ? null : createMockUser({ _id: id, userId: id });
             }),
-            
+
             find: vi.fn().mockResolvedValue([createMockUser()]),
         };
     }
 
     createUserModelMockModule() {
         const mockInstance = this.createUserModelMock();
-        
+
         return {
             __esModule: true,
             User: mockInstance,
@@ -446,34 +436,35 @@ export class UnifiedMockFactory {
     createJWTMock(): MockedJWT {
         return {
             sign: vi.fn().mockImplementation((payload: Record<string, unknown>, secret: string, options?: unknown) => {
-                const userId = payload.userId as string || TEST_CONSTANTS.ADMIN_USER_ID;
-                const type = payload.type as string || 'access';
+                const userId = (payload.userId as string) || TEST_CONSTANTS.ADMIN_USER_ID;
+                const type = (payload.type as string) || 'access';
                 return `${type}_token_${userId}`;
             }),
-            
+
             verify: vi.fn().mockImplementation((token: string, secret: string) => {
-                const userId = token.includes(TEST_CONSTANTS.ADMIN_USER_ID) 
-                    ? TEST_CONSTANTS.ADMIN_USER_ID 
+                const userId = token.includes(TEST_CONSTANTS.ADMIN_USER_ID)
+                    ? TEST_CONSTANTS.ADMIN_USER_ID
                     : TEST_CONSTANTS.USER_ID;
-                    
+
                 const type = token.includes('refresh') ? 'refresh' : 'access';
-                
+
                 if (token.includes('invalid')) {
                     throw new Error('invalid signature');
                 }
-                
+
                 return {
                     userId,
-                    email: userId === TEST_CONSTANTS.ADMIN_USER_ID 
-                        ? TEST_CONSTANTS.ADMIN_EMAIL 
-                        : TEST_CONSTANTS.USER_EMAIL,
+                    email:
+                        userId === TEST_CONSTANTS.ADMIN_USER_ID
+                            ? TEST_CONSTANTS.ADMIN_EMAIL
+                            : TEST_CONSTANTS.USER_EMAIL,
                     role: userId === TEST_CONSTANTS.ADMIN_USER_ID ? 'admin' : 'user',
                     type,
                     iat: Math.floor(Date.now() / 1000),
                     exp: Math.floor(Date.now() / 1000) + 86400,
                 };
             }),
-            
+
             decode: vi.fn().mockImplementation((token: string) => {
                 if (token.includes('invalid')) {
                     return null;
@@ -485,7 +476,7 @@ export class UnifiedMockFactory {
 
     createJWTMockModule() {
         const mockInstance = this.createJWTMock();
-        
+
         return {
             __esModule: true,
             default: mockInstance,
@@ -498,7 +489,7 @@ export class UnifiedMockFactory {
     // ========================================================================
 
     createLoggerMock(): MockedLogger {
-        const createLogFn = (level: string) => 
+        const createLogFn = (level: string) =>
             vi.fn().mockImplementation((message: string, ...args: unknown[]) => {
                 if (this.options.enableLogging) {
                     console.log(`[${level.toUpperCase()}] ${message}`, ...args);
@@ -515,7 +506,7 @@ export class UnifiedMockFactory {
 
     createLoggerMockModule() {
         const mockInstance = this.createLoggerMock();
-        
+
         return {
             __esModule: true,
             default: mockInstance,
@@ -531,7 +522,7 @@ export class UnifiedMockFactory {
             return vi.fn().mockImplementation((req: TestRequest, res: TestResponse, next: () => void) => {
                 // Extract token from request
                 let token: string | undefined;
-                
+
                 if (req.headers?.authorization?.startsWith('Bearer ')) {
                     token = req.headers.authorization.split(' ')[1];
                 } else if (req.cookies?.jwt) {
@@ -547,9 +538,7 @@ export class UnifiedMockFactory {
                 }
 
                 // Set user based on token or default to admin for simplicity
-                const userId = token?.includes(TEST_CONSTANTS.ADMIN_USER_ID) 
-                    ? TEST_CONSTANTS.ADMIN_USER_ID 
-                    : TEST_CONSTANTS.ADMIN_USER_ID; // Default to admin for tests
+                const userId = TEST_CONSTANTS.ADMIN_USER_ID; // Default to admin for tests
 
                 req.user = {
                     _id: userId,
@@ -574,14 +563,14 @@ export class UnifiedMockFactory {
             });
         };
 
-        const mockAsyncHandler: MockedMiddleware = vi.fn().mockImplementation(
-            async (req: TestRequest, res: TestResponse) => {
+        const mockAsyncHandler: MockedMiddleware = vi
+            .fn()
+            .mockImplementation(async (req: TestRequest, res: TestResponse) => {
                 res.status(200).json({
                     success: true,
                     message: 'Mock response',
                 });
-            }
-        );
+            });
 
         return {
             protect: createAuthMiddleware(),
@@ -596,7 +585,7 @@ export class UnifiedMockFactory {
     }
 
     createValidationMiddlewareMock(): MockedValidationMiddleware {
-        const createValidationMiddleware = (): MockedMiddleware => 
+        const createValidationMiddleware = (): MockedMiddleware =>
             vi.fn().mockImplementation((req: TestRequest, res: TestResponse, next: () => void) => next());
 
         return {

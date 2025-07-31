@@ -1,4 +1,4 @@
-import { vi, type MockedFunction } from 'vitest';
+import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import testConfig from '../testConfig';
 

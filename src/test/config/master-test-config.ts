@@ -24,10 +24,10 @@ export const setupMasterTestEnvironment = (): void => {
     process.env.JWT_EXPIRES_IN = '24h'; // Longer for tests
     process.env.JWT_REFRESH_EXPIRES_IN = '7d';
     process.env.BCRYPT_SALT_ROUNDS = '4'; // Faster for tests
-    
+
     // Database
     process.env.MONGODB_URI = 'mongodb://localhost:27017/master-test-db';
-    
+
     // Disable external services
     process.env.REDIS_HOST = 'mock-redis-host'; // Non-existent host to prevent real connections
     process.env.REDIS_PORT = '9999'; // Non-standard port to prevent real connections
@@ -36,7 +36,7 @@ export const setupMasterTestEnvironment = (): void => {
     process.env.EMAIL_USER = 'test@example.com';
     process.env.EMAIL_PASS = 'test_password';
     process.env.CLIENT_URL = 'http://localhost:3000';
-    
+
     // Disable MongoDB binary downloads
     process.env.MONGOMS_DISABLE_POSTINSTALL = '1';
 };
@@ -68,24 +68,22 @@ export const createMasterJWTMock = () => {
             const userId = payload.userId || TEST_CONSTANTS.ADMIN_USER_ID;
             return `master_token_${userId}`;
         }),
-        
+
         verify: vi.fn().mockImplementation((token: string) => {
             // Parse token to extract userId
-            const userId = token.includes('507f1f77bcf86cd799439011') 
-                ? TEST_CONSTANTS.ADMIN_USER_ID 
+            const userId = token.includes('507f1f77bcf86cd799439011')
+                ? TEST_CONSTANTS.ADMIN_USER_ID
                 : TEST_CONSTANTS.USER_ID;
-                
+
             return {
                 userId,
-                email: userId === TEST_CONSTANTS.ADMIN_USER_ID 
-                    ? TEST_CONSTANTS.ADMIN_EMAIL 
-                    : TEST_CONSTANTS.USER_EMAIL,
+                email: userId === TEST_CONSTANTS.ADMIN_USER_ID ? TEST_CONSTANTS.ADMIN_EMAIL : TEST_CONSTANTS.USER_EMAIL,
                 role: userId === TEST_CONSTANTS.ADMIN_USER_ID ? 'admin' : 'user',
                 iat: Math.floor(Date.now() / 1000),
                 exp: Math.floor(Date.now() / 1000) + 86400, // 24h
             };
         }),
-        
+
         decode: vi.fn().mockImplementation((token: string) => {
             return jwtMock.verify(token);
         }),
@@ -121,39 +119,35 @@ export const createMasterTokenServiceMock = () => {
 
         verifyAccessToken: vi.fn().mockImplementation(async (token: string) => {
             // Extract userId from token
-            const userId = token.includes('507f1f77bcf86cd799439011') 
-                ? TEST_CONSTANTS.ADMIN_USER_ID 
+            const userId = token.includes('507f1f77bcf86cd799439011')
+                ? TEST_CONSTANTS.ADMIN_USER_ID
                 : TEST_CONSTANTS.USER_ID;
-                
+
             return {
                 userId,
-                email: userId === TEST_CONSTANTS.ADMIN_USER_ID 
-                    ? TEST_CONSTANTS.ADMIN_EMAIL 
-                    : TEST_CONSTANTS.USER_EMAIL,
+                email: userId === TEST_CONSTANTS.ADMIN_USER_ID ? TEST_CONSTANTS.ADMIN_EMAIL : TEST_CONSTANTS.USER_EMAIL,
                 role: userId === TEST_CONSTANTS.ADMIN_USER_ID ? 'admin' : 'user',
             };
         }),
 
         verifyRefreshToken: vi.fn().mockImplementation(async (token: string) => {
-            const userId = token.includes('507f1f77bcf86cd799439011') 
-                ? TEST_CONSTANTS.ADMIN_USER_ID 
+            const userId = token.includes('507f1f77bcf86cd799439011')
+                ? TEST_CONSTANTS.ADMIN_USER_ID
                 : TEST_CONSTANTS.USER_ID;
-                
+
             return {
                 userId,
-                email: userId === TEST_CONSTANTS.ADMIN_USER_ID 
-                    ? TEST_CONSTANTS.ADMIN_EMAIL 
-                    : TEST_CONSTANTS.USER_EMAIL,
+                email: userId === TEST_CONSTANTS.ADMIN_USER_ID ? TEST_CONSTANTS.ADMIN_EMAIL : TEST_CONSTANTS.USER_EMAIL,
                 role: userId === TEST_CONSTANTS.ADMIN_USER_ID ? 'admin' : 'user',
                 type: 'refresh',
             };
         }),
 
         refreshTokens: vi.fn().mockImplementation(async (refreshToken: string) => {
-            const userId = refreshToken.includes('507f1f77bcf86cd799439011') 
-                ? TEST_CONSTANTS.ADMIN_USER_ID 
+            const userId = refreshToken.includes('507f1f77bcf86cd799439011')
+                ? TEST_CONSTANTS.ADMIN_USER_ID
                 : TEST_CONSTANTS.USER_ID;
-                
+
             return {
                 accessToken: `master_token_${userId}`,
                 refreshToken: `master_refresh_${userId}`,
@@ -184,7 +178,7 @@ export const createMasterAuthMiddlewareMock = () => {
         return vi.fn().mockImplementation((req: any, res: any, next: any) => {
             // Extract token from request
             let token: string | undefined;
-            
+
             if (req.headers.authorization?.startsWith('Bearer ')) {
                 token = req.headers.authorization.split(' ')[1];
             } else if (req.cookies?.jwt) {
@@ -200,9 +194,7 @@ export const createMasterAuthMiddlewareMock = () => {
             }
 
             // Set user based on token or default to admin for simplicity
-            const userId = token?.includes('507f1f77bcf86cd799439011') 
-                ? TEST_CONSTANTS.ADMIN_USER_ID 
-                : TEST_CONSTANTS.ADMIN_USER_ID; // Default to admin for tests
+            const userId = TEST_CONSTANTS.ADMIN_USER_ID; // Default to admin for tests
 
             req.user = {
                 _id: userId,
@@ -253,16 +245,16 @@ export const createMasterAuthMiddlewareMock = () => {
 export const setupAllMasterMocks = (): void => {
     // Mock JWT
     vi.mock('jsonwebtoken', () => createMasterJWTMock());
-    
+
     // Mock TokenService (multiple paths to handle different import patterns)
     vi.mock('../../services/TokenService', () => createMasterTokenServiceMock());
     vi.mock('../../../services/TokenService', () => createMasterTokenServiceMock());
     vi.mock('../../../../services/TokenService', () => createMasterTokenServiceMock());
-    
+
     // Mock Auth Middleware
     vi.mock('../../middleware/authMiddleware', () => createMasterAuthMiddlewareMock());
     vi.mock('../../../middleware/authMiddleware', () => createMasterAuthMiddlewareMock());
-    
+
     // Mock Redis and ioredis to prevent real connections
     vi.mock('ioredis', () => {
         const mockRedis = vi.fn().mockImplementation(() => ({
@@ -282,13 +274,13 @@ export const setupAllMasterMocks = (): void => {
             off: vi.fn().mockReturnThis(),
             emit: vi.fn().mockReturnThis(),
         }));
-        
+
         return {
             __esModule: true,
             default: mockRedis,
         };
     });
-    
+
     // Mock CacheService to prevent Redis connections (multiple import paths)
     vi.mock('../../services/CacheService', () => {
         const mockCacheService = {
@@ -307,7 +299,7 @@ export const setupAllMasterMocks = (): void => {
             isHealthy: vi.fn().mockResolvedValue(true),
             disconnect: vi.fn().mockResolvedValue(undefined),
         };
-        
+
         return {
             __esModule: true,
             CacheService: vi.fn().mockImplementation(() => mockCacheService),
@@ -315,7 +307,7 @@ export const setupAllMasterMocks = (): void => {
             cacheService: mockCacheService, // Export as cacheService as well
         };
     });
-    
+
     vi.mock('../../../services/CacheService', () => {
         const mockCacheService = {
             get: vi.fn().mockResolvedValue(null),
@@ -333,7 +325,7 @@ export const setupAllMasterMocks = (): void => {
             isHealthy: vi.fn().mockResolvedValue(true),
             disconnect: vi.fn().mockResolvedValue(undefined),
         };
-        
+
         return {
             __esModule: true,
             CacheService: vi.fn().mockImplementation(() => mockCacheService),
@@ -341,7 +333,7 @@ export const setupAllMasterMocks = (): void => {
             cacheService: mockCacheService, // Export as cacheService as well
         };
     });
-    
+
     // Mock CacheAlertService (multiple import paths)
     vi.mock('../../services/CacheAlertService', () => ({
         __esModule: true,
@@ -350,7 +342,7 @@ export const setupAllMasterMocks = (): void => {
             isHealthy: vi.fn().mockResolvedValue(true),
         },
     }));
-    
+
     vi.mock('../../../services/CacheAlertService', () => ({
         __esModule: true,
         default: {
@@ -358,17 +350,16 @@ export const setupAllMasterMocks = (): void => {
             isHealthy: vi.fn().mockResolvedValue(true),
         },
     }));
-    
+
     // Mock other middleware that might cause issues
     vi.mock('express-rate-limit', () => ({
         default: vi.fn(() => (req: any, res: any, next: any) => next()),
     }));
-    
+
     // Mock validation middleware with ALL exports
     vi.mock('../../middleware/validation', () => {
         const mockValidation = (req: any, res: any, next: any) => next();
-        const mockRateLimit = vi.fn(() => mockValidation);
-        
+
         return {
             validate: vi.fn(() => mockValidation),
             sanitizeInput: vi.fn(() => [mockValidation]), // Returns array of middlewares
@@ -385,12 +376,11 @@ export const setupAllMasterMocks = (): void => {
             validateInputLength: vi.fn(() => mockValidation),
         };
     });
-    
+
     // Also mock the validation middleware at different import paths
     vi.mock('../../../middleware/validation', () => {
         const mockValidation = (req: any, res: any, next: any) => next();
-        const mockRateLimit = vi.fn(() => mockValidation);
-        
+
         return {
             validate: vi.fn(() => mockValidation),
             sanitizeInput: vi.fn(() => [mockValidation]),
@@ -530,7 +520,7 @@ export interface MasterTestHooks {
 export const setupMasterTest = (type: 'unit' | 'integration'): MasterTestHooks => {
     // Setup environment first
     setupMasterTestEnvironment();
-    
+
     // Setup all mocks
     setupAllMasterMocks();
 

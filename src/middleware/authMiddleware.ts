@@ -24,7 +24,7 @@ declare global {
 
 // Helper function to extract token from request
 const extractToken = (req: Request): string | undefined => {
-    if (req.cookies.jwt) {
+    if (req.cookies?.jwt) {
         return req.cookies.jwt;
     }
 

@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // CRITICAL: Deshabilitar mocks globales para pruebas de integración
 vi.doUnmock('../../models/User');
@@ -18,22 +18,17 @@ vi.doUnmock('jsonwebtoken');
 vi.doUnmock('bcryptjs');
 
 import request from 'supertest';
-import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 
-// Importar app dinámicamente después de desmockear dependencias 
+// Importar app dinámicamente después de desmockear dependencias
 const appPromise = import('../../app');
 import { setupTestDb, cleanDbBeforeEach } from './helpers/integrationDb';
-import { 
-    createCompleteTestSetup, 
-    createTestBusinessData,
-    TestSetupData 
-} from './helpers/integrationFixtures';
+import { createCompleteTestSetup, createTestBusinessData, TestSetupData } from './helpers/integrationFixtures';
 
 describe('Business API Integration Tests', () => {
     setupTestDb();
     cleanDbBeforeEach();
-    
+
     let testSetup: TestSetupData;
     let app: any;
 
@@ -41,7 +36,7 @@ describe('Business API Integration Tests', () => {
         // Importar app dinámicamente después de que los mocks estén desmockeados
         const appModule = await appPromise;
         app = appModule.default;
-        
+
         testSetup = await createCompleteTestSetup();
     });
 
@@ -74,11 +69,15 @@ describe('Business API Integration Tests', () => {
         // Importación correcta del modelo
         const BusinessModule = await import('../../models/Business');
         const Business = BusinessModule.Business;
-        
+
         // Crear negocios de prueba en BD
-        const business1 = createTestBusinessData(new mongoose.Types.ObjectId(testSetup.admin._id), { namePlace: 'Test Business 1' });
-        const business2 = createTestBusinessData(new mongoose.Types.ObjectId(testSetup.admin._id), { namePlace: 'Test Business 2' });
-        
+        const business1 = createTestBusinessData(new mongoose.Types.ObjectId(testSetup.admin._id), {
+            namePlace: 'Test Business 1',
+        });
+        const business2 = createTestBusinessData(new mongoose.Types.ObjectId(testSetup.admin._id), {
+            namePlace: 'Test Business 2',
+        });
+
         await Business.create(business1);
         await Business.create(business2);
 
@@ -96,7 +95,7 @@ describe('Business API Integration Tests', () => {
         // Importación correcta del modelo
         const BusinessModule = await import('../../models/Business');
         const Business = BusinessModule.Business;
-        
+
         const businessData = createTestBusinessData(new mongoose.Types.ObjectId(testSetup.admin._id));
         const business = await Business.create(businessData);
 
@@ -114,7 +113,7 @@ describe('Business API Integration Tests', () => {
         // Importación correcta del modelo
         const BusinessModule = await import('../../models/Business');
         const Business = BusinessModule.Business;
-        
+
         const businessData = createTestBusinessData(new mongoose.Types.ObjectId(testSetup.admin._id));
         const business = await Business.create(businessData);
         const updateData = { namePlace: 'Updated Business Name' };
@@ -133,7 +132,7 @@ describe('Business API Integration Tests', () => {
         // Importación correcta del modelo
         const BusinessModule = await import('../../models/Business');
         const Business = BusinessModule.Business;
-        
+
         const businessData = createTestBusinessData(new mongoose.Types.ObjectId(testSetup.admin._id));
         const business = await Business.create(businessData);
 
@@ -151,9 +150,7 @@ describe('Business API Integration Tests', () => {
     it('should reject unauthorized requests', async () => {
         const businessData = createTestBusinessData(new mongoose.Types.ObjectId(testSetup.admin._id));
 
-        const response = await request(app)
-            .post('/api/v1/businesses')
-            .send(businessData);
+        const response = await request(app).post('/api/v1/businesses').send(businessData);
 
         expect(response.status).toBe(401);
         expect(response.body.success).toBe(false);

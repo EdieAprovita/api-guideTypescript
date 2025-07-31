@@ -153,6 +153,7 @@ export function cacheMiddleware(
         } catch (error) {
             logger.error(`Cache middleware error for ${cacheKey}:`, error);
             // En caso de error del cache, continuar sin cache
+            // Error is intentionally caught to prevent cache failures from breaking the application
             next();
         }
     };

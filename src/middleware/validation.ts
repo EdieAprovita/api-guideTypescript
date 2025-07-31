@@ -180,7 +180,7 @@ export const sanitizeInput = () => {
                             .replace(/%[0-9a-fA-F]{2}/g, '')
 
                             // Remove control characters safely using Unicode property escapes
-                            .replace(/\p{C}/gu, '')
+                            .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
 
                             // Only remove dangerous HTML characters for non-password fields
                             .replace(/</g, '')
@@ -277,7 +277,7 @@ const createRateLimitOrBypass = (config: { windowMs: number; max: number; messag
     if (process.env.DISABLE_RATE_LIMIT === 'true') {
         return (_req: Request, _res: Response, next: NextFunction) => next();
     }
-    
+
     return createRateLimit(config);
 };
 

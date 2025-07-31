@@ -11,7 +11,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 import { mockFactory } from '../mocks/unified-mock-factory';
-import type { TestContext, TestSetupOptions, TEST_CONSTANTS } from '../types/test-types';
+import type { TestContext, TestSetupOptions } from '../types/test-types';
 
 // ============================================================================
 // ESSENTIALS ONLY
@@ -55,7 +55,6 @@ function setupCoreMocks(): void {
     vi.mock('../../services/BaseService', () => ({
         __esModule: true,
         default: class BaseService {
-            constructor() {}
             async findAll() {
                 return [];
             }

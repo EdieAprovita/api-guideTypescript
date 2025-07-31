@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, beforeEach } from 'vitest';
 // IMPORTANT: Set environment variables BEFORE any imports
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing_12345';
@@ -38,7 +38,6 @@ vi.mock('../../services/TokenService', () => mockTokenService);
 vi.resetModules();
 
 // Set test timeout
-import { beforeEach } from 'vitest';
 
 describe('TokenService Mock Test', () => {
     beforeEach(() => {
