@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import {
     setupMasterTest,
     generateMasterTestData,
@@ -6,6 +6,10 @@ import {
     expectMasterResponse,
     type MasterTestContext,
 } from '../config/master-test-config';
+
+// CRITICAL: Deshabilitar mocks para BusinessService y BaseService
+vi.doUnmock('../../services/BusinessService');
+vi.doUnmock('../../services/BaseService');
 
 // ============================================================================
 // BUSINESS INTEGRATION TEST - MASTER CONFIGURATION
@@ -39,12 +43,7 @@ describe('Business Integration Tests (Master Config)', () => {
 
         console.log('🧪 Testing business creation with admin token:', context.admin.token);
 
-        const response = await makeMasterRequest.post(
-            app,
-            '/api/v1/businesses',
-            businessData,
-            context.admin.token
-        );
+        const response = await makeMasterRequest.post(app, '/api/v1/businesses', businessData, context.admin.token);
 
         console.log('📊 Create business response:', {
             status: response.status,
@@ -68,11 +67,7 @@ describe('Business Integration Tests (Master Config)', () => {
     it('should get businesses list', async () => {
         console.log('🧪 Testing get businesses with admin token:', context.admin.token);
 
-        const response = await makeMasterRequest.get(
-            app,
-            '/api/v1/businesses',
-            context.admin.token
-        );
+        const response = await makeMasterRequest.get(app, '/api/v1/businesses', context.admin.token);
 
         console.log('📊 Get businesses response:', {
             status: response.status,
@@ -83,7 +78,7 @@ describe('Business Integration Tests (Master Config)', () => {
 
         // Should get a successful response
         expect([200, 201]).toContain(response.status);
-        
+
         if (response.body.success) {
             expect(response.body.data).toBeDefined();
         }
@@ -92,10 +87,7 @@ describe('Business Integration Tests (Master Config)', () => {
     it('should handle requests without authentication', async () => {
         console.log('🧪 Testing request without token');
 
-        const response = await makeMasterRequest.get(
-            app,
-            '/api/v1/businesses'
-        );
+        const response = await makeMasterRequest.get(app, '/api/v1/businesses');
 
         console.log('📊 No auth response:', {
             status: response.status,
@@ -125,7 +117,7 @@ describe('Business Integration Tests (Master Config)', () => {
 
         if (createResponse.status === 201 || createResponse.status === 200) {
             const businessId = createResponse.body.data?._id;
-            
+
             if (businessId) {
                 console.log('🧪 Getting business by ID:', businessId);
 
@@ -158,12 +150,7 @@ describe('Business Integration Tests (Master Config)', () => {
 
         console.log('🧪 Testing validation with invalid data');
 
-        const response = await makeMasterRequest.post(
-            app,
-            '/api/v1/businesses',
-            invalidData,
-            context.admin.token
-        );
+        const response = await makeMasterRequest.post(app, '/api/v1/businesses', invalidData, context.admin.token);
 
         console.log('📊 Validation response:', {
             status: response.status,
@@ -187,18 +174,10 @@ describe('Business Integration Tests (Master Config)', () => {
         console.log('User token:', context.user.token);
 
         // Test with admin token
-        const adminResponse = await makeMasterRequest.get(
-            app,
-            '/api/v1/businesses',
-            context.admin.token
-        );
+        const adminResponse = await makeMasterRequest.get(app, '/api/v1/businesses', context.admin.token);
 
         // Test with user token
-        const userResponse = await makeMasterRequest.get(
-            app,
-            '/api/v1/businesses',
-            context.user.token
-        );
+        const userResponse = await makeMasterRequest.get(app, '/api/v1/businesses', context.user.token);
 
         console.log('📊 Token test results:', {
             adminStatus: adminResponse.status,

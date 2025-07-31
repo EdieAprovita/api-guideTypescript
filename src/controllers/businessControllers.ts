@@ -82,7 +82,7 @@ export const createBusiness = asyncHandler(async (req: Request, res: Response, n
         if (error instanceof Error && error.name === 'ValidationError') {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error.message)));
         }
-        
+
         next(
             new HttpError(
                 HttpStatusCode.INTERNAL_SERVER_ERROR,

@@ -5,6 +5,8 @@ vi.doUnmock('../../models/User');
 vi.doUnmock('../../models/Business');
 vi.doUnmock('../../models/Restaurant');
 vi.doUnmock('../../services/TokenService');
+vi.doUnmock('../../services/BusinessService');
+vi.doUnmock('../../services/BaseService');
 
 // CRITICAL: También deshabilitar middleware que usa TokenService
 vi.doUnmock('../../middleware/authMiddleware');
