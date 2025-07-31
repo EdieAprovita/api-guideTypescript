@@ -92,11 +92,21 @@ export const sanitizeInput = () => {
                 const sanitizeValue = (value: unknown): unknown => {
                     if (typeof value === 'string') {
                         // Remove script tags and dangerous content
-                        return value
+                        let sanitized = value
                             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                             .replace(/javascript:/gi, '')
-                            .replace(/on\w+\s*=/gi, '')
-                            .replace(/[\u0000-\u001F\u007F]/g, '');
+                            .replace(/on\w+\s*=/gi, '');
+
+                        // Remove control characters safely using string methods
+                        sanitized = sanitized
+                            .split('')
+                            .filter(char => {
+                                const code = char.charCodeAt(0);
+                                return code >= 32 && code !== 127; // Keep printable characters, remove control chars
+                            })
+                            .join('');
+
+                        return sanitized;
                     }
                     if (Array.isArray(value)) {
                         return value.map(sanitizeValue);
@@ -144,49 +154,51 @@ export const sanitizeInput = () => {
 
                 if (typeof value === 'string') {
                     // Enhanced XSS protection patterns - using non-backtracking regex
-                    return (
-                        value
-                            // Remove script tags (all variations) - non-backtracking pattern
-                            .replace(/<script[^>]*?>/gi, '')
-                            .replace(/<\/script>/gi, '')
+                    let sanitized = value
+                        // Remove script tags (all variations) - non-backtracking pattern
+                        .replace(/<script[^>]*?>/gi, '')
+                        .replace(/<\/script>/gi, '')
 
-                            // Remove javascript: protocol (all encoded variations)
-                            .replace(/javascript\s*:/gi, '')
-                            .replace(/j\s*a\s*v\s*a\s*s\s*c\s*r\s*i\s*p\s*t\s*:/gi, '')
-                            .replace(/javascript%3A/gi, '')
-                            .replace(/javascript&#x3A;/gi, '')
-                            .replace(/javascript&#58;/gi, '')
+                        // Remove javascript: protocol (all encoded variations)
+                        .replace(/javascript\s*:/gi, '')
+                        .replace(/j\s*a\s*v\s*a\s*s\s*c\s*r\s*i\s*p\s*t\s*:/gi, '')
+                        .replace(/javascript%3A/gi, '')
+                        .replace(/javascript&#x3A;/gi, '')
+                        .replace(/javascript&#58;/gi, '')
 
-                            // Remove vbscript: protocol
-                            .replace(/vbscript\s*:/gi, '')
-                            .replace(/vbscript%3A/gi, '')
+                        // Remove vbscript: protocol
+                        .replace(/vbscript\s*:/gi, '')
+                        .replace(/vbscript%3A/gi, '')
 
-                            // Remove data: protocol for potential data URLs
-                            .replace(/data\s*:/gi, '')
-                            .replace(/data%3A/gi, '')
+                        // Remove data: protocol for potential data URLs
+                        .replace(/data\s*:/gi, '')
+                        .replace(/data%3A/gi, '')
 
-                            // Remove event handlers - non-backtracking pattern
-                            .replace(/on\w+\s*=/gi, '')
-                            .replace(/on[a-z]+\s*=/gi, '')
+                        // Remove event handlers - non-backtracking pattern
+                        .replace(/on\w+\s*=/gi, '')
+                        .replace(/on[a-z]+\s*=/gi, '')
 
-                            // Remove HTML entities that could be used for XSS - non-backtracking
-                            .replace(/&[#x]?[a-zA-Z0-9]{1,8};/g, '')
+                        // Remove HTML entities that could be used for XSS - non-backtracking
+                        .replace(/&[#x]?[a-zA-Z0-9]{1,8};/g, '')
 
-                            // Remove potential CSS expressions
-                            .replace(/expression\s*\(/gi, '')
-                            .replace(/behaviour:/gi, '')
+                        // Remove potential CSS expressions
+                        .replace(/expression\s*\(/gi, '')
+                        .replace(/behaviour:/gi, '')
 
-                            // Remove URL encoded characters that could bypass filters
-                            .replace(/%[0-9a-fA-F]{2}/g, '')
+                        // Remove URL encoded characters that could bypass filters
+                        .replace(/%[0-9a-fA-F]{2}/g, '');
 
-                            // Remove control characters safely using Unicode property escapes
-                            .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+                    // Remove control characters safely using string methods
+                    sanitized = sanitized
+                        .split('')
+                        .filter((char: string) => {
+                            const code = char.charCodeAt(0);
+                            return code >= 32 && code !== 127; // Keep printable characters, remove control chars
+                        })
+                        .join('');
 
-                            // Only remove dangerous HTML characters for non-password fields
-                            .replace(/</g, '')
-                            .replace(/>/g, '')
-                            .trim()
-                    );
+                    // Only remove dangerous HTML characters for non-password fields
+                    return sanitized.replace(/</g, '').replace(/>/g, '').trim();
                 }
 
                 if (Array.isArray(value)) {

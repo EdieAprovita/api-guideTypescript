@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import testConfig from '../testConfig';
 
 // ============================================================================
 // MASTER TEST CONFIGURATION - SINGLE SOURCE OF TRUTH
@@ -31,10 +32,10 @@ export const setupMasterTestEnvironment = (): void => {
     // Disable external services
     process.env.REDIS_HOST = 'mock-redis-host'; // Non-existent host to prevent real connections
     process.env.REDIS_PORT = '9999'; // Non-standard port to prevent real connections
-    process.env.REDIS_PASSWORD = 'test-password';
+    process.env.REDIS_PASSWORD = testConfig.generateTestPassword();
     process.env.REDIS_URL = 'redis://test-mock:9999'; // Mock Redis URL
     process.env.EMAIL_USER = 'test@example.com';
-    process.env.EMAIL_PASS = 'test_password';
+    process.env.EMAIL_PASS = testConfig.generateTestPassword();
     process.env.CLIENT_URL = 'http://localhost:3000';
 
     // Disable MongoDB binary downloads

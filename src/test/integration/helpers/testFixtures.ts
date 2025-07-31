@@ -7,11 +7,13 @@ vi.doUnmock('jsonwebtoken');
 vi.doUnmock('express-validator');
 
 import { faker } from '@faker-js/faker';
+import mongoose from 'mongoose';
 import { User } from '../../../models/User';
 import { Restaurant, IRestaurant } from '../../../models/Restaurant';
 import { Business } from '../../../models/Business';
 import { logTestError } from './errorLogger';
 import { generateTestPassword } from '../../utils/passwordGenerator';
+import testConfig from '../../testConfig';
 
 // Import real bcrypt for integration tests
 const bcrypt = require('bcryptjs');
@@ -32,7 +34,7 @@ export const buildTestUser = (
         userId: faker.database.mongodbObjectId(),
         email: faker.internet.email(),
         username: faker.internet.userName(),
-        password: 'TestPassword123!',
+        password: testConfig.generateTestPassword(),
         role: 'user',
         isAdmin: false,
         isActive: true,

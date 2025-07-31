@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import mongoose from 'mongoose'; // Importación default según documentación oficial
+import testConfig from '../../testConfig';
 
 // CRITICAL: Configurar variables de entorno antes de importar TokenService
 if (!process.env.JWT_SECRET) {
@@ -100,7 +101,7 @@ export interface CreatedTestUser extends IUser {
 export const createTestUserData = (overrides: Partial<TestUserData> = {}): TestUserData => ({
     username: faker.internet.userName(),
     email: faker.internet.email(),
-    password: 'TestPassword123!',
+    password: testConfig.generateTestPassword(),
     role: 'user',
     isAdmin: false,
     isActive: true,

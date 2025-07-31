@@ -24,6 +24,7 @@ import type {
     TestResponse,
     MockFactoryOptions,
 } from '../types/test-types';
+import testConfig from '../testConfig';
 
 // Define constants directly here to avoid circular dependency
 const TEST_CONSTANTS = {
@@ -321,7 +322,7 @@ export class UnifiedMockFactory {
             }),
 
             loginUser: vi.fn().mockImplementation(async (credentials: { email: string; password: string }) => {
-                if (credentials.password === 'wrongpassword') {
+                if (credentials.password === testConfig.generateWeakPassword()) {
                     return {
                         success: false,
                         error: 'Invalid credentials',

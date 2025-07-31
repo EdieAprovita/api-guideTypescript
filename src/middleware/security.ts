@@ -73,7 +73,8 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
             const secureBaseUrl = process.env.SECURE_BASE_URL || 'https://localhost';
 
             // Build redirect URL using only trusted environment variables
-            const redirectURL = `${secureBaseUrl}${req.path}`;
+            // Don't include user-controlled path to prevent open redirect attacks
+            const redirectURL = secureBaseUrl;
 
             return res.redirect(302, redirectURL);
         }

@@ -11,6 +11,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 import { mockFactory } from '../mocks/unified-mock-factory';
+import testConfig from '../testConfig';
 import type { TestContext, TestSetupOptions } from '../types/test-types';
 
 // ============================================================================
@@ -36,7 +37,7 @@ function setupTestEnvironment(): void {
     // Prevent Redis connections
     process.env.REDIS_HOST = 'mock-redis';
     process.env.REDIS_PORT = '9999';
-    process.env.REDIS_PASSWORD = 'test';
+    process.env.REDIS_PASSWORD = testConfig.generateTestPassword();
 }
 
 // ============================================================================

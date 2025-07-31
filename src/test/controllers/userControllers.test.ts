@@ -39,13 +39,13 @@ const createValidUserData = () => ({
     firstName: faker.person.firstName(),
     lastName: faker.person.lastName(),
     email: faker.internet.email(),
-    password: 'TestPassword123!',
+    password: testConfig.generateTestPassword(),
     dateOfBirth: '1990-01-01',
 });
 
 const createValidLoginData = () => ({
     email: faker.internet.email(),
-    password: 'TestPassword123!',
+    password: testConfig.generateTestPassword(),
 });
 
 describe('User Controllers Tests', () => {
