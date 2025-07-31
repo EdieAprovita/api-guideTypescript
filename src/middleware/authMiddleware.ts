@@ -22,6 +22,99 @@ declare global {
     }
 }
 
+// Helper function to extract token from request
+const extractToken = (req: Request): string | undefined => {
+    if (req.cookies.jwt) {
+        return req.cookies.jwt;
+    }
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        return req.headers.authorization.split(' ')[1];
+    }
+
+    if (req.headers.cookie) {
+        const cookies = req.headers.cookie.split(';').reduce(
+            (acc, cookie) => {
+                const [key, value] = cookie.trim().split('=');
+                if (key && value) {
+                    acc[key] = value;
+                }
+                return acc;
+            },
+            {} as Record<string, string>
+        );
+
+        return cookies.jwt;
+    }
+
+    return undefined;
+};
+
+// Helper function to create test user object
+const createTestUser = (payload: any): AuthenticatedUser => ({
+    _id: payload.userId,
+    email: payload.email,
+    role: payload.role || 'user',
+    isActive: true,
+});
+
+// Helper function to handle test environment user setup
+const handleTestEnvironment = (payload: any, req: Request): boolean => {
+    if (process.env.NODE_ENV !== 'test') {
+        return false;
+    }
+
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(payload.userId);
+    const userType = isValidObjectId ? 'valid ObjectId' : 'non-ObjectId';
+
+    console.log(`🔍 Setting req.user with ${userType}:`, payload.userId);
+    req.user = createTestUser(payload);
+
+    return true;
+};
+
+// Helper function to verify token and get payload
+const verifyTokenAndGetPayload = async (token: string) => {
+    try {
+        const payload = await TokenService.verifyAccessToken(token);
+
+        if (process.env.NODE_ENV === 'test') {
+            console.log('🔍 Auth Middleware Debug:');
+            console.log('  Token verified successfully');
+            console.log('  Payload userId:', payload.userId);
+            console.log('  Payload email:', payload.email);
+            console.log('  Payload role:', payload.role);
+        }
+
+        return payload;
+    } catch (error) {
+        if (process.env.NODE_ENV === 'test') {
+            console.error('Token verification failed:', error);
+            console.error('Token:', token);
+        }
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid or expired token');
+    }
+};
+
+// Helper function to validate user account
+const validateUserAccount = async (userId: string) => {
+    const areTokensRevoked = await TokenService.isUserTokensRevoked(userId);
+    if (areTokensRevoked) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User session has been revoked');
+    }
+
+    const currentUser = await User.findById(userId).select('-password').exec();
+    if (!currentUser) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+    }
+
+    if (currentUser.isDeleted ?? !currentUser.isActive) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User account is inactive');
+    }
+
+    return currentUser;
+};
+
 /**
  * @description Protect routes
  * @name protect
@@ -30,109 +123,26 @@ declare global {
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        let token: string | undefined;
-
-        // Check for token in cookies first (existing behavior)
-        if (req.cookies.jwt) {
-            token = req.cookies.jwt;
-        }
-        // Check for token in Authorization header (Bearer token)
-        else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-            token = req.headers.authorization.split(' ')[1];
-        }
-        // Check for token in Cookie header (for cross-origin requests)
-        else if (req.headers.cookie) {
-            const cookies = req.headers.cookie.split(';').reduce(
-                (acc, cookie) => {
-                    const [key, value] = cookie.trim().split('=');
-                    if (key && value) {
-                        acc[key] = value;
-                    }
-                    return acc;
-                },
-                {} as Record<string, string>
-            );
-
-            if (cookies.jwt) {
-                token = cookies.jwt;
-            }
-        }
-
+        const token = extractToken(req);
         if (!token) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Not authorized to access this route');
         }
 
-        // Use TokenService for enhanced security validation
-        let payload;
-        try {
-            payload = await TokenService.verifyAccessToken(token);
-
-            // Debug logging for test environment
-            if (process.env.NODE_ENV === 'test') {
-                console.log('🔍 Auth Middleware Debug:');
-                console.log('  Token verified successfully');
-                console.log('  Payload userId:', payload.userId);
-                console.log('  Payload email:', payload.email);
-                console.log('  Payload role:', payload.role);
-            }
-        } catch (error) {
-            // Log token verification errors in test environment
-            if (process.env.NODE_ENV === 'test') {
-                console.error('Token verification failed:', error);
-                console.error('Token:', token);
-            }
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid or expired token');
-        }
-
+        const payload = await verifyTokenAndGetPayload(token);
         if (!payload) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid token payload');
         }
 
-        // In test environment we allow non-ObjectId userIds generated by mocks.
-        if (process.env.NODE_ENV === 'test' && !mongoose.Types.ObjectId.isValid(payload.userId)) {
-            console.log('🔍 Setting req.user with non-ObjectId:', payload.userId);
-            req.user = {
-                _id: payload.userId,
-                email: payload.email,
-                role: payload.role || 'user',
-                isActive: true,
-            } as AuthenticatedUser;
+        // Handle test environment
+        if (handleTestEnvironment(payload, req)) {
             return next();
         }
 
-        // For test environment, also handle valid ObjectIds from mocks
-        if (process.env.NODE_ENV === 'test' && mongoose.Types.ObjectId.isValid(payload.userId)) {
-            console.log('🔍 Setting req.user with valid ObjectId:', payload.userId);
-            req.user = {
-                _id: payload.userId,
-                email: payload.email,
-                role: payload.role || 'user',
-                isActive: true,
-            } as AuthenticatedUser;
-            return next();
-        }
-
-        // Check if user tokens have been revoked globally
-        const areTokensRevoked = await TokenService.isUserTokensRevoked(payload.userId);
-        if (areTokensRevoked) {
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User session has been revoked');
-        }
-
-        const currentUser = await User.findById(payload.userId).select('-password').exec();
-
-        if (!currentUser) {
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
-        }
-
-        // Check if user account is still active
-        if (currentUser.isDeleted ?? !currentUser.isActive) {
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User account is inactive');
-        }
-
+        // Validate user account for production
+        const currentUser = await validateUserAccount(payload.userId);
         req.user = currentUser;
         next();
     } catch (error) {
-        // Log authentication errors in test environment
         if (process.env.NODE_ENV === 'test') {
             console.error('Authentication middleware error:', error);
         }

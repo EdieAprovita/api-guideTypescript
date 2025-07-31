@@ -174,44 +174,47 @@ export const getUserById = asyncHandler(async (req: Request, res: Response, next
  * @returns {Promise<Response>}
  */
 
+// Helper function to log debug information in test environment
+const logDebugInfo = (message: string, data?: unknown) => {
+    if (process.env.NODE_ENV === 'test') {
+        console.log(`🔍 getCurrentUserProfile Debug: ${message}`, data);
+    }
+};
+
+// Helper function to handle user lookup
+const handleUserLookup = async (userId: string) => {
+    logDebugInfo('Looking up user with ID:', userId);
+    logDebugInfo('userId type:', typeof userId);
+
+    const user = await UserServices.findUserById(userId);
+
+    logDebugInfo('User lookup result:', user ? 'found' : 'not found');
+    if (user) {
+        logDebugInfo('Found user ID:', user._id);
+        logDebugInfo('Found user email:', user.email);
+    }
+
+    return user;
+};
+
 export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Debug logging for test environment
-        if (process.env.NODE_ENV === 'test') {
-            console.log('🔍 getCurrentUserProfile Debug:');
-            console.log('  req.user:', req.user);
-            console.log('  req.user?._id:', req.user?._id);
-            console.log('  typeof req.user?._id:', typeof req.user?._id);
-        }
+        logDebugInfo('req.user:', req.user);
+        logDebugInfo('req.user?._id:', req.user?._id);
+        logDebugInfo('typeof req.user?._id:', typeof req.user?._id);
 
         const userId = req.user?._id;
         if (!userId) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not authenticated');
         }
 
-        // Debug logging for user lookup
-        if (process.env.NODE_ENV === 'test') {
-            console.log('  Looking up user with ID:', userId);
-            console.log('  userId type:', typeof userId);
-        }
-
-        const user = await UserServices.findUserById(userId);
-        
-        if (process.env.NODE_ENV === 'test') {
-            console.log('  User lookup result:', user ? 'found' : 'not found');
-            if (user) {
-                console.log('  Found user ID:', user._id);
-                console.log('  Found user email:', user.email);
-            }
-        }
-
+        const user = await handleUserLookup(userId);
         if (!user) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
         }
 
         res.status(200).json(user);
     } catch (error) {
-        // Log error details in test environment for debugging
         if (process.env.NODE_ENV === 'test') {
             console.error('getCurrentUserProfile controller error:', error);
         }

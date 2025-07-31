@@ -77,12 +77,21 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
                 });
             }
 
-            // Validate host to prevent redirect attacks
+            // Validate host header to prevent redirect attacks
             const validHostPattern = /^[a-zA-Z0-9.-]+(:\d+)?$/;
             if (!validHostPattern.test(host)) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Invalid host header',
+                    message: 'Invalid host header format',
+                });
+            }
+
+            // Only redirect if the host is valid and doesn't contain suspicious characters
+            const suspiciousChars = /[<>\"'&]/;
+            if (suspiciousChars.test(host) || suspiciousChars.test(req.originalUrl)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid request parameters',
                 });
             }
 
