@@ -85,6 +85,14 @@ jobs:
                       gnupg \
                       lsb-release
 
+            - name: Install libssl1.1 for MongoDB Memory Server
+              run: |
+                  sudo apt-get install -y libssl1.1 || \
+                  (wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl1.1/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb && \
+                   sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb) || \
+                  (sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 && \
+                   sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1)
+
             - name: Cache mongodb-memory-server binaries
               uses: actions/cache@v3
               with:
@@ -105,6 +113,9 @@ jobs:
 
             - name: Setup test environment
               run: bash scripts/setup-ci-env.sh
+
+            - name: Diagnose MongoDB Memory Server setup
+              run: bash scripts/diagnose-mongodb-setup.sh
 
             - name: Create test results directory
               run: mkdir -p test-results

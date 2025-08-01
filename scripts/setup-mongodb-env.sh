@@ -34,6 +34,22 @@ if [[ "$OS" == "Linux" ]]; then
         echo "⚠️  libssl not found, installing..."
         sudo apt-get update && sudo apt-get install -y libssl-dev
     fi
+
+    # Check for libssl1.1 specifically needed by MongoDB Memory Server
+    if ! ldconfig -p | grep -q "libssl.so.1.1"; then
+        echo "⚠️  libssl1.1 not found, installing for MongoDB Memory Server..."
+        sudo apt-get install -y libssl1.1 || {
+            echo "📦 Downloading libssl1.1 manually..."
+            wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl1.1/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb && \
+            sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
+        } || {
+            echo "🔗 Creating symbolic links as fallback..."
+            sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1
+            sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1
+        }
+    else
+        echo "✅ libssl1.1 is available"
+    fi
 else
     echo "📋 Skipping system dependency check on $OS"
 fi

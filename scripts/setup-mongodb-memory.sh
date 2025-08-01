@@ -34,6 +34,15 @@ if [[ "$OS" == "Linux" ]]; then
         echo "⚠️  libssl not found, installing..."
         sudo apt-get update && sudo apt-get install -y libssl-dev
     fi
+
+    # Check for libssl1.1 specifically needed by MongoDB Memory Server
+    if ! ldconfig -p | grep -q "libssl.so.1.1"; then
+        echo "⚠️  libssl1.1 not found, required for MongoDB Memory Server"
+        echo "💡 This should have been installed in previous CI steps"
+        echo "⚠️  MongoDB Memory Server may fail without this library"
+    else
+        echo "✅ libssl1.1 is available"
+    fi
 else
     echo "📋 Skipping system dependency check on $OS"
 fi
