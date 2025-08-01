@@ -8,7 +8,7 @@ export async function setup() {
     console.log('🔧 Setting up test environment...');
 
     // Start MongoDB Memory Server if not using local MongoDB
-    if (!process.env.MONGODB_URI?.includes('localhost')) {
+    if (!process.env.MONGODB_URI?.includes('127.0.0.1') && !process.env.MONGODB_URI?.includes('localhost')) {
         try {
             mongoServer = await MongoMemoryServer.create({
                 binary: {
@@ -35,7 +35,7 @@ export async function setup() {
     process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-key-for-testing-purposes-only';
     process.env.JWT_EXPIRES_IN = '15m';
     process.env.JWT_REFRESH_EXPIRES_IN = '7d';
-    process.env.REDIS_HOST = 'localhost';
+    process.env.REDIS_HOST = '127.0.0.1';
     process.env.REDIS_PORT = '6379';
     process.env.REDIS_PASSWORD = testConfig.generateTestPassword();
     process.env.PORT = '5001';

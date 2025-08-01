@@ -35,7 +35,7 @@ function setupTestEnvironment(): void {
     process.env.BCRYPT_SALT_ROUNDS = '4';
 
     // Prevent Redis connections
-    process.env.REDIS_HOST = process.env.CI ? 'localhost' : 'mock-redis';
+    process.env.REDIS_HOST = process.env.CI ? '127.0.0.1' : 'mock-redis';
     process.env.REDIS_PORT = '9999';
     process.env.REDIS_PASSWORD = testConfig.generateTestPassword();
 }

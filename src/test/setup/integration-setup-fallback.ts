@@ -21,7 +21,7 @@ beforeAll(async () => {
         // Check if we're in CI environment or if MONGODB_URI is already set
         if (process.env.CI || process.env.MONGODB_URI) {
             // Use real MongoDB connection for CI or when MONGODB_URI is provided
-            mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/test-integration';
+            mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test-integration';
             console.log('🔧 Using real MongoDB connection for integration tests');
         } else {
             // Use MongoDB Memory Server for local development

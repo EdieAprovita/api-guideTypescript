@@ -290,7 +290,7 @@ beforeAll(async () => {
     console.log('🔧 Setting up integration test database...');
 
     // Use MongoDB Memory Server if no local MongoDB URI is provided
-    if (!process.env.MONGODB_URI?.includes('localhost')) {
+    if (!process.env.MONGODB_URI?.includes('127.0.0.1') && !process.env.MONGODB_URI?.includes('localhost')) {
         try {
             mongoServer = await MongoMemoryServer.create({
                 binary: {

@@ -27,10 +27,10 @@ export const setupMasterTestEnvironment = (): void => {
     process.env.BCRYPT_SALT_ROUNDS = '4'; // Faster for tests
 
     // Database
-    process.env.MONGODB_URI = 'mongodb://localhost:27017/master-test-db';
+    process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/master-test-db';
 
-    // Disable external services
-    process.env.REDIS_HOST = process.env.CI ? 'localhost' : 'mock-redis-host'; // Use localhost in CI, mock in local tests
+    // Disable external services - use IPv4 explicitly to avoid Node.js 18+ IPv6 issues
+    process.env.REDIS_HOST = process.env.CI ? '127.0.0.1' : 'mock-redis-host'; // Use 127.0.0.1 in CI, mock in local tests
     process.env.REDIS_PORT = '9999'; // Non-standard port to prevent real connections
     process.env.REDIS_PASSWORD = testConfig.generateTestPassword();
     process.env.REDIS_URL = 'redis://test-mock:9999'; // Mock Redis URL

@@ -12,7 +12,7 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = generateTestPassword();
 process.env.BCRYPT_SALT_ROUNDS = '10';
 process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/test-db';
-process.env.REDIS_HOST = 'localhost';
+process.env.REDIS_HOST = '127.0.0.1';
 process.env.REDIS_PORT = '6379';
 
 // === CRITICAL: Mocks must be defined BEFORE any imports ===
