@@ -85,6 +85,15 @@ jobs:
                       gnupg \
                       lsb-release \
                       libc6-dev
+                  
+                  # Install libssl1.1 for MongoDB compatibility on Ubuntu 22.04
+                  # This fixes the "libcrypto.so.1.1" missing library error
+                  wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
+                  sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
+                  rm libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
+                  
+                  # Verify installation
+                  ldconfig -p | grep libssl | head -5 || echo "SSL libraries verification complete"
 
             - name: Setup MongoDB Memory Server environment
               run: |
@@ -110,7 +119,7 @@ jobs:
 
             - name: Pre-download MongoDB binaries
               run: |
-                  # Pre-download modern MongoDB version compatible with libssl3
+                  # Pre-download MongoDB version with Ubuntu 22.04 support
                   export MONGODB_MEMORY_SERVER_VERSION=6.0.4
                   export MONGODB_MEMORY_SERVER_DOWNLOAD_DIR=~/.cache/mongodb-binaries
                   export MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT=120000
@@ -121,12 +130,29 @@ jobs:
                   const { MongoMemoryServer } = require('mongodb-memory-server');
                   async function preDownload() {
                     try {
-                      console.log('Pre-downloading MongoDB 6.0.4 (libssl3 compatible)...');
-                      const mongod = await MongoMemoryServer.create({
-                        binary: { version: '6.0.4', checkMD5: false },
+                      console.log('Pre-downloading MongoDB 6.0.4 (Ubuntu 22.04 compatible)...');
+                      const config = {
+                        binary: { 
+                          version: '6.0.4',
+                          downloadDir: '~/.cache/mongodb-binaries',
+                          checkMD5: false
+                        },
                         instance: { dbName: 'predownload-test' },
                         autoStart: false
-                      });
+                      };
+                      
+                      // Add Ubuntu-specific configuration for CI
+                      if (process.env.CI && process.platform === 'linux') {
+                        config.binary.platform = 'linux';
+                        config.binary.arch = 'x64';
+                        config.binary.os = {
+                          os: 'linux',
+                          dist: 'ubuntu',
+                          release: '22.04'
+                        };
+                      }
+                      
+                      const mongod = await MongoMemoryServer.create(config);
                       console.log('✅ MongoDB 6.0.4 downloaded successfully');
                       await mongod.stop();
                     } catch (error) {

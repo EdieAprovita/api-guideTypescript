@@ -25,7 +25,7 @@ async function testMongoDBSetup() {
   try {
     console.log('🚀 Creating MongoDB Memory Server instance...');
     
-    // Test with modern libssl3-compatible configuration
+    // Configure for the current platform
     const config = {
       instance: {
         dbName: 'setup-test',
@@ -39,6 +39,20 @@ async function testMongoDBSetup() {
       },
       autoStart: true,
     };
+
+    // Only specify Ubuntu 22.04 configuration in CI Linux environments
+    if (process.env.CI && process.platform === 'linux') {
+      config.binary.platform = 'linux';
+      config.binary.arch = 'x64';
+      config.binary.os = {
+        os: 'linux',
+        dist: 'ubuntu',
+        release: '22.04'
+      };
+      console.log('🐧 Using Ubuntu 22.04 specific configuration for CI');
+    } else {
+      console.log(`🖥️  Using default configuration for ${process.platform} ${process.arch}`);
+    }
 
     // CI-specific optimizations
     if (process.env.CI) {
@@ -99,9 +113,9 @@ async function testMongoDBSetup() {
       console.error(error.stack.split('\n').slice(0,5).map(line => `   ${line}`).join('\n'));
     }
 
-    // Try fallback test with stable version
-    if (!testPassed && error.message.includes('closed unexpectedly')) {
-      console.log('\n🔄 Trying fallback test with MongoDB 5.0.19...');
+    // Try fallback test with different version and configuration
+    if (!testPassed && (error.message.includes('closed unexpectedly') || error.message.includes('libcrypto'))) {
+      console.log('\n🔄 Trying fallback test with different configuration...');
       
       try {
         if (mongoServer) {
@@ -113,13 +127,14 @@ async function testMongoDBSetup() {
           await mongoose.connection.close();
         }
 
+        // Try without specific OS configuration first
         mongoServer = await MongoMemoryServer.create({
           instance: {
             dbName: 'fallback-test',
-            args: ['--nojournal'],
+            args: ['--nojournal', '--noprealloc'],
           },
           binary: {
-            version: '5.0.19',
+            version: '6.0.4',
             checkMD5: false,
           },
         });
@@ -130,11 +145,45 @@ async function testMongoDBSetup() {
           serverSelectionTimeoutMS: 10000,
         });
 
-        console.log('✅ Fallback test with MongoDB 5.0.19 successful');
+        console.log('✅ Fallback test with simplified configuration successful');
         testPassed = true;
 
       } catch (fallbackError) {
-        console.error('❌ Fallback test also failed:', fallbackError.message);
+        console.log('\n🔄 Trying final fallback with MongoDB 5.0.19...');
+        
+        try {
+          if (mongoServer) {
+            await mongoServer.stop();
+            mongoServer = null;
+          }
+          
+          if (mongoose.connection.readyState !== 0) {
+            await mongoose.connection.close();
+          }
+
+          mongoServer = await MongoMemoryServer.create({
+            instance: {
+              dbName: 'final-fallback-test',
+              args: ['--nojournal'],
+            },
+            binary: {
+              version: '5.0.19',
+              checkMD5: false,
+            },
+          });
+
+          const finalUri = mongoServer.getUri();
+          await mongoose.connect(finalUri, {
+            maxPoolSize: 1,
+            serverSelectionTimeoutMS: 10000,
+          });
+
+          console.log('✅ Final fallback test with MongoDB 5.0.19 successful');
+          testPassed = true;
+
+        } catch (finalError) {
+          console.error('❌ All fallback tests failed:', finalError.message);
+        }
       }
     }
   } finally {
@@ -164,9 +213,11 @@ async function testMongoDBSetup() {
     console.log('💥 MongoDB Memory Server test FAILED');
     console.log('❌ Integration tests may fail in this environment');
     console.log('\n💡 Troubleshooting suggestions:');
+    console.log('   - Ubuntu 22.04: Install libssl1.1 package for libcrypto.so.1.1');
+    console.log('   - Use MongoDB version 6.0.4+ for better Ubuntu 22.04 support');
     console.log('   - Check system dependencies (libssl, libc6)');
     console.log('   - Verify available disk space and memory');
-    console.log('   - Try clearing MongoDB binary cache');
+    console.log('   - Try clearing MongoDB binary cache: rm -rf ~/.cache/mongodb-binaries');
     console.log('   - Check firewall/network restrictions');
     process.exit(1);
   }
