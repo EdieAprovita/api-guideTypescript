@@ -5,13 +5,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTest } from '../config/unified-test-config';
 import { mockFactory } from '../mocks/unified-mock-factory';
+import type { CacheService as CacheServiceType } from '../../services/CacheService';
 
 // Mock the CacheService module
 vi.mock('../../services/CacheService', () => mockFactory.createCacheServiceMockModule());
 
 describe('CacheService', () => {
     const testHooks = setupTest();
-    let cacheService: any;
+    let cacheService: CacheServiceType;
 
     beforeEach(async () => {
         await testHooks.beforeEach();

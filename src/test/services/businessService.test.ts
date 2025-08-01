@@ -4,22 +4,38 @@
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+// Define minimal Business interfaces for type safety
+interface Business {
+    _id: string;
+    namePlace: string;
+}
+
+interface BusinessModel {
+    create: (data: Partial<Business>) => Business;
+    find: () => Business[];
+    findById: (id: string) => Business | null;
+    findByIdAndUpdate: (id: string, data: Partial<Business>) => Business | null;
+    deleteOne: (filter: unknown) => unknown;
+    modelName: string;
+    exec: () => unknown;
+}
+
 // Mock Business model
-const mockBusiness = {
-    create: vi.fn(),
-    find: vi.fn(),
-    findById: vi.fn(),
-    findByIdAndUpdate: vi.fn(),
-    deleteOne: vi.fn(),
+const mockBusiness: BusinessModel = {
+    create: vi.fn<(data: Partial<Business>) => Business>(),
+    find: vi.fn<() => Business[]>(),
+    findById: vi.fn<(id: string) => Business | null>(),
+    findByIdAndUpdate: vi.fn<(id: string, data: Partial<Business>) => Business | null>(),
+    deleteOne: vi.fn<(filter: unknown) => unknown>(),
     modelName: 'Business',
-    exec: vi.fn(),
+    exec: vi.fn<() => unknown>(),
 };
 
 // Mock BaseService
 vi.mock('../../services/BaseService', () => ({
     default: class MockBaseService {
-        protected model: any;
-        constructor(model: any) {
+        protected model: BusinessModel;
+        constructor(model: BusinessModel) {
             this.model = model;
         }
 
@@ -31,7 +47,7 @@ vi.mock('../../services/BaseService', () => ({
             return this.model.findById(id);
         }
 
-        async create(data: any) {
+        async create(data: Partial<Business>) {
             return this.model.create(data);
         }
     },
@@ -57,7 +73,7 @@ describe('BusinessService', () => {
             namePlace: `Test Business ${id}`,
         }));
 
-        mockBusiness.create.mockImplementation((data: any) => ({
+        mockBusiness.create.mockImplementation((data: Partial<Business>) => ({
             _id: '3',
             ...data,
         }));

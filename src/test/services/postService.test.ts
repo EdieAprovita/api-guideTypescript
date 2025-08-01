@@ -8,8 +8,22 @@ import { HttpError } from '../../types/Errors';
 const existingUserId = faker.database.mongodbObjectId();
 const existingCommentUserId = faker.database.mongodbObjectId();
 
+// Define minimal types for likes and comments to avoid `any` usage
+interface Like {
+    username: Types.ObjectId;
+}
+
+interface Comment {
+    id: string;
+    username: Types.ObjectId;
+}
+
 // Create a proper mock post with array methods
-const createMockPost = (id: string, likes: any[] = [], comments: any[] = []) => {
+const createMockPost = (
+    id: string,
+    likes: Like[] = [],
+    comments: Comment[] = []
+) => {
     const post = {
         _id: id,
         likes: [...likes],
