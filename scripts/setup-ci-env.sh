@@ -12,8 +12,15 @@ export NODE_ENV=test
 export CI=true
 export INTEGRATION_TEST=true
 
-# Database configuration
+# MongoDB Memory Server configuration
+export MONGODB_MEMORY_SERVER_VERSION='6.0.0'
+export MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT='60000'
+export MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY='3'
+export MONGODB_MEMORY_SERVER_DOWNLOAD_DIR='~/.cache/mongodb-binaries'
+
+# Database configuration (fallback)
 export MONGODB_URI=mongodb://localhost:27017/vegan-city-guide-test
+export MONGODB_TEST_URI=mongodb://localhost:27017/vegan-city-guide-test
 
 # Redis configuration
 export REDIS_HOST=localhost
@@ -30,10 +37,15 @@ export DISABLE_RATE_LIMIT=true
 export GOOGLE_MAPS_API_KEY=test-api-key
 export EMAIL_SERVICE_DISABLED=true
 
+# Test configuration
+export VITEST_TIMEOUT=30000
+export VITEST_HOOK_TIMEOUT=60000
+
 echo "✅ CI environment variables configured"
 echo "📋 Environment summary:"
 echo "   - NODE_ENV: $NODE_ENV"
 echo "   - CI: $CI"
+echo "   - MONGODB_MEMORY_SERVER_VERSION: $MONGODB_MEMORY_SERVER_VERSION"
 echo "   - MONGODB_URI: $MONGODB_URI"
 echo "   - REDIS_HOST: $REDIS_HOST"
 echo "   - REDIS_PORT: $REDIS_PORT" 

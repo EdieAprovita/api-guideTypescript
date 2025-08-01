@@ -1,155 +1,250 @@
-# CI/CD Setup and Troubleshooting Guide
+# CI/CD Pipeline Setup Guide
+
+This document explains the CI/CD pipeline configuration and how to troubleshoot common issues, particularly with MongoDB Memory Server in CI environments.
 
 ## Overview
 
-This document explains the CI/CD pipeline configuration and how to troubleshoot common issues.
+The CI/CD pipeline is configured to run on GitHub Actions and includes:
 
-## Pipeline Structure
+- **Quality Checks**: TypeScript compilation, linting, and formatting
+- **Tests**: Unit and integration tests with MongoDB Memory Server
+- **Build**: Application compilation
+- **Security**: Dependency vulnerability scanning
+- **Deploy**: Deployment placeholder (configure as needed)
 
-### Jobs
+## MongoDB Memory Server Configuration
 
-1. **Quality Checks** - Linting, type checking, format validation
-2. **Tests** - Unit and integration tests with MongoDB and Redis
-3. **Build** - Application build and artifact creation
-4. **Security** - Security audit (main branch only)
-5. **Deploy** - Deployment (main branch only)
+### Problem
 
-## Services Configuration
+The main issue with CI failing was MongoDB Memory Server not starting properly in the CI environment. This is a common problem due to:
 
-### MongoDB
+1. Missing system dependencies
+2. Version compatibility issues
+3. Resource constraints in CI
+4. Network timeouts during binary download
 
-- **Image**: `mongo:6.0`
-- **Port**: `27017`
-- **Health Check**: `mongosh --eval 'db.runCommand({ping: 1})'`
+### Solution
 
-### Redis
+We've implemented a robust solution with multiple fallback options:
 
-- **Image**: `redis:7-alpine`
-- **Port**: `6379`
-- **Health Check**: `redis-cli ping`
+#### 1. System Dependencies
 
-## Environment Variables
+The CI workflow now installs all required system libraries:
 
-### Test Environment
-
-```bash
-NODE_ENV=test
-CI=true
-INTEGRATION_TEST=true
-MONGODB_URI=mongodb://localhost:27017/vegan-city-guide-test
-REDIS_HOST=localhost
-REDIS_PORT=6379
-JWT_SECRET=test-jwt-secret-key-for-github-actions-very-long-and-secure-key
-JWT_REFRESH_SECRET=test-refresh-secret-key-for-github-actions-very-long-and-secure-key
-BCRYPT_SALT_ROUNDS=4
-DISABLE_RATE_LIMIT=true
+```yaml
+- name: Install system dependencies for MongoDB
+  run: |
+      sudo apt-get update
+      sudo apt-get install -y \
+          libcurl4 \
+          openssl \
+          libssl-dev \
+          ca-certificates \
+          curl \
+          wget \
+          gnupg \
+          lsb-release
 ```
 
-## Common Issues and Solutions
+#### 2. Binary Caching
 
-### 1. Redis Connection Error
+MongoDB binaries are cached to avoid re-downloading:
 
-**Error**: `Redis connection error: getaddrinfo EAI_AGAIN mock-redis-host`
+```yaml
+- name: Cache mongodb-memory-server binaries
+  uses: actions/cache@v3
+  with:
+      path: ~/.cache/mongodb-binaries
+      key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      restore-keys: |
+          mongodb-binaries-${{ runner.os }}-
+```
 
-**Solution**:
+#### 3. Environment Variables
 
-- Ensure `REDIS_HOST` is set to `localhost` in CI environment
-- Check that Redis service is running and healthy
-- Verify Redis port configuration
-
-### 2. MongoDB In-Memory Server Library Error
-
-**Error**: `libcrypto.so.1.1` missing
-
-**Solution**:
-
-- Added compatibility layer in workflow
-- Installs `libssl1.1` or creates symlinks
-- Uses real MongoDB in CI instead of in-memory server
-
-### 3. Test Database Connection Issues
-
-**Error**: Database connection timeout
-
-**Solution**:
-
-- Check MongoDB service health
-- Verify connection string format
-- Ensure proper environment variables
-
-## Scripts
-
-### `scripts/setup-ci-env.sh`
-
-Sets up environment variables for CI testing.
-
-### `scripts/setup-ci-db.sh`
-
-Attempts to start MongoDB if not running (fallback).
-
-## Running Tests Locally
-
-### Unit Tests
+Key environment variables for MongoDB Memory Server:
 
 ```bash
-npm run test:unit
+export MONGODB_MEMORY_SERVER_VERSION='6.0.0'
+export MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT='60000'
+export MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY='3'
+export MONGODB_MEMORY_SERVER_DOWNLOAD_DIR='~/.cache/mongodb-binaries'
 ```
+
+#### 4. Fallback Configuration
+
+The setup includes multiple fallback options:
+
+1. **Primary**: MongoDB 6.0.0 with full configuration
+2. **Fallback**: MongoDB 5.0.19 with minimal configuration
+3. **Emergency**: Local MongoDB connection if available
+
+## Test Configuration
 
 ### Integration Tests
 
-```bash
-npm run test:integration
+Integration tests use a robust setup with:
+
+- **Longer timeouts** for CI environments
+- **Sequential execution** to avoid conflicts
+- **Better error reporting** with JSON output
+- **Retry mechanism** for flaky tests
+
+```typescript
+// vitest.integration.config.ts
+testTimeout: process.env.CI ? 60000 : 30000,
+hookTimeout: process.env.CI ? 90000 : 30000,
+retry: process.env.CI ? 1 : 0,
 ```
 
-### All Tests (CI Style)
+### Database Connection
 
-```bash
-npm run test:ci
+The database connection is configured with CI-specific optimizations:
+
+```typescript
+await mongoose.connect(uri, {
+    maxPoolSize: 1,
+    serverSelectionTimeoutMS: process.env.CI ? 15000 : 5000,
+    socketTimeoutMS: process.env.CI ? 15000 : 5000,
+    connectTimeoutMS: process.env.CI ? 15000 : 5000,
+    retryWrites: false,
+    retryReads: false,
+});
 ```
 
-## Debugging
+## Scripts
 
-### Enable Debug Logs
+### setup-mongodb-memory.sh
 
-```bash
-DEBUG=* npm run test:integration
-```
+This script handles MongoDB Memory Server setup with:
 
-### Check Service Status
+- System dependency verification
+- Binary download testing
+- Fallback version testing
+- Environment variable configuration
 
-```bash
-# MongoDB
-mongosh --eval 'db.runCommand({ping: 1})'
+### setup-ci-env.sh
 
-# Redis
-redis-cli ping
-```
+Configures the CI environment with:
 
-### Manual Service Start
+- Test environment variables
+- MongoDB Memory Server settings
+- Redis configuration
+- JWT secrets for testing
 
-```bash
-# MongoDB
-mongod --dbpath /tmp/mongodb-data --port 27017
+## Troubleshooting
 
-# Redis
-redis-server --port 6379
-```
+### Common Issues
 
-## Best Practices
+#### 1. "Instance closed unexpectedly with code 1"
 
-1. **Always use CI environment variables** in tests
-2. **Check service health** before running tests
-3. **Use proper error handling** in test setup
-4. **Keep test data isolated** from production
-5. **Monitor test performance** and optimize as needed
+**Cause**: Missing system dependencies or version incompatibility
 
-## Troubleshooting Checklist
+**Solution**:
 
-- [ ] Services are running and healthy
-- [ ] Environment variables are correctly set
-- [ ] Network connectivity is available
-- [ ] Dependencies are installed
-- [ ] Test database is accessible
-- [ ] Redis connection is working
-- [ ] JWT secrets are configured
-- [ ] Rate limiting is disabled for tests
+- Ensure all system dependencies are installed
+- Try fallback MongoDB version (5.0.19)
+- Check available system resources
+
+#### 2. "Download timeout"
+
+**Cause**: Network issues or slow download
+
+**Solution**:
+
+- Increase `MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT`
+- Use cached binaries
+- Check network connectivity
+
+#### 3. "Permission denied"
+
+**Cause**: File system permissions
+
+**Solution**:
+
+- Ensure cache directory is writable
+- Check user permissions in CI
+
+### Debug Steps
+
+1. **Check system dependencies**:
+
+    ```bash
+    ldconfig -p | grep libcurl
+    ldconfig -p | grep libssl
+    ```
+
+2. **Test MongoDB Memory Server manually**:
+
+    ```bash
+    bash scripts/setup-mongodb-memory.sh
+    ```
+
+3. **Verify environment variables**:
+
+    ```bash
+    bash scripts/setup-ci-env.sh
+    ```
+
+4. **Run tests with verbose output**:
+    ```bash
+    npm run test:ci:verbose
+    ```
+
+## Performance Optimizations
+
+### For CI
+
+1. **Binary caching**: Reduces download time
+2. **Sequential execution**: Prevents resource conflicts
+3. **Optimized timeouts**: Balances reliability and speed
+4. **Single connection pool**: Reduces resource usage
+
+### For Local Development
+
+1. **Faster timeouts**: Quick feedback during development
+2. **Parallel execution**: Faster test runs
+3. **Memory optimization**: Efficient resource usage
+
+## Monitoring
+
+### CI Metrics
+
+Monitor these metrics in your CI runs:
+
+- **Setup time**: How long MongoDB Memory Server takes to start
+- **Test execution time**: Total test duration
+- **Success rate**: Percentage of successful test runs
+- **Resource usage**: Memory and CPU consumption
+
+### Logs
+
+Key log messages to watch for:
+
+- `✅ MongoDB Memory Server created successfully`
+- `✅ Test database connected`
+- `✅ Test database disconnected`
+- `❌ MongoDB Memory Server test failed`
+
+## Future Improvements
+
+1. **Docker-based testing**: Use Docker containers for more consistent environments
+2. **Parallel test execution**: Run tests in parallel where possible
+3. **Test result caching**: Cache test results for faster feedback
+4. **Advanced monitoring**: Add detailed performance metrics
+
+## Support
+
+If you encounter issues:
+
+1. Check the troubleshooting section above
+2. Review CI logs for specific error messages
+3. Test locally with the same configuration
+4. Consider using the fallback configurations
+
+For persistent issues, consider:
+
+- Updating to the latest mongodb-memory-server version
+- Using a different MongoDB version
+- Implementing Docker-based testing
+- Adding more detailed logging and monitoring

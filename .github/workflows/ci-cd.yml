@@ -51,15 +51,6 @@ jobs:
         needs: quality-checks
 
         services:
-            mongodb:
-                image: mongo:6.0
-                ports:
-                    - 27017:27017
-                options: >-
-                    --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
             redis:
                 image: redis:7-alpine
                 ports:
@@ -81,21 +72,60 @@ jobs:
                   cache: 'npm'
                   cache-dependency-path: package-lock.json
 
+            - name: Install system dependencies for MongoDB
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                      libcurl4 \
+                      openssl \
+                      libssl-dev \
+                      ca-certificates \
+                      curl \
+                      wget \
+                      gnupg \
+                      lsb-release
+
+            - name: Cache mongodb-memory-server binaries
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cache/mongodb-binaries
+                  key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+                  restore-keys: |
+                      mongodb-binaries-${{ runner.os }}-
+
             - name: Install dependencies
               run: npm ci
 
-            - name: Add libcrypto.so.1.1 compatibility (Ubuntu 22.04+)
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libssl1.1 || \
-                  (sudo ln -s /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 && \
-                   sudo ln -s /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1)
+            - name: Setup MongoDB Memory Server
+              run: bash scripts/setup-mongodb-memory.sh
+              env:
+                  MONGODB_MEMORY_SERVER_VERSION: '6.0.0'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT: '60000'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY: '3'
 
-            - name: Run all tests
-              run: npm run test:ci
+            - name: Setup test environment
+              run: bash scripts/setup-ci-env.sh
+
+            - name: Run unit tests
+              run: npm run test:unit
+              env:
+                  CI: true
+                  NODE_ENV: test
+
+            - name: Run integration tests
+              run: npm run test:integration
+              env:
+                  CI: true
+                  NODE_ENV: test
+                  MONGODB_MEMORY_SERVER_VERSION: '6.0.0'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT: '60000'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY: '3'
 
             - name: Generate coverage report
-              run: bash scripts/setup-ci-env.sh && npm run test:coverage
+              run: npm run test:coverage
+              env:
+                  CI: true
+                  NODE_ENV: test
 
             - name: Upload coverage reports to Codecov
               uses: codecov/codecov-action@v4

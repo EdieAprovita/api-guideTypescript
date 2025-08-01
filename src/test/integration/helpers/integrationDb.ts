@@ -26,16 +26,29 @@ export const connectToMemoryDb = async (): Promise<void> => {
 
         console.log('🔄 Iniciando MongoDB en memoria para pruebas...');
 
-        // Crear servidor MongoDB en memoria con configuración robusta
-        mongoServer = await MongoMemoryServer.create({
+        // Configuración robusta para CI
+        const mongoConfig: any = {
             instance: {
                 dbName: 'test-vegan-guide',
+                port: undefined, // Let the system choose a free port
             },
-            // Configuración simplificada para evitar problemas de compatibilidad
             binary: {
-                version: '6.0.0', // Versión estable
+                version: process.env.MONGODB_MEMORY_SERVER_VERSION || '6.0.0',
+                downloadDir: process.env.MONGODB_MEMORY_SERVER_DOWNLOAD_DIR || undefined,
             },
-        });
+            autoStart: true,
+        };
+
+        // Configuraciones específicas para CI
+        if (process.env.CI) {
+            mongoConfig.binary.downloadDir =
+                process.env.MONGODB_MEMORY_SERVER_DOWNLOAD_DIR || '~/.cache/mongodb-binaries';
+            mongoConfig.instance.port = undefined; // Use random port in CI
+            mongoConfig.autoStart = true;
+        }
+
+        // Crear servidor MongoDB en memoria con configuración robusta
+        mongoServer = await MongoMemoryServer.create(mongoConfig);
 
         const uri = mongoServer.getUri();
         console.log(`📍 URI de BD de prueba: ${uri}`);
@@ -43,13 +56,14 @@ export const connectToMemoryDb = async (): Promise<void> => {
         // Conectar con configuración optimizada para pruebas
         await mongoose.connect(uri, {
             maxPoolSize: 1, // Una sola conexión para pruebas
-            serverSelectionTimeoutMS: 10000,
-            socketTimeoutMS: 10000,
-            connectTimeoutMS: 10000,
+            serverSelectionTimeoutMS: 15000, // Increased timeout for CI
+            socketTimeoutMS: 15000,
+            connectTimeoutMS: 15000,
             // Optimizaciones para pruebas
             maxIdleTimeMS: 30000,
-            waitQueueTimeoutMS: 5000,
+            waitQueueTimeoutMS: 10000, // Increased for CI
             retryWrites: false, // Deshabilitar para pruebas
+            retryReads: false, // Disable for tests
         });
 
         isConnected = true;
@@ -74,8 +88,8 @@ export const connectToMemoryDb = async (): Promise<void> => {
                 console.log('🔄 Intentando fallback a BD local...');
                 await mongoose.connect(process.env.MONGODB_TEST_URI, {
                     maxPoolSize: 1,
-                    serverSelectionTimeoutMS: 5000,
-                    socketTimeoutMS: 5000,
+                    serverSelectionTimeoutMS: 10000,
+                    socketTimeoutMS: 10000,
                 });
                 isConnected = true;
                 console.log('✅ Conectado a BD local como fallback');
@@ -83,6 +97,33 @@ export const connectToMemoryDb = async (): Promise<void> => {
             } catch (fallbackError) {
                 console.error('❌ Fallback a BD local falló:', fallbackError);
             }
+        }
+
+        // Fallback adicional: intentar con configuración mínima
+        try {
+            console.log('🔄 Intentando configuración mínima...');
+            mongoServer = await MongoMemoryServer.create({
+                instance: {
+                    dbName: 'test-vegan-guide',
+                },
+                binary: {
+                    version: '5.0.19', // Fallback to older version
+                },
+            });
+
+            const uri = mongoServer.getUri();
+            await mongoose.connect(uri, {
+                maxPoolSize: 1,
+                serverSelectionTimeoutMS: 20000,
+                socketTimeoutMS: 20000,
+                connectTimeoutMS: 20000,
+            });
+
+            isConnected = true;
+            console.log('✅ Conectado con configuración mínima');
+            return;
+        } catch (minimalError) {
+            console.error('❌ Configuración mínima falló:', minimalError);
         }
 
         throw new Error(
@@ -191,11 +232,11 @@ export const forceReconnect = async (): Promise<void> => {
 export const setupTestDb = () => {
     beforeAll(async () => {
         await connectToMemoryDb();
-    }, 30000); // Timeout de 30s para setup
+    }, 60000); // Increased timeout to 60s for CI
 
     afterAll(async () => {
         await disconnectAndCleanup();
-    }, 15000); // Timeout de 15s para cleanup
+    }, 30000); // Increased timeout to 30s for cleanup
 };
 
 /**
@@ -207,5 +248,5 @@ export const cleanDbBeforeEach = () => {
             await connectToMemoryDb();
         }
         await clearAllCollections();
-    }, 10000); // Timeout de 10s para limpieza
+    }, 20000); // Increased timeout to 20s for cleanup
 };
