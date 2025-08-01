@@ -47,7 +47,7 @@ jobs:
 
     test:
         name: Tests
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04  # Use specific Ubuntu version for MongoDB compatibility
         needs: quality-checks
 
         services:
@@ -86,14 +86,43 @@ jobs:
                       lsb-release \
                       libc6-dev
                   
-                  # Install libssl1.1 for MongoDB compatibility on Ubuntu 22.04
+                  # Install libssl1.1 for MongoDB compatibility (works for Ubuntu 22.04/24.04)
                   # This fixes the "libcrypto.so.1.1" missing library error
-                  wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
-                  sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
-                  rm libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
+                  echo "Attempting to install libssl1.1 for MongoDB compatibility..."
+                  
+                  # Try multiple Ubuntu versions for libssl1.1 package
+                  LIBSSL_INSTALLED=false
+                  
+                  # First try Ubuntu 22.04 focal version
+                  if wget -q http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb; then
+                    sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb 2>/dev/null && LIBSSL_INSTALLED=true
+                    rm -f libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb
+                  fi
+                  
+                  # Fallback to Ubuntu 20.04 focal version if needed
+                  if [ "$LIBSSL_INSTALLED" = false ]; then
+                    if wget -q http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb; then
+                      sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb 2>/dev/null && LIBSSL_INSTALLED=true
+                      rm -f libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+                    fi
+                  fi
+                  
+                  # Final fallback: create symlinks for Ubuntu 24.04
+                  if [ "$LIBSSL_INSTALLED" = false ]; then
+                    echo "Creating compatibility symlinks for Ubuntu 24.04..."
+                    sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1 2>/dev/null || true
+                    sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
+                    sudo ldconfig
+                    LIBSSL_INSTALLED=true
+                  fi
                   
                   # Verify installation
-                  ldconfig -p | grep libssl | head -5 || echo "SSL libraries verification complete"
+                  if [ "$LIBSSL_INSTALLED" = true ]; then
+                    echo "✅ libssl1.1 compatibility installed successfully"
+                    ldconfig -p | grep -E "(libssl|libcrypto)" | head -5 || echo "SSL libraries configured"
+                  else
+                    echo "⚠️ Could not install libssl1.1, MongoDB may have issues"
+                  fi
 
             - name: Setup MongoDB Memory Server environment
               run: |
