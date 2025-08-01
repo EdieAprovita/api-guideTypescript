@@ -92,16 +92,10 @@ jobs:
                   mkdir -p ~/.cache/mongodb-binaries
                   chmod 755 ~/.cache/mongodb-binaries
                   
-                  # Install compatible libssl version
-                  if ! ldconfig -p | grep -q "libssl.so.1.1"; then
-                      echo "Installing libssl1.1 for MongoDB Memory Server compatibility..."
-                      wget -q http://archive.ubuntu.com/ubuntu/pool/main/o/openssl1.1/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
-                      wget -q http://archive.ubuntu.com/ubuntu/pool/main/o/openssl1.1/libcrypto1.1_1.1.1f-1ubuntu2.22_amd64.deb
-                      sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb libcrypto1.1_1.1.1f-1ubuntu2.22_amd64.deb || true
-                  fi
-                  
-                  # Verify installation
-                  ldconfig -p | grep libssl || echo "Warning: libssl check failed"
+                  # Modern MongoDB Memory Server (v10+) works with libssl3 (default in Ubuntu 22.04+)
+                  echo "✅ Using modern MongoDB Memory Server with libssl3 support"
+                  echo "📋 Available SSL libraries:"
+                  ldconfig -p | grep libssl | head -3 || echo "No SSL libraries found"
 
             - name: Cache mongodb-memory-server binaries
               uses: actions/cache@v3
@@ -116,8 +110,8 @@ jobs:
 
             - name: Pre-download MongoDB binaries
               run: |
-                  # Pre-download stable MongoDB versions to avoid CI timeouts
-                  export MONGODB_MEMORY_SERVER_VERSION=5.0.19
+                  # Pre-download modern MongoDB version compatible with libssl3
+                  export MONGODB_MEMORY_SERVER_VERSION=6.0.4
                   export MONGODB_MEMORY_SERVER_DOWNLOAD_DIR=~/.cache/mongodb-binaries
                   export MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT=120000
                   export MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY=5
@@ -127,13 +121,13 @@ jobs:
                   const { MongoMemoryServer } = require('mongodb-memory-server');
                   async function preDownload() {
                     try {
-                      console.log('Pre-downloading MongoDB 5.0.19...');
+                      console.log('Pre-downloading MongoDB 6.0.4 (libssl3 compatible)...');
                       const mongod = await MongoMemoryServer.create({
-                        binary: { version: '5.0.19' },
+                        binary: { version: '6.0.4', checkMD5: false },
                         instance: { dbName: 'predownload-test' },
                         autoStart: false
                       });
-                      console.log('✅ MongoDB 5.0.19 downloaded successfully');
+                      console.log('✅ MongoDB 6.0.4 downloaded successfully');
                       await mongod.stop();
                     } catch (error) {
                       console.log('⚠️  Pre-download failed, will try during tests:', error.message);
@@ -145,7 +139,7 @@ jobs:
             - name: Test MongoDB Memory Server setup
               run: node scripts/test-mongodb-setup.js
               env:
-                  MONGODB_MEMORY_SERVER_VERSION: '5.0.19'
+                  MONGODB_MEMORY_SERVER_VERSION: '6.0.4'
                   MONGODB_MEMORY_SERVER_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
                   MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT: '120000'
                   MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY: '5'
@@ -165,7 +159,7 @@ jobs:
               env:
                   CI: true
                   NODE_ENV: test
-                  MONGODB_MEMORY_SERVER_VERSION: '5.0.19'
+                  MONGODB_MEMORY_SERVER_VERSION: '6.0.4'
                   MONGODB_MEMORY_SERVER_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
                   MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT: '120000'
                   MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY: '5'

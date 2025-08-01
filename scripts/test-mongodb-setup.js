@@ -16,7 +16,7 @@ async function testMongoDBSetup() {
   console.log(`   - Node.js version: ${process.version}`);
   console.log(`   - Platform: ${process.platform} ${process.arch}`);
   console.log(`   - CI environment: ${process.env.CI ? 'Yes' : 'No'}`);
-  console.log(`   - MongoDB version: ${process.env.MONGODB_MEMORY_SERVER_VERSION || '5.0.19'}`);
+  console.log(`   - MongoDB version: ${process.env.MONGODB_MEMORY_SERVER_VERSION || '6.0.4'}`);
   console.log('');
 
   let mongoServer = null;
@@ -25,7 +25,7 @@ async function testMongoDBSetup() {
   try {
     console.log('🚀 Creating MongoDB Memory Server instance...');
     
-    // Test with stable configuration
+    // Test with modern libssl3-compatible configuration
     const config = {
       instance: {
         dbName: 'setup-test',
@@ -33,7 +33,7 @@ async function testMongoDBSetup() {
         storageEngine: 'wiredTiger',
       },
       binary: {
-        version: process.env.MONGODB_MEMORY_SERVER_VERSION || '5.0.19',
+        version: process.env.MONGODB_MEMORY_SERVER_VERSION || '6.0.4',
         downloadDir: process.env.MONGODB_MEMORY_SERVER_DOWNLOAD_DIR || '~/.cache/mongodb-binaries',
         checkMD5: false,
       },
@@ -99,9 +99,9 @@ async function testMongoDBSetup() {
       console.error(error.stack.split('\n').slice(0,5).map(line => `   ${line}`).join('\n'));
     }
 
-    // Try fallback test with older version
+    // Try fallback test with stable version
     if (!testPassed && error.message.includes('closed unexpectedly')) {
-      console.log('\n🔄 Trying fallback test with MongoDB 4.4.18...');
+      console.log('\n🔄 Trying fallback test with MongoDB 5.0.19...');
       
       try {
         if (mongoServer) {
@@ -119,7 +119,7 @@ async function testMongoDBSetup() {
             args: ['--nojournal'],
           },
           binary: {
-            version: '4.4.18',
+            version: '5.0.19',
             checkMD5: false,
           },
         });
@@ -130,7 +130,7 @@ async function testMongoDBSetup() {
           serverSelectionTimeoutMS: 10000,
         });
 
-        console.log('✅ Fallback test with MongoDB 4.4.18 successful');
+        console.log('✅ Fallback test with MongoDB 5.0.19 successful');
         testPassed = true;
 
       } catch (fallbackError) {

@@ -1,7 +1,7 @@
 module.exports = {
   binary: {
-    // Use stable MongoDB version in CI
-    version: process.env.MONGODB_MEMORY_SERVER_VERSION || '5.0.19',
+    // Use modern MongoDB version that supports libssl3 (Ubuntu 22.04+)
+    version: process.env.MONGODB_MEMORY_SERVER_VERSION || '6.0.4',
     // Use specific download directory for better caching
     downloadDir: process.env.MONGODB_MEMORY_SERVER_DOWNLOAD_DIR || '~/.cache/mongodb-binaries',
     // Skip MD5 check to avoid corruption issues in CI
