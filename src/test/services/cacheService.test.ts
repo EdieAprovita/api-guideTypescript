@@ -17,9 +17,9 @@ describe('CacheService', () => {
     beforeEach(async () => {
         await testHooks.beforeEach();
         vi.clearAllMocks();
-        // Get the mocked service instance directly from the mock
-        const { CacheService } = await import('../../services/CacheService');
-        cacheService = new CacheService();
+        // Retrieve mocked instance directly
+        const mod = await import('../../services/CacheService');
+        cacheService = mod.default as unknown as CacheServiceType;
     });
 
     afterEach(() => {
