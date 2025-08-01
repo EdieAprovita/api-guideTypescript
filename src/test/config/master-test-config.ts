@@ -30,7 +30,7 @@ export const setupMasterTestEnvironment = (): void => {
     process.env.MONGODB_URI = 'mongodb://localhost:27017/master-test-db';
 
     // Disable external services
-    process.env.REDIS_HOST = 'mock-redis-host'; // Non-existent host to prevent real connections
+    process.env.REDIS_HOST = process.env.CI ? 'localhost' : 'mock-redis-host'; // Use localhost in CI, mock in local tests
     process.env.REDIS_PORT = '9999'; // Non-standard port to prevent real connections
     process.env.REDIS_PASSWORD = testConfig.generateTestPassword();
     process.env.REDIS_URL = 'redis://test-mock:9999'; // Mock Redis URL

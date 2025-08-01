@@ -19,6 +19,15 @@ process.env.BCRYPT_SALT_ROUNDS = '4';
 // Disable rate limiting for tests
 process.env.DISABLE_RATE_LIMIT = 'true';
 
+// Configure Redis for tests
+if (process.env.CI) {
+    process.env.REDIS_HOST = 'localhost';
+    process.env.REDIS_PORT = '6379';
+} else {
+    process.env.REDIS_HOST = 'localhost';
+    process.env.REDIS_PORT = '6379';
+}
+
 // CRITICAL: Clear all mocks for integration tests to use real implementations
 vi.clearAllMocks();
 vi.resetAllMocks();

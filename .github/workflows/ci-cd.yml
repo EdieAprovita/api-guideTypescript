@@ -20,7 +20,7 @@ jobs:
     quality-checks:
         name: Quality Checks
         runs-on: ubuntu-latest
-        
+
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -84,32 +84,18 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            - name: Run unit tests
-              run: npm run test:unit
-              env:
-                  NODE_ENV: test
-                  MONGODB_URI: mongodb://localhost:27017/vegan-city-guide-test
-                  JWT_SECRET: test-jwt-secret-key-for-github-actions
-                  REDIS_HOST: localhost
-                  REDIS_PORT: 6379
+            - name: Add libcrypto.so.1.1 compatibility (Ubuntu 22.04+)
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libssl1.1 || \
+                  (sudo ln -s /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 && \
+                   sudo ln -s /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1)
 
-            - name: Run integration tests
-              run: npm run test:integration
-              env:
-                  NODE_ENV: test
-                  MONGODB_URI: mongodb://localhost:27017/vegan-city-guide-test
-                  JWT_SECRET: test-jwt-secret-key-for-github-actions
-                  REDIS_HOST: localhost
-                  REDIS_PORT: 6379
+            - name: Run all tests
+              run: npm run test:ci
 
             - name: Generate coverage report
-              run: npm run test:coverage
-              env:
-                  NODE_ENV: test
-                  MONGODB_URI: mongodb://localhost:27017/vegan-city-guide-test
-                  JWT_SECRET: test-jwt-secret-key-for-github-actions
-                  REDIS_HOST: localhost
-                  REDIS_PORT: 6379
+              run: bash scripts/setup-ci-env.sh && npm run test:coverage
 
             - name: Upload coverage reports to Codecov
               uses: codecov/codecov-action@v4
@@ -205,4 +191,4 @@ jobs:
                   echo "🔧 Configure your deployment strategy here"
                   echo "   - AWS, Vercel, Railway, Heroku, etc."
                   echo "   - Docker deployment"
-                  echo "   - Server deployment" 
+                  echo "   - Server deployment"
