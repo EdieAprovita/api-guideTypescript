@@ -4,6 +4,12 @@
  * that import '../utils/testHelpers'. Redirects to the new unified system.
  */
 
+import { vi } from 'vitest';
+import { faker } from '@faker-js/faker';
+
+// Re-export response expectation utilities for backward compatibility
+export * from './responseExpectations';
+
 // Only import mocks if not in integration test mode
 let mockFactory: any = null;
 if (process.env.NODE_ENV === 'test' && !process.env.INTEGRATION_TEST) {
@@ -11,12 +17,10 @@ if (process.env.NODE_ENV === 'test' && !process.env.INTEGRATION_TEST) {
         const { mockFactory: importedMockFactory } = require('../config/unified-test-config');
         mockFactory = importedMockFactory;
     } catch (error) {
-        // Mock factory not available, continue without it
+        // Mock factory not available, continue without mocks
         console.warn('Mock factory not available, continuing without mocks');
     }
 }
-
-import { faker } from '@faker-js/faker';
 
 // Ensure faker uses deterministic data
 faker.seed(12345);
@@ -204,11 +208,47 @@ export const createMockData = {
         updatedAt: new Date('2023-01-01T10:00:00Z'),
         ...overrides,
     }),
-};
 
-// Re-export vitest functions for convenience
-import { vi } from 'vitest';
-export { vi };
+    doctor: (overrides: any = {}) => ({
+        _id: overrides._id || 'doctor-1',
+        doctorName: 'Test Doctor',
+        specialization: 'General Medicine',
+        address: '123 Doctor Street',
+        location: { type: 'Point', coordinates: [-73.935242, 40.73061] },
+        phone: '555-0100',
+        email: 'doctor@test.com',
+        rating: 4.5,
+        isActive: true,
+        createdAt: new Date('2023-01-01T10:00:00Z'),
+        updatedAt: new Date('2023-01-01T10:00:00Z'),
+        ...overrides,
+    }),
+
+    market: (overrides: any = {}) => ({
+        _id: overrides._id || 'market-1',
+        marketName: 'Test Market',
+        address: '789 Market Street',
+        location: { type: 'Point', coordinates: [-73.935242, 40.73061] },
+        rating: 4.0,
+        isActive: true,
+        createdAt: new Date('2023-01-01T10:00:00Z'),
+        updatedAt: new Date('2023-01-01T10:00:00Z'),
+        ...overrides,
+    }),
+
+    sanctuary: (overrides: any = {}) => ({
+        _id: overrides._id || 'sanctuary-1',
+        sanctuaryName: 'Test Sanctuary',
+        address: '101 Sanctuary Road',
+        location: { type: 'Point', coordinates: [-73.935242, 40.73061] },
+        description: 'A test sanctuary for unit testing',
+        rating: 4.2,
+        isActive: true,
+        createdAt: new Date('2023-01-01T10:00:00Z'),
+        updatedAt: new Date('2023-01-01T10:00:00Z'),
+        ...overrides,
+    }),
+};
 
 // Token generation utilities
 import jwt from 'jsonwebtoken';

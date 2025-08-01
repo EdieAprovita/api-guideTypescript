@@ -20,6 +20,7 @@ import type { TestContext, TestSetupOptions } from '../types/test-types';
 
 export { TEST_CONSTANTS } from '../types/test-types';
 export { mockFactory } from '../mocks/unified-mock-factory';
+export const generateValidObjectId = () => faker.database.mongodbObjectId();
 
 faker.seed(12345);
 let mongoServer: MongoMemoryServer | null = null;
