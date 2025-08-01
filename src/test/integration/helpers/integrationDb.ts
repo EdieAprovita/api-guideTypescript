@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { beforeAll, afterAll, beforeEach } from 'vitest';
 
 // ============================================================================
 // CONFIGURACIÓN MEJORADA DE BD PARA PRUEBAS DE INTEGRACIÓN
@@ -26,26 +27,17 @@ export const connectToMemoryDb = async (): Promise<void> => {
 
         console.log('🔄 Iniciando MongoDB en memoria para pruebas...');
 
-        // Configuración robusta para CI
-        const mongoConfig: any = {
+        // Load configuration from central config file
+        const defaultConfig = require('../../../../mongodb-memory-server.config.js');
+        
+        // Override with environment-specific settings
+        const mongoConfig = {
+            ...defaultConfig,
             instance: {
+                ...defaultConfig.instance,
                 dbName: 'test-vegan-guide',
-                port: undefined, // Let the system choose a free port
             },
-            binary: {
-                version: process.env.MONGODB_MEMORY_SERVER_VERSION || '6.0.0',
-                downloadDir: process.env.MONGODB_MEMORY_SERVER_DOWNLOAD_DIR || undefined,
-            },
-            autoStart: true,
         };
-
-        // Configuraciones específicas para CI
-        if (process.env.CI) {
-            mongoConfig.binary.downloadDir =
-                process.env.MONGODB_MEMORY_SERVER_DOWNLOAD_DIR || '~/.cache/mongodb-binaries';
-            mongoConfig.instance.port = undefined; // Use random port in CI
-            mongoConfig.autoStart = true;
-        }
 
         // Crear servidor MongoDB en memoria con configuración robusta
         mongoServer = await MongoMemoryServer.create(mongoConfig);
@@ -105,9 +97,11 @@ export const connectToMemoryDb = async (): Promise<void> => {
             mongoServer = await MongoMemoryServer.create({
                 instance: {
                     dbName: 'test-vegan-guide',
+                    args: ['--nojournal'], // Minimal args for CI
                 },
                 binary: {
-                    version: '5.0.19', // Fallback to older version
+                    version: '4.4.18', // Fallback to older stable version
+                    checkMD5: false,
                 },
             });
 

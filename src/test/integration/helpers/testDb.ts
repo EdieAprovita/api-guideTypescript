@@ -38,15 +38,19 @@ export const connect = async (): Promise<void> => {
             return;
         }
 
-        // Create MongoMemoryServer instance with default configuration.
-        // Simplified config prevents binary incompatibilities (e.g. on macOS-ARM)
-        // and avoids custom storageEngine flags that cause UnexpectedCloseError.
-        mongoServer = await MongoMemoryServer.create({
+        // Load configuration from central config file
+        const defaultConfig = require('../../../../mongodb-memory-server.config.js');
+        
+        // Override with environment-specific settings
+        const mongoConfig = {
+            ...defaultConfig,
             instance: {
+                ...defaultConfig.instance,
                 dbName: 'vegan-guide-test',
             },
-            // Let mongodb-memory-server pick the correct binary automatically.
-        });
+        };
+
+        mongoServer = await MongoMemoryServer.create(mongoConfig);
 
         const uri = mongoServer.getUri();
 
