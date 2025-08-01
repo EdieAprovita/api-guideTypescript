@@ -85,9 +85,7 @@ export interface MockModel<T = unknown> {
     findByIdAndDelete: MockedFunction<(id: string) => Promise<T | null>>;
     find: MockedFunction<(filter?: Record<string, unknown>) => Promise<T[]>>;
     create: MockedFunction<(data: Partial<T>) => Promise<T>>;
-    updateOne?: MockedFunction<
-        (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>
-    >;
+    updateOne?: MockedFunction<(filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>>;
     deleteOne?: MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
     countDocuments?: MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
     findByIdAndUpdate?: MockedFunction<
@@ -168,7 +166,7 @@ export type MockUserService = MockService<TestUser> & {
     findAllUsers: MockedFunction<() => Promise<TestUser[]>>;
     findUserById: MockedFunction<(id: string) => Promise<TestUser | null>>;
     updateUserById: MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<TestUser>>;
-    deleteUserById: MockedFunction<(id: string) => Promise<{ message: string }>;
+    deleteUserById: MockedFunction<(id: string) => Promise<{ message: string }>>;
 };
 
 export type MockBusinessService = MockService<unknown>;

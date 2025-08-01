@@ -16,7 +16,7 @@ export interface CacheOptions {
 
 /**
  * CacheService - Servicio de cache inteligente con Redis
- * 
+ *
  * Características:
  * - TTL específico por tipo de dato
  * - Sistema de tags para invalidación masiva
@@ -28,16 +28,16 @@ export class CacheService {
     private hits = 0;
     private misses = 0;
     private tagMap: Map<string, Set<string>> = new Map();
-    
+
     // TTL por tipo de contenido (en segundos)
     private readonly ttlConfig: Record<string, number> = {
-        restaurants: 300,       // 5 min - datos que cambian poco
-        businesses: 600,        // 10 min - datos relativamente estáticos
-        geolocation: 1800,      // 30 min - consultas costosas de geo
-        users: 900,             // 15 min - perfiles de usuario
-        reviews: 180,           // 3 min - contenido dinámico
-        categories: 3600,       // 1 hora - datos muy estáticos
-        search: 600             // 10 min - resultados de búsqueda
+        restaurants: 300, // 5 min - datos que cambian poco
+        businesses: 600, // 10 min - datos relativamente estáticos
+        geolocation: 1800, // 30 min - consultas costosas de geo
+        users: 900, // 15 min - perfiles de usuario
+        reviews: 180, // 3 min - contenido dinámico
+        categories: 3600, // 1 hora - datos muy estáticos
+        search: 600, // 10 min - resultados de búsqueda
     };
 
     constructor() {
@@ -90,7 +90,7 @@ export class CacheService {
             logger.info('🚀 Redis ready to accept commands');
         });
 
-        this.redis.on('error', (error) => {
+        this.redis.on('error', error => {
             logger.error('❌ Redis connection error:', error);
         });
 
@@ -109,7 +109,7 @@ export class CacheService {
             const start = Date.now();
             const value = await this.redis.get(key);
             const duration = Date.now() - start;
-            
+
             if (value) {
                 this.hits++;
                 logger.debug(`🎯 Cache HIT: ${key} (${duration}ms)`);
@@ -133,27 +133,21 @@ export class CacheService {
      * @param type - Tipo de contenido para TTL
      * @param options - Opciones adicionales
      */
-    async set<T>(
-        key: string, 
-        value: T, 
-        type: string = 'default', 
-        options: CacheOptions = {}
-    ): Promise<void> {
+    async set<T>(key: string, value: T, type: string = 'default', options: CacheOptions = {}): Promise<void> {
         try {
             const start = Date.now();
             const ttl = options.ttl || this.ttlConfig[type] || 300; // 5 min default
             const serializedValue = JSON.stringify(value);
-            
+
             await this.redis.setex(key, ttl, serializedValue);
-            
+
             // Manejar tags para invalidación
             if (options.tags) {
                 await this.associateTags(key, options.tags);
             }
-            
+
             const duration = Date.now() - start;
             logger.debug(`💾 Cache SET: ${key} (TTL: ${ttl}s, ${duration}ms)`);
-            
         } catch (error) {
             logger.error(`Cache SET error for key ${key}:`, error);
         }
@@ -166,12 +160,7 @@ export class CacheService {
      * @param tags - Tags para agrupar claves
      * @param ttl - Tiempo de vida opcional
      */
-    async setWithTags<T>(
-        key: string, 
-        value: T, 
-        tags: string[], 
-        ttl?: number
-    ): Promise<void> {
+    async setWithTags<T>(key: string, value: T, tags: string[], ttl?: number): Promise<void> {
         const options: CacheOptions = { tags };
         if (ttl !== undefined) {
             options.ttl = ttl;
@@ -240,14 +229,14 @@ export class CacheService {
             const info = await this.redis.info('memory');
             const totalRequests = this.hits + this.misses;
             const hitRatio = totalRequests > 0 ? this.hits / totalRequests : 0;
-            
+
             // Extraer uso de memoria del INFO
             const memMatch = info.match(/used_memory_human:(.+)/);
             const memoryUsage = memMatch?.[1]?.trim() || 'Unknown';
-            
+
             const uptimeMatch = info.match(/uptime_in_seconds:(\d+)/);
             const uptime = uptimeMatch?.[1] ? parseInt(uptimeMatch[1]) : 0;
-            
+
             const dbSize = await this.redis.dbsize();
 
             return {
@@ -255,7 +244,7 @@ export class CacheService {
                 totalRequests,
                 cacheSize: dbSize,
                 memoryUsage,
-                uptime
+                uptime,
             };
         } catch (error) {
             logger.error('Error getting cache stats:', error);
@@ -264,7 +253,7 @@ export class CacheService {
                 totalRequests: 0,
                 cacheSize: 0,
                 memoryUsage: 'Error',
-                uptime: 0
+                uptime: 0,
             };
         }
     }

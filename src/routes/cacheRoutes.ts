@@ -96,30 +96,29 @@ router.get('/stats', cacheStatsMiddleware());
  */
 router.get('/health', async (_req: Request, res: Response) => {
     const start = Date.now();
-    
+
     try {
         // Test básico de Redis
         const testKey = 'health:check';
         const testValue = { timestamp: new Date().toISOString() };
-        
+
         await cacheService.set(testKey, testValue, 'test', { ttl: 10 });
         const retrieved = await cacheService.get(testKey);
         await cacheService.invalidate(testKey);
-        
+
         const responseTime = Date.now() - start;
-        
+
         if (retrieved) {
             res.json({
                 success: true,
                 status: 'operational',
                 timestamp: new Date().toISOString(),
                 responseTime,
-                message: 'Cache is working correctly'
+                message: 'Cache is working correctly',
             });
         } else {
             throw new Error('Cache health check failed');
         }
-        
     } catch (error) {
         logger.error('Cache health check failed:', error);
         res.status(503).json({
@@ -127,7 +126,7 @@ router.get('/health', async (_req: Request, res: Response) => {
             status: 'error',
             timestamp: new Date().toISOString(),
             responseTime: Date.now() - start,
-            error: 'Cache service unavailable'
+            error: 'Cache service unavailable',
         });
     }
 });
@@ -154,28 +153,27 @@ router.get('/health', async (_req: Request, res: Response) => {
 router.delete('/invalidate/:pattern', async (req: Request, res: Response) => {
     try {
         const { pattern } = req.params;
-        
+
         if (!pattern || pattern.length < 2) {
             res.status(400).json({
                 success: false,
-                error: 'Pattern must be at least 2 characters long'
+                error: 'Pattern must be at least 2 characters long',
             });
             return;
         }
-        
+
         await cacheService.invalidatePattern(pattern);
-        
+
         res.json({
             success: true,
             message: `Cache invalidated for pattern: ${pattern}`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
-        
     } catch (error) {
         logger.error('Error invalidating cache pattern:', error);
         res.status(500).json({
             success: false,
-            error: 'Error invalidating cache'
+            error: 'Error invalidating cache',
         });
     }
 });
@@ -202,28 +200,27 @@ router.delete('/invalidate/:pattern', async (req: Request, res: Response) => {
 router.delete('/invalidate/tag/:tag', async (req: Request, res: Response) => {
     try {
         const { tag } = req.params;
-        
+
         if (!tag || tag.length < 2) {
             res.status(400).json({
                 success: false,
-                error: 'Tag must be at least 2 characters long'
+                error: 'Tag must be at least 2 characters long',
             });
             return;
         }
-        
+
         await cacheService.invalidateByTag(tag);
-        
+
         res.json({
             success: true,
             message: `Cache invalidated for tag: ${tag}`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
-        
     } catch (error) {
         logger.error('Error invalidating cache by tag:', error);
         res.status(500).json({
             success: false,
-            error: 'Error invalidating cache'
+            error: 'Error invalidating cache',
         });
     }
 });
@@ -259,9 +256,9 @@ router.delete('/invalidate/tag/:tag', async (req: Request, res: Response) => {
 router.post('/warm', async (req: Request, res: Response) => {
     try {
         const { dataType = 'all', autoStart = false, intervalMinutes = 30 } = req.body;
-        
+
         let result;
-        
+
         if (dataType === 'all') {
             result = await cacheWarmingService.warmUpCriticalData();
         } else {
@@ -270,15 +267,15 @@ router.post('/warm', async (req: Request, res: Response) => {
                 success: true,
                 duration: 0,
                 itemsWarmed,
-                errors: []
+                errors: [],
             };
         }
-        
+
         // Iniciar auto-warming si se solicita
         if (autoStart) {
             await cacheWarmingService.startAutoWarming(intervalMinutes);
         }
-        
+
         res.json({
             success: result.success,
             message: result.success ? 'Cache warmed up successfully' : 'Cache warming completed with errors',
@@ -287,15 +284,14 @@ router.post('/warm', async (req: Request, res: Response) => {
             duration: `${result.duration}ms`,
             errors: result.errors,
             autoWarmingStarted: autoStart,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
-        
     } catch (error) {
         logger.error('Error warming up cache:', error);
         res.status(500).json({
             success: false,
             error: 'Error warming up cache',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 });
@@ -316,13 +312,13 @@ router.get('/warming/status', async (_req: Request, res: Response) => {
         res.json({
             success: true,
             data: stats,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
     } catch (error) {
         logger.error('Error getting warming status:', error);
         res.status(500).json({
             success: false,
-            error: 'Error getting warming status'
+            error: 'Error getting warming status',
         });
     }
 });
@@ -343,13 +339,13 @@ router.post('/warming/stop', async (_req: Request, res: Response) => {
         res.json({
             success: true,
             message: 'Auto-warming stopped successfully',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
     } catch (error) {
         logger.error('Error stopping auto-warming:', error);
         res.status(500).json({
             success: false,
-            error: 'Error stopping auto-warming'
+            error: 'Error stopping auto-warming',
         });
     }
 });
@@ -368,21 +364,21 @@ router.get('/alerts', async (_req: Request, res: Response) => {
     try {
         const activeAlerts = cacheAlertService.getActiveAlerts();
         const status = cacheAlertService.getMonitoringStatus();
-        
+
         res.json({
             success: true,
             data: {
                 alerts: activeAlerts,
                 monitoring: status,
-                totalActiveAlerts: activeAlerts.length
+                totalActiveAlerts: activeAlerts.length,
             },
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
     } catch (error) {
         logger.error('Error getting cache alerts:', error);
         res.status(500).json({
             success: false,
-            error: 'Error getting cache alerts'
+            error: 'Error getting cache alerts',
         });
     }
 });
@@ -418,20 +414,21 @@ router.get('/alerts', async (_req: Request, res: Response) => {
  *                   minCacheSize:
  *                     type: number
  */
-router.route('/alerts/config')
+router
+    .route('/alerts/config')
     .get(async (_req: Request, res: Response) => {
         try {
             const config = cacheAlertService.getConfig();
             res.json({
                 success: true,
                 data: config,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
             });
         } catch (error) {
             logger.error('Error getting alert config:', error);
             res.status(500).json({
                 success: false,
-                error: 'Error getting alert config'
+                error: 'Error getting alert config',
             });
         }
     })
@@ -439,18 +436,18 @@ router.route('/alerts/config')
         try {
             const newConfig = req.body;
             cacheAlertService.updateConfig(newConfig);
-            
+
             res.json({
                 success: true,
                 message: 'Alert configuration updated successfully',
                 data: cacheAlertService.getConfig(),
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
             });
         } catch (error) {
             logger.error('Error updating alert config:', error);
             res.status(500).json({
                 success: false,
-                error: 'Error updating alert config'
+                error: 'Error updating alert config',
             });
         }
     });
@@ -469,13 +466,13 @@ router.post('/alerts/start', async (_req: Request, res: Response) => {
             success: true,
             message: 'Cache monitoring started successfully',
             status: cacheAlertService.getMonitoringStatus(),
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
     } catch (error) {
         logger.error('Error starting cache monitoring:', error);
         res.status(500).json({
             success: false,
-            error: 'Error starting cache monitoring'
+            error: 'Error starting cache monitoring',
         });
     }
 });
@@ -493,13 +490,13 @@ router.post('/alerts/stop', async (_req: Request, res: Response) => {
         res.json({
             success: true,
             message: 'Cache monitoring stopped successfully',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
     } catch (error) {
         logger.error('Error stopping cache monitoring:', error);
         res.status(500).json({
             success: false,
-            error: 'Error stopping cache monitoring'
+            error: 'Error stopping cache monitoring',
         });
     }
 });

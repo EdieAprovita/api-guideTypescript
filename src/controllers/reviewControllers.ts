@@ -38,11 +38,11 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
     try {
         const { restaurantId } = req.params;
         const userId = req.user?._id;
-        
+
         logger.info('Creating review for restaurant', {
             restaurantId,
             userId: userId?.toString(),
-            body: req.body
+            body: req.body,
         });
 
         if (!userId) {
@@ -68,16 +68,16 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
         const reviewData = {
             ...req.body,
             author: userId,
-            restaurant: restaurantId
+            restaurant: restaurantId,
         };
 
         logger.info('Creating review with data', { reviewData });
 
         const review = await ReviewService.addReview(reviewData);
-        
+
         res.status(201).json({
             success: true,
-            data: review
+            data: review,
         });
     } catch (error) {
         logger.error('Error creating review', {
@@ -85,7 +85,7 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
             stack: error instanceof Error ? error.stack : undefined,
             restaurantId: req.params.restaurantId,
             userId: req.user?._id?.toString(),
-            body: req.body
+            body: req.body,
         });
         throw error;
     }
@@ -115,24 +115,25 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
     if (!id) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
-    
+
     // Check if user is the author of the review
     const review = await ReviewService.getReviewById(id);
     const userId = req.user?._id;
-    
+
     if (!userId) {
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
     }
-    
+
     // Handle both populated and non-populated author field
-    const authorId = typeof review.author === 'object' && review.author._id 
-        ? review.author._id.toString() 
-        : review.author.toString();
-    
+    const authorId =
+        typeof review.author === 'object' && review.author._id
+            ? review.author._id.toString()
+            : review.author.toString();
+
     if (authorId !== userId.toString()) {
         throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own reviews');
     }
-    
+
     const updatedReview = await ReviewService.updateReview(id, req.body);
     res.status(200).json({ success: true, data: updatedReview });
 });
@@ -147,24 +148,25 @@ export const deleteReview = asyncHandler(async (req: Request, res: Response) => 
     if (!id) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
-    
+
     // Check if user is the author of the review
     const review = await ReviewService.getReviewById(id);
     const userId = req.user?._id;
-    
+
     if (!userId) {
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
     }
-    
+
     // Handle both populated and non-populated author field
-    const authorId = typeof review.author === 'object' && review.author._id 
-        ? review.author._id.toString() 
-        : review.author.toString();
-    
+    const authorId =
+        typeof review.author === 'object' && review.author._id
+            ? review.author._id.toString()
+            : review.author.toString();
+
     if (authorId !== userId.toString()) {
         throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only delete your own reviews');
     }
-    
+
     await ReviewService.deleteReview(id);
     res.status(200).json({ success: true, message: 'Review deleted successfully' });
 });

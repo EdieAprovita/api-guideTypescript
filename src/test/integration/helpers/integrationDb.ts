@@ -56,7 +56,7 @@ export const connectToMemoryDb = async (): Promise<void> => {
         console.log('✅ Conectado a MongoDB en memoria');
 
         // Manejar eventos de conexión
-        mongoose.connection.on('error', (error) => {
+        mongoose.connection.on('error', error => {
             console.error('❌ Error de conexión MongoDB:', error);
             isConnected = false;
         });
@@ -65,10 +65,9 @@ export const connectToMemoryDb = async (): Promise<void> => {
             console.log('🔌 Desconectado de MongoDB');
             isConnected = false;
         });
-
     } catch (error) {
         console.error('❌ Error al conectar a MongoDB en memoria:', error);
-        
+
         // Fallback: intentar conexión local si está disponible
         if (process.env.MONGODB_TEST_URI) {
             try {
@@ -86,7 +85,9 @@ export const connectToMemoryDb = async (): Promise<void> => {
             }
         }
 
-        throw new Error(`No se pudo establecer conexión a BD para pruebas: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        throw new Error(
+            `No se pudo establecer conexión a BD para pruebas: ${error instanceof Error ? error.message : 'Error desconocido'}`
+        );
     }
 };
 
@@ -109,13 +110,13 @@ export const clearAllCollections = async (): Promise<void> => {
 
         // Obtener todas las colecciones
         const collections = await db.listCollections().toArray();
-        
+
         if (collections.length === 0) {
             return; // No hay colecciones que limpiar
         }
 
         // Limpiar cada colección de forma paralela
-        const clearPromises = collections.map(async (collection) => {
+        const clearPromises = collections.map(async collection => {
             try {
                 await db.collection(collection.name).deleteMany({});
             } catch (error) {
@@ -126,10 +127,11 @@ export const clearAllCollections = async (): Promise<void> => {
 
         await Promise.all(clearPromises);
         console.log(`🧹 Limpiadas ${collections.length} colecciones`);
-
     } catch (error) {
         console.error('❌ Error al limpiar colecciones:', error);
-        throw new Error(`Error limpiando BD de pruebas: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        throw new Error(
+            `Error limpiando BD de pruebas: ${error instanceof Error ? error.message : 'Error desconocido'}`
+        );
     }
 };
 
@@ -157,7 +159,6 @@ export const disconnectAndCleanup = async (): Promise<void> => {
 
         isConnected = false;
         console.log('✅ BD de pruebas desconectada y limpiada');
-
     } catch (error) {
         console.error('❌ Error durante limpieza de BD:', error);
         // No fallar las pruebas por errores de limpieza

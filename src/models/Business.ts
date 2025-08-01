@@ -97,4 +97,5 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 
 businessSchema.index({ location: '2dsphere' });
 
-export const Business = (mongoose.models.Business as mongoose.Model<IBusiness>) || mongoose.model<IBusiness>('Business', businessSchema);
+export const Business =
+    (mongoose.models.Business as mongoose.Model<IBusiness>) || mongoose.model<IBusiness>('Business', businessSchema);

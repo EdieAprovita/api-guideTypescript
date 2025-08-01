@@ -1,6 +1,6 @@
 /**
  * Unified Test Types for Consistent Mocking and Testing
- * 
+ *
  * This file provides TypeScript types for all test mocks and utilities
  * to ensure type safety and consistency across all test files.
  */
@@ -54,13 +54,15 @@ export interface MockedCacheService {
     invalidate: MockedFunction<(key: string) => Promise<void>>;
     invalidatePattern: MockedFunction<(pattern: string) => Promise<void>>;
     invalidateByTag: MockedFunction<(tag: string) => Promise<void>>;
-    getStats: MockedFunction<() => Promise<{
-        hitRatio: number;
-        totalRequests: number;
-        cacheSize: number;
-        memoryUsage: string;
-        uptime: number;
-    }>>;
+    getStats: MockedFunction<
+        () => Promise<{
+            hitRatio: number;
+            totalRequests: number;
+            cacheSize: number;
+            memoryUsage: string;
+            uptime: number;
+        }>
+    >;
     flush: MockedFunction<() => Promise<void>>;
     exists: MockedFunction<(key: string) => Promise<boolean>>;
     expire: MockedFunction<(key: string, ttl: number) => Promise<void>>;
@@ -88,29 +90,43 @@ export interface MockedRedis {
 }
 
 export interface MockedTokenService {
-    generateTokens: MockedFunction<(userId: string, email: string, role: string) => Promise<{
-        accessToken: string;
-        refreshToken: string;
-    }>>;
-    generateTokenPair: MockedFunction<(payload: Record<string, unknown>) => Promise<{
-        accessToken: string;
-        refreshToken: string;
-    }>>;
-    verifyAccessToken: MockedFunction<(token: string) => Promise<{
-        userId: string;
-        email: string;
-        role: string;
-    }>>;
-    verifyRefreshToken: MockedFunction<(token: string) => Promise<{
-        userId: string;
-        email: string;
-        role: string;
-        type: string;
-    }>>;
-    refreshTokens: MockedFunction<(refreshToken: string) => Promise<{
-        accessToken: string;
-        refreshToken: string;
-    }>>;
+    generateTokens: MockedFunction<
+        (
+            userId: string,
+            email: string,
+            role: string
+        ) => Promise<{
+            accessToken: string;
+            refreshToken: string;
+        }>
+    >;
+    generateTokenPair: MockedFunction<
+        (payload: Record<string, unknown>) => Promise<{
+            accessToken: string;
+            refreshToken: string;
+        }>
+    >;
+    verifyAccessToken: MockedFunction<
+        (token: string) => Promise<{
+            userId: string;
+            email: string;
+            role: string;
+        }>
+    >;
+    verifyRefreshToken: MockedFunction<
+        (token: string) => Promise<{
+            userId: string;
+            email: string;
+            role: string;
+            type: string;
+        }>
+    >;
+    refreshTokens: MockedFunction<
+        (refreshToken: string) => Promise<{
+            accessToken: string;
+            refreshToken: string;
+        }>
+    >;
     blacklistToken: MockedFunction<(token: string) => Promise<void>>;
     isTokenBlacklisted: MockedFunction<(token: string) => Promise<boolean>>;
     revokeAllUserTokens: MockedFunction<(userId: string) => Promise<void>>;
@@ -253,18 +269,18 @@ export const TEST_CONSTANTS = {
     ADMIN_USERNAME: 'testadmin',
     ADMIN_TOKEN: 'master_test_token_admin',
     ADMIN_REFRESH_TOKEN: 'master_refresh_token_admin',
-    
+
     PROFESSIONAL_USER_ID: '507f1f77bcf86cd799439012',
     PROFESSIONAL_EMAIL: 'professional@test.com',
     PROFESSIONAL_USERNAME: 'testprofessional',
-    
+
     USER_ID: '507f1f77bcf86cd799439013',
     USER_EMAIL: 'user@test.com',
     USER_USERNAME: 'testuser',
-    
+
     JWT_SECRET: 'master_test_secret_key_12345',
     JWT_REFRESH_SECRET: 'master_refresh_secret_12345',
-    
+
     BUSINESS_ID: '507f1f77bcf86cd799439020',
     RESTAURANT_ID: '507f1f77bcf86cd799439021',
     REVIEW_ID: '507f1f77bcf86cd799439022',
@@ -291,8 +307,4 @@ export interface MockFactoryOptions {
 // EXPORT ALL TYPES
 // ============================================================================
 
-export type {
-    MockedClass,
-    MockedFunction,
-    Mocked,
-};
+export type { MockedClass, MockedFunction, Mocked };

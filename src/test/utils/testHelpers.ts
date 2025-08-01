@@ -114,7 +114,7 @@ export const createMockData = {
         // Create a new seeded instance for consistent data
         const seededFaker = faker;
         seededFaker.seed(12345);
-        
+
         return {
             _id: overrides._id || 'restaurant-1',
             name: 'Test Restaurant',
@@ -220,15 +220,15 @@ export const generateExpiredToken = (userId: string = 'test-user-id'): string =>
     const payload = {
         userId: userId,
         email: 'test@example.com',
-        role: 'user'
+        role: 'user',
     };
 
     const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
-    
+
     return jwt.sign(payload, secret, {
         expiresIn: '-1h', // Expired 1 hour ago
         issuer: 'vegan-guide-api',
-        audience: 'vegan-guide-client'
+        audience: 'vegan-guide-client',
     });
 };
 
@@ -239,15 +239,15 @@ export const generateValidToken = (userId: string = 'test-user-id', role: string
     const payload = {
         userId: userId,
         email: 'test@example.com',
-        role: role
+        role: role,
     };
 
     const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
-    
+
     return jwt.sign(payload, secret, {
         expiresIn: '1h',
         issuer: 'vegan-guide-api',
-        audience: 'vegan-guide-client'
+        audience: 'vegan-guide-client',
     });
 };
 
@@ -265,12 +265,12 @@ export const generateTokenWithWrongSecret = (userId: string = 'test-user-id'): s
     const payload = {
         userId: userId,
         email: 'test@example.com',
-        role: 'user'
+        role: 'user',
     };
 
     return jwt.sign(payload, 'wrong-secret', {
         expiresIn: '1h',
         issuer: 'vegan-guide-api',
-        audience: 'vegan-guide-client'
+        audience: 'vegan-guide-client',
     });
 };

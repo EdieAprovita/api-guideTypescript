@@ -109,12 +109,12 @@ describe('Security Middleware - HTTPS Enforcement', () => {
         it('should redirect HTTP requests with complex header scenarios', () => {
             process.env.NODE_ENV = 'production';
             process.env.SECURE_BASE_URL = 'https://secure.example.com';
-            
+
             // Simulate a request that's not secure and has no forwarded headers
             mockReq.secure = false;
             mockReq.headers = {
                 'x-forwarded-proto': 'http', // explicitly HTTP
-                'host': 'example.com'
+                host: 'example.com',
             };
 
             enforceHTTPS(mockReq as Request, mockRes as Response, mockNext);

@@ -191,7 +191,7 @@ const defaultBusinessHours: BusinessHours = {
     thursday: { open: '10:00', close: '20:00', closed: false },
     friday: { open: '10:00', close: '20:00', closed: false },
     saturday: { open: '10:00', close: '20:00', closed: false },
-    sunday: { open: '10:00', close: '20:00', closed: false }
+    sunday: { open: '10:00', close: '20:00', closed: false },
 };
 
 export const testDataFactory = {
@@ -201,7 +201,7 @@ export const testDataFactory = {
         address: '456 Test Street, Test City, Test State, USA, 12345',
         location: {
             type: 'Point',
-            coordinates: [-118.2437, 34.0522]
+            coordinates: [-118.2437, 34.0522],
         },
         cuisine: ['vegan'],
         features: ['delivery'],
@@ -210,12 +210,12 @@ export const testDataFactory = {
             {
                 phone: '+1-555-999-0000',
                 facebook: '',
-                instagram: ''
-            }
+                instagram: '',
+            },
         ],
         rating: 0,
         numReviews: 0,
-        reviews: []
+        reviews: [],
     }),
 
     business: (): TestBusiness => ({
@@ -228,7 +228,7 @@ export const testDataFactory = {
         address: '123 Business Street, Business City, Business State, USA, 54321',
         location: {
             type: 'Point',
-            coordinates: [-118.2437, 34.0522]
+            coordinates: [-118.2437, 34.0522],
         },
         owner: '',
         status: 'pending',
@@ -237,16 +237,17 @@ export const testDataFactory = {
             ...defaultBusinessHours,
             friday: { open: '09:00', close: '22:00', closed: false },
             saturday: { open: '09:00', close: '22:00', closed: false },
-            sunday: { open: '10:00', close: '20:00', closed: false }
-        }
+            sunday: { open: '10:00', close: '20:00', closed: false },
+        },
     }),
 
     review: (): Omit<TestReview, 'author' | 'restaurant'> => ({
         rating: 5,
         title: 'Amazing experience!',
-        content: 'The service was absolutely excellent. Great variety of options and outstanding service. Highly recommended!',
+        content:
+            'The service was absolutely excellent. Great variety of options and outstanding service. Highly recommended!',
         visitDate: new Date('2024-06-01'),
         recommendedDishes: ['Signature Dish', 'Special Salad'],
-        tags: ['family-friendly', 'great-service', 'outdoor-seating']
-    })
+        tags: ['family-friendly', 'great-service', 'outdoor-seating'],
+    }),
 };

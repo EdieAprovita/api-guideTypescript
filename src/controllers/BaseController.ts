@@ -18,10 +18,7 @@ export class BaseController<T extends Document> {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             const firstError = errors.array()[0];
-            next(new HttpError(
-                HttpStatusCode.BAD_REQUEST,
-                getErrorMessage(firstError?.msg ?? 'Validation error')
-            ));
+            next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
             return false;
         }
         return true;
@@ -30,20 +27,24 @@ export class BaseController<T extends Document> {
     protected validateId(req: Request, next: NextFunction, paramName: string = 'id'): boolean {
         const id = req.params[paramName];
         if (!id) {
-            next(new HttpError(
-                HttpStatusCode.BAD_REQUEST,
-                `${paramName.charAt(0).toUpperCase() + paramName.slice(1)} is required`
-            ));
+            next(
+                new HttpError(
+                    HttpStatusCode.BAD_REQUEST,
+                    `${paramName.charAt(0).toUpperCase() + paramName.slice(1)} is required`
+                )
+            );
             return false;
         }
         return true;
     }
 
     protected handleError(error: unknown, next: NextFunction, defaultMessage: string = 'Operation failed'): void {
-        next(new HttpError(
-            HttpStatusCode.INTERNAL_SERVER_ERROR,
-            getErrorMessage(error instanceof Error ? error.message : defaultMessage)
-        ));
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : defaultMessage)
+            )
+        );
     }
 
     // Standard CRUD operations

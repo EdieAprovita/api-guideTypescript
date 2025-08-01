@@ -266,4 +266,3 @@ describe('Security Middleware Tests', () => {
         });
     });
 });
-

@@ -31,12 +31,15 @@ export interface IReviewService {
     updateReview(reviewId: string, updateData: Partial<IReview>): Promise<IReview>;
     deleteReview(reviewId: string): Promise<void>;
     findByUserAndRestaurant(userId: string, restaurantId: string): Promise<IReview | null>;
-    getReviewsByRestaurant(restaurantId: string, options: {
-        page: number;
-        limit: number;
-        rating?: number;
-        sort: string;
-    }): Promise<{ data: IReview[]; pagination: PaginationInfo }>;
+    getReviewsByRestaurant(
+        restaurantId: string,
+        options: {
+            page: number;
+            limit: number;
+            rating?: number;
+            sort: string;
+        }
+    ): Promise<{ data: IReview[]; pagination: PaginationInfo }>;
     getReviewStats(restaurantId: string): Promise<ReviewStats>;
     markAsHelpful(reviewId: string, userId: string): Promise<IReview>;
     removeHelpfulVote(reviewId: string, userId: string): Promise<IReview>;
@@ -64,7 +67,7 @@ class ReviewService implements IReviewService {
         const review = await Review.findById(reviewId)
             .populate('author', 'firstName lastName')
             .populate('restaurant', 'restaurantName');
-        
+
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
@@ -80,7 +83,7 @@ class ReviewService implements IReviewService {
         const review = await Review.findByIdAndUpdate(reviewId, updateData, { new: true })
             .populate('author', 'firstName lastName')
             .populate('restaurant', 'restaurantName');
-        
+
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
@@ -109,20 +112,23 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
         }
 
-        return await Review.findOne({ 
-            author: new Types.ObjectId(userId), 
-            restaurant: new Types.ObjectId(restaurantId) 
+        return await Review.findOne({
+            author: new Types.ObjectId(userId),
+            restaurant: new Types.ObjectId(restaurantId),
         });
     }
 
-    async getReviewsByRestaurant(restaurantId: string, options: {
-        page: number;
-        limit: number;
-        rating?: number;
-        sort: string;
-    }): Promise<{ data: IReview[]; pagination: PaginationInfo }> {
+    async getReviewsByRestaurant(
+        restaurantId: string,
+        options: {
+            page: number;
+            limit: number;
+            rating?: number;
+            sort: string;
+        }
+    ): Promise<{ data: IReview[]; pagination: PaginationInfo }> {
         const { page, limit, rating, sort } = options;
-        
+
         // Validate ObjectId format to prevent injection
         if (!Types.ObjectId.isValid(restaurantId)) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
@@ -175,7 +181,7 @@ class ReviewService implements IReviewService {
                 .sort(sanitizedSort)
                 .skip(skip)
                 .limit(sanitizedLimit),
-            Review.countDocuments(query)
+            Review.countDocuments(query),
         ]);
 
         const pages = Math.ceil(total / sanitizedLimit);
@@ -188,8 +194,8 @@ class ReviewService implements IReviewService {
                 totalItems: total,
                 itemsPerPage: sanitizedLimit,
                 hasNextPage: sanitizedPage < pages,
-                hasPrevPage: sanitizedPage > 1
-            }
+                hasPrevPage: sanitizedPage > 1,
+            },
         };
     }
 
@@ -207,10 +213,10 @@ class ReviewService implements IReviewService {
                     averageRating: { $avg: '$rating' },
                     totalReviews: { $sum: 1 },
                     ratingDistribution: {
-                        $push: '$rating'
-                    }
-                }
-            }
+                        $push: '$rating',
+                    },
+                },
+            },
         ]);
 
         if (stats.length === 0) {
@@ -222,8 +228,8 @@ class ReviewService implements IReviewService {
                     2: 0,
                     3: 0,
                     4: 0,
-                    5: 0
-                }
+                    5: 0,
+                },
             };
         }
 
@@ -232,7 +238,7 @@ class ReviewService implements IReviewService {
             2: 0,
             3: 0,
             4: 0,
-            5: 0
+            5: 0,
         };
         stats[0].ratingDistribution.forEach((rating: number) => {
             if (rating >= 1 && rating <= 5) {
@@ -243,7 +249,7 @@ class ReviewService implements IReviewService {
         return {
             averageRating: Math.round(stats[0].averageRating * 10) / 10,
             totalReviews: stats[0].totalReviews,
-            ratingDistribution
+            ratingDistribution,
         };
     }
 
@@ -290,7 +296,7 @@ class ReviewService implements IReviewService {
 
         // Use findIndex() instead of indexOf() for ObjectId comparison
         const voteIndex = review.helpfulVotes.findIndex(vote => vote.toString() === userId);
-        
+
         if (voteIndex === -1) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Vote not found'));
         }

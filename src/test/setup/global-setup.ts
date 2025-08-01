@@ -15,8 +15,8 @@ const unitTestHooks = setupTest();
 const integrationTestHooks = setupTest({ withDatabase: true });
 
 // Determine which hooks to use based on test file or environment
-const isIntegrationTest = process.env.TEST_TYPE === 'integration' || 
-                         process.argv.some(arg => arg.includes('integration'));
+const isIntegrationTest =
+    process.env.TEST_TYPE === 'integration' || process.argv.some(arg => arg.includes('integration'));
 
 const hooks = isIntegrationTest ? integrationTestHooks : unitTestHooks;
 

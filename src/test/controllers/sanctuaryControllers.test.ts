@@ -4,12 +4,12 @@ import request from 'supertest';
 import app from '../../app';
 import { sanctuaryService } from '../../services/SanctuaryService';
 import { reviewService } from '../../services/ReviewService';
-import { 
-    expectSuccessResponse, 
-    expectResourceCreated, 
-    expectResourceUpdated, 
+import {
+    expectSuccessResponse,
+    expectResourceCreated,
+    expectResourceUpdated,
     expectResourceDeleted,
-    createMockData 
+    createMockData,
 } from '../utils/testHelpers';
 import { MockSanctuaryService, MockReviewService } from '../types';
 
@@ -53,9 +53,9 @@ describe('Sanctuary Controllers', () => {
     describe('GET /api/v1/sanctuaries/:id', () => {
         it('should get sanctuary by id', async () => {
             const sanctuaryId = 'sanctuary-123';
-            const mockSanctuary = createMockData.sanctuary({ 
-                _id: sanctuaryId, 
-                sanctuaryName: 'Specific Sanctuary'
+            const mockSanctuary = createMockData.sanctuary({
+                _id: sanctuaryId,
+                sanctuaryName: 'Specific Sanctuary',
             });
             mockSanctuaryService.findById.mockResolvedValue(mockSanctuary);
 
@@ -71,18 +71,16 @@ describe('Sanctuary Controllers', () => {
         it('should create a new sanctuary', async () => {
             const newSanctuaryData = {
                 sanctuaryName: 'New Sanctuary',
-                location: { type: 'Point', coordinates: [40.7128, -74.0060] },
+                location: { type: 'Point', coordinates: [40.7128, -74.006] },
                 address: 'New Sanctuary Address',
             };
-            const createdSanctuary = createMockData.sanctuary({ 
-                ...newSanctuaryData, 
-                _id: 'new-sanctuary-id' 
+            const createdSanctuary = createMockData.sanctuary({
+                ...newSanctuaryData,
+                _id: 'new-sanctuary-id',
             });
             mockSanctuaryService.create.mockResolvedValue(createdSanctuary);
 
-            const response = await request(app)
-                .post('/api/v1/sanctuaries')
-                .send(newSanctuaryData);
+            const response = await request(app).post('/api/v1/sanctuaries').send(newSanctuaryData);
 
             expectResourceCreated(response);
             expect(mockSanctuaryService.create).toHaveBeenCalledWith(newSanctuaryData);
@@ -93,18 +91,16 @@ describe('Sanctuary Controllers', () => {
     describe('PUT /api/v1/sanctuaries/:id', () => {
         it('should update a sanctuary', async () => {
             const sanctuaryId = 'sanctuary-123';
-            const updateData = { 
-                sanctuaryName: 'Updated Sanctuary Name'
+            const updateData = {
+                sanctuaryName: 'Updated Sanctuary Name',
             };
-            const updatedSanctuary = createMockData.sanctuary({ 
-                ...updateData, 
-                _id: sanctuaryId 
+            const updatedSanctuary = createMockData.sanctuary({
+                ...updateData,
+                _id: sanctuaryId,
             });
             mockSanctuaryService.updateById.mockResolvedValue(updatedSanctuary);
 
-            const response = await request(app)
-                .put(`/api/v1/sanctuaries/${sanctuaryId}`)
-                .send(updateData);
+            const response = await request(app).put(`/api/v1/sanctuaries/${sanctuaryId}`).send(updateData);
 
             expectResourceUpdated(response);
             expect(mockSanctuaryService.updateById).toHaveBeenCalledWith(sanctuaryId, updateData);
@@ -127,13 +123,13 @@ describe('Sanctuary Controllers', () => {
     describe('Sanctuary with Reviews Integration', () => {
         it('should handle sanctuary with reviews', async () => {
             const sanctuaryId = 'sanctuary-with-reviews';
-            const mockSanctuary = createMockData.sanctuary({ 
+            const mockSanctuary = createMockData.sanctuary({
                 _id: sanctuaryId,
-                sanctuaryName: 'Sanctuary with Reviews'
+                sanctuaryName: 'Sanctuary with Reviews',
             });
             const mockReviews = [
                 { _id: 'review1', rating: 5, comment: 'Amazing sanctuary!' },
-                { _id: 'review2', rating: 4, comment: 'Great work with animals!' }
+                { _id: 'review2', rating: 4, comment: 'Great work with animals!' },
             ];
 
             mockSanctuaryService.findById.mockResolvedValue(mockSanctuary);
@@ -150,10 +146,10 @@ describe('Sanctuary Controllers', () => {
     describe('Geolocation Integration', () => {
         it('should handle sanctuaries with location data', async () => {
             const mockSanctuaries = [
-                createMockData.sanctuary({ 
+                createMockData.sanctuary({
                     sanctuaryName: 'Location Sanctuary',
-                    location: { type: 'Point', coordinates: [40.7128, -74.0060] }
-                })
+                    location: { type: 'Point', coordinates: [40.7128, -74.006] },
+                }),
             ];
             mockSanctuaryService.getAll.mockResolvedValue(mockSanctuaries);
 

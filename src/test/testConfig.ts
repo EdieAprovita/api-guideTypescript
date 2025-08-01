@@ -16,7 +16,7 @@ const testConfig = {
     // Password generators
     generateTestPassword,
     generateWeakPassword,
-    
+
     // Generators object for nested access
     generators: {
         securePassword: generateSecureTestPassword,
@@ -33,18 +33,18 @@ const testConfig = {
         isAdmin: false,
         isActive: true,
         isDeleted: false,
-        ...overrides
+        ...overrides,
     }),
 
     createAdminUser: (overrides = {}) => ({
         username: 'admin',
-        email: 'admin@example.com', 
+        email: 'admin@example.com',
         password: generateTestPassword(),
         role: 'admin',
         isAdmin: true,
         isActive: true,
         isDeleted: false,
-        ...overrides
+        ...overrides,
     }),
 
     // Authentication helpers
@@ -52,7 +52,7 @@ const testConfig = {
         validToken: 'valid-test-token-123',
         expiredToken: 'expired-test-token-123',
         invalidToken: 'invalid-test-token-123',
-    }
+    },
 };
 
 export default testConfig;

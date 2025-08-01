@@ -5,7 +5,7 @@ import logger from '../utils/logger';
 
 /**
  * CacheWarmingService - Servicio para precalentar cache con datos críticos
- * 
+ *
  * Este servicio se encarga de:
  * - Cargar datos más consultados al inicio
  * - Refrescar cache periódicamente
@@ -22,14 +22,17 @@ export class CacheWarmingService {
      */
     async startAutoWarming(intervalMinutes: number = 30): Promise<void> {
         logger.info(`🔥 Starting automatic cache warming every ${intervalMinutes} minutes`);
-        
+
         // Warming inicial
         await this.warmUpCriticalData();
-        
+
         // Programar warming periódico
-        this.warmingInterval = setInterval(async () => {
-            await this.warmUpCriticalData();
-        }, intervalMinutes * 60 * 1000);
+        this.warmingInterval = setInterval(
+            async () => {
+                await this.warmUpCriticalData();
+            },
+            intervalMinutes * 60 * 1000
+        );
     }
 
     /**
@@ -58,7 +61,7 @@ export class CacheWarmingService {
                 success: false,
                 duration: 0,
                 itemsWarmed: 0,
-                errors: ['Warming already in progress']
+                errors: ['Warming already in progress'],
             };
         }
 
@@ -134,9 +137,8 @@ export class CacheWarmingService {
                 success: errors.length === 0,
                 duration,
                 itemsWarmed,
-                errors
+                errors,
             };
-
         } catch (error) {
             const duration = Date.now() - startTime;
             const errorMsg = `Critical error in cache warming: ${error}`;
@@ -147,7 +149,7 @@ export class CacheWarmingService {
                 success: false,
                 duration,
                 itemsWarmed,
-                errors
+                errors,
             };
         } finally {
             this.warmingInProgress = false;
@@ -164,9 +166,9 @@ export class CacheWarmingService {
             // 1. Todos los restaurantes (listado principal)
             const allRestaurants = await restaurantService.getAllCached();
             if (allRestaurants && allRestaurants.length > 0) {
-                await cacheService.set('restaurants:all', allRestaurants, 'restaurants', { 
+                await cacheService.set('restaurants:all', allRestaurants, 'restaurants', {
                     ttl: 300,
-                    tags: ['restaurants', 'listings'] 
+                    tags: ['restaurants', 'listings'],
                 });
                 warmed++;
             }
@@ -174,13 +176,11 @@ export class CacheWarmingService {
             // 2. Top 20 restaurantes individuales (más consultados)
             const topRestaurants = allRestaurants.slice(0, 20);
             await Promise.all(
-                topRestaurants.map(async (restaurant) => {
-                    await cacheService.set(
-                        `restaurant:${restaurant._id}`, 
-                        restaurant, 
-                        'restaurants',
-                        { ttl: 600, tags: ['restaurants'] }
-                    );
+                topRestaurants.map(async restaurant => {
+                    await cacheService.set(`restaurant:${restaurant._id}`, restaurant, 'restaurants', {
+                        ttl: 600,
+                        tags: ['restaurants'],
+                    });
                     warmed++;
                 })
             );
@@ -190,7 +190,7 @@ export class CacheWarmingService {
                 { category: 'vegan', city: 'madrid' },
                 { category: 'vegetarian', city: 'barcelona' },
                 { rating: '4' },
-                { price: 'medium' }
+                { price: 'medium' },
             ];
 
             for (const filter of popularFilters) {
@@ -199,11 +199,10 @@ export class CacheWarmingService {
                 const filteredResults = allRestaurants.slice(0, 10);
                 await cacheService.set(cacheKey, filteredResults, 'restaurants', {
                     ttl: 600,
-                    tags: ['restaurants', 'search']
+                    tags: ['restaurants', 'search'],
                 });
                 warmed++;
             }
-
         } catch (error) {
             logger.error('Error warming restaurants:', error);
             throw error;
@@ -224,7 +223,7 @@ export class CacheWarmingService {
             if (allBusinesses && allBusinesses.length > 0) {
                 await cacheService.set('businesses:all', allBusinesses, 'businesses', {
                     ttl: 600,
-                    tags: ['businesses', 'listings']
+                    tags: ['businesses', 'listings'],
                 });
                 warmed++;
             }
@@ -232,12 +231,10 @@ export class CacheWarmingService {
             // 2. Top 15 businesses individuales
             const topBusinesses = allBusinesses.slice(0, 15);
             for (const business of topBusinesses) {
-                await cacheService.set(
-                    `business:${business._id}`, 
-                    business, 
-                    'businesses',
-                    { ttl: 900, tags: ['businesses'] }
-                );
+                await cacheService.set(`business:${business._id}`, business, 'businesses', {
+                    ttl: 900,
+                    tags: ['businesses'],
+                });
                 warmed++;
             }
 
@@ -247,18 +244,15 @@ export class CacheWarmingService {
                 const cacheKey = `businesses:category:${category}`;
                 // Filtrar negocios por categoría
                 const categoryResults = allBusinesses
-                    .filter((b) =>
-                        b.typeBusiness?.toLowerCase().includes(category)
-                    )
+                    .filter(b => b.typeBusiness?.toLowerCase().includes(category))
                     .slice(0, 10);
-                
+
                 await cacheService.set(cacheKey, categoryResults, 'businesses', {
                     ttl: 900,
-                    tags: ['businesses', 'categories']
+                    tags: ['businesses', 'categories'],
                 });
                 warmed++;
             }
-
         } catch (error) {
             logger.error('Error warming businesses:', error);
             throw error;
@@ -286,15 +280,15 @@ export class CacheWarmingService {
                 usersByRole: {
                     user: 0,
                     professional: 0,
-                    admin: 0
+                    admin: 0,
                 },
                 lastUpdated: new Date(),
-                cacheGenerated: true
+                cacheGenerated: true,
             };
 
             await cacheService.set('users:stats', userStats, 'users', {
                 ttl: 3600, // 1 hora
-                tags: ['users', 'stats']
+                tags: ['users', 'stats'],
             });
             warmed++;
 
@@ -302,9 +296,9 @@ export class CacheWarmingService {
             // Simular usuarios admin para warming
             const adminUsers = [
                 { _id: '1', username: 'admin1', role: 'admin' },
-                { _id: '2', username: 'admin2', role: 'admin' }
+                { _id: '2', username: 'admin2', role: 'admin' },
             ];
-            
+
             if (adminUsers.length > 0) {
                 for (const user of adminUsers.slice(0, 5)) {
                     const publicProfile = {
@@ -313,20 +307,17 @@ export class CacheWarmingService {
                         role: user.role,
                         // No incluir email, password, etc.
                     };
-                    
-                    await cacheService.set(
-                        `user:profile:${user._id}`, 
-                        publicProfile, 
-                        'users',
-                        { ttl: 1800, tags: ['users', 'profiles'] }
-                    );
+
+                    await cacheService.set(`user:profile:${user._id}`, publicProfile, 'users', {
+                        ttl: 1800,
+                        tags: ['users', 'profiles'],
+                    });
                     warmed++;
                 }
             }
 
             // Generar perfiles de usuario específicos
             logger.info(`Warmed ${adminUsers.length} admin users`);
-
         } catch (error) {
             logger.error('Error warming users:', error);
             throw error;
@@ -344,37 +335,60 @@ export class CacheWarmingService {
         try {
             // 1. Categorías de restaurantes
             const restaurantCategories = [
-                'vegan', 'vegetarian', 'organic', 'raw', 'gluten-free',
-                'mediterranean', 'asian', 'italian', 'mexican', 'indian'
+                'vegan',
+                'vegetarian',
+                'organic',
+                'raw',
+                'gluten-free',
+                'mediterranean',
+                'asian',
+                'italian',
+                'mexican',
+                'indian',
             ];
 
             await cacheService.set('categories:restaurants', restaurantCategories, 'categories', {
                 ttl: 3600,
-                tags: ['categories', 'static']
+                tags: ['categories', 'static'],
             });
             warmed++;
 
             // 2. Categorías de businesses
             const businessCategories = [
-                'market', 'shop', 'service', 'organic', 'eco-friendly',
-                'health', 'beauty', 'clothing', 'supplements'
+                'market',
+                'shop',
+                'service',
+                'organic',
+                'eco-friendly',
+                'health',
+                'beauty',
+                'clothing',
+                'supplements',
             ];
 
             await cacheService.set('categories:businesses', businessCategories, 'categories', {
                 ttl: 3600,
-                tags: ['categories', 'static']
+                tags: ['categories', 'static'],
             });
             warmed++;
 
             // 3. Ciudades populares
             const popularCities = [
-                'madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao',
-                'malaga', 'zaragoza', 'palma', 'murcia', 'alicante'
+                'madrid',
+                'barcelona',
+                'valencia',
+                'sevilla',
+                'bilbao',
+                'malaga',
+                'zaragoza',
+                'palma',
+                'murcia',
+                'alicante',
             ];
 
             await cacheService.set('cities:popular', popularCities, 'geographical', {
                 ttl: 7200, // 2 horas
-                tags: ['geographical', 'cities']
+                tags: ['geographical', 'cities'],
             });
             warmed++;
 
@@ -384,15 +398,14 @@ export class CacheWarmingService {
                 features: ['cache', 'geolocation', 'reviews', 'search'],
                 supportedLanguages: ['es', 'en'],
                 maxResults: 50,
-                defaultRadius: 5000
+                defaultRadius: 5000,
             };
 
             await cacheService.set('app:config', appConfig, 'config', {
                 ttl: 7200,
-                tags: ['config', 'static']
+                tags: ['config', 'static'],
             });
             warmed++;
-
         } catch (error) {
             logger.error('Error warming categories:', error);
             throw error;
@@ -414,41 +427,40 @@ export class CacheWarmingService {
                 barcelona: { lat: 41.3851, lng: 2.1734 },
                 valencia: { lat: 39.4699, lng: -0.3763 },
                 sevilla: { lat: 37.3891, lng: -5.9845 },
-                bilbao: { lat: 43.2627, lng: -2.9253 }
+                bilbao: { lat: 43.2627, lng: -2.9253 },
             };
 
             await cacheService.set('geo:cities:coordinates', cityCoordinates, 'geolocation', {
                 ttl: 7200,
-                tags: ['geolocation', 'coordinates']
+                tags: ['geolocation', 'coordinates'],
             });
             warmed++;
 
             // 2. Búsquedas geográficas populares simuladas
             const popularGeoSearches = [
                 { lat: 40.4168, lng: -3.7038, radius: 5000 }, // Madrid centro
-                { lat: 41.3851, lng: 2.1734, radius: 5000 },  // Barcelona centro
-                { lat: 39.4699, lng: -0.3763, radius: 3000 },  // Valencia centro
+                { lat: 41.3851, lng: 2.1734, radius: 5000 }, // Barcelona centro
+                { lat: 39.4699, lng: -0.3763, radius: 3000 }, // Valencia centro
             ];
 
             for (const search of popularGeoSearches) {
                 const cacheKey = `geo:${search.lat}:${search.lng}:${search.radius}`;
-                
+
                 // Simular resultados geográficos (en producción sería query real)
                 const geoResults = {
                     restaurants: 15,
                     businesses: 8,
                     total: 23,
                     center: { lat: search.lat, lng: search.lng },
-                    radius: search.radius
+                    radius: search.radius,
                 };
 
                 await cacheService.set(cacheKey, geoResults, 'geolocation', {
                     ttl: 1800, // 30 minutos
-                    tags: ['geolocation', 'search']
+                    tags: ['geolocation', 'search'],
                 });
                 warmed++;
             }
-
         } catch (error) {
             logger.error('Error warming geographical data:', error);
             throw error;
@@ -468,7 +480,7 @@ export class CacheWarmingService {
         return {
             isWarming: this.warmingInProgress,
             lastWarmingTime: this.lastWarmingTime,
-            autoWarmingActive: this.warmingInterval !== null
+            autoWarmingActive: this.warmingInterval !== null,
         };
     }
 

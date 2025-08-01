@@ -49,7 +49,12 @@ describe('ProfessionProfile Controllers', () => {
 
     describe('Get profession profile by id', () => {
         it('should get profession profile by id', async () => {
-            const mockProfile = { _id: 'profile1', userId: faker.database.mongodbObjectId(), profession: 'Doctor', experience: 5 };
+            const mockProfile = {
+                _id: 'profile1',
+                userId: faker.database.mongodbObjectId(),
+                profession: 'Doctor',
+                experience: 5,
+            };
 
             (professionProfileService.findById as Mock).mockResolvedValueOnce(mockProfile);
 

@@ -1,6 +1,6 @@
 /**
  * Response Assertions Utility
- * 
+ *
  * This module provides standardized response assertion functions
  * to eliminate duplicated validation logic across tests.
  */
@@ -41,7 +41,7 @@ class ResponseAssertions {
             hasData = true,
             dataType = 'object',
             requiredFields = [],
-            customAssertions
+            customAssertions,
         } = expectations;
 
         expect(response.status).toBe(status);
@@ -49,7 +49,7 @@ class ResponseAssertions {
 
         if (hasData) {
             expect(response.body).toHaveProperty('data');
-            
+
             switch (dataType) {
                 case 'array':
                     expect(Array.isArray(response.body.data)).toBe(true);
@@ -86,13 +86,7 @@ class ResponseAssertions {
      * Assert error response structure
      */
     static expectErrorResponse(response: Response, expectations: ErrorResponseExpectation) {
-        const {
-            status,
-            hasMessage = true,
-            messagePattern,
-            hasErrors = false,
-            customAssertions
-        } = expectations;
+        const { status, hasMessage = true, messagePattern, hasErrors = false, customAssertions } = expectations;
 
         expect(response.status).toBe(status);
         expect(response.body).toHaveProperty('success', false);
@@ -128,16 +122,16 @@ class ResponseAssertions {
             status: 400,
             hasMessage: true,
             hasErrors: true,
-            customAssertions: (body) => {
+            customAssertions: body => {
                 if (expectedFields) {
                     expectedFields.forEach(field => {
-                        const hasFieldError = body.errors.some((error: any) => 
-                            error.field === field || error.path === field
+                        const hasFieldError = body.errors.some(
+                            (error: any) => error.field === field || error.path === field
                         );
                         expect(hasFieldError).toBe(true);
                     });
                 }
-            }
+            },
         });
     }
 
@@ -148,7 +142,7 @@ class ResponseAssertions {
         this.expectErrorResponse(response, {
             status: 401,
             hasMessage: true,
-            messagePattern: /unauthorized|authentication/i
+            messagePattern: /unauthorized|authentication/i,
         });
     }
 
@@ -159,7 +153,7 @@ class ResponseAssertions {
         this.expectErrorResponse(response, {
             status: 403,
             hasMessage: true,
-            messagePattern: /forbidden|permission|access/i
+            messagePattern: /forbidden|permission|access/i,
         });
     }
 
@@ -170,7 +164,7 @@ class ResponseAssertions {
         this.expectErrorResponse(response, {
             status: 404,
             hasMessage: true,
-            messagePattern: resourceType ? new RegExp(`${resourceType}.*not found`, 'i') : /not found/i
+            messagePattern: resourceType ? new RegExp(`${resourceType}.*not found`, 'i') : /not found/i,
         });
     }
 
@@ -178,18 +172,12 @@ class ResponseAssertions {
      * Assert paginated response structure
      */
     static expectPaginatedResponse(response: Response, expectations: PaginationExpectation = {}) {
-        const {
-            hasDocs = true,
-            hasTotal = true,
-            hasPageInfo = true,
-            minimumDocs,
-            maximumDocs
-        } = expectations;
+        const { hasDocs = true, hasTotal = true, hasPageInfo = true, minimumDocs, maximumDocs } = expectations;
 
         this.expectSuccessResponse(response, {
             status: 200,
             hasData: true,
-            dataType: 'object'
+            dataType: 'object',
         });
 
         if (hasDocs) {
@@ -228,7 +216,7 @@ class ResponseAssertions {
             status: 201,
             hasData: true,
             dataType: 'object',
-            requiredFields
+            requiredFields,
         });
     }
 
@@ -240,7 +228,7 @@ class ResponseAssertions {
             status: 200,
             hasData: true,
             dataType: 'object',
-            requiredFields
+            requiredFields,
         });
     }
 
@@ -250,7 +238,7 @@ class ResponseAssertions {
     static expectDeletedResponse(response: Response) {
         this.expectSuccessResponse(response, {
             status: 200,
-            hasData: false
+            hasData: false,
         });
     }
 
@@ -263,12 +251,12 @@ class ResponseAssertions {
             hasData: true,
             dataType: 'object',
             requiredFields: ['accessToken', 'refreshToken'],
-            customAssertions: (body) => {
+            customAssertions: body => {
                 expect(typeof body.data.accessToken).toBe('string');
                 expect(typeof body.data.refreshToken).toBe('string');
                 expect(body.data.accessToken.length).toBeGreaterThan(0);
                 expect(body.data.refreshToken.length).toBeGreaterThan(0);
-            }
+            },
         });
     }
 
@@ -286,13 +274,13 @@ class ResponseAssertions {
             hasData: true,
             dataType: 'object',
             requiredFields,
-            customAssertions: (body) => {
+            customAssertions: body => {
                 // User should never expose password/credential in response
                 expect(body.data).not.toHaveProperty('password');
                 if (!shouldIncludeCredential) {
                     expect(body.data).not.toHaveProperty('userCredential');
                 }
-            }
+            },
         });
     }
 
@@ -304,7 +292,7 @@ class ResponseAssertions {
             status: 200,
             hasData: true,
             dataType: 'object',
-            requiredFields: ['_id', 'restaurantName', 'address', 'cuisine', 'rating']
+            requiredFields: ['_id', 'restaurantName', 'address', 'cuisine', 'rating'],
         });
     }
 
@@ -316,7 +304,7 @@ class ResponseAssertions {
             status: 200,
             hasData: true,
             dataType: 'object',
-            requiredFields: ['_id', 'namePlace', 'address', 'typeBusiness', 'rating']
+            requiredFields: ['_id', 'namePlace', 'address', 'typeBusiness', 'rating'],
         });
     }
 
@@ -328,7 +316,7 @@ class ResponseAssertions {
             status: 200,
             hasData: true,
             dataType: 'object',
-            requiredFields: ['_id', 'title', 'content', 'rating', 'author']
+            requiredFields: ['_id', 'title', 'content', 'rating', 'author'],
         });
     }
 
@@ -339,7 +327,7 @@ class ResponseAssertions {
         this.expectErrorResponse(response, {
             status: 429,
             hasMessage: true,
-            messagePattern: /rate limit|too many requests/i
+            messagePattern: /rate limit|too many requests/i,
         });
     }
 
@@ -350,7 +338,7 @@ class ResponseAssertions {
         this.expectErrorResponse(response, {
             status: 500,
             hasMessage: true,
-            messagePattern: /internal server error|server error/i
+            messagePattern: /internal server error|server error/i,
         });
     }
 }
@@ -359,55 +347,46 @@ class ResponseAssertions {
  * Convenience wrapper functions for common assertions
  */
 
-export const expectSuccess = (response: Response, expectations?: SuccessResponseExpectation) => 
+export const expectSuccess = (response: Response, expectations?: SuccessResponseExpectation) =>
     ResponseAssertions.expectSuccessResponse(response, expectations);
 
-export const expectError = (response: Response, expectations: ErrorResponseExpectation) => 
+export const expectError = (response: Response, expectations: ErrorResponseExpectation) =>
     ResponseAssertions.expectErrorResponse(response, expectations);
 
-export const expectValidationError = (response: Response, expectedFields?: string[]) => 
+export const expectValidationError = (response: Response, expectedFields?: string[]) =>
     ResponseAssertions.expectValidationError(response, expectedFields);
 
-export const expectUnauthorized = (response: Response) => 
-    ResponseAssertions.expectUnauthorizedResponse(response);
+export const expectUnauthorized = (response: Response) => ResponseAssertions.expectUnauthorizedResponse(response);
 
-export const expectForbidden = (response: Response) => 
-    ResponseAssertions.expectForbiddenResponse(response);
+export const expectForbidden = (response: Response) => ResponseAssertions.expectForbiddenResponse(response);
 
-export const expectNotFound = (response: Response, resourceType?: string) => 
+export const expectNotFound = (response: Response, resourceType?: string) =>
     ResponseAssertions.expectNotFoundResponse(response, resourceType);
 
-export const expectPaginated = (response: Response, expectations?: PaginationExpectation) => 
+export const expectPaginated = (response: Response, expectations?: PaginationExpectation) =>
     ResponseAssertions.expectPaginatedResponse(response, expectations);
 
-export const expectCreated = (response: Response, requiredFields?: string[]) => 
+export const expectCreated = (response: Response, requiredFields?: string[]) =>
     ResponseAssertions.expectCreatedResponse(response, requiredFields);
 
-export const expectUpdated = (response: Response, requiredFields?: string[]) => 
+export const expectUpdated = (response: Response, requiredFields?: string[]) =>
     ResponseAssertions.expectUpdatedResponse(response, requiredFields);
 
-export const expectDeleted = (response: Response) => 
-    ResponseAssertions.expectDeletedResponse(response);
+export const expectDeleted = (response: Response) => ResponseAssertions.expectDeletedResponse(response);
 
-export const expectAuthToken = (response: Response) => 
-    ResponseAssertions.expectAuthTokenResponse(response);
+export const expectAuthToken = (response: Response) => ResponseAssertions.expectAuthTokenResponse(response);
 
-export const expectUser = (response: Response, shouldIncludeCredential?: boolean) => 
+export const expectUser = (response: Response, shouldIncludeCredential?: boolean) =>
     ResponseAssertions.expectUserResponse(response, shouldIncludeCredential);
 
-export const expectRestaurant = (response: Response) => 
-    ResponseAssertions.expectRestaurantResponse(response);
+export const expectRestaurant = (response: Response) => ResponseAssertions.expectRestaurantResponse(response);
 
-export const expectBusiness = (response: Response) => 
-    ResponseAssertions.expectBusinessResponse(response);
+export const expectBusiness = (response: Response) => ResponseAssertions.expectBusinessResponse(response);
 
-export const expectReview = (response: Response) => 
-    ResponseAssertions.expectReviewResponse(response);
+export const expectReview = (response: Response) => ResponseAssertions.expectReviewResponse(response);
 
-export const expectRateLimit = (response: Response) => 
-    ResponseAssertions.expectRateLimitResponse(response);
+export const expectRateLimit = (response: Response) => ResponseAssertions.expectRateLimitResponse(response);
 
-export const expectServerError = (response: Response) => 
-    ResponseAssertions.expectServerErrorResponse(response);
+export const expectServerError = (response: Response) => ResponseAssertions.expectServerErrorResponse(response);
 
 export default ResponseAssertions;

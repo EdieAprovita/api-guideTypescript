@@ -26,10 +26,7 @@ describe('Restaurant API Integration Tests', () => {
         ],
         location: {
             type: 'Point' as const,
-            coordinates: [
-                faker.location.longitude(),
-                faker.location.latitude(),
-            ],
+            coordinates: [faker.location.longitude(), faker.location.latitude()],
         },
         cuisine: ['Italian'],
         reviews: [],
@@ -47,7 +44,6 @@ describe('Restaurant API Integration Tests', () => {
             .set('Authorization', `Bearer ${admin.adminToken}`)
             .send(data);
 
-
         expect(response.status).toBe(201);
         expect(response.body.success).toBe(true);
         expect(response.body.data.restaurantName).toBe(data.restaurantName);
@@ -62,7 +58,6 @@ describe('Restaurant API Integration Tests', () => {
 
         const response = await request(app).get('/api/v1/restaurants');
 
-
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body.data)).toBe(true);
         expect(response.body.data.length).toBe(2);
@@ -71,10 +66,7 @@ describe('Restaurant API Integration Tests', () => {
     it('should get a restaurant by id', async () => {
         const restaurant = await createTestRestaurant(admin.adminObjectId);
 
-        const response = await request(app).get(
-            `/api/v1/restaurants/${restaurant._id}`
-        );
-
+        const response = await request(app).get(`/api/v1/restaurants/${restaurant._id}`);
 
         expect(response.status).toBe(200);
         expect(response.body.data._id.toString()).toBe(restaurant._id.toString());
@@ -109,9 +101,7 @@ describe('Restaurant API Integration Tests', () => {
 
         const [lng, lat] = restaurants.location.coordinates;
 
-        const response = await request(app).get(
-            `/api/v1/restaurants?latitude=${lat}&longitude=${lng}&radius=5000`
-        );
+        const response = await request(app).get(`/api/v1/restaurants?latitude=${lat}&longitude=${lng}&radius=5000`);
 
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body.data)).toBe(true);

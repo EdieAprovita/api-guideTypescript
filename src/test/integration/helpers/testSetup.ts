@@ -1,8 +1,4 @@
-import {
-    connect as connectTestDB,
-    closeDatabase as disconnectTestDB,
-    clearDatabase as clearTestDB,
-} from './testDb';
+import { connect as connectTestDB, closeDatabase as disconnectTestDB, clearDatabase as clearTestDB } from './testDb';
 import { createAdminUser, generateAuthTokens } from './testFixtures';
 
 export interface AdminAuth {
@@ -28,9 +24,9 @@ export const refreshAdmin = async (): Promise<AdminAuth> => {
     const admin = await createAdminUser();
     const adminId = admin._id.toString();
     const tokens = await generateAuthTokens(adminId, admin.email, admin.role);
-    return { 
-        adminId, 
+    return {
+        adminId,
         adminObjectId: admin._id, // Keep the ObjectId for MongoDB operations
-        adminToken: tokens.accessToken 
+        adminToken: tokens.accessToken,
     };
 };

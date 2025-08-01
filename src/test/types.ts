@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
-import { 
-    MockRestaurant, 
-    MockBusiness, 
-    MockMarket, 
+import {
+    MockRestaurant,
+    MockBusiness,
+    MockMarket,
     MockSanctuary,
     MockServiceMethods,
     MockRestaurantService,
     MockBusinessService,
     MockMarketService,
-    MockSanctuaryService
+    MockSanctuaryService,
 } from './types/baseTypes';
 
 // Tipos específicos para testing
@@ -29,7 +29,7 @@ export {
     MockRestaurantService,
     MockBusinessService,
     MockMarketService,
-    MockSanctuaryService
+    MockSanctuaryService,
 };
 
 export interface MockUser {

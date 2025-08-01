@@ -1,12 +1,17 @@
 /**
  * Unified Integration Test Setup Utility
- * 
+ *
  * This module provides standardized setup and teardown functionality
  * for integration tests, eliminating code duplication across test files.
  */
 
 import mongoose from 'mongoose';
-import { createTestUser, createAdminUser, createProfessionalUser, generateAuthTokens } from '../integration/helpers/testFixtures';
+import {
+    createTestUser,
+    createAdminUser,
+    createProfessionalUser,
+    generateAuthTokens,
+} from '../integration/helpers/testFixtures';
 import { User } from '../../models/User';
 import { Restaurant } from '../../models/Restaurant';
 import { Business } from '../../models/Business';
@@ -44,7 +49,7 @@ class IntegrationTestSetup {
             createAdmin = false,
             createProfessional = false,
             generateTokens = true,
-            cleanupModels = []
+            cleanupModels = [],
         } = options;
 
         await this.ensureDatabaseConnection();
@@ -53,7 +58,7 @@ class IntegrationTestSetup {
         if (createUsers) {
             this.context.testUser = await createTestUser({
                 email: 'testuser@integration.test',
-                username: 'integration_test_user'
+                username: 'integration_test_user',
             });
             this.context.testUserId = this.context.testUser._id.toString();
 
@@ -70,7 +75,7 @@ class IntegrationTestSetup {
         if (createAdmin) {
             this.context.adminUser = await createAdminUser({
                 email: 'admin@integration.test',
-                username: 'integration_test_admin'
+                username: 'integration_test_admin',
             });
             this.context.adminUserId = this.context.adminUser._id.toString();
 
@@ -87,7 +92,7 @@ class IntegrationTestSetup {
         if (createProfessional) {
             this.context.professionalUser = await createProfessionalUser({
                 email: 'professional@integration.test',
-                username: 'integration_test_professional'
+                username: 'integration_test_professional',
             });
             this.context.professionalUserId = this.context.professionalUser._id.toString();
 
@@ -142,10 +147,10 @@ class IntegrationTestSetup {
      */
     private static async cleanupCollections(models: string[]): Promise<void> {
         const modelMap: Record<string, any> = {
-            'users': User,
-            'restaurants': Restaurant,
-            'businesses': Business,
-            'reviews': Review
+            users: User,
+            restaurants: Restaurant,
+            businesses: Business,
+            reviews: Review,
         };
 
         for (const modelName of models) {
@@ -162,20 +167,17 @@ class IntegrationTestSetup {
     private static async cleanupTestData(): Promise<void> {
         try {
             // Clean up test users and related data
-            await User.deleteMany({ 
-                email: { $regex: /@(integration\.test|example\.(com|net|org))$/ } 
+            await User.deleteMany({
+                email: { $regex: /@(integration\.test|example\.(com|net|org))$/ },
             });
-            await Restaurant.deleteMany({ 
-                restaurantName: { $regex: /^(Test |integration_test_)/ } 
+            await Restaurant.deleteMany({
+                restaurantName: { $regex: /^(Test |integration_test_)/ },
             });
-            await Business.deleteMany({ 
-                namePlace: { $regex: /^(Test |integration_test_)/ } 
+            await Business.deleteMany({
+                namePlace: { $regex: /^(Test |integration_test_)/ },
             });
             await Review.deleteMany({
-                $or: [
-                    { title: { $regex: /^Test / } },
-                    { content: { $regex: /integration.*test/i } }
-                ]
+                $or: [{ title: { $regex: /^Test / } }, { content: { $regex: /integration.*test/i } }],
             });
         } catch (error) {
             console.warn('Warning: Error during test data cleanup:', error);
@@ -188,11 +190,13 @@ class IntegrationTestSetup {
     static createAuthHeaders(token?: string): Record<string, string> {
         const actualToken = token || this.context.authToken;
         if (!actualToken) {
-            throw new Error('No authentication token available. Did you call setupTestSuite with generateTokens: true?');
+            throw new Error(
+                'No authentication token available. Did you call setupTestSuite with generateTokens: true?'
+            );
         }
         return {
-            'Authorization': `Bearer ${actualToken}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${actualToken}`,
+            'Content-Type': 'application/json',
         };
     }
 
@@ -211,7 +215,9 @@ class IntegrationTestSetup {
      */
     static createProfessionalAuthHeaders(): Record<string, string> {
         if (!this.context.professionalToken) {
-            throw new Error('No professional token available. Did you call setupTestSuite with createProfessional: true?');
+            throw new Error(
+                'No professional token available. Did you call setupTestSuite with createProfessional: true?'
+            );
         }
         return this.createAuthHeaders(this.context.professionalToken);
     }
@@ -225,7 +231,7 @@ class IntegrationTestSetup {
             createAdmin: false,
             createProfessional: false,
             generateTokens: true,
-            cleanupModels: []
+            cleanupModels: [],
         });
     }
 
@@ -238,7 +244,7 @@ class IntegrationTestSetup {
             createAdmin: true,
             createProfessional: false,
             generateTokens: true,
-            cleanupModels: []
+            cleanupModels: [],
         });
     }
 
@@ -251,7 +257,7 @@ class IntegrationTestSetup {
             createAdmin: false,
             createProfessional: true,
             generateTokens: true,
-            cleanupModels: []
+            cleanupModels: [],
         });
     }
 
@@ -264,7 +270,7 @@ class IntegrationTestSetup {
             createAdmin: true,
             createProfessional: true,
             generateTokens: true,
-            cleanupModels: []
+            cleanupModels: [],
         });
     }
 }

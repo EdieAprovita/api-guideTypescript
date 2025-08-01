@@ -43,7 +43,7 @@ describe('CacheService', () => {
         it('should handle different data types correctly', async () => {
             const stringResult = await cacheService.get<string>('string-key');
             const objectResult = await cacheService.get<object>('object-key');
-            
+
             expect(stringResult).toBeNull();
             expect(objectResult).toBeNull();
         });
@@ -52,20 +52,20 @@ describe('CacheService', () => {
     describe('set method', () => {
         it('should set value without throwing errors', async () => {
             const testData = { id: 1, name: 'Test' };
-            
+
             await expect(cacheService.set('test-key', testData)).resolves.toBeUndefined();
         });
 
         it('should set value with specific type', async () => {
             const testData = { id: 1, name: 'Test' };
-            
+
             await expect(cacheService.set('test-key', testData, 'restaurants')).resolves.toBeUndefined();
         });
 
         it('should set value with custom options', async () => {
             const testData = { id: 1, name: 'Test' };
             const options = { ttl: 600 };
-            
+
             await expect(cacheService.set('test-key', testData, 'default', options)).resolves.toBeUndefined();
         });
     });
@@ -74,14 +74,14 @@ describe('CacheService', () => {
         it('should set value with tags without throwing', async () => {
             const testData = { id: 1, name: 'Test' };
             const tags = ['restaurants', 'reviews'];
-            
+
             await expect(cacheService.setWithTags('test-key', testData, tags)).resolves.toBeUndefined();
         });
 
         it('should set value with tags and custom TTL', async () => {
             const testData = { id: 1, name: 'Test' };
             const tags = ['restaurants'];
-            
+
             await expect(cacheService.setWithTags('test-key', testData, tags, 600)).resolves.toBeUndefined();
         });
     });
@@ -107,7 +107,7 @@ describe('CacheService', () => {
     describe('getStats method', () => {
         it('should return cache statistics', async () => {
             const stats = await cacheService.getStats();
-            
+
             expect(stats).toEqual({
                 hitRatio: 85.5,
                 totalRequests: 1000,

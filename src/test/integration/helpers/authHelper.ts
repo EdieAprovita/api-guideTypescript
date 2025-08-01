@@ -25,10 +25,7 @@ interface TestUser {
 /**
  * Creates a test user in the database
  */
-export const createTestUser = async (
-    email: string = 'test@example.com',
-    role: string = 'user'
-): Promise<TestUser> => {
+export const createTestUser = async (email: string = 'test@example.com', role: string = 'user'): Promise<TestUser> => {
     // Use generated credential for testing to avoid security issues
     const generatedCredential = generateTestPassword();
 
@@ -42,7 +39,7 @@ export const createTestUser = async (
         isVerified: true,
         isAdmin: role === 'admin',
         isActive: true,
-        isDeleted: false
+        isDeleted: false,
     };
 
     const user = await User.create(userData);
@@ -66,19 +63,23 @@ export const createModeratorUser = async (email: string = 'moderator@example.com
 /**
  * Generates a JWT token for testing compatible with TokenService
  */
-export const generateAuthToken = (userId: string, role: string = 'user', email: string = 'test@example.com'): string => {
+export const generateAuthToken = (
+    userId: string,
+    role: string = 'user',
+    email: string = 'test@example.com'
+): string => {
     const payload = {
         userId: userId,
         email: email,
-        role: role
+        role: role,
     };
 
     const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
-    
+
     return jwt.sign(payload, secret, {
         expiresIn: '24h',
         issuer: 'vegan-guide-api',
-        audience: 'vegan-guide-client'
+        audience: 'vegan-guide-client',
     });
 };
 
@@ -89,15 +90,15 @@ export const generateExpiredAuthToken = (userId: string): string => {
     const payload = {
         userId: userId,
         email: 'test@example.com',
-        role: 'user'
+        role: 'user',
     };
 
     const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
-    
+
     return jwt.sign(payload, secret, {
         expiresIn: '-1h', // Expired 1 hour ago
         issuer: 'vegan-guide-api',
-        audience: 'vegan-guide-client'
+        audience: 'vegan-guide-client',
     });
 };
 
@@ -113,12 +114,12 @@ export const generateInvalidAuthToken = (): string => {
  */
 export const createMultipleTestUsers = async (count: number): Promise<TestUser[]> => {
     const users: TestUser[] = [];
-    
+
     for (let i = 0; i < count; i++) {
         const user = await createTestUser(`testuser${i}@example.com`);
         users.push(user);
     }
-    
+
     return users;
 };
 
@@ -140,10 +141,10 @@ export const loginTestUser = async (email: string, userCredential?: string) => {
     }
 
     const token = generateAuthToken(user._id.toString(), user.role, user.email);
-    
+
     return {
         user: user.toObject(),
-        token
+        token,
     };
 };
 
@@ -160,7 +161,7 @@ export const createBusinessOwnerUser = async (email: string = 'business@example.
  */
 export const cleanupTestUsers = async (): Promise<void> => {
     await User.deleteMany({
-        email: { $regex: /test|example\.com/ }
+        email: { $regex: /test|example\.com/ },
     });
 };
 
@@ -169,12 +170,12 @@ export const cleanupTestUsers = async (): Promise<void> => {
  */
 export const createVerifiedUser = async (email: string = 'verified@example.com'): Promise<TestUser> => {
     const user = await createTestUser(email);
-    await User.findByIdAndUpdate(user._id, { 
+    await User.findByIdAndUpdate(user._id, {
         isVerified: true,
         emailVerificationToken: undefined,
-        emailVerificationExpires: undefined 
+        emailVerificationExpires: undefined,
     });
-    
+
     return user;
 };
 
@@ -194,7 +195,7 @@ export const createUnverifiedUser = async (email: string = 'unverified@example.c
         role: 'user',
         isVerified: false,
         emailVerificationToken: 'test_verification_token',
-        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     };
 
     const user = await User.create(userData);
@@ -208,7 +209,7 @@ export const bypassAuth = () => {
     return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
         req.user = {
             _id: 'test_user_id',
-            role: 'user'
+            role: 'user',
         };
         next();
     };

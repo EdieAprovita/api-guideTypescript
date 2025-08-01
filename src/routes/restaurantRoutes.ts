@@ -75,7 +75,7 @@ router.post(
     protect,
     validate({
         params: paramSchemas.restaurantId,
-        body: reviewSchemas.create
+        body: reviewSchemas.create,
     }),
     createReviewForRestaurant
 );
@@ -98,20 +98,17 @@ router.get(
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
         }
 
-        const reviews = await ReviewService.getReviewsByRestaurant(
-            restaurantId,
-            {
-                page: Number(page),
-                limit: Number(limit),
-                ...(rating && { rating: Number(rating) }),
-                sort: String(sort)
-            }
-        );
+        const reviews = await ReviewService.getReviewsByRestaurant(restaurantId, {
+            page: Number(page),
+            limit: Number(limit),
+            ...(rating && { rating: Number(rating) }),
+            sort: String(sort),
+        });
 
         res.status(200).json({
             success: true,
             data: reviews.data,
-            pagination: reviews.pagination
+            pagination: reviews.pagination,
         });
     })
 );
@@ -137,7 +134,7 @@ router.get(
 
         res.status(200).json({
             success: true,
-            data: stats
+            data: stats,
         });
     })
 );

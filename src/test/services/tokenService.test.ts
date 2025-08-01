@@ -18,11 +18,10 @@ describe('TokenService', () => {
     beforeEach(async () => {
         // Clear all mocks
         vi.clearAllMocks();
-        
+
         // Import TokenService (singleton instance)
         tokenService = (await import('../../services/TokenService')).default;
-        
-        
+
         // Clear test data
         if (tokenService.clearAllForTesting) {
             await tokenService.clearAllForTesting();
@@ -92,11 +91,13 @@ describe('TokenService', () => {
         });
 
         it('should reject invalid tokens', async () => {
-            await expect(tokenService.verifyAccessToken('invalid-token'))
-                .rejects.toThrow(/Invalid or expired access token/);
-            
-            await expect(tokenService.verifyRefreshToken('invalid-token'))
-                .rejects.toThrow(/Invalid or expired refresh token/);
+            await expect(tokenService.verifyAccessToken('invalid-token')).rejects.toThrow(
+                /Invalid or expired access token/
+            );
+
+            await expect(tokenService.verifyRefreshToken('invalid-token')).rejects.toThrow(
+                /Invalid or expired refresh token/
+            );
         });
 
         it('should reject access token as refresh token', async () => {
@@ -107,9 +108,10 @@ describe('TokenService', () => {
             };
 
             const tokens = await tokenService.generateTokenPair(payload);
-            
-            await expect(tokenService.verifyRefreshToken(tokens.accessToken))
-                .rejects.toThrow(/Invalid or expired refresh token/);
+
+            await expect(tokenService.verifyRefreshToken(tokens.accessToken)).rejects.toThrow(
+                /Invalid or expired refresh token/
+            );
         });
     });
 
@@ -134,13 +136,13 @@ describe('TokenService', () => {
             expect(verified.userId).toBe(payload.userId);
 
             // Old refresh token should be invalid
-            await expect(tokenService.verifyRefreshToken(initialTokens.refreshToken))
-                .rejects.toThrow();
+            await expect(tokenService.verifyRefreshToken(initialTokens.refreshToken)).rejects.toThrow();
         });
 
         it('should reject refresh with invalid token', async () => {
-            await expect(tokenService.refreshTokens('invalid-token'))
-                .rejects.toThrow(/Invalid or expired refresh token/);
+            await expect(tokenService.refreshTokens('invalid-token')).rejects.toThrow(
+                /Invalid or expired refresh token/
+            );
         });
     });
 
@@ -155,8 +157,7 @@ describe('TokenService', () => {
             const tokens = await tokenService.generateTokenPair(payload);
 
             // Token should work initially
-            await expect(tokenService.verifyAccessToken(tokens.accessToken))
-                .resolves.not.toThrow();
+            await expect(tokenService.verifyAccessToken(tokens.accessToken)).resolves.not.toThrow();
 
             // Blacklist token
             await tokenService.blacklistToken(tokens.accessToken);
@@ -166,13 +167,11 @@ describe('TokenService', () => {
             expect(isBlacklisted).toBe(true);
 
             // Token should now be rejected
-            await expect(tokenService.verifyAccessToken(tokens.accessToken))
-                .rejects.toThrow(/revoked/);
+            await expect(tokenService.verifyAccessToken(tokens.accessToken)).rejects.toThrow(/revoked/);
         });
 
         it('should handle malformed tokens in blacklist', async () => {
-            await expect(tokenService.blacklistToken('malformed-token'))
-                .resolves.not.toThrow();
+            await expect(tokenService.blacklistToken('malformed-token')).resolves.not.toThrow();
 
             const isBlacklisted = await tokenService.isTokenBlacklisted('malformed-token');
             expect(isBlacklisted).toBe(true);
@@ -194,8 +193,7 @@ describe('TokenService', () => {
             await tokenService.revokeRefreshToken(userId);
 
             // Token should now be invalid
-            await expect(tokenService.verifyRefreshToken(tokens.refreshToken))
-                .rejects.toThrow();
+            await expect(tokenService.verifyRefreshToken(tokens.refreshToken)).rejects.toThrow();
         });
 
         it('should revoke all user tokens', async () => {
@@ -207,7 +205,7 @@ describe('TokenService', () => {
             };
 
             const tokens = await tokenService.generateTokenPair(payload);
-            
+
             // Revoke all tokens
             await tokenService.revokeAllUserTokens(userId);
 
@@ -216,8 +214,7 @@ describe('TokenService', () => {
             expect(areRevoked).toBe(true);
 
             // Refresh token should be invalid
-            await expect(tokenService.verifyRefreshToken(tokens.refreshToken))
-                .rejects.toThrow();
+            await expect(tokenService.verifyRefreshToken(tokens.refreshToken)).rejects.toThrow();
         });
     });
 
@@ -256,11 +253,9 @@ describe('TokenService', () => {
 
     describe('Edge Cases', () => {
         it('should handle empty strings gracefully', async () => {
-            await expect(tokenService.verifyAccessToken(''))
-                .rejects.toThrow();
-            
-            await expect(tokenService.verifyRefreshToken(''))
-                .rejects.toThrow();
+            await expect(tokenService.verifyAccessToken('')).rejects.toThrow();
+
+            await expect(tokenService.verifyRefreshToken('')).rejects.toThrow();
         });
 
         it('should handle concurrent operations', async () => {
@@ -271,9 +266,7 @@ describe('TokenService', () => {
             };
 
             // Generate multiple tokens concurrently
-            const promises = Array.from({ length: 3 }, () => 
-                tokenService.generateTokenPair(payload)
-            );
+            const promises = Array.from({ length: 3 }, () => tokenService.generateTokenPair(payload));
 
             const results = await Promise.all(promises);
 
@@ -281,7 +274,7 @@ describe('TokenService', () => {
             for (let i = 0; i < results.length; i++) {
                 expect(results[i].accessToken).toBeDefined();
                 expect(results[i].refreshToken).toBeDefined();
-                
+
                 // Verify uniqueness
                 for (let j = i + 1; j < results.length; j++) {
                     expect(results[i].accessToken).not.toBe(results[j].accessToken);

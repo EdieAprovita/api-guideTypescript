@@ -11,19 +11,19 @@ vi.mock('../../services/CacheService', () => ({
         getStats: vi.fn().mockResolvedValue({
             hitRatio: 85,
             memoryUsage: '25M',
-            cacheSize: 50
+            cacheSize: 50,
         }),
         set: vi.fn().mockResolvedValue(true),
-        get: vi.fn().mockResolvedValue({ timestamp: new Date() })
-    }
+        get: vi.fn().mockResolvedValue({ timestamp: new Date() }),
+    },
 }));
 
 vi.mock('../../utils/logger', () => ({
     default: {
         info: vi.fn(),
         warn: vi.fn(),
-        error: vi.fn()
-    }
+        error: vi.fn(),
+    },
 }));
 
 describe('CacheAlertService', () => {
@@ -57,7 +57,7 @@ describe('CacheAlertService', () => {
     describe('getConfig method', () => {
         it('should return current configuration', () => {
             const config = alertService.getConfig();
-            
+
             expect(config).toEqual({
                 enabled: true,
                 checkIntervalSeconds: 60,
@@ -74,7 +74,7 @@ describe('CacheAlertService', () => {
     describe('getMonitoringStatus method', () => {
         it('should return monitoring status', () => {
             const status = alertService.getMonitoringStatus();
-            
+
             expect(status).toEqual({
                 enabled: true,
                 running: false,
@@ -123,7 +123,7 @@ describe('CacheAlertService', () => {
                     minCacheSize: 20,
                 },
             };
-            
+
             expect(() => alertService.updateConfig(newConfig)).not.toThrow();
         });
     });

@@ -352,9 +352,8 @@ export const expectResponse = {
     withToken: (response: TestResponse): void => {
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
-        const hasToken = response.body.data && 
-            typeof response.body.data === 'object' && 
-            'accessToken' in response.body.data;
+        const hasToken =
+            response.body.data && typeof response.body.data === 'object' && 'accessToken' in response.body.data;
         expect(hasToken).toBe(true);
     },
 };
@@ -378,7 +377,9 @@ export const createServiceMock = <T extends { _id: string }>(mockData: T[] = [])
     createCached: vi
         .fn()
         .mockImplementation((data: Partial<T>) => Promise.resolve({ _id: generateValidObjectId(), ...data } as T)),
-    updateById: vi.fn().mockImplementation((id: string, data: Partial<T>) => Promise.resolve({ _id: id, ...data } as T)),
+    updateById: vi
+        .fn()
+        .mockImplementation((id: string, data: Partial<T>) => Promise.resolve({ _id: id, ...data } as T)),
     updateByIdCached: vi
         .fn()
         .mockImplementation((id: string, data: Partial<T>) => Promise.resolve({ _id: id, ...data } as T)),

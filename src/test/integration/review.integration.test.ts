@@ -106,7 +106,7 @@ describe('Review Integration Tests', () => {
         it('should create a new review with valid data', async () => {
             // Ensure restaurant exists in database before the test
             let dbRestaurant = await Restaurant.findById(restaurantId);
-            
+
             if (!dbRestaurant) {
                 // Recreate restaurant if it doesn't exist
                 const authorId = Types.ObjectId.isValid(testUserId) ? testUserId : new Types.ObjectId();

@@ -7,7 +7,7 @@ const mockCacheService = {
     get: vi.fn().mockResolvedValue(null),
     invalidate: vi.fn().mockResolvedValue(undefined),
     invalidatePattern: vi.fn().mockResolvedValue(undefined),
-    invalidateByTag: vi.fn().mockResolvedValue(undefined)
+    invalidateByTag: vi.fn().mockResolvedValue(undefined),
 };
 
 const mockRestaurantService = createServiceMock([]);
@@ -16,21 +16,21 @@ const mockBusinessService = createServiceMock([]);
 const mockLogger = {
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn()
+    error: vi.fn(),
 };
 
 // Mock dependencies
 vi.mock('../../services/CacheService', () => ({
-    cacheService: mockCacheService
+    cacheService: mockCacheService,
 }));
 vi.mock('../../services/RestaurantService', () => ({
-    restaurantService: mockRestaurantService
+    restaurantService: mockRestaurantService,
 }));
 vi.mock('../../services/BusinessService', () => ({
-    businessService: mockBusinessService
+    businessService: mockBusinessService,
 }));
 vi.mock('../../utils/logger', () => ({
-    default: mockLogger
+    default: mockLogger,
 }));
 
 // Import after mocking
@@ -61,9 +61,7 @@ describe('CacheWarmingService', () => {
 
         await warmingService.startAutoWarming();
 
-        expect(mockLogger.info).toHaveBeenCalledWith(
-            expect.stringContaining('Starting automatic cache warming')
-        );
+        expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Starting automatic cache warming'));
         const stats = warmingService.getWarmingStats();
         expect(stats.autoWarmingActive).toBe(true);
     });

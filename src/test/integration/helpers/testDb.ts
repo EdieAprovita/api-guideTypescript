@@ -14,7 +14,7 @@ export const connectToLocalDB = async (): Promise<void> => {
         }
 
         const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/test-db';
-        
+
         await mongoose.connect(mongoUri, {
             maxPoolSize: 1,
             serverSelectionTimeoutMS: 10000,
@@ -94,14 +94,14 @@ export const closeDatabase = async (): Promise<void> => {
                 }
             }
         }
-        
+
         await mongoose.connection.close();
-        
+
         if (mongoServer) {
             await mongoServer.stop();
             mongoServer = null;
         }
-        
+
         console.log('✅ Test database disconnected successfully');
     } catch (error) {
         // Don't fail tests due to cleanup errors

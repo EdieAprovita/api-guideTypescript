@@ -139,4 +139,6 @@ const sanctuarySchema = new Schema<ISanctuary>(
     { timestamps: true }
 );
 sanctuarySchema.index({ location: '2dsphere' });
-export const Sanctuary = (mongoose.models.sanctuary as mongoose.Model<ISanctuary>) || mongoose.model<ISanctuary>('sanctuary', sanctuarySchema);
+export const Sanctuary =
+    (mongoose.models.sanctuary as mongoose.Model<ISanctuary>) ||
+    mongoose.model<ISanctuary>('sanctuary', sanctuarySchema);

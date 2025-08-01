@@ -70,4 +70,4 @@ export interface MockServiceMethods<T> {
 export interface MockRestaurantService extends MockServiceMethods<MockRestaurant> {}
 export interface MockBusinessService extends MockServiceMethods<MockBusiness> {}
 export interface MockMarketService extends MockServiceMethods<MockMarket> {}
-export interface MockSanctuaryService extends MockServiceMethods<MockSanctuary> {} 
+export interface MockSanctuaryService extends MockServiceMethods<MockSanctuary> {}
