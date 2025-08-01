@@ -22,6 +22,7 @@
         "test:integration": "vitest run --config vitest.integration.config.ts",
         "test:integration:watch": "vitest --config vitest.integration.config.ts",
         "test:integration:ui": "vitest --ui --config vitest.integration.config.ts",
+        "test:integration:ci": "bash scripts/setup-ci-db.sh && CI=true vitest run --config vitest.integration.config.ts",
         "test:e2e": "playwright test",
         "test:coverage": "vitest run --coverage",
         "test:coverage:unit": "vitest run --coverage --config vitest.unit.config.ts",
