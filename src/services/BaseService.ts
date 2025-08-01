@@ -39,8 +39,8 @@ class BaseService<T extends Document> {
     async create(data: Partial<T>): Promise<T> {
         // Si se proporciona userId en el constructor, úsalo como author por defecto
         // Pero si data ya tiene author, respeta ese valor
-        if (this.userId && !data.author) {
-            data = { ...data, author: this.userId };
+        if (this.userId && !(data as any).author) {
+            data = { ...data, author: this.userId } as Partial<T>;
         }
         return this.model.create(data);
     }
