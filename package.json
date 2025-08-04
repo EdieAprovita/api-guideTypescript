@@ -134,8 +134,8 @@
     "overrides": {
         "test-exclude": "^7.0.1",
         "brace-expansion": "^2.0.2"
-    },
-    "c8": {
+    }
+    ,"c8": {
         "exclude": [
             "src/controllers/**",
             "src/services/**",
