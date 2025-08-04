@@ -139,13 +139,15 @@ class TokenService {
     }
 
     private signToken(payload: object, secret: string, expiresIn: string): string {
-        console.log('🔧 signToken called with:', {
-            payloadKeys: Object.keys(payload),
-            secretLength: secret.length,
-            expiresIn,
-            issuer: this.issuer,
-            audience: this.audience,
-        });
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 signToken called with:', {
+                payloadKeys: Object.keys(payload),
+                secretLength: secret.length,
+                expiresIn,
+                issuer: this.issuer,
+                audience: this.audience,
+            });
+        }
 
         try {
             const result = jwt.sign(payload, secret, {
@@ -154,41 +156,65 @@ class TokenService {
                 audience: this.audience,
             } as jwt.SignOptions);
 
-            console.log('🔧 signToken result:', result ? 'GENERATED' : 'UNDEFINED');
+            if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+                console.log('🔧 signToken result:', result ? 'GENERATED' : 'UNDEFINED');
+            }
             return result;
         } catch (error) {
-            console.error('🔧 signToken error:', error);
+            if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+                console.error('🔧 signToken error:', error);
+            }
             throw error;
         }
     }
 
     async generateTokenPair(payload: TokenPayload): Promise<TokenPair> {
-        console.log('🔧 generateTokenPair called with payload:', payload);
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 generateTokenPair called with payload:', payload);
+        }
 
         const tokenPayload = this.createTokenPayload(payload);
-        console.log('🔧 Created token payload:', tokenPayload);
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 Created token payload:', tokenPayload);
+        }
 
-        console.log('🔧 About to sign access token...');
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 About to sign access token...');
+        }
         const accessToken = this.signToken(tokenPayload, this.accessTokenSecret, this.accessTokenExpiry);
-        console.log('🔧 Access token result:', accessToken ? 'GENERATED' : 'UNDEFINED');
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 Access token result:', accessToken ? 'GENERATED' : 'UNDEFINED');
+        }
 
         const refreshPayload = { ...tokenPayload, type: 'refresh' as const };
-        console.log('🔧 About to sign refresh token...');
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 About to sign refresh token...');
+        }
         const refreshToken = this.signToken(refreshPayload, this.refreshTokenSecret, this.refreshTokenExpiry);
-        console.log('🔧 Refresh token result:', refreshToken ? 'GENERATED' : 'UNDEFINED');
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 Refresh token result:', refreshToken ? 'GENERATED' : 'UNDEFINED');
+        }
 
         // Store refresh token in Redis
         const refreshTokenKey = `refresh_token:${payload.userId}`;
-        console.log('🔧 About to store in Redis with key:', refreshTokenKey);
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 About to store in Redis with key:', refreshTokenKey);
+        }
         try {
             await this.redis.setex(refreshTokenKey, 7 * 24 * 60 * 60, refreshToken);
-            console.log('🔧 Successfully stored in Redis');
+            if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+                console.log('🔧 Successfully stored in Redis');
+            }
         } catch (redisError) {
-            console.error('🔧 Redis error:', redisError);
+            if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+                console.error('🔧 Redis error:', redisError);
+            }
         }
 
         const result = { accessToken, refreshToken };
-        console.log('🔧 Final result:', result);
+        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
+            console.log('🔧 Final result:', result);
+        }
         return result;
     }
 

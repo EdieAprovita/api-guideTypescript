@@ -4,7 +4,7 @@
  */
 
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
     test: {
@@ -30,8 +30,10 @@ export default defineConfig({
             },
         },
         // Better error reporting and output
-        reporters: process.env.CI ? ['verbose', 'json'] : ['verbose'],
+        reporters: process.env.CI ? ['verbose', 'json'] : ['basic'],
         outputFile: process.env.CI ? 'test-results/integration-results.json' : undefined,
+        // Disable console intercept to reduce noise
+        disableConsoleIntercept: true,
         // Retry configuration for CI stability
         retry: process.env.CI ? 2 : 0, // Retry up to 2 times in CI
         // Enhanced coverage configuration
@@ -58,12 +60,16 @@ export default defineConfig({
         },
         // Better handling of unhandled promises and errors
         dangerouslyIgnoreUnhandledErrors: false,
-        logHeapUsage: process.env.CI,
+        logHeapUsage: !!process.env.CI,
     },
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './src'),
-            '@test': path.resolve(__dirname, './src/test'),
+            '@': fileURLToPath(new URL('./src', import.meta.url)),
+            '@test': fileURLToPath(new URL('./src/test', import.meta.url)),
         },
+    },
+    define: {
+        'process.env.NODE_ENV': '"test"',
+        'process.env.SILENT_TESTS': '"true"',
     },
 });

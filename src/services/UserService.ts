@@ -137,8 +137,8 @@ abstract class BaseService {
 class UserService extends BaseService {
     async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, res: Response) {
         try {
-            // Debug logging for integration tests
-            if (process.env.NODE_ENV === 'test') {
+            // Debug logging - only visible in development or when DEBUG_TESTS is set
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
                 console.log('=== UserService.registerUser REAL METHOD CALLED ===');
                 console.log('userData received:', userData);
             }
@@ -146,13 +146,13 @@ class UserService extends BaseService {
             await this.validateUserNotExists(userData.email);
             const user = await User.create(userData);
 
-            if (process.env.NODE_ENV === 'test') {
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
                 console.log('User created:', user?._id);
             }
 
             const tokens = await TokenService.generateTokens(user._id.toString(), user.email, user.role);
 
-            if (process.env.NODE_ENV === 'test') {
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
                 console.log('Tokens generated:', !!tokens.accessToken);
             }
 
@@ -164,14 +164,14 @@ class UserService extends BaseService {
                 refreshToken: tokens.refreshToken,
             };
 
-            if (process.env.NODE_ENV === 'test') {
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
                 console.log('Final result:', result);
             }
 
             return result;
         } catch (error) {
             // In test environment, log the error to understand what's happening
-            if (process.env.NODE_ENV === 'test') {
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
                 console.log('UserService.registerUser error:', error);
             }
             throw error;

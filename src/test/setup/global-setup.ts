@@ -25,15 +25,23 @@ const hooks = isIntegrationTest ? integrationTestHooks : unitTestHooks;
 // ============================================================================
 
 beforeAll(async () => {
-    console.log(`🔧 Setting up ${isIntegrationTest ? 'integration' : 'unit'} test environment...`);
+    if (process.env.DEBUG_TESTS) {
+        console.log(`🔧 Setting up ${isIntegrationTest ? 'integration' : 'unit'} test environment...`);
+    }
     await hooks.beforeAll();
-    console.log('✅ Test environment ready');
+    if (process.env.DEBUG_TESTS) {
+        console.log('✅ Test environment ready');
+    }
 });
 
 afterAll(async () => {
-    console.log('🧹 Cleaning up test environment...');
+    if (process.env.DEBUG_TESTS) {
+        console.log('🧹 Cleaning up test environment...');
+    }
     await hooks.afterAll();
-    console.log('✅ Test environment cleaned up');
+    if (process.env.DEBUG_TESTS) {
+        console.log('✅ Test environment cleaned up');
+    }
 });
 
 beforeEach(async () => {
@@ -52,4 +60,6 @@ process.on('uncaughtException', error => {
     console.error('Uncaught Exception:', error);
 });
 
-console.log('✅ Global test setup complete');
+if (process.env.DEBUG_TESTS) {
+    console.log('✅ Global test setup complete');
+}

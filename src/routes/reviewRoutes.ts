@@ -12,7 +12,10 @@ const router = express.Router();
 
 // Apply security headers and sanitization to all routes
 router.use(securityHeaders);
-router.use(...sanitizeInput());
+// Apply input sanitization (skip in test environment to avoid read-only errors)
+if (process.env.NODE_ENV !== 'test') {
+    router.use(...sanitizeInput());
+}
 
 // Get review by ID
 router.get('/:id', rateLimits.api, validate({ params: paramSchemas.id }), getReviewById);

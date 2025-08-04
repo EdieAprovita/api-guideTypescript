@@ -161,7 +161,7 @@ export const clearAllCollections = async (): Promise<void> => {
         });
 
         await Promise.all(clearPromises);
-        console.log(`🧹 Limpiadas ${collections.length} colecciones`);
+        // Cleaned collections silently
     } catch (error) {
         console.error('❌ Error al limpiar colecciones:', error);
         throw new Error(

@@ -6,6 +6,7 @@ import {
     expectMasterResponse,
     type MasterTestContext,
 } from '../config/master-test-config';
+import { integrationLog, testError } from '../utils/testLogger';
 
 // CRITICAL: Deshabilitar mocks para BusinessService y BaseService
 vi.doUnmock('../../services/BusinessService');
@@ -41,11 +42,11 @@ describe('Business Integration Tests (Master Config)', () => {
             author: context.admin.userId,
         });
 
-        console.log('🧪 Testing business creation with admin token:', context.admin.token);
+        integrationLog('🧪 Testing business creation with admin token:', context.admin.token);
 
         const response = await makeMasterRequest.post(app, '/api/v1/businesses', businessData, context.admin.token);
 
-        console.log('📊 Create business response:', {
+        integrationLog('📊 Create business response:', {
             status: response.status,
             success: response.body?.success,
             error: response.body?.error || response.body?.message,
@@ -59,17 +60,17 @@ describe('Business Integration Tests (Master Config)', () => {
             expect(response.body.data.namePlace).toBe(businessData.namePlace);
         } else {
             // If it fails, log for debugging but don't fail the test yet
-            console.log('❌ Business creation failed:', response.body);
+            testError('❌ Business creation failed:', response.body);
             expect(response.status).toBeLessThan(500); // At least no server error
         }
     });
 
     it('should get businesses list', async () => {
-        console.log('🧪 Testing get businesses with admin token:', context.admin.token);
+        integrationLog('🧪 Testing get businesses with admin token:', context.admin.token);
 
         const response = await makeMasterRequest.get(app, '/api/v1/businesses', context.admin.token);
 
-        console.log('📊 Get businesses response:', {
+        integrationLog('📊 Get businesses response:', {
             status: response.status,
             success: response.body?.success,
             dataType: Array.isArray(response.body?.data) ? 'array' : typeof response.body?.data,
@@ -85,11 +86,11 @@ describe('Business Integration Tests (Master Config)', () => {
     });
 
     it('should handle requests without authentication', async () => {
-        console.log('🧪 Testing request without token');
+        integrationLog('🧪 Testing request without token');
 
         const response = await makeMasterRequest.get(app, '/api/v1/businesses');
 
-        console.log('📊 No auth response:', {
+        integrationLog('📊 No auth response:', {
             status: response.status,
             success: response.body?.success,
             error: response.body?.error || response.body?.message,
@@ -106,7 +107,7 @@ describe('Business Integration Tests (Master Config)', () => {
             author: context.admin.userId,
         });
 
-        console.log('🧪 Creating business for get by ID test');
+        integrationLog('🧪 Creating business for get by ID test');
 
         const createResponse = await makeMasterRequest.post(
             app,
@@ -119,7 +120,7 @@ describe('Business Integration Tests (Master Config)', () => {
             const businessId = createResponse.body.data?._id;
 
             if (businessId) {
-                console.log('🧪 Getting business by ID:', businessId);
+                integrationLog('🧪 Getting business by ID:', businessId);
 
                 const getResponse = await makeMasterRequest.get(
                     app,
@@ -127,7 +128,7 @@ describe('Business Integration Tests (Master Config)', () => {
                     context.admin.token
                 );
 
-                console.log('📊 Get by ID response:', {
+                integrationLog('📊 Get by ID response:', {
                     status: getResponse.status,
                     success: getResponse.body?.success,
                     hasData: !!getResponse.body?.data,
@@ -135,10 +136,10 @@ describe('Business Integration Tests (Master Config)', () => {
 
                 expect([200, 404]).toContain(getResponse.status); // Either found or not found
             } else {
-                console.log('⚠️ No business ID returned from creation');
+                testError('⚠️ No business ID returned from creation');
             }
         } else {
-            console.log('⚠️ Could not create business for get by ID test');
+            testError('⚠️ Could not create business for get by ID test');
         }
     });
 
@@ -148,11 +149,11 @@ describe('Business Integration Tests (Master Config)', () => {
             invalidField: 'test',
         };
 
-        console.log('🧪 Testing validation with invalid data');
+        integrationLog('🧪 Testing validation with invalid data');
 
         const response = await makeMasterRequest.post(app, '/api/v1/businesses', invalidData, context.admin.token);
 
-        console.log('📊 Validation response:', {
+        integrationLog('📊 Validation response:', {
             status: response.status,
             success: response.body?.success,
             error: response.body?.error || response.body?.message,
@@ -169,9 +170,9 @@ describe('Business Integration Tests (Master Config)', () => {
     // ============================================================================
 
     it('should verify token authentication is working', async () => {
-        console.log('🧪 Testing token authentication specifically');
-        console.log('Admin token:', context.admin.token);
-        console.log('User token:', context.user.token);
+        integrationLog('🧪 Testing token authentication specifically');
+        integrationLog('Admin token:', context.admin.token);
+        integrationLog('User token:', context.user.token);
 
         // Test with admin token
         const adminResponse = await makeMasterRequest.get(app, '/api/v1/businesses', context.admin.token);
@@ -179,7 +180,7 @@ describe('Business Integration Tests (Master Config)', () => {
         // Test with user token
         const userResponse = await makeMasterRequest.get(app, '/api/v1/businesses', context.user.token);
 
-        console.log('📊 Token test results:', {
+        integrationLog('📊 Token test results:', {
             adminStatus: adminResponse.status,
             userStatus: userResponse.status,
             adminSuccess: adminResponse.body?.success,

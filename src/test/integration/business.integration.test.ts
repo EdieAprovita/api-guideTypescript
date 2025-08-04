@@ -50,10 +50,13 @@ describe('Business API Integration Tests', () => {
             .set('Authorization', `Bearer ${testSetup.adminTokens.accessToken}`)
             .send(businessData);
 
-        console.log('🔍 CREATE BUSINESS DEBUG:');
-        console.log('  Status:', response.status);
-        console.log('  Body:', JSON.stringify(response.body, null, 2));
-        console.log('  Expected namePlace:', businessData.namePlace);
+        // Debug logging - only visible with DEBUG_INTEGRATION
+        if (process.env.DEBUG_INTEGRATION || process.env.DEBUG_TESTS) {
+            console.log('🔍 CREATE BUSINESS DEBUG:');
+            console.log('  Status:', response.status);
+            console.log('  Body:', JSON.stringify(response.body, null, 2));
+            console.log('  Expected namePlace:', businessData.namePlace);
+        }
 
         expect(response.status).toBe(201);
         expect(response.body.success).toBe(true);

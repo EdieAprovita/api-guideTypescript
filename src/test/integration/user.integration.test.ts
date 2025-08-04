@@ -8,8 +8,9 @@ process.env.REDIS_PORT = '';
 
 import request from 'supertest';
 import { vi, describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { integrationLog, setupLog } from '../utils/testLogger';
 
-console.log('Loading user integration test file...');
+setupLog('Loading user integration test file...');
 
 // Clear all mocks to ensure clean state
 vi.clearAllMocks();
@@ -82,14 +83,14 @@ describe('User API Integration Tests', () => {
     });
 
     it('should get user by id as admin', async () => {
-        console.log('Starting admin test...');
+        integrationLog('Starting admin test...');
 
         // Create a real admin user
         const adminUser = await createAdminUser();
         const tokens = await generateAuthTokens(adminUser._id.toString(), adminUser.email, 'admin');
 
-        console.log('Admin user created:', adminUser._id);
-        console.log('Admin tokens generated:', tokens);
+        integrationLog('Admin user created:', adminUser._id);
+        integrationLog('Admin tokens generated:', tokens);
 
         const response = await request(app)
             .get(`/api/v1/users/${adminUser._id}`)
@@ -97,8 +98,8 @@ describe('User API Integration Tests', () => {
             .set('User-Agent', 'test-agent')
             .set('API-Version', 'v1');
 
-        console.log('Admin test response status:', response.status);
-        console.log('Admin test response body:', response.body);
+        integrationLog('Admin test response status:', response.status);
+        integrationLog('Admin test response body:', response.body);
 
         expect(response.status).toBe(200);
         expect(response.body._id || response.body.data._id).toBe(adminUser._id.toString());

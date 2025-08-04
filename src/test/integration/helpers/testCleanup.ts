@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { afterEach } from 'vitest';
 
 // Database cleanup utility for integration tests
 export const cleanupDatabase = async () => {
@@ -8,7 +9,9 @@ export const cleanupDatabase = async () => {
             for (const collection of collections) {
                 await collection.deleteMany({});
             }
-            console.log('Database cleaned after test');
+            if (process.env.DEBUG_TESTS) {
+                console.log('Database cleaned after test');
+            }
         }
     } catch (error) {
         console.error('Error cleaning database:', error);

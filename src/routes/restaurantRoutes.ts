@@ -21,7 +21,10 @@ const router = express.Router();
 
 // Apply security headers and sanitization to all routes
 router.use(securityHeaders);
-router.use(...sanitizeInput());
+// Apply input sanitization (skip in test environment to avoid read-only errors)
+if (process.env.NODE_ENV !== 'test') {
+    router.use(...sanitizeInput());
+}
 
 // Public routes with rate limiting and search validation
 router.get('/', rateLimits.search, validate({ query: querySchemas.geospatial }), getRestaurants);

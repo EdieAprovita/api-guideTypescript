@@ -1,6 +1,6 @@
 module.exports = {
   binary: {
-    // Use modern MongoDB version that supports libssl3 (Ubuntu 22.04+)
+    // Use modern MongoDB version that supports libssl3
     version: process.env.MONGODB_MEMORY_SERVER_VERSION || '6.0.4',
     // Use specific download directory for better caching
     downloadDir: process.env.MONGODB_MEMORY_SERVER_DOWNLOAD_DIR || '~/.cache/mongodb-binaries',

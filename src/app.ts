@@ -78,6 +78,16 @@ app.get('/api/v1', (_req, res) => {
     res.send('API is running');
 });
 
+// Main health check endpoint
+app.get('/health', (_req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        message: 'API is healthy',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);

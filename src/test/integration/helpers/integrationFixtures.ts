@@ -180,9 +180,12 @@ export const createUserInDb = async (overrides: Partial<TestUserData> = {}): Pro
     try {
         // Importación correcta usando default import
         const UserModule = await import('../../../models/User');
+            // Debug logging for UserModule - only visible with DEBUG_TESTS
+    if (process.env.DEBUG_TESTS) {
         console.log('UserModule keys:', Object.keys(UserModule));
         console.log('UserModule.User type:', typeof UserModule.User);
         console.log('UserModule.User:', UserModule.User);
+    }
 
         const User = UserModule.User; // Acceder al modelo exportado
 
@@ -322,15 +325,9 @@ export interface AuthTokens {
 
 export const generateAuthTokens = async (userId: string, email: string, role: string): Promise<AuthTokens> => {
     try {
-        console.log('🎯 Generating tokens for:', { userId, email, role });
-
         // Import the TokenService instance
         const TokenServiceModule = await import('../../../services/TokenService');
         const tokenService = TokenServiceModule.default;
-
-        console.log('🎯 TokenService type:', typeof tokenService);
-        console.log('🎯 TokenService keys:', Object.getOwnPropertyNames(tokenService));
-        console.log('🎯 TokenService methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(tokenService)));
 
         // Check if generateTokens method exists
         if (typeof tokenService.generateTokens !== 'function') {
@@ -339,24 +336,11 @@ export const generateAuthTokens = async (userId: string, email: string, role: st
             );
         }
 
-        console.log('🎯 About to call generateTokens with:', { userId, email, role });
-        console.log('🎯 TokenService secrets:', {
-            accessTokenSecret: tokenService.accessTokenSecret ? 'SET' : 'NOT SET',
-            refreshTokenSecret: tokenService.refreshTokenSecret ? 'SET' : 'NOT SET',
-            accessTokenExpiry: tokenService.accessTokenExpiry,
-            refreshTokenExpiry: tokenService.refreshTokenExpiry,
-        });
-
-        let tokens;
+        let tokens: { accessToken: string; refreshToken: string };
         try {
-            console.log('🎯 About to call generateTokenPair directly...');
             const payload = { userId, email: email || '', ...(role && { role }) };
-            console.log('🎯 Payload for generateTokenPair:', payload);
-
             tokens = await tokenService.generateTokenPair(payload);
-            console.log('🎯 Raw tokens result from generateTokenPair:', tokens);
         } catch (error) {
-            console.error('🎯 Error calling generateTokenPair:', error);
             throw error;
         }
 
@@ -367,11 +351,6 @@ export const generateAuthTokens = async (userId: string, email: string, role: st
         if (!tokens.accessToken || !tokens.refreshToken) {
             throw new Error(`Invalid tokens structure: ${JSON.stringify(tokens)}`);
         }
-
-        console.log('🎯 Generated tokens:', {
-            accessToken: tokens.accessToken.substring(0, 50) + '...',
-            refreshToken: tokens.refreshToken.substring(0, 50) + '...',
-        });
 
         // Verificar que el token es un JWT válido (tiene 3 partes separadas por puntos)
         if (!tokens.accessToken.includes('.') || tokens.accessToken.split('.').length !== 3) {

@@ -175,10 +175,8 @@ export const getUserById = asyncHandler(async (req: Request, res: Response, next
  */
 
 // Helper function to log debug information in test environment
-const logDebugInfo = (message: string, data?: unknown) => {
-    if (process.env.NODE_ENV === 'test') {
-        console.log(`🔍 getCurrentUserProfile Debug: ${message}`, data);
-    }
+const logDebugInfo = (_message: string, _data?: unknown) => {
+    // Debug logging disabled to reduce test output noise
 };
 
 // Helper function to handle user lookup

@@ -1,6 +1,8 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { fileURLToPath, URL } from 'node:url';
+
+// Use ESM imports to resolve the deprecation warning
 
 export default defineConfig({
     test: {
@@ -72,7 +74,7 @@ export default defineConfig({
         },
 
         // Reporters
-        reporters: ['verbose'],
+        reporters: ['basic'],
 
         // Setup files for different test types
         setupFiles: ['./src/test/setup/global-setup.ts'],
@@ -101,21 +103,18 @@ export default defineConfig({
         // Globals
         globals: true,
 
-        // TypeScript support
-        typecheck: {
-            enabled: true,
-            tsconfig: './tsconfig.test.json',
-        },
+        // TypeScript support - removed typecheck to avoid experimental warnings
+        // Use tsc directly for type checking: npm run type-check
     },
 
     // Resolve configuration
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, 'src'),
-            '@test': path.resolve(__dirname, 'src/test'),
-            '@config': path.resolve(__dirname, 'src/test/config'),
-            '@utils': path.resolve(__dirname, 'src/test/utils'),
-            '@mocks': path.resolve(__dirname, 'src/test/__mocks__'),
+            '@': fileURLToPath(new URL('./src', import.meta.url)),
+            '@test': fileURLToPath(new URL('./src/test', import.meta.url)),
+            '@config': fileURLToPath(new URL('./src/test/config', import.meta.url)),
+            '@utils': fileURLToPath(new URL('./src/test/utils', import.meta.url)),
+            '@mocks': fileURLToPath(new URL('./src/test/__mocks__', import.meta.url)),
         },
     },
 

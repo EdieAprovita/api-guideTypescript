@@ -39,7 +39,7 @@ const PASSWORD_CONFIGS = {
         requireUppercase: true,
         requireNumbers: true,
         requireSpecialChars: true,
-        specialChars: '@$!%*?&',
+        specialChars: '@$!%*?&', // Must match exactly the validation pattern
         environmentVariable: 'TEST_USER_PASSWORD',
     } as PasswordConfig,
 
@@ -67,7 +67,7 @@ const PASSWORD_CONFIGS = {
         requireUppercase: true,
         requireNumbers: true,
         requireSpecialChars: true,
-        specialChars: '@$!%*?&',
+        specialChars: '@$!%*?&', // Must match exactly the validation pattern
     } as PasswordConfig,
 
     // API key style for token testing
@@ -118,6 +118,7 @@ class TestPasswordGenerator {
     private ensureRequirements(password: string, config: PasswordConfig): string {
         let result = password;
 
+        // Ensure at least one uppercase letter
         if (config.requireUppercase && !/[A-Z]/.test(result)) {
             const pos = randomBytes(1)[0] % result.length;
             result =
@@ -126,20 +127,30 @@ class TestPasswordGenerator {
                 result.substring(pos + 1);
         }
 
+        // Ensure at least one number
         if (config.requireNumbers && !/[0-9]/.test(result)) {
             const pos = randomBytes(1)[0] % result.length;
             result = result.substring(0, pos) + this.generateRandomCharacter('0123456789') + result.substring(pos + 1);
         }
 
-        if (
-            config.requireSpecialChars &&
-            config.specialChars &&
-            !new RegExp(`[${config.specialChars.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}]`).test(result)
-        ) {
+        // Ensure at least one special character
+        if (config.requireSpecialChars && config.specialChars) {
+            const specialCharRegex = new RegExp(`[${config.specialChars.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}]`);
+            if (!specialCharRegex.test(result)) {
+                const pos = randomBytes(1)[0] % result.length;
+                result =
+                    result.substring(0, pos) +
+                    this.generateRandomCharacter(config.specialChars) +
+                    result.substring(pos + 1);
+            }
+        }
+
+        // Ensure at least one lowercase letter (always required for our validation)
+        if (!/[a-z]/.test(result)) {
             const pos = randomBytes(1)[0] % result.length;
             result =
                 result.substring(0, pos) +
-                this.generateRandomCharacter(config.specialChars) +
+                this.generateRandomCharacter('abcdefghijklmnopqrstuvwxyz') +
                 result.substring(pos + 1);
         }
 
@@ -268,6 +279,43 @@ const passwordGenerator = TestPasswordGenerator.getInstance();
 /**
  * Convenient generator functions for different use cases
  */
+
+/**
+ * Generate a password that is guaranteed to pass the system validation
+ * This ensures the password meets all requirements: uppercase, lowercase, number, special char
+ */
+export const generateValidatedPassword = (): string => {
+    // Create a password that definitely passes validation
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const specialChars = '@$!%*?&';
+
+    // Helper function to get random character
+    const getRandomChar = (chars: string): string => {
+        const randomIndex = randomBytes(1)[0] % chars.length;
+        return chars.charAt(randomIndex);
+    };
+
+    // Ensure we have at least one of each required character type
+    let password = '';
+    password += getRandomChar(lowercase);
+    password += getRandomChar(uppercase);
+    password += getRandomChar(numbers);
+    password += getRandomChar(specialChars);
+
+    // Fill the rest with random characters from all sets
+    const allChars = lowercase + uppercase + numbers + specialChars;
+    for (let i = 4; i < 12; i++) {
+        password += getRandomChar(allChars);
+    }
+
+    // Shuffle the password to make it more random
+    return password
+        .split('')
+        .sort(() => Math.random() - 0.5)
+        .join('');
+};
 
 /**
  * Generate a strong password for general authentication testing

@@ -6,6 +6,7 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { setupLog, integrationLog, testError } from '../utils/testLogger';
 
 let mongoServer: MongoMemoryServer | null = null;
 let isConnected = false;
@@ -91,7 +92,7 @@ async function setupDatabase(): Promise<void> {
 
     for (const mongoUri of fallbackUris) {
         try {
-            console.log(`🔧 Attempting real MongoDB connection to ${mongoUri}...`);
+            setupLog(`🔧 Attempting real MongoDB connection to ${mongoUri}...`);
             await mongoose.connect(mongoUri, {
                 maxPoolSize: 1,
                 serverSelectionTimeoutMS: 3000, // Shorter timeout for real connections
@@ -101,17 +102,17 @@ async function setupDatabase(): Promise<void> {
                 retryReads: false,
                 family: 4, // Force IPv4
             });
-            console.log('✅ Connected to real MongoDB');
+            setupLog('✅ Connected to real MongoDB');
             isConnected = true;
             return;
         } catch (error) {
-            console.warn(`⚠️  Real MongoDB connection failed for ${mongoUri}:`, (error as Error).message);
+            testError(`⚠️  Real MongoDB connection failed for ${mongoUri}:`, (error as Error).message);
         }
     }
 
     // Strategy 2: Try MongoDB Memory Server with stable configuration
     try {
-        console.log('🧪 Starting MongoDB Memory Server...');
+        setupLog('🧪 Starting MongoDB Memory Server...');
         mongoServer = await createMongoMemoryServer();
         const mongoUri = mongoServer.getUri();
         process.env.MONGODB_URI = mongoUri;
@@ -125,7 +126,7 @@ async function setupDatabase(): Promise<void> {
             retryReads: false,
         });
 
-        console.log('✅ MongoDB Memory Server connected');
+        setupLog('✅ MongoDB Memory Server connected');
         isConnected = true;
         return;
     } catch (error) {
@@ -238,7 +239,7 @@ afterAll(
                 // Disconnect from database
                 if (mongoose.connection.readyState !== 0) {
                     await mongoose.disconnect();
-                    console.log('✅ Test database disconnected successfully');
+                    setupLog('✅ Test database disconnected successfully');
                 }
             }
 
@@ -252,7 +253,7 @@ afterAll(
                 }
             }
 
-            console.log('✅ Test database disconnected');
+            setupLog('✅ Test database disconnected');
         } catch (error) {
             console.error('❌ Failed to cleanup test database:', error);
         }

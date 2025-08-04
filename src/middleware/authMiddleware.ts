@@ -3,7 +3,6 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { User } from '../models/User';
 import { errorHandler } from './errorHandler';
 import TokenService from '../services/TokenService';
-import mongoose from 'mongoose';
 
 // Define interface for authenticated user
 interface AuthenticatedUser {
@@ -64,10 +63,6 @@ const handleTestEnvironment = (payload: any, req: Request): boolean => {
         return false;
     }
 
-    const isValidObjectId = mongoose.Types.ObjectId.isValid(payload.userId);
-    const userType = isValidObjectId ? 'valid ObjectId' : 'non-ObjectId';
-
-    console.log(`🔍 Setting req.user with ${userType}:`, payload.userId);
     req.user = createTestUser(payload);
 
     return true;
@@ -78,13 +73,6 @@ const verifyTokenAndGetPayload = async (token: string) => {
     try {
         const payload = await TokenService.verifyAccessToken(token);
 
-        if (process.env.NODE_ENV === 'test') {
-            console.log('🔍 Auth Middleware Debug:');
-            console.log('  Token verified successfully');
-            console.log('  Payload userId:', payload.userId);
-            console.log('  Payload email:', payload.email);
-            console.log('  Payload role:', payload.role);
-        }
 
         return payload;
     } catch (error) {
@@ -289,22 +277,16 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
  */
 export const refreshToken = async (req: Request, res: Response) => {
     try {
-        console.log('[REFRESH TOKEN DEBUG] Request received');
-        console.log('[REFRESH TOKEN DEBUG] Body:', req.body);
-
         const { refreshToken } = req.body;
 
         if (!refreshToken) {
-            console.log('[REFRESH TOKEN DEBUG] No refresh token provided');
             return res.status(400).json({
                 success: false,
                 message: 'Refresh token is required',
             });
         }
 
-        console.log('[REFRESH TOKEN DEBUG] Calling TokenService.refreshTokens');
         const tokens = await TokenService.refreshTokens(refreshToken);
-        console.log('[REFRESH TOKEN DEBUG] Tokens generated successfully:', !!tokens);
 
         return res.json({
             success: true,
@@ -312,7 +294,6 @@ export const refreshToken = async (req: Request, res: Response) => {
             data: tokens,
         });
     } catch (error) {
-        console.log('[REFRESH TOKEN DEBUG] Error occurred:', error);
         return res.status(401).json({
             success: false,
             message: 'Invalid refresh token',

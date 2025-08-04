@@ -4,7 +4,7 @@
  */
 
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   test: {
@@ -39,12 +39,17 @@ export default defineConfig({
     hookTimeout: 5000,
     bail: 0,
     logHeapUsage: true,
-    passWithNoTests: true
+    passWithNoTests: true,
+    silent: false,
+    reporters: ['basic'],
+    outputFile: undefined,
+    // Disable console intercept to reduce noise
+    disableConsoleIntercept: true
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@test': path.resolve(__dirname, './src/test')
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@test': fileURLToPath(new URL('./src/test', import.meta.url))
     }
   }
 });
