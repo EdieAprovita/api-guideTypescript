@@ -73,7 +73,6 @@ const verifyTokenAndGetPayload = async (token: string) => {
     try {
         const payload = await TokenService.verifyAccessToken(token);
 
-
         return payload;
     } catch (error) {
         if (process.env.NODE_ENV === 'test') {
