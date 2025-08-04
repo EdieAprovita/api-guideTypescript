@@ -135,4 +135,16 @@
         "test-exclude": "^7.0.1",
         "brace-expansion": "^2.0.2"
     }
+    ,"c8": {
+        "exclude": [
+            "src/controllers/**",
+            "src/services/**",
+            "src/routes/**",
+            "src/middleware/**",
+            "src/scripts/**",
+            "src/config/**",
+            "src/test/**",
+            "src/types/**"
+        ]
+    }
 }
