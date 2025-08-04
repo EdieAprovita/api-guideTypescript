@@ -1,4 +1,4 @@
-import { Document, Model } from 'mongoose';
+import { Document, Model, Types } from 'mongoose';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { cacheService, CacheOptions } from './CacheService';
@@ -29,7 +29,15 @@ class BaseService<T extends Document> {
     }
 
     async findById(id: string): Promise<T> {
-        const item = await this.model.findById(id);
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(id)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid ID format'));
+        }
+
+        // Convert string to ObjectId to prevent injection
+        const objectId = new Types.ObjectId(id);
+
+        const item = await this.model.findById(objectId);
         if (!item) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
         }
@@ -46,7 +54,15 @@ class BaseService<T extends Document> {
     }
 
     async updateById(id: string, data: Partial<T>): Promise<T> {
-        const item = await this.model.findByIdAndUpdate(id, data, { new: true });
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(id)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid ID format'));
+        }
+
+        // Convert string to ObjectId to prevent injection
+        const objectId = new Types.ObjectId(id);
+
+        const item = await this.model.findByIdAndUpdate(objectId, data, { new: true });
         if (!item) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
         }
@@ -54,13 +70,21 @@ class BaseService<T extends Document> {
     }
 
     async deleteById(id: string): Promise<void> {
-        const item = await this.model.findById(id);
+        // Validate ObjectId format to prevent injection
+        if (!Types.ObjectId.isValid(id)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid ID format'));
+        }
+
+        // Convert string to ObjectId to prevent injection
+        const objectId = new Types.ObjectId(id);
+
+        const item = await this.model.findById(objectId);
         if (!item) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
         }
 
-        // Use findByIdAndDelete instead of deleteOne to ensure proper parameterization
-        const deletedItem = await this.model.findByIdAndDelete(id);
+        // Use findByIdAndDelete with ObjectId to ensure proper parameterization
+        const deletedItem = await this.model.findByIdAndDelete(objectId);
         if (!deletedItem) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
         }

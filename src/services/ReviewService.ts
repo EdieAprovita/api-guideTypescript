@@ -64,7 +64,10 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
         }
 
-        const review = await Review.findById(reviewId)
+        // Convert string to ObjectId to prevent injection
+        const objectId = new Types.ObjectId(reviewId);
+
+        const review = await Review.findById(objectId)
             .populate('author', 'firstName lastName')
             .populate('restaurant', 'restaurantName');
 
@@ -80,7 +83,10 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
         }
 
-        const review = await Review.findByIdAndUpdate(reviewId, updateData, { new: true })
+        // Convert string to ObjectId to prevent injection
+        const objectId = new Types.ObjectId(reviewId);
+
+        const review = await Review.findByIdAndUpdate(objectId, updateData, { new: true })
             .populate('author', 'firstName lastName')
             .populate('restaurant', 'restaurantName');
 
@@ -96,13 +102,16 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
         }
 
-        const review = await Review.findById(reviewId);
+        // Convert string to ObjectId to prevent injection
+        const objectId = new Types.ObjectId(reviewId);
+
+        const review = await Review.findById(objectId);
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
 
-        // Use findByIdAndDelete instead of deleteOne to ensure proper parameterization
-        const deletedReview = await Review.findByIdAndDelete(reviewId);
+        // Use findByIdAndDelete with ObjectId to ensure proper parameterization
+        const deletedReview = await Review.findByIdAndDelete(objectId);
         if (!deletedReview) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
@@ -267,18 +276,22 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid user ID format'));
         }
 
-        const review = await Review.findById(reviewId);
+        // Convert strings to ObjectIds to prevent injection
+        const reviewObjectId = new Types.ObjectId(reviewId);
+        const userObjectId = new Types.ObjectId(userId);
+
+        const review = await Review.findById(reviewObjectId);
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
 
         // Use find() instead of includes() for ObjectId comparison
-        const existingVote = review.helpfulVotes.find(vote => vote.toString() === userId);
+        const existingVote = review.helpfulVotes.find(vote => vote.toString() === userObjectId.toString());
         if (existingVote) {
             throw new HttpError(HttpStatusCode.CONFLICT, getErrorMessage('User has already voted'));
         }
 
-        review.helpfulVotes.push(new Types.ObjectId(userId));
+        review.helpfulVotes.push(userObjectId);
         review.helpfulCount = review.helpfulVotes.length;
         await review.save();
 
@@ -294,13 +307,17 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid user ID format'));
         }
 
-        const review = await Review.findById(reviewId);
+        // Convert strings to ObjectIds to prevent injection
+        const reviewObjectId = new Types.ObjectId(reviewId);
+        const userObjectId = new Types.ObjectId(userId);
+
+        const review = await Review.findById(reviewObjectId);
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
 
         // Use findIndex() instead of indexOf() for ObjectId comparison
-        const voteIndex = review.helpfulVotes.findIndex(vote => vote.toString() === userId);
+        const voteIndex = review.helpfulVotes.findIndex(vote => vote.toString() === userObjectId.toString());
 
         if (voteIndex === -1) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Vote not found'));
