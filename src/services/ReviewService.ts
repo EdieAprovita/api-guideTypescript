@@ -100,7 +100,12 @@ class ReviewService implements IReviewService {
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
-        await Review.deleteOne({ _id: reviewId });
+
+        // Use findByIdAndDelete instead of deleteOne to ensure proper parameterization
+        const deletedReview = await Review.findByIdAndDelete(reviewId);
+        if (!deletedReview) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
+        }
     }
 
     async findByUserAndRestaurant(userId: string, restaurantId: string): Promise<IReview | null> {
