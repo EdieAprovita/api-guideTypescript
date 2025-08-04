@@ -7,6 +7,45 @@ import { User, IUser } from '../models/User';
 import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import generateTokenAndSetCookie from '../utils/generateToken';
+import TokenService from './TokenService';
+
+/**
+ * Validates and sanitizes email input to prevent NoSQL injection attacks
+ * @param email - The email to validate and sanitize
+ * @returns The sanitized email
+ * @throws HttpError if email is invalid
+ */
+function validateAndSanitizeEmail(email: string): string {
+    if (!email || typeof email !== 'string') {
+        throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid email format'));
+    }
+
+    // Sanitize email: remove any potential injection characters and validate format
+    const sanitizedEmail = email.trim().toLowerCase();
+
+    // Safer email validation without backtracking
+    const atIndex = sanitizedEmail.indexOf('@');
+    const dotIndex = sanitizedEmail.lastIndexOf('.');
+
+    // Basic validation without regex
+    if (
+        atIndex === -1 ||
+        atIndex === 0 ||
+        dotIndex === -1 ||
+        dotIndex <= atIndex + 1 ||
+        dotIndex === sanitizedEmail.length - 1
+    ) {
+        throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid email format'));
+    }
+
+    // Check for valid characters only
+    const validChars = /^[a-zA-Z0-9._%+-@]+$/;
+    if (!validChars.test(sanitizedEmail)) {
+        throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid email format'));
+    }
+
+    return sanitizedEmail;
+}
 
 abstract class BaseService {
     protected validateUserExists(user: IUser | null) {
@@ -16,14 +55,16 @@ abstract class BaseService {
     }
 
     protected async validateUserNotExists(email: string) {
-        const existingUser = await User.findOne({ email });
+        const sanitizedEmail = validateAndSanitizeEmail(email);
+        const existingUser = await User.findOne({ email: sanitizedEmail }).exec();
         if (existingUser) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('User already exists'));
         }
     }
 
     protected async getUserByEmail(email: string) {
-        const user = await User.findOne({ email }).select('+password');
+        const sanitizedEmail = validateAndSanitizeEmail(email);
+        const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
         this.validateUserExists(user);
         return user!;
     }
@@ -71,7 +112,7 @@ abstract class BaseService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid token'));
         }
 
-        const user = await User.findById(decoded.userId);
+        const user = await User.findById(decoded.userId).exec();
         this.validateUserExists(user);
         return user!;
     }
@@ -81,21 +122,74 @@ abstract class BaseService {
         user.password = hashedPassword;
         await user.save();
     }
+
+    protected generateJWTToken(userId: string): string {
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'JWT secret not configured');
+        }
+        return jwt.sign({ userId }, secret, {
+            expiresIn: '30d',
+        });
+    }
 }
 
 class UserService extends BaseService {
     async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, res: Response) {
-        await this.validateUserNotExists(userData.email);
-        const user = await User.create(userData);
-        generateTokenAndSetCookie(res, user._id);
-        return this.getUserResponse(user);
+        try {
+            // Debug logging - only visible in development or when DEBUG_TESTS is set
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
+                console.log('=== UserService.registerUser REAL METHOD CALLED ===');
+                console.log('userData received:', userData);
+            }
+
+            await this.validateUserNotExists(userData.email);
+            const user = await User.create(userData);
+
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
+                console.log('User created:', user?._id);
+            }
+
+            const tokens = await TokenService.generateTokens(user._id.toString(), user.email, user.role);
+
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
+                console.log('Tokens generated:', !!tokens.accessToken);
+            }
+
+            generateTokenAndSetCookie(res, user._id);
+
+            const result = {
+                ...this.getUserResponse(user),
+                token: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+            };
+
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
+                console.log('Final result:', result);
+            }
+
+            return result;
+        } catch (error) {
+            // In test environment, log the error to understand what's happening
+            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
+                console.log('UserService.registerUser error:', error);
+            }
+            throw error;
+        }
     }
 
     async loginUser(email: string, password: string, res: Response) {
-        const user = await this.getUserByEmail(email);
+        const sanitizedEmail = validateAndSanitizeEmail(email);
+        const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
         await this.validateUserCredentials(user, password);
-        generateTokenAndSetCookie(res, user._id);
-        return this.getUserResponse(user);
+        const tokens = await TokenService.generateTokens(user!._id.toString(), user!.email, user!.role);
+        generateTokenAndSetCookie(res, user!._id);
+        const userResponse = this.getUserResponse(user!);
+        return {
+            token: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            ...userResponse,
+        };
     }
 
     async forgotPassword(email: string) {
@@ -117,13 +211,14 @@ class UserService extends BaseService {
     }
 
     async findAllUsers() {
-        const users = await User.find({});
+        const users = await User.find({}).exec();
         return users.map(this.getUserResponse);
     }
 
     async findUserById(userId: string) {
         if (!userId) throw new UserIdRequiredError('User ID not found');
-        return User.findById(userId);
+        const user = await User.findById(userId).exec();
+        return user;
     }
 
     async updateUserById(userId: string, updateData: Partial<IUser>) {
@@ -136,7 +231,7 @@ class UserService extends BaseService {
     }
 
     async deleteUserById(userId: string) {
-        await User.findByIdAndDelete(userId);
+        await User.findByIdAndDelete(userId).exec();
         return { message: 'User deleted successfully' };
     }
 

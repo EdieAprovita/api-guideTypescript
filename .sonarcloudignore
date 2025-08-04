@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/**
+coverage/**
+dist/**
+build/**
+
+# Configuration files
+*.config.js
+*.config.ts
+jest.config.js
+eslint.config.js
+
+# Docker and deployment
+dockerfile
+docker-compose.yml
+*.yaml
+*.yml
+
+# Documentation
+*.md
+LICENSE
+
+# Test setup files
+src/test/setup.ts
+src/test/**/controllerTestSetup.ts
+
+# Generated files
+swagger.yaml
+eslint-report.json
+security-report.json
+
+# Logs
+*.log
+logs/**
+
+# Environment files
+.env
+.env.local
+.env.production 

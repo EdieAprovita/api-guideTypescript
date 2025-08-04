@@ -1,72 +1,163 @@
-import request from "supertest";
-import { geoService } from "./controllerTestSetup";
-import app from "../../app";
-import { doctorService } from "../../services/DoctorService";
-import { reviewService } from "../../services/ReviewService";
+import { vi } from 'vitest';
+// Doctors Controllers Test - Refactored to use centralized mocking system
+import '../setup'; // Import test setup to apply mocks
+import request from 'supertest';
+import app from '../../app';
+import { doctorService } from '../../services/DoctorService';
+import { reviewService } from '../../services/ReviewService';
+import {
+    expectSuccessResponse,
+    expectResourceCreated,
+    expectResourceUpdated,
+    expectResourceDeleted,
+    createMockData,
+} from '../utils/testHelpers';
+import { MockDoctorService, MockReviewService } from '../types';
 
-jest.mock("../../services/DoctorService", () => ({
-  doctorService: {
-    getAll: jest.fn(),
-    findById: jest.fn(),
-    create: jest.fn(),
-    updateById: jest.fn(),
-    deleteById: jest.fn(),
-  },
-}));
+// Only mock the specific services used in this test
+vi.mock('../../services/DoctorService');
+vi.mock('../../services/ReviewService');
 
+const mockDoctorService = doctorService as unknown as MockDoctorService;
+const mockReviewService = reviewService as unknown as MockReviewService;
 
-describe("Doctors Controllers", () => {
-  it("gets doctors", async () => {
-    (doctorService.getAll as jest.Mock).mockResolvedValue([]);
-    const res = await request(app).get("/api/v1/doctors");
-    expect(res.status).toBe(200);
-    expect(doctorService.getAll).toHaveBeenCalled();
-  });
+describe('Doctor Controllers', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
 
-  it("deletes a doctor", async () => {
-    (doctorService.deleteById as jest.Mock).mockResolvedValue(undefined);
-    const res = await request(app).delete("/api/v1/doctors/delete/1");
-    expect(res.status).toBe(200);
-    expect(doctorService.deleteById).toHaveBeenCalledWith("1");
-  });
+    describe('GET /api/v1/doctors', () => {
+        it('should get all doctors', async () => {
+            const mockDoctors = [
+                createMockData.doctor({ doctorName: 'Dr. Smith' }),
+                createMockData.doctor({ doctorName: 'Dr. Johnson' }),
+            ];
+            mockDoctorService.getAll.mockResolvedValue(mockDoctors);
 
-  it("creates a doctor", async () => {
-    (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 1, lng: 2 });
-    (doctorService.create as jest.Mock).mockResolvedValue({ id: "1" });
+            const response = await request(app).get('/api/v1/doctors');
 
-    await request(app)
-      .post("/api/v1/doctors/create")
-      .send({ address: "a" });
+            expectSuccessResponse(response);
+            expect(mockDoctorService.getAll).toHaveBeenCalledTimes(1);
+            expect(response.body.data).toEqual(mockDoctors);
+        });
 
-    expect(geoService.geocodeAddress).toHaveBeenCalledWith("a");
-    expect(doctorService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ address: "a", location: { type: "Point", coordinates: [2, 1] } })
-    );
-  });
+        it('should handle empty doctor list', async () => {
+            mockDoctorService.getAll.mockResolvedValue([]);
 
-  it("updates a doctor", async () => {
-    (geoService.geocodeAddress as jest.Mock).mockResolvedValue({ lat: 3, lng: 4 });
-    (doctorService.updateById as jest.Mock).mockResolvedValue({ id: "1" });
+            const response = await request(app).get('/api/v1/doctors');
 
-    await request(app)
-      .put("/api/v1/doctors/update/1")
-      .send({ address: "b" });
+            expectSuccessResponse(response);
+            expect(response.body.data).toEqual([]);
+        });
+    });
 
-    expect(geoService.geocodeAddress).toHaveBeenCalledWith("b");
-    expect(doctorService.updateById).toHaveBeenCalledWith(
-      "1",
-      expect.objectContaining({ address: "b", location: { type: "Point", coordinates: [4, 3] } })
-    );
-  });
+    describe('GET /api/v1/doctors/:id', () => {
+        it('should get doctor by id', async () => {
+            const doctorId = 'doctor-123';
+            const mockDoctor = createMockData.doctor({
+                _id: doctorId,
+                doctorName: 'Dr. Specific',
+            });
+            mockDoctorService.findById.mockResolvedValue(mockDoctor);
 
-  it("adds a review", async () => {
-    (reviewService.addReview as jest.Mock).mockResolvedValue({ id: "r" });
+            const response = await request(app).get(`/api/v1/doctors/${doctorId}`);
 
-    const res = await request(app)
-      .post("/api/v1/doctors/add-review/1")
-      .send({ text: "good" });
+            expectSuccessResponse(response);
+            expect(mockDoctorService.findById).toHaveBeenCalledWith(doctorId);
+            expect(response.body.data).toEqual(mockDoctor);
+        });
+    });
 
-    expect(res.status).toBe(200);
-    expect(reviewService.addReview).toHaveBeenCalledWith({ text: "good", doctorId: "1" });
-  });
+    describe('POST /api/v1/doctors', () => {
+        it('should create a new doctor', async () => {
+            const newDoctorData = {
+                doctorName: 'Dr. New',
+                location: { type: 'Point', coordinates: [40.7128, -74.006] },
+                address: 'New Doctor Address',
+            };
+            const createdDoctor = createMockData.doctor({
+                ...newDoctorData,
+                _id: 'new-doctor-id',
+            });
+            mockDoctorService.create.mockResolvedValue(createdDoctor);
+
+            const response = await request(app).post('/api/v1/doctors').send(newDoctorData);
+
+            expectResourceCreated(response);
+            expect(mockDoctorService.create).toHaveBeenCalledWith(newDoctorData);
+            expect(response.body.data).toEqual(createdDoctor);
+        });
+    });
+
+    describe('PUT /api/v1/doctors/:id', () => {
+        it('should update a doctor', async () => {
+            const doctorId = 'doctor-123';
+            const updateData = {
+                doctorName: 'Dr. Updated',
+            };
+            const updatedDoctor = createMockData.doctor({
+                ...updateData,
+                _id: doctorId,
+            });
+            mockDoctorService.updateById.mockResolvedValue(updatedDoctor);
+
+            const response = await request(app).put(`/api/v1/doctors/${doctorId}`).send(updateData);
+
+            expectResourceUpdated(response);
+            expect(mockDoctorService.updateById).toHaveBeenCalledWith(doctorId, updateData);
+            expect(response.body.data).toEqual(updatedDoctor);
+        });
+    });
+
+    describe('DELETE /api/v1/doctors/:id', () => {
+        it('should delete a doctor', async () => {
+            const doctorId = 'doctor-123';
+            mockDoctorService.deleteById.mockResolvedValue(undefined);
+
+            const response = await request(app).delete(`/api/v1/doctors/${doctorId}`);
+
+            expectResourceDeleted(response);
+            expect(mockDoctorService.deleteById).toHaveBeenCalledWith(doctorId);
+        });
+    });
+
+    describe('Doctor with Reviews Integration', () => {
+        it('should handle doctor with reviews', async () => {
+            const doctorId = 'doctor-with-reviews';
+            const mockDoctor = createMockData.doctor({
+                _id: doctorId,
+                doctorName: 'Dr. With Reviews',
+            });
+            const mockReviews = [
+                { _id: 'review1', rating: 5, comment: 'Excellent doctor!' },
+                { _id: 'review2', rating: 4, comment: 'Very professional!' },
+            ];
+
+            mockDoctorService.findById.mockResolvedValue(mockDoctor);
+            mockReviewService.getTopRatedReviews.mockResolvedValue(mockReviews);
+
+            const response = await request(app).get(`/api/v1/doctors/${doctorId}`);
+
+            expectSuccessResponse(response);
+            expect(mockDoctorService.findById).toHaveBeenCalledWith(doctorId);
+            expect(response.body.data).toEqual(mockDoctor);
+        });
+    });
+
+    describe('Geolocation Integration', () => {
+        it('should handle doctors with location data', async () => {
+            const mockDoctors = [
+                createMockData.doctor({
+                    doctorName: 'Location Doctor',
+                    location: { type: 'Point', coordinates: [40.7128, -74.006] },
+                }),
+            ];
+            mockDoctorService.getAll.mockResolvedValue(mockDoctors);
+
+            const response = await request(app).get('/api/v1/doctors');
+
+            expectSuccessResponse(response);
+            expect(response.body.data).toEqual(mockDoctors);
+        });
+    });
 });

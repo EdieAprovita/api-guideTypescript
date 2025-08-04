@@ -5,6 +5,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { businessService as BusinessService } from '../services/BusinessService';
 import { reviewService as ReviewService } from '../services/ReviewService';
+import { sendSuccessResponse, sendCreatedResponse } from '../utils/responseHelpers';
 import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
 /**
@@ -17,12 +18,9 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
 export const getBusinesses = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
-        const businesses = await BusinessService.getAll();
-        res.status(200).json({
-            success: true,
-            message: 'Businesses fetched successfully',
-            data: businesses,
-        });
+        // Usar método con cache para mejor rendimiento
+        const businesses = await BusinessService.getAllCached();
+        sendSuccessResponse(res, businesses, 'Businesses fetched successfully');
     } catch (error) {
         next(
             new HttpError(
@@ -47,13 +45,9 @@ export const getBusinessById = asyncHandler(async (req: Request, res: Response, 
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Business ID is required'));
         }
-        const business = await BusinessService.findById(id);
-
-        res.status(200).json({
-            success: true,
-            message: 'Business fetched successfully',
-            data: business,
-        });
+        // Usar método con cache para mejor rendimiento
+        const business = await BusinessService.findByIdCached(id);
+        sendSuccessResponse(res, business, 'Business fetched successfully');
     } catch (error) {
         next(
             new HttpError(
@@ -76,18 +70,19 @@ export const createBusiness = asyncHandler(async (req: Request, res: Response, n
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
 
     try {
         await geocodeAndAssignLocation(req.body);
         const business = await BusinessService.create(req.body);
-        res.status(201).json({
-            success: true,
-            message: 'Business created successfully',
-            data: business,
-        });
+        sendCreatedResponse(res, business, 'Business created successfully');
     } catch (error) {
+        // Check if it's a validation error from mongoose
+        if (error instanceof Error && error.name === 'ValidationError') {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error.message)));
+        }
+
         next(
             new HttpError(
                 HttpStatusCode.INTERNAL_SERVER_ERROR,
@@ -109,7 +104,7 @@ export const updateBusiness = asyncHandler(async (req: Request, res: Response, n
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg || 'Validation error')));
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
         const { id } = req.params;

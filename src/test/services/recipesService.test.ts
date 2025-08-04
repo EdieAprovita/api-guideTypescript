@@ -1,10 +1,22 @@
-import { recipeService } from "../../services/RecipesService";
+import { vi } from 'vitest';
+import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
 
-describe("RecipesService", () => {
-  it("calls model on create", async () => {
-    const mockModel = { create: jest.fn().mockResolvedValue({}) } as any;
-    (recipeService as any).model = mockModel;
-    await recipeService.create({});
-    expect(mockModel.create).toHaveBeenCalled();
-  });
+vi.mock('../../services/BaseService', () => createBaseServiceMock());
+
+import { recipeService } from '../../services/RecipesService';
+
+describe('RecipesService', () => {
+    const testUtils = setupServiceTest('RecipesService');
+
+    it('calls model on create', async () => {
+        const validRecipeData = {
+            title: 'Test Recipe',
+            description: 'A test recipe description',
+            instructions: ['Step 1: Test'],
+            cookingTime: 30,
+        };
+
+        const result = await testUtils.testCreate(recipeService, validRecipeData);
+        expect(result.title).toBe('Test Recipe');
+    });
 });

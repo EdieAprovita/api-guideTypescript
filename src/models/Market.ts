@@ -66,4 +66,5 @@ const marketSchema = new Schema<IMarket>(
 );
 marketSchema.index({ location: '2dsphere' });
 
-export const Market = mongoose.model<IMarket>('Market', marketSchema);
+export const Market =
+    (mongoose.models.Market as mongoose.Model<IMarket>) || mongoose.model<IMarket>('Market', marketSchema);

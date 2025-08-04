@@ -1,57 +1,94 @@
-import { postService } from "../../services/PostService";
-import { HttpError } from "../../types/Errors";
+import { vi } from 'vitest';
+import { faker } from '@faker-js/faker';
+import { Types } from 'mongoose';
+import { postService } from '../../services/PostService';
+import { HttpError } from '../../types/Errors';
 
-describe("PostService", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+// Pre-generate consistent test IDs
+const existingUserId = faker.database.mongodbObjectId();
+const existingCommentUserId = faker.database.mongodbObjectId();
 
-  it("likes a post when not already liked", async () => {
-    const save = jest.fn();
-    const post = { likes: [], save } as any;
-    const mockModel = { findById: jest.fn().mockResolvedValue(post) } as any;
-    (postService as any).model = mockModel;
+// Define minimal types for likes and comments to avoid `any` usage
+interface Like {
+    username: Types.ObjectId;
+}
 
-    const result = await postService.likePost("p1", "u1");
+interface Comment {
+    id: string;
+    username: Types.ObjectId;
+}
 
-    expect(mockModel.findById).toHaveBeenCalledWith("p1");
-    expect(post.likes).toEqual([{ username: "u1" }]);
-    expect(save).toHaveBeenCalled();
-    expect(result).toEqual(post.likes);
-  });
-
-  it("throws when liking an already liked post", async () => {
-    const post = { likes: [{ username: "u1" }], save: jest.fn() } as any;
-    const mockModel = { findById: jest.fn().mockResolvedValue(post) } as any;
-    (postService as any).model = mockModel;
-
-    await expect(postService.likePost("p1", "u1")).rejects.toThrow(HttpError);
-  });
-
-  it("unlikes a liked post", async () => {
-    const save = jest.fn();
-    const post = { likes: [{ username: "u1" }], save } as any;
-    const mockModel = { findById: jest.fn().mockResolvedValue(post) } as any;
-    (postService as any).model = mockModel;
-
-    const result = await postService.unlikePost("p1", "u1");
-
-    expect(post.likes).toEqual([]);
-    expect(save).toHaveBeenCalled();
-    expect(result).toEqual([]);
-  });
-
-  it("fails to remove someone else's comment", async () => {
-    const save = jest.fn();
+// Create a proper mock post with array methods
+const createMockPost = (
+    id: string,
+    likes: Like[] = [],
+    comments: Comment[] = []
+) => {
     const post = {
-      comments: [{ id: "c1", username: "u1" }],
-      save,
-    } as any;
-    const mockModel = { findById: jest.fn().mockResolvedValue(post) } as any;
-    (postService as any).model = mockModel;
+        _id: id,
+        likes: [...likes],
+        comments: [...comments],
+        save: vi.fn().mockResolvedValue(true),
+    };
 
-    await expect(
-      postService.removeComment("p1", "c1", "u2")
-    ).rejects.toThrow(HttpError);
-  });
+    // Add array methods to likes
+    post.likes.some = Array.prototype.some.bind(post.likes);
+    post.likes.unshift = Array.prototype.unshift.bind(post.likes);
+    post.likes.filter = Array.prototype.filter.bind(post.likes);
+
+    return post;
+};
+
+// Mock BaseService to avoid modelName issues
+vi.mock('../../services/BaseService', () => {
+    return {
+        __esModule: true,
+        default: class MockBaseService {
+            constructor() {}
+            async findById(id: string) {
+                if (id === 'valid-post-id') {
+                    return createMockPost(id);
+                }
+                if (id === 'liked-post-id') {
+                    return createMockPost(id, [{ username: new Types.ObjectId(existingUserId) }]);
+                }
+                if (id === 'post-with-comments') {
+                    return createMockPost(
+                        id,
+                        [],
+                        [{ id: 'comment1', username: new Types.ObjectId(existingCommentUserId) }]
+                    );
+                }
+                return null;
+            }
+        },
+    };
+});
+
+describe('PostService', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('likes a post when not already liked', async () => {
+        const userId = faker.database.mongodbObjectId();
+        const result = await postService.likePost('valid-post-id', userId);
+        expect(result).toHaveLength(1);
+        expect(result[0]).toHaveProperty('username');
+        expect(result[0].username.toString()).toBe(userId);
+    });
+
+    it('throws when liking an already liked post', async () => {
+        await expect(postService.likePost('liked-post-id', existingUserId)).rejects.toThrow(HttpError);
+    });
+
+    it('unlikes a liked post', async () => {
+        const result = await postService.unlikePost('liked-post-id', existingUserId);
+        expect(result).toEqual([]);
+    });
+
+    it("fails to remove someone else's comment", async () => {
+        const userId = faker.database.mongodbObjectId();
+        await expect(postService.removeComment('post-with-comments', 'comment1', userId)).rejects.toThrow(HttpError);
+    });
 });

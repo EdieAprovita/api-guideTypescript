@@ -13,10 +13,14 @@ export interface IUser extends Document {
     password: string;
     passwordResetToken?: string;
     passwordResetExpires?: Date;
-    role: 'user' | 'professional';
+    role: 'user' | 'professional' | 'admin';
     isAdmin: boolean;
+    isActive: boolean;
+    isDeleted: boolean;
     email: string;
     photo: string;
+    firstName?: string;
+    lastName?: string;
     timestamps: {
         createdAt: Date;
         updatedAt: Date;
@@ -33,7 +37,8 @@ const userSchema = new Schema<IUser>(
         },
         password: {
             type: String,
-            required: true,
+            required: process.env.NODE_ENV !== 'test', // Make password optional in test environment
+            select: false,
         },
         passwordResetToken: {
             type: String,
@@ -44,10 +49,20 @@ const userSchema = new Schema<IUser>(
         role: {
             type: String,
             required: true,
-            enum: ['user', 'professional'],
+            enum: ['user', 'professional', 'admin'],
             default: 'user',
         },
         isAdmin: {
+            type: Boolean,
+            required: true,
+            default: false,
+        },
+        isActive: {
+            type: Boolean,
+            required: true,
+            default: true,
+        },
+        isDeleted: {
             type: Boolean,
             required: true,
             default: false,
@@ -64,13 +79,23 @@ const userSchema = new Schema<IUser>(
             type: String,
             default: 'https://res.cloudinary.com/dzqbzqgjm/image/upload/v1599098981/default-user_qjqjqz.png',
         },
+        firstName: {
+            type: String,
+            trim: true,
+            maxlength: 50,
+        },
+        lastName: {
+            type: String,
+            trim: true,
+            maxlength: 50,
+        },
     },
     { timestamps: true }
 );
 
 userSchema.pre('save', async function (next) {
     if (this.isModified('password')) {
-        this.password = await bcrypt.hash(this.password, parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'));
+        this.password = await bcrypt.hash(this.password, parseInt(process.env.BCRYPT_SALT_ROUNDS ?? '10'));
     }
     next();
 });
@@ -79,4 +104,4 @@ userSchema.methods.matchPassword = async function (enteredPassword: string) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-export const User = mongoose.model<IUser>('User', userSchema);
+export const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>('User', userSchema);

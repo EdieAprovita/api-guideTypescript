@@ -62,10 +62,10 @@ const checkData = async () => {
             // Check admin user
             const adminUser = await User.findOne({ username: 'admin' });
             if (adminUser) {
-                const defaultPassword = process.env.SEED_USER_PASSWORD || 'ChangeMe123!';
+                const defaultPassword = process.env.SEED_USER_PASSWORD ?? '';
                 console.log('\n🔑 Admin Login:');
                 console.log('   Email: admin@veganguide.com');
-                console.log(`   Password: ${process.env.ADMIN_PASSWORD || defaultPassword}`);
+                console.log(`   Password: ${process.env.ADMIN_PASSWORD ?? defaultPassword}`);
             }
         }
 

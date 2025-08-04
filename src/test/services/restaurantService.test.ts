@@ -1,10 +1,17 @@
-import { restaurantService } from "../../services/RestaurantService";
+import { vi } from 'vitest';
+import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
 
-describe("RestaurantService", () => {
-  it("uses model for update", async () => {
-    const mockModel = { findByIdAndUpdate: jest.fn().mockResolvedValue({}) } as any;
-    (restaurantService as any).model = mockModel;
-    await restaurantService.updateById("1", {});
-    expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith("1", {}, { new: true });
-  });
+vi.mock('../../services/BaseService', () => createBaseServiceMock());
+
+import { restaurantService } from '../../services/RestaurantService';
+
+describe('RestaurantService', () => {
+    const testUtils = setupServiceTest('RestaurantService');
+
+    it('uses model for update', async () => {
+        const result = await testUtils.testUpdate(restaurantService, '507f1f77bcf86cd799439011', {
+            name: 'Updated Name',
+        });
+        expect(result.name).toBe('Updated Name');
+    });
 });
