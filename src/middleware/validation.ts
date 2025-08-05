@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
 import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
-import mongoSanitize from 'express-mongo-sanitize';
+// import mongoSanitize from 'express-mongo-sanitize'; // Disabled due to version conflict
 import { ValidationSchema } from '../types/validation';
 
 // Validation middleware factory
@@ -35,7 +35,8 @@ export const validate = (schema: ValidationSchema) => {
                             convert: true,
                         })
                         .then((value: Record<string, unknown>) => {
-                            (req.query as Record<string, unknown>) = value;
+                            Object.keys(req.query).forEach(key => delete req.query[key]);
+                            Object.assign(req.query, value);
                         })
                 );
             }
@@ -50,7 +51,8 @@ export const validate = (schema: ValidationSchema) => {
                             convert: true,
                         })
                         .then((value: Record<string, unknown>) => {
-                            (req.params as Record<string, unknown>) = value;
+                            Object.keys(req.params).forEach(key => delete req.params[key]);
+                            Object.assign(req.params, value);
                         })
                 );
             }
@@ -81,7 +83,7 @@ export const validate = (schema: ValidationSchema) => {
 export const sanitizeInput = () => {
     return [
         // MongoDB injection protection
-        mongoSanitize(),
+        // mongoSanitize(), // disabled due to version conflict
 
         // Enhanced XSS and injection protection
         (req: Request, _res: Response, next: NextFunction) => {
@@ -156,11 +158,15 @@ export const sanitizeInput = () => {
             }
 
             if (req.query) {
-                (req.query as Record<string, unknown>) = sanitizeValue(req.query) as Record<string, unknown>;
+                const sanitizedQuery = sanitizeValue(req.query) as Record<string, unknown>;
+                Object.keys(req.query).forEach(key => delete req.query[key]);
+                Object.assign(req.query, sanitizedQuery);
             }
 
             if (req.params) {
-                (req.params as Record<string, unknown>) = sanitizeValue(req.params) as Record<string, unknown>;
+                const sanitizedParams = sanitizeValue(req.params) as Record<string, unknown>;
+                Object.keys(req.params).forEach(key => delete req.params[key]);
+                Object.assign(req.params, sanitizedParams);
             }
 
             next();
