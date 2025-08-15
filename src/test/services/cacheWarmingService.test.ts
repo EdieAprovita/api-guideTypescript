@@ -5,7 +5,7 @@ import { restaurantService } from '../../services/RestaurantService';
 import { businessService } from '../../services/BusinessService';
 import logger from '../../utils/logger';
 
-// Los mocks están configurados globalmente en setup.ts
+// Mocks are configured globally in setup.ts
 const mockedCacheService = vi.mocked(cacheService);
 const mockedRestaurantService = vi.mocked(restaurantService);
 const mockedBusinessService = vi.mocked(businessService);
