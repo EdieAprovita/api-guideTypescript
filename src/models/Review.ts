@@ -42,14 +42,18 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
             type: Date,
             default: Date.now,
         },
-        recommendedDishes: [{
-            type: String,
-            maxlength: 50,
-        }],
-        tags: [{
-            type: String,
-            maxlength: 30,
-        }],
+        recommendedDishes: [
+            {
+                type: String,
+                maxlength: 50,
+            },
+        ],
+        tags: [
+            {
+                type: String,
+                maxlength: 30,
+            },
+        ],
         author: {
             type: Schema.Types.ObjectId,
             ref: 'User',
@@ -64,10 +68,12 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
             type: Number,
             default: 0,
         },
-        helpfulVotes: [{
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-        }],
+        helpfulVotes: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'User',
+            },
+        ],
     },
     { timestamps: true }
 );

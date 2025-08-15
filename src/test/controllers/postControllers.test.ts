@@ -3,7 +3,7 @@ import request from 'supertest';
 import type { Request, Response, NextFunction } from 'express';
 
 // Mock authMiddleware para que req.user siempre tenga _id
-jest.mock('../../middleware/authMiddleware', () => ({
+vi.mock('../../middleware/authMiddleware', () => ({
     protect: (req: Request, _res: Response, next: NextFunction) => {
         req.user = { _id: 'user', role: 'admin' };
         next();
@@ -16,16 +16,16 @@ jest.mock('../../middleware/authMiddleware', () => ({
 }));
 
 // Mock services con tipos explícitos
-jest.mock('../../services/PostService', () => ({
+vi.mock('../../services/PostService', () => ({
     postService: {
-        getAll: jest.fn(),
-        findById: jest.fn(),
-        create: jest.fn(),
-        updateById: jest.fn(),
-        deleteById: jest.fn(),
-        addComment: jest.fn(),
-        likePost: jest.fn(),
-        unlikePost: jest.fn(),
+        getAll: vi.fn(),
+        findById: vi.fn(),
+        create: vi.fn(),
+        updateById: vi.fn(),
+        deleteById: vi.fn(),
+        addComment: vi.fn(),
+        likePost: vi.fn(),
+        unlikePost: vi.fn(),
     },
 }));
 
@@ -35,13 +35,13 @@ import { postService } from '../../services/PostService';
 
 describe('Post Controllers', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Get all posts', () => {
         it('should get all posts', async () => {
             const mockPosts = [createMockPost(), createMockPost()];
-            (postService.getAll as jest.Mock).mockResolvedValueOnce(mockPosts);
+            (postService.getAll as vi.Mock).mockResolvedValueOnce(mockPosts);
             const response = await request(app).get('/api/v1/posts');
             expect(response.status).toBe(200);
             expect(postService.getAll).toHaveBeenCalled();
@@ -56,7 +56,7 @@ describe('Post Controllers', () => {
     describe('Get post by id', () => {
         it('should get post by id', async () => {
             const mockPost = createMockPost();
-            (postService.findById as jest.Mock).mockResolvedValueOnce(mockPost);
+            (postService.findById as vi.Mock).mockResolvedValueOnce(mockPost);
             const response = await request(app).get(`/api/v1/posts/${mockPost._id}`);
             expect(response.status).toBe(200);
             expect(postService.findById).toHaveBeenCalledWith(mockPost._id);
@@ -77,7 +77,7 @@ describe('Post Controllers', () => {
                 tags: ['test', 'example'],
             };
             const createdPost = { ...postData, _id: 'post123' };
-            (postService.create as jest.Mock).mockResolvedValueOnce(createdPost);
+            (postService.create as vi.Mock).mockResolvedValueOnce(createdPost);
             const response = await request(app).post('/api/v1/posts').send(postData);
             expect(response.status).toBe(201);
             expect(postService.create).toHaveBeenCalledWith(postData);
@@ -97,7 +97,7 @@ describe('Post Controllers', () => {
                 content: 'Updated content',
             };
             const updatedPost = { ...updateData, _id: postId };
-            (postService.updateById as jest.Mock).mockResolvedValueOnce(updatedPost);
+            (postService.updateById as vi.Mock).mockResolvedValueOnce(updatedPost);
             const response = await request(app).put(`/api/v1/posts/${postId}`).send(updateData);
             expect(response.status).toBe(200);
             expect(postService.updateById).toHaveBeenCalledWith(postId, updateData);
@@ -112,7 +112,7 @@ describe('Post Controllers', () => {
     describe('Delete post', () => {
         it('should delete post by id', async () => {
             const postId = 'post123';
-            (postService.deleteById as jest.Mock).mockResolvedValueOnce(undefined);
+            (postService.deleteById as vi.Mock).mockResolvedValueOnce(undefined);
             const response = await request(app).delete(`/api/v1/posts/${postId}`);
             expect(response.status).toBe(200);
             expect(postService.deleteById).toHaveBeenCalledWith(postId);
@@ -126,7 +126,7 @@ describe('Post Controllers', () => {
     describe('Like post', () => {
         it('should like a post', async () => {
             const postId = 'post123';
-            (postService.likePost as jest.Mock).mockResolvedValueOnce([]);
+            (postService.likePost as vi.Mock).mockResolvedValueOnce([]);
             const response = await request(app)
                 .post(`/api/v1/posts/like/${postId}`)
                 .set('Authorization', 'Bearer mock-token');
@@ -138,7 +138,7 @@ describe('Post Controllers', () => {
     describe('Unlike post', () => {
         it('should unlike a post', async () => {
             const postId = 'post123';
-            (postService.unlikePost as jest.Mock).mockResolvedValueOnce([]);
+            (postService.unlikePost as vi.Mock).mockResolvedValueOnce([]);
             const response = await request(app)
                 .post(`/api/v1/posts/unlike/${postId}`)
                 .set('Authorization', 'Bearer mock-token');
@@ -156,7 +156,7 @@ describe('Post Controllers', () => {
                 avatar: 'avatar.jpg',
             };
             const addedComment = { ...commentData, _id: 'comment123' };
-            (postService.addComment as jest.Mock).mockResolvedValueOnce(addedComment);
+            (postService.addComment as vi.Mock).mockResolvedValueOnce(addedComment);
             const response = await request(app).post(`/api/v1/posts/comment/${postId}`).send(commentData);
             expect(response.status).toBe(201);
             expect(postService.addComment).toHaveBeenCalledWith(

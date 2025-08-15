@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
-import { 
-    MockRestaurant, 
-    MockBusiness, 
-    MockMarket, 
+import {
+    MockRestaurant,
+    MockBusiness,
+    MockMarket,
     MockSanctuary,
     MockServiceMethods,
     MockRestaurantService,
     MockBusinessService,
     MockMarketService,
-    MockSanctuaryService
+    MockSanctuaryService,
 } from './types/baseTypes';
 
 // Tipos específicos para testing
@@ -29,7 +29,7 @@ export {
     MockRestaurantService,
     MockBusinessService,
     MockMarketService,
-    MockSanctuaryService
+    MockSanctuaryService,
 };
 
 export interface MockUser {
@@ -77,13 +77,13 @@ export interface MockPost {
 }
 
 export interface MockReviewService {
-    getTopRatedReviews: jest.MockedFunction<() => Promise<MockReview[]>>;
-    addReview: jest.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
-    getAll: jest.MockedFunction<() => Promise<MockReview[]>>;
-    findById: jest.MockedFunction<(id: string) => Promise<MockReview | null>>;
-    create: jest.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
-    updateById: jest.MockedFunction<(id: string, data: Partial<MockReview>) => Promise<MockReview | null>>;
-    deleteById: jest.MockedFunction<(id: string) => Promise<void>>;
+    getTopRatedReviews: vi.MockedFunction<() => Promise<MockReview[]>>;
+    addReview: vi.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
+    getAll: vi.MockedFunction<() => Promise<MockReview[]>>;
+    findById: vi.MockedFunction<(id: string) => Promise<MockReview | null>>;
+    create: vi.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
+    updateById: vi.MockedFunction<(id: string, data: Partial<MockReview>) => Promise<MockReview | null>>;
+    deleteById: vi.MockedFunction<(id: string) => Promise<void>>;
 }
 
 // Tipos para middleware mocking
@@ -92,13 +92,13 @@ export type TestController = (req: Request, res: Response) => void | Promise<voi
 
 // Utilidades para mocking
 export interface AuthMock {
-    protect: jest.MockedFunction<TestMiddleware>;
-    admin: jest.MockedFunction<TestMiddleware>;
-    professional: jest.MockedFunction<TestMiddleware>;
-    requireAuth: jest.MockedFunction<TestMiddleware>;
-    checkOwnership: jest.MockedFunction<() => TestMiddleware>;
-    logout: jest.MockedFunction<TestController>;
-    refreshToken: jest.MockedFunction<TestController>;
+    protect: vi.MockedFunction<TestMiddleware>;
+    admin: vi.MockedFunction<TestMiddleware>;
+    professional: vi.MockedFunction<TestMiddleware>;
+    requireAuth: vi.MockedFunction<TestMiddleware>;
+    checkOwnership: vi.MockedFunction<() => TestMiddleware>;
+    logout: vi.MockedFunction<TestController>;
+    refreshToken: vi.MockedFunction<TestController>;
 }
 
 // Type guards

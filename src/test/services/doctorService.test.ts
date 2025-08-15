@@ -1,3 +1,4 @@
+import { vi, describe, it, expect } from 'vitest';
 import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
 
 // Mock BaseService with shared utility
@@ -6,7 +7,7 @@ const mockData = [
     { "_id": "2", "doctorName": "Dr. Test 2" }
 ];
 
-jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
+vi.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
 
 import { doctorService } from "../../services/DoctorService";
 

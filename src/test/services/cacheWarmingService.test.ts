@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { CacheWarmingService } from '../../services/CacheWarmingService';
 import { cacheService } from '../../services/CacheService';
 import { restaurantService } from '../../services/RestaurantService';
@@ -7,28 +8,28 @@ import { createMockData } from '../utils/testHelpers';
 import { MockRestaurant } from '../types';
 
 // Mock dependencies
-jest.mock('../../services/CacheService');
-jest.mock('../../services/RestaurantService');
-jest.mock('../../services/BusinessService');
-jest.mock('../../utils/logger');
+vi.mock('../../services/CacheService');
+vi.mock('../../services/RestaurantService');
+vi.mock('../../services/BusinessService');
+vi.mock('../../utils/logger');
 
-const mockedCacheService = cacheService as jest.Mocked<typeof cacheService>;
-const mockedRestaurantService = restaurantService as jest.Mocked<typeof restaurantService>;
-const mockedBusinessService = businessService as jest.Mocked<typeof businessService>;
-const mockedLogger = logger as jest.Mocked<typeof logger>;
+const mockedCacheService = vi.mocked(cacheService);
+const mockedRestaurantService = vi.mocked(restaurantService);
+const mockedBusinessService = vi.mocked(businessService);
+const mockedLogger = vi.mocked(logger);
 
 describe('CacheWarmingService', () => {
     let warmingService: CacheWarmingService;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        jest.useFakeTimers();
+        vi.clearAllMocks();
+        vi.useFakeTimers();
         warmingService = new CacheWarmingService();
     });
 
     afterEach(() => {
         warmingService.stopAutoWarming();
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     describe('Constructor', () => {
@@ -539,11 +540,11 @@ describe('CacheWarmingService', () => {
             await warmingService.startAutoWarming(1); // 1 minute interval
 
             // Clear initial warming calls
-            jest.clearAllMocks();
+            vi.clearAllMocks();
 
             // Advance timer by 1 minute
-            jest.advanceTimersByTime(60 * 1000);
-            await jest.runOnlyPendingTimersAsync();
+            vi.advanceTimersByTime(60 * 1000);
+            await vi.runOnlyPendingTimersAsync();
 
             expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Starting comprehensive cache warming...');
         });

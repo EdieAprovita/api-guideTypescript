@@ -1,4 +1,5 @@
 // Doctors Controllers Test - Refactored to use centralized mocking system
+import { vi, describe, it, beforeEach, expect } from 'vitest';
 import request from 'supertest';
 import app from '../../app';
 import { doctorService } from '../../services/DoctorService';
@@ -13,15 +14,15 @@ import {
 import { MockDoctorService, MockReviewService } from '../types';
 
 // Only mock the specific services used in this test
-jest.mock('../../services/DoctorService');
-jest.mock('../../services/ReviewService');
+vi.mock('../../services/DoctorService');
+vi.mock('../../services/ReviewService');
 
 const mockDoctorService = doctorService as unknown as MockDoctorService;
 const mockReviewService = reviewService as unknown as MockReviewService;
 
 describe('Doctor Controllers', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('GET /api/v1/doctors', () => {

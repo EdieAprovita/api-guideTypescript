@@ -1,3 +1,4 @@
+import { vi, type MockedFunction } from 'vitest';
 import request from 'supertest';
 import { Application } from 'express';
 import { TestUser, MockRestaurant, MockBusiness, MockMarket, MockSanctuary } from '../types';
@@ -156,11 +157,11 @@ export const expectResourceDeleted = (response: SupertestResponse) => {
  * Helper to mock service methods consistently
  */
 export const createServiceMocks = (serviceName: string) => ({
-    getAll: jest.fn().mockResolvedValue([]),
-    findById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
-    create: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
-    updateById: jest.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
-    deleteById: jest.fn().mockResolvedValue('Deleted successfully'),
+    getAll: vi.fn().mockResolvedValue([]),
+    findById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
+    create: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
+    updateById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
+    deleteById: vi.fn().mockResolvedValue('Deleted successfully'),
 });
 
 /**
@@ -284,7 +285,7 @@ export const expectMockToHaveBeenCalledWith = <T extends unknown[]>(
 /**
  * Helper to assert that a mock was called a specific number of times
  */
-export const expectMockToHaveBeenCalledTimes = (mockFn: jest.Mock, times: number) => {
+export const expectMockToHaveBeenCalledTimes = (mockFn: Mock, times: number) => {
     expect(mockFn).toHaveBeenCalledTimes(times);
 };
 
@@ -319,23 +320,23 @@ export const createMockAuthMiddleware = () => ({
 });
 
 export const createMockDatabase = () => ({
-    connectDB: jest.fn().mockResolvedValue(undefined),
-    disconnectDB: jest.fn().mockResolvedValue(undefined),
-    isConnected: jest.fn().mockReturnValue(true),
+    connectDB: vi.fn().mockResolvedValue(undefined),
+    disconnectDB: vi.fn().mockResolvedValue(undefined),
+    isConnected: vi.fn().mockReturnValue(true),
 });
 
 export const createMockLogger = () => ({
     __esModule: true,
     default: {
-        error: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        debug: jest.fn(),
+        error: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
     },
 });
 
 export const createMockExpressValidator = () => ({
-    validationResult: jest.fn().mockReturnValue({
+    validationResult: vi.fn().mockReturnValue({
         isEmpty: () => true,
         array: () => [],
     }),
@@ -379,34 +380,34 @@ export const createMockRequest = (body = {}, params = {}, user = null) =>
 
 export const createMockResponse = () =>
     ({
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
-        send: jest.fn().mockReturnThis(),
-        clearCookie: jest.fn().mockReturnThis(),
-        cookie: jest.fn().mockReturnThis(),
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn().mockReturnThis(),
+        send: vi.fn().mockReturnThis(),
+        clearCookie: vi.fn().mockReturnThis(),
+        cookie: vi.fn().mockReturnThis(),
     }) as unknown as Response;
 
-export const createMockNext = () => jest.fn() as NextFunction;
+export const createMockNext = () => vi.fn() as NextFunction;
 
 // === COMMON TEST SETUP ===
 export const setupCommonMocks = () => {
     // Mock database connection
-    jest.mock('../../config/db', () => createMockDatabase());
+    vi.mock('../../config/db', () => createMockDatabase());
 
     // Mock middleware
-    jest.mock('../../middleware/security', () => createMockMiddleware());
-    jest.mock('../../middleware/validation', () => createMockMiddleware());
-    jest.mock('../../middleware/authMiddleware', () => createMockAuthMiddleware());
+    vi.mock('../../middleware/security', () => createMockMiddleware());
+    vi.mock('../../middleware/validation', () => createMockMiddleware());
+    vi.mock('../../middleware/authMiddleware', () => createMockAuthMiddleware());
 
     // Mock logger
-    jest.mock('../../utils/logger', () => createMockLogger());
+    vi.mock('../../utils/logger', () => createMockLogger());
 
     // Mock express-validator
-    jest.mock('express-validator', () => createMockExpressValidator());
+    vi.mock('express-validator', () => createMockExpressValidator());
 };
 
 export const resetMocks = () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Reset validation result mock
     const { validationResult } = require('express-validator');
@@ -474,13 +475,13 @@ export const createMockTokenPayload = (overrides: Record<string, unknown> = {}) 
  * Create mock JWT setup for tests
  */
 export const setupJWTMocks = (
-    mockJwt: jest.Mocked<typeof jwt>,
+    mockJwt: Mocked<typeof jwt>,
     options: { accessToken?: string; refreshToken?: string } = {}
 ) => {
     const accessToken = options.accessToken || generateMockToken('access');
     const refreshToken = options.refreshToken || generateMockToken('refresh');
 
-    (mockJwt.sign as jest.Mock).mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
+    (mockJwt.sign as Mock).mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
 
     return { accessToken, refreshToken };
 };
@@ -489,7 +490,7 @@ export const setupJWTMocks = (
  * Create Redis mock setup for token tests
  */
 export const setupRedisMocks = (
-    mockRedis: jest.Mocked<{ setex: jest.Mock; get: jest.Mock; del: jest.Mock; keys: jest.Mock; ttl: jest.Mock }>
+    mockRedis: Mocked<{ setex: Mock; get: Mock; del: Mock; keys: Mock; ttl: Mock }>
 ) => {
     mockRedis.setex.mockResolvedValue('OK');
     mockRedis.get.mockResolvedValue(null);
@@ -502,7 +503,7 @@ export const setupRedisMocks = (
  * Create JWT verification expectations
  */
 export const expectJWTVerification = (
-    mockJwt: jest.Mocked<typeof jwt>,
+    mockJwt: Mocked<typeof jwt>,
     payload: Record<string, unknown>,
     tokenType: 'access' | 'refresh'
 ) => {
@@ -557,7 +558,7 @@ export const generateExpiredToken = (): string => {
  * Create error test helper
  */
 export const testTokenError = async (
-    mockJwt: jest.Mocked<typeof jwt>,
+    mockJwt: Mocked<typeof jwt>,
     errorMessage: string,
     testFunction: () => Promise<unknown>,
     expectedError: string
@@ -573,7 +574,7 @@ export const testTokenError = async (
  * Create Redis key expectation helper
  */
 export const expectRedisKeyOperation = (
-    mockRedis: jest.Mocked<{ setex: jest.Mock; get: jest.Mock; del: jest.Mock; keys: jest.Mock; ttl: jest.Mock }>,
+    mockRedis: Mocked<{ setex: Mock; get: Mock; del: Mock; keys: Mock; ttl: Mock }>,
     operation: 'get' | 'del' | 'setex',
     key: string,
     value?: unknown
@@ -630,7 +631,7 @@ export const createBaseServiceMock = (mockData: Record<string, unknown>[] = []) 
  */
 export const setupServiceTest = (_serviceName: string) => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     return {

@@ -1,4 +1,5 @@
 // Markets Controllers Test - Refactored to use centralized mocking system
+import { vi, describe, it, beforeEach, expect } from 'vitest';
 import request from 'supertest';
 import app from '../../app';
 import { marketsService } from '../../services/MarketsService';
@@ -13,15 +14,15 @@ import {
 import { MockMarketService, MockReviewService } from '../types';
 
 // Only mock the specific services used in this test
-jest.mock('../../services/MarketsService');
-jest.mock('../../services/ReviewService');
+vi.mock('../../services/MarketsService');
+vi.mock('../../services/ReviewService');
 
 const mockMarketsService = marketsService as unknown as MockMarketService;
 const mockReviewService = reviewService as unknown as MockReviewService;
 
 describe('Markets Controllers', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('GET /api/v1/markets', () => {

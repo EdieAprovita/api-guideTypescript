@@ -1,3 +1,4 @@
+import { vi, describe, it, expect } from 'vitest';
 import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
 import { MockBusiness } from '../types';
 
@@ -7,7 +8,7 @@ const mockData = [
     { _id: '2', namePlace: 'Test Business 2' }
 ];
 
-jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
+vi.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
 
 import { businessService } from "../../services/BusinessService";
 

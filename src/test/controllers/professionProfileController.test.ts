@@ -6,13 +6,13 @@ import { setupCommonMocks, resetMocks } from '../utils/testHelpers';
 setupCommonMocks();
 
 // Mock services with proper structure
-jest.mock('../../services/ProfessionProfileService', () => ({
+vi.mock('../../services/ProfessionProfileService', () => ({
     professionProfileService: {
-        getAll: jest.fn(),
-        findById: jest.fn(),
-        create: jest.fn(),
-        updateById: jest.fn(),
-        deleteById: jest.fn(),
+        getAll: vi.fn(),
+        findById: vi.fn(),
+        create: vi.fn(),
+        updateById: vi.fn(),
+        deleteById: vi.fn(),
     },
 }));
 
@@ -32,7 +32,7 @@ describe('ProfessionProfile Controllers', () => {
                 { _id: 'profile2', userId: faker.database.mongodbObjectId(), profession: 'Engineer', experience: 3 },
             ];
 
-            (professionProfileService.getAll as jest.Mock).mockResolvedValueOnce(mockProfiles);
+            (professionProfileService.getAll as vi.Mock).mockResolvedValueOnce(mockProfiles);
 
             const response = await request(app).get('/api/v1/professionalProfile');
 
@@ -50,7 +50,7 @@ describe('ProfessionProfile Controllers', () => {
         it('should get profession profile by id', async () => {
             const mockProfile = { _id: 'profile1', userId: faker.database.mongodbObjectId(), profession: 'Doctor', experience: 5 };
 
-            (professionProfileService.findById as jest.Mock).mockResolvedValueOnce(mockProfile);
+            (professionProfileService.findById as vi.Mock).mockResolvedValueOnce(mockProfile);
 
             const response = await request(app).get(`/api/v1/professionalProfile/${mockProfile._id}`);
 
@@ -75,7 +75,7 @@ describe('ProfessionProfile Controllers', () => {
             };
 
             const createdProfile = { ...profileData, _id: 'profile123' };
-            (professionProfileService.create as jest.Mock).mockResolvedValueOnce(createdProfile);
+            (professionProfileService.create as vi.Mock).mockResolvedValueOnce(createdProfile);
 
             const response = await request(app).post('/api/v1/professionalProfile').send(profileData);
 
@@ -98,7 +98,7 @@ describe('ProfessionProfile Controllers', () => {
             };
 
             const updatedProfile = { ...updateData, _id: profileId };
-            (professionProfileService.updateById as jest.Mock).mockResolvedValueOnce(updatedProfile);
+            (professionProfileService.updateById as vi.Mock).mockResolvedValueOnce(updatedProfile);
 
             const response = await request(app).put(`/api/v1/professionalProfile/${profileId}`).send(updateData);
 
@@ -116,7 +116,7 @@ describe('ProfessionProfile Controllers', () => {
         it('should delete profession profile by id', async () => {
             const profileId = 'profile123';
 
-            (professionProfileService.deleteById as jest.Mock).mockResolvedValueOnce(undefined);
+            (professionProfileService.deleteById as vi.Mock).mockResolvedValueOnce(undefined);
 
             const response = await request(app).delete(`/api/v1/professionalProfile/${profileId}`);
 

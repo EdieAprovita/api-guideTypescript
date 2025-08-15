@@ -1,3 +1,4 @@
+import { vi, type MockedFunction } from 'vitest';
 /**
  * Common test helpers to reduce duplication across test files
  * This file provides shared utilities for validation, mocking, and test assertions
@@ -44,9 +45,9 @@ interface TestRequest {
 }
 
 interface MockResponse {
-    status: jest.MockedFunction<(code: number) => MockResponse>;
-    json: jest.MockedFunction<(data: unknown) => MockResponse>;
-    send: jest.MockedFunction<(data: unknown) => MockResponse>;
+    status: MockedFunction<(code: number) => MockResponse>;
+    json: MockedFunction<(data: unknown) => MockResponse>;
+    send: MockedFunction<(data: unknown) => MockResponse>;
 }
 
 // Common validation functions
@@ -105,12 +106,12 @@ export const createMockRequest = (
 });
 
 export const createMockResponse = (): MockResponse => ({
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
-    send: jest.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
 });
 
-export const createMockNext = (): jest.MockedFunction<NextFunction> => jest.fn();
+export const createMockNext = (): MockedFunction<NextFunction> => vi.fn();
 
 // Test data generators
 export const generateTestUser = (overrides: Partial<TestUser> = {}): TestUser => ({
@@ -156,7 +157,7 @@ export const generateTestReview = (overrides: Record<string, unknown> = {}) => (
 // Common test setup
 export const setupTestEnvironment = (): void => {
     process.env.NODE_ENV = 'test';
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 };
 
 export const teardownTestEnvironment = (): void => {
@@ -197,27 +198,27 @@ export const expectValidationError = (response: TestResponse, field: string, mes
 // Common mock setups
 export const setupCommonMocks = (): void => {
     // Mock database connection
-    jest.mock('../../config/db', () => ({
+    vi.mock('../../config/db', () => ({
         __esModule: true,
-        default: jest.fn(),
+        default: vi.fn(),
     }));
 
     // Mock logger
-    jest.mock('../../utils/logger', () => ({
+    vi.mock('../../utils/logger', () => ({
         __esModule: true,
         default: {
-            info: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
+            info: vi.fn(),
+            error: vi.fn(),
+            warn: vi.fn(),
+            debug: vi.fn(),
         },
     }));
 
     // Mock GeoService
-    jest.mock('../../services/GeoService', () => ({
+    vi.mock('../../services/GeoService', () => ({
         __esModule: true,
         default: {
-            geocodeAddress: jest.fn().mockResolvedValue({
+            geocodeAddress: vi.fn().mockResolvedValue({
                 latitude: faker.location.latitude(),
                 longitude: faker.location.longitude(),
             }),
@@ -225,25 +226,25 @@ export const setupCommonMocks = (): void => {
     }));
 
     // Mock ReviewService
-    jest.mock('../../services/ReviewService', () => ({
+    vi.mock('../../services/ReviewService', () => ({
         __esModule: true,
         default: {
-            addReview: jest.fn().mockResolvedValue(generateTestReview()),
-            getTopRatedReviews: jest.fn().mockResolvedValue([]),
+            addReview: vi.fn().mockResolvedValue(generateTestReview()),
+            getTopRatedReviews: vi.fn().mockResolvedValue([]),
         },
     }));
 
     // Mock auth middleware with proper types
-    jest.mock('../../middleware/authMiddleware', () => ({
-        protect: jest.fn((req: TestRequest, _res: MockResponse, next: NextFunction) => {
+    vi.mock('../../middleware/authMiddleware', () => ({
+        protect: vi.fn((req: TestRequest, _res: MockResponse, next: NextFunction) => {
             req.user = generateTestUser();
             next();
         }),
-        admin: jest.fn((_req: TestRequest, _res: MockResponse, next: NextFunction) => next()),
-        professional: jest.fn((_req: TestRequest, _res: MockResponse, next: NextFunction) => next()),
+        admin: vi.fn((_req: TestRequest, _res: MockResponse, next: NextFunction) => next()),
+        professional: vi.fn((_req: TestRequest, _res: MockResponse, next: NextFunction) => next()),
     }));
 };
 
 export const resetMocks = (): void => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 };

@@ -16,7 +16,7 @@ import { generateExpiredToken } from '../utils/testHelpers';
 import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
 
 // Aumentar el timeout global para todos los tests de integración
-jest.setTimeout(45000);
+vi.setConfig({ testTimeout: (45000);
 
 // Interfaces for type safety
 interface ApiResponse {
@@ -139,9 +139,9 @@ const setupUserAndTokens = async (isAdmin = false): Promise<{ user: TestUser; to
 describe.skip('Authentication Flow Integration Tests', () => {
     beforeAll(async () => {
         // Clear any mocks to ensure real implementations are used
-        jest.clearAllMocks();
-        jest.resetAllMocks();
-        jest.restoreAllMocks();
+        vi.clearAllMocks();
+        vi.resetAllMocks();
+        vi.restoreAllMocks();
 
         await connectTestDB();
     });

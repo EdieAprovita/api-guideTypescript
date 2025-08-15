@@ -16,7 +16,7 @@ class BaseService<T extends Document> {
     protected modelName: string;
     protected cacheEnabled: boolean = true;
     protected cacheTTL: number = 300; // 5 minutos por defecto
-    
+
     constructor(
         protected model: Model<T>,
         protected userId?: string
@@ -55,7 +55,7 @@ class BaseService<T extends Document> {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
         }
         await this.model.deleteOne({ _id: id });
-        
+
         // Invalidar cache después de eliminar
         if (this.cacheEnabled) {
             await this.invalidateCache(id);
@@ -73,22 +73,22 @@ class BaseService<T extends Document> {
         }
 
         const cacheKey = `${this.modelName}:${id}`;
-        
+
         try {
             // Intentar obtener del cache
             let item = await cacheService.get<T>(cacheKey);
-            
+
             if (!item) {
                 // Cache miss - obtener de BD
                 item = await this.findById(id);
-                
+
                 // Cachear el resultado
                 await cacheService.set(cacheKey, item, this.modelName, {
                     ttl: options?.ttl || this.cacheTTL,
-                    tags: options?.tags || [this.modelName]
+                    tags: options?.tags || [this.modelName],
                 });
             }
-            
+
             return item;
         } catch (error) {
             logger.error(`Cache error in findByIdCached for ${this.modelName}:`, error);
@@ -106,18 +106,18 @@ class BaseService<T extends Document> {
         }
 
         const cacheKey = `${this.modelName}:all`;
-        
+
         try {
             let items = await cacheService.get<T[]>(cacheKey);
-            
+
             if (!items) {
                 items = await this.getAll();
                 await cacheService.set(cacheKey, items, this.modelName, {
                     ttl: options?.ttl || this.cacheTTL,
-                    tags: options?.tags || [this.modelName, 'listings']
+                    tags: options?.tags || [this.modelName, 'listings'],
                 });
             }
-            
+
             return items;
         } catch (error) {
             logger.error(`Cache error in getAllCached for ${this.modelName}:`, error);
@@ -130,13 +130,13 @@ class BaseService<T extends Document> {
      */
     async createCached(data: Partial<T>, _options?: CacheOptions): Promise<T> {
         const item = await this.create(data);
-        
+
         if (this.cacheEnabled) {
             // Invalidar cache de listados
             await this.invalidateCachePattern(`${this.modelName}:all*`);
             await cacheService.invalidateByTag(this.modelName);
         }
-        
+
         return item;
     }
 
@@ -145,38 +145,34 @@ class BaseService<T extends Document> {
      */
     async updateByIdCached(id: string, data: Partial<T>): Promise<T> {
         const item = await this.updateById(id, data);
-        
+
         if (this.cacheEnabled) {
             await this.invalidateCache(id);
         }
-        
+
         return item;
     }
 
     /**
      * Buscar con cache genérico
      */
-    async findWithCache<U = T>(
-        query: object,
-        cacheKey: string,
-        options?: CacheOptions
-    ): Promise<U[]> {
+    async findWithCache<U = T>(query: object, cacheKey: string, options?: CacheOptions): Promise<U[]> {
         if (!this.cacheEnabled) {
             return this.model.find(query).exec() as Promise<U[]>;
         }
 
         try {
             let results = await cacheService.get<U[]>(cacheKey);
-            
+
             if (!results || results === null) {
-                results = await this.model.find(query).exec() as U[];
+                results = (await this.model.find(query).exec()) as U[];
                 await cacheService.set(cacheKey, results, this.modelName, {
                     ttl: options?.ttl || this.cacheTTL,
-                    tags: options?.tags || [this.modelName]
+                    tags: options?.tags || [this.modelName],
                 });
             }
-            
-            return results || [] as U[];
+
+            return results || ([] as U[]);
         } catch (error) {
             logger.error(`Cache error in findWithCache for ${this.modelName}:`, error);
             return this.model.find(query).exec() as Promise<U[]>;
@@ -190,7 +186,7 @@ class BaseService<T extends Document> {
         try {
             const cacheKey = `${this.modelName}:${id}`;
             await cacheService.invalidate(cacheKey);
-            
+
             // También invalidar listados relacionados
             await this.invalidateCachePattern(`${this.modelName}:all*`);
             await cacheService.invalidateByTag(this.modelName);
@@ -234,11 +230,11 @@ class BaseService<T extends Document> {
     protected async findWithPagination(query: FilterQuery<T>, page: number = 1, limit: number = 10): Promise<T[]> {
         const skip = (page - 1) * limit;
         let results: T[];
-        
+
         if (limit > 0) {
-            results = await this.model.find(query).skip(skip).limit(limit).exec() as T[];
+            results = (await this.model.find(query).skip(skip).limit(limit).exec()) as T[];
         } else {
-            results = await this.model.find(query).exec() as T[];
+            results = (await this.model.find(query).exec()) as T[];
         }
 
         return results;

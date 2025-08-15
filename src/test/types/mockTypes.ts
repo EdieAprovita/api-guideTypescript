@@ -18,8 +18,8 @@ export interface TestUser {
     photo?: string;
     createdAt: Date;
     updatedAt: Date;
-    matchPassword?: jest.MockedFunction<(password: string) => Promise<boolean>>;
-    save?: jest.MockedFunction<() => Promise<TestUser>>;
+    matchPassword?: vi.MockedFunction<(password: string) => Promise<boolean>>;
+    save?: vi.MockedFunction<() => Promise<TestUser>>;
     [key: string]: unknown;
 }
 
@@ -31,34 +31,34 @@ export interface MockUserDocument extends TestUser {
 
 // Mock query interface for Mongoose queries
 export interface MockQuery<T = unknown> {
-    select: jest.MockedFunction<(fields: string) => Promise<T>>;
-    exec?: jest.MockedFunction<() => Promise<T>>;
-    lean?: jest.MockedFunction<() => Promise<T>>;
-    sort?: jest.MockedFunction<(sort: Record<string, number>) => MockQuery<T>>;
-    limit?: jest.MockedFunction<(limit: number) => MockQuery<T>>;
-    skip?: jest.MockedFunction<(skip: number) => MockQuery<T>>;
-    where?: jest.MockedFunction<(field: string, value: unknown) => MockQuery<T>>;
+    select: vi.MockedFunction<(fields: string) => Promise<T>>;
+    exec?: vi.MockedFunction<() => Promise<T>>;
+    lean?: vi.MockedFunction<() => Promise<T>>;
+    sort?: vi.MockedFunction<(sort: Record<string, number>) => MockQuery<T>>;
+    limit?: vi.MockedFunction<(limit: number) => MockQuery<T>>;
+    skip?: vi.MockedFunction<(skip: number) => MockQuery<T>>;
+    where?: vi.MockedFunction<(field: string, value: unknown) => MockQuery<T>>;
     [key: string]: unknown;
 }
 
 // Mock response interface - standalone to avoid type conflicts
 export interface MockResponse {
-    status: jest.MockedFunction<(code: number) => MockResponse>;
-    json: jest.MockedFunction<(data: unknown) => MockResponse>;
-    send: jest.MockedFunction<(data: unknown) => MockResponse>;
-    cookie: jest.MockedFunction<(name: string, value: string, options?: unknown) => MockResponse>;
-    clearCookie: jest.MockedFunction<(name: string) => MockResponse>;
-    setHeader?: jest.MockedFunction<(name: string, value: string) => MockResponse>;
-    end?: jest.MockedFunction<() => MockResponse>;
-    sendStatus?: jest.MockedFunction<(code: number) => MockResponse>;
-    redirect?: jest.MockedFunction<(url: string) => MockResponse>;
-    location?: jest.MockedFunction<(url: string) => MockResponse>;
-    links?: jest.MockedFunction<(links: Record<string, string>) => MockResponse>;
-    attachment?: jest.MockedFunction<(filename?: string) => MockResponse>;
-    download?: jest.MockedFunction<(path: string, filename?: string) => MockResponse>;
-    type?: jest.MockedFunction<(type: string) => MockResponse>;
-    vary?: jest.MockedFunction<(field: string) => MockResponse>;
-    format?: jest.MockedFunction<(obj: Record<string, unknown>) => MockResponse>;
+    status: vi.MockedFunction<(code: number) => MockResponse>;
+    json: vi.MockedFunction<(data: unknown) => MockResponse>;
+    send: vi.MockedFunction<(data: unknown) => MockResponse>;
+    cookie: vi.MockedFunction<(name: string, value: string, options?: unknown) => MockResponse>;
+    clearCookie: vi.MockedFunction<(name: string) => MockResponse>;
+    setHeader?: vi.MockedFunction<(name: string, value: string) => MockResponse>;
+    end?: vi.MockedFunction<() => MockResponse>;
+    sendStatus?: vi.MockedFunction<(code: number) => MockResponse>;
+    redirect?: vi.MockedFunction<(url: string) => MockResponse>;
+    location?: vi.MockedFunction<(url: string) => MockResponse>;
+    links?: vi.MockedFunction<(links: Record<string, string>) => MockResponse>;
+    attachment?: vi.MockedFunction<(filename?: string) => MockResponse>;
+    download?: vi.MockedFunction<(path: string, filename?: string) => MockResponse>;
+    type?: vi.MockedFunction<(type: string) => MockResponse>;
+    vary?: vi.MockedFunction<(field: string) => MockResponse>;
+    format?: vi.MockedFunction<(obj: Record<string, unknown>) => MockResponse>;
     [key: string]: unknown; // Allow additional properties for flexibility
 }
 
@@ -75,21 +75,21 @@ export interface MockRequest {
 }
 
 // Mock next function interface
-export interface MockNextFunction extends jest.MockedFunction<NextFunction> {}
+export interface MockNextFunction extends vi.MockedFunction<NextFunction> {}
 
 // Generic model mock interface - reduces duplication across all model types
 export interface MockModel<T = unknown> {
-    findOne: jest.MockedFunction<(filter: Record<string, unknown>) => MockQuery<T | null>>;
-    findById: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    findByIdAndDelete: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    find: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<T[]>>;
-    create: jest.MockedFunction<(data: Partial<T>) => Promise<T>>;
-    updateOne?: jest.MockedFunction<
+    findOne: vi.MockedFunction<(filter: Record<string, unknown>) => MockQuery<T | null>>;
+    findById: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    findByIdAndDelete: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    find: vi.MockedFunction<(filter?: Record<string, unknown>) => Promise<T[]>>;
+    create: vi.MockedFunction<(data: Partial<T>) => Promise<T>>;
+    updateOne?: vi.MockedFunction<
         (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>
     >;
-    deleteOne?: jest.MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
-    countDocuments?: jest.MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
-    findByIdAndUpdate?: jest.MockedFunction<
+    deleteOne?: vi.MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
+    countDocuments?: vi.MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
+    findByIdAndUpdate?: vi.MockedFunction<
         (id: string, update: Record<string, unknown>, options?: Record<string, unknown>) => Promise<T | null>
     >;
 }
@@ -109,65 +109,65 @@ export type MockProfessionProfileModel = MockModel<unknown>;
 
 // Redis mock interface
 export interface MockRedis {
-    connect: jest.MockedFunction<() => Promise<void>>;
-    disconnect: jest.MockedFunction<() => Promise<void>>;
-    get: jest.MockedFunction<(key: string) => Promise<string | null>>;
-    set: jest.MockedFunction<(key: string, value: string) => Promise<void>>;
-    setex: jest.MockedFunction<(key: string, ttl: number, value: string) => Promise<void>>;
-    del: jest.MockedFunction<(key: string) => Promise<number>>;
-    exists: jest.MockedFunction<(key: string) => Promise<number>>;
-    expire: jest.MockedFunction<(key: string, ttl: number) => Promise<number>>;
-    ttl: jest.MockedFunction<(key: string) => Promise<number>>;
-    keys: jest.MockedFunction<(pattern: string) => Promise<string[]>>;
-    flushdb: jest.MockedFunction<() => Promise<void>>;
-    on: jest.MockedFunction<(event: string, callback: () => void) => MockRedis>;
-    off: jest.MockedFunction<(event: string, callback: () => void) => MockRedis>;
-    ping: jest.MockedFunction<() => Promise<string>>;
-    info: jest.MockedFunction<(section?: string) => Promise<string>>;
-    memory: jest.MockedFunction<(usage: string) => Promise<unknown>>;
+    connect: vi.MockedFunction<() => Promise<void>>;
+    disconnect: vi.MockedFunction<() => Promise<void>>;
+    get: vi.MockedFunction<(key: string) => Promise<string | null>>;
+    set: vi.MockedFunction<(key: string, value: string) => Promise<void>>;
+    setex: vi.MockedFunction<(key: string, ttl: number, value: string) => Promise<void>>;
+    del: vi.MockedFunction<(key: string) => Promise<number>>;
+    exists: vi.MockedFunction<(key: string) => Promise<number>>;
+    expire: vi.MockedFunction<(key: string, ttl: number) => Promise<number>>;
+    ttl: vi.MockedFunction<(key: string) => Promise<number>>;
+    keys: vi.MockedFunction<(pattern: string) => Promise<string[]>>;
+    flushdb: vi.MockedFunction<() => Promise<void>>;
+    on: vi.MockedFunction<(event: string, callback: () => void) => MockRedis>;
+    off: vi.MockedFunction<(event: string, callback: () => void) => MockRedis>;
+    ping: vi.MockedFunction<() => Promise<string>>;
+    info: vi.MockedFunction<(section?: string) => Promise<string>>;
+    memory: vi.MockedFunction<(usage: string) => Promise<unknown>>;
 }
 
 // JWT mock interface
 export interface MockJWT {
-    sign: jest.MockedFunction<
+    sign: vi.MockedFunction<
         (payload: Record<string, unknown>, secret: string, options?: Record<string, unknown>) => string
     >;
-    verify: jest.MockedFunction<(token: string, secret: string) => Record<string, unknown>>;
-    decode: jest.MockedFunction<(token: string) => Record<string, unknown> | null>;
+    verify: vi.MockedFunction<(token: string, secret: string) => Record<string, unknown>>;
+    decode: vi.MockedFunction<(token: string) => Record<string, unknown> | null>;
 }
 
 // BCrypt mock interface
 export interface MockBCrypt {
-    hash: jest.MockedFunction<(data: string, saltRounds: number) => Promise<string>>;
-    compare: jest.MockedFunction<(data: string, encrypted: string) => Promise<boolean>>;
-    genSalt: jest.MockedFunction<(rounds: number) => Promise<string>>;
+    hash: vi.MockedFunction<(data: string, saltRounds: number) => Promise<string>>;
+    compare: vi.MockedFunction<(data: string, encrypted: string) => Promise<boolean>>;
+    genSalt: vi.MockedFunction<(rounds: number) => Promise<string>>;
 }
 
 // Generic service mock interface - reduces duplication across all service types
 export interface MockService<T = unknown> {
     // Common CRUD operations
-    create?: jest.MockedFunction<(data: Record<string, unknown>) => Promise<T>>;
-    findById?: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    findByIdCached?: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    update?: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
-    updateById?: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
-    delete?: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
-    deleteById?: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
-    getAll?: jest.MockedFunction<() => Promise<T[]>>;
-    getAllCached?: jest.MockedFunction<() => Promise<T[]>>;
+    create?: vi.MockedFunction<(data: Record<string, unknown>) => Promise<T>>;
+    findById?: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    findByIdCached?: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    update?: vi.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
+    updateById?: vi.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
+    delete?: vi.MockedFunction<(id: string) => Promise<{ message: string }>>;
+    deleteById?: vi.MockedFunction<(id: string) => Promise<{ message: string }>>;
+    getAll?: vi.MockedFunction<() => Promise<T[]>>;
+    getAllCached?: vi.MockedFunction<() => Promise<T[]>>;
     // Common specialized operations
-    addReview?: jest.MockedFunction<(reviewData: Record<string, unknown>) => Promise<unknown>>;
-    getTopRatedReviews?: jest.MockedFunction<() => Promise<unknown[]>>;
+    addReview?: vi.MockedFunction<(reviewData: Record<string, unknown>) => Promise<unknown>>;
+    getTopRatedReviews?: vi.MockedFunction<() => Promise<unknown[]>>;
 }
 
 // Specific service type aliases using the generic interface
 export type MockUserService = MockService<TestUser> & {
-    registerUser: jest.MockedFunction<(userData: Record<string, unknown>, res: MockResponse) => Promise<TestUser>>;
-    loginUser: jest.MockedFunction<(email: string, password: string, res: MockResponse) => Promise<TestUser>>;
-    findAllUsers: jest.MockedFunction<() => Promise<TestUser[]>>;
-    findUserById: jest.MockedFunction<(id: string) => Promise<TestUser | null>>;
-    updateUserById: jest.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<TestUser>>;
-    deleteUserById: jest.MockedFunction<(id: string) => Promise<{ message: string }>>;
+    registerUser: vi.MockedFunction<(userData: Record<string, unknown>, res: MockResponse) => Promise<TestUser>>;
+    loginUser: vi.MockedFunction<(email: string, password: string, res: MockResponse) => Promise<TestUser>>;
+    findAllUsers: vi.MockedFunction<() => Promise<TestUser[]>>;
+    findUserById: vi.MockedFunction<(id: string) => Promise<TestUser | null>>;
+    updateUserById: vi.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<TestUser>>;
+    deleteUserById: vi.MockedFunction<(id: string) => Promise<{ message: string }>>;
 };
 
 export type MockBusinessService = MockService<unknown>;
@@ -183,32 +183,32 @@ export type MockProfessionProfileService = MockService<unknown>;
 
 // Cache service mock interface
 export interface MockCacheService {
-    get: jest.MockedFunction<(key: string) => Promise<string | null>>;
-    set: jest.MockedFunction<(key: string, value: string, ttl?: number) => Promise<void>>;
-    delete: jest.MockedFunction<(key: string) => Promise<number>>;
-    exists: jest.MockedFunction<(key: string) => Promise<boolean>>;
-    flush: jest.MockedFunction<() => Promise<void>>;
-    getStats: jest.MockedFunction<() => Promise<Record<string, unknown>>>;
-    isConnected: jest.MockedFunction<() => boolean>;
-    connect: jest.MockedFunction<() => Promise<void>>;
-    disconnect: jest.MockedFunction<() => Promise<void>>;
+    get: vi.MockedFunction<(key: string) => Promise<string | null>>;
+    set: vi.MockedFunction<(key: string, value: string, ttl?: number) => Promise<void>>;
+    delete: vi.MockedFunction<(key: string) => Promise<number>>;
+    exists: vi.MockedFunction<(key: string) => Promise<boolean>>;
+    flush: vi.MockedFunction<() => Promise<void>>;
+    getStats: vi.MockedFunction<() => Promise<Record<string, unknown>>>;
+    isConnected: vi.MockedFunction<() => boolean>;
+    connect: vi.MockedFunction<() => Promise<void>>;
+    disconnect: vi.MockedFunction<() => Promise<void>>;
 }
 
 // Token service mock interface
 export interface MockTokenService {
-    generateAccessToken: jest.MockedFunction<(userId: string) => string>;
-    generateRefreshToken: jest.MockedFunction<(userId: string) => string>;
-    verifyAccessToken: jest.MockedFunction<(token: string) => Promise<Record<string, unknown>>>;
-    verifyRefreshToken: jest.MockedFunction<(token: string) => Promise<Record<string, unknown>>>;
-    revokeToken: jest.MockedFunction<(token: string) => Promise<void>>;
-    isTokenRevoked: jest.MockedFunction<(token: string) => Promise<boolean>>;
+    generateAccessToken: vi.MockedFunction<(userId: string) => string>;
+    generateRefreshToken: vi.MockedFunction<(userId: string) => string>;
+    verifyAccessToken: vi.MockedFunction<(token: string) => Promise<Record<string, unknown>>>;
+    verifyRefreshToken: vi.MockedFunction<(token: string) => Promise<Record<string, unknown>>>;
+    revokeToken: vi.MockedFunction<(token: string) => Promise<void>>;
+    isTokenRevoked: vi.MockedFunction<(token: string) => Promise<boolean>>;
 }
 
 // Geo service mock interface
 export interface MockGeoService {
-    geocodeAddress: jest.MockedFunction<(address: string) => Promise<{ latitude: number; longitude: number }>>;
-    reverseGeocode: jest.MockedFunction<(latitude: number, longitude: number) => Promise<{ address: string }>>;
-    calculateDistance: jest.MockedFunction<(lat1: number, lon1: number, lat2: number, lon2: number) => number>;
+    geocodeAddress: vi.MockedFunction<(address: string) => Promise<{ latitude: number; longitude: number }>>;
+    reverseGeocode: vi.MockedFunction<(latitude: number, longitude: number) => Promise<{ address: string }>>;
+    calculateDistance: vi.MockedFunction<(lat1: number, lon1: number, lat2: number, lon2: number) => number>;
 }
 
 // Factory functions for creating mock objects
@@ -222,29 +222,29 @@ export const createMockUser = (overrides: Partial<TestUser> = {}): TestUser => (
     photo: 'default.png',
     createdAt: new Date(),
     updatedAt: new Date(),
-    matchPassword: jest.fn().mockResolvedValue(true),
-    save: jest.fn().mockResolvedValue({} as TestUser),
+    matchPassword: vi.fn().mockResolvedValue(true),
+    save: vi.fn().mockResolvedValue({} as TestUser),
     ...overrides,
 });
 
 export const createMockQuery = <T = unknown>(): MockQuery<T> => ({
-    select: jest.fn().mockResolvedValue({} as T),
-    exec: jest.fn().mockResolvedValue({} as T),
-    lean: jest.fn().mockResolvedValue({} as T),
-    sort: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    skip: jest.fn().mockReturnThis(),
-    where: jest.fn().mockReturnThis(),
+    select: vi.fn().mockResolvedValue({} as T),
+    exec: vi.fn().mockResolvedValue({} as T),
+    lean: vi.fn().mockResolvedValue({} as T),
+    sort: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    skip: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
 });
 
 export const createMockResponse = (): MockResponse => ({
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
-    send: jest.fn().mockReturnThis(),
-    cookie: jest.fn().mockReturnThis(),
-    clearCookie: jest.fn().mockReturnThis(),
-    setHeader: jest.fn().mockReturnThis(),
-    end: jest.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+    cookie: vi.fn().mockReturnThis(),
+    clearCookie: vi.fn().mockReturnThis(),
+    setHeader: vi.fn().mockReturnThis(),
+    end: vi.fn().mockReturnThis(),
 });
 
 export const createMockRequest = (overrides: Partial<MockRequest> = {}): MockRequest => ({
@@ -258,4 +258,4 @@ export const createMockRequest = (overrides: Partial<MockRequest> = {}): MockReq
     ...overrides,
 });
 
-export const createMockNext = (): MockNextFunction => jest.fn();
+export const createMockNext = (): MockNextFunction => vi.fn();

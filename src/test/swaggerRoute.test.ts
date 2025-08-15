@@ -1,14 +1,15 @@
+import { vi } from 'vitest';
 import request from 'supertest';
-jest.mock('../config/db');
+vi.mock('../config/db');
 
 // Increase timeout because importing the app with ts-jest can be slow
 const TEST_TIMEOUT = 20000;
-jest.setTimeout(TEST_TIMEOUT);
+vi.setConfig({ testTimeout: TEST_TIMEOUT });
 
 const originalEnv = process.env.NODE_ENV;
 
 afterEach(() => {
-    jest.resetModules();
+    vi.resetModules();
     process.env.NODE_ENV = originalEnv;
 });
 

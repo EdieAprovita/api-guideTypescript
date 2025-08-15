@@ -13,10 +13,10 @@ import { HttpError, HttpStatusCode } from '../../types/Errors';
 import { IReview } from '../../models/Review';
 
 // Mock the ReviewService
-jest.mock('../../services/ReviewService');
+vi.mock('../../services/ReviewService');
 
 // Mock asyncHandler middleware to simulate error handling
-jest.mock('../../middleware/asyncHandler', () => {
+vi.mock('../../middleware/asyncHandler', () => {
     return (fn: Function) => {
         return async (req: Request, res: Response, next: NextFunction) => {
             try {
@@ -28,7 +28,7 @@ jest.mock('../../middleware/asyncHandler', () => {
     };
 });
 
-const mockReviewService = reviewService as jest.Mocked<typeof reviewService>;
+const mockReviewService = reviewService as vi.Mocked<typeof reviewService>;
 
 describe('Review Controllers', () => {
     let mockRequest: Partial<Request>;
@@ -36,7 +36,7 @@ describe('Review Controllers', () => {
     let mockNext: NextFunction;
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         
         mockRequest = {
             params: {},
@@ -44,11 +44,11 @@ describe('Review Controllers', () => {
         };
         
         mockResponse = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis(),
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn().mockReturnThis(),
         };
         
-        mockNext = jest.fn();
+        mockNext = vi.fn();
     });
 
     describe('listReviews', () => {

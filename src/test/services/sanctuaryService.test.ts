@@ -1,3 +1,4 @@
+import { vi, describe, it, expect } from 'vitest';
 import { createBaseServiceMock, setupServiceTest } from '../utils/testHelpers';
 
 const mockData = [
@@ -5,7 +6,7 @@ const mockData = [
     { "_id": "2", "sanctuaryName": "Sanctuary 2" }
 ];
 
-jest.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
+vi.mock('../../services/BaseService', () => createBaseServiceMock(mockData));
 
 import { sanctuaryService } from "../../services/SanctuaryService";
 

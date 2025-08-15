@@ -1,14 +1,15 @@
+import { vi, describe, it, beforeEach, expect } from 'vitest';
 import { Client } from '@googlemaps/google-maps-services-js';
 import { GeoService } from '../../services/GeoService';
 import logger from '../../utils/logger';
 
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../utils/logger', () => ({
   __esModule: true,
   default: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -16,11 +17,11 @@ describe('GeoService', () => {
   const apiKey = 'test-key';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('returns lat/lng on successful geocode', async () => {
-    const geocodeMock = jest.fn().mockResolvedValue({
+    const geocodeMock = vi.fn().mockResolvedValue({
       status: 200,
       data: { results: [{ geometry: { location: { lat: 10, lng: 20 } } }] },
     });
@@ -36,7 +37,7 @@ describe('GeoService', () => {
   });
 
   it('returns null when no results', async () => {
-    const geocodeMock = jest.fn().mockResolvedValue({ status: 200, data: { results: [] } });
+    const geocodeMock = vi.fn().mockResolvedValue({ status: 200, data: { results: [] } });
     const client = { geocode: geocodeMock } as unknown as Client;
     const service = new GeoService(client, apiKey);
 
@@ -49,7 +50,7 @@ describe('GeoService', () => {
 
   it('throws error when geocode call fails', async () => {
     const error = new Error('boom');
-    const geocodeMock = jest.fn().mockRejectedValue(error);
+    const geocodeMock = vi.fn().mockRejectedValue(error);
     const client = { geocode: geocodeMock } as unknown as Client;
     const service = new GeoService(client, apiKey);
 
@@ -58,7 +59,7 @@ describe('GeoService', () => {
   });
 
   it('throws if API key not configured', async () => {
-    const client = { geocode: jest.fn() } as unknown as Client;
+    const client = { geocode: vi.fn() } as unknown as Client;
     const service = new GeoService(client, '');
 
     await expect(service.geocodeAddress('any')).rejects.toThrow('Google Maps API key is not configured');

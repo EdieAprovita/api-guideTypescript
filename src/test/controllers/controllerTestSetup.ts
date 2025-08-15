@@ -3,23 +3,23 @@ import { jest } from '@jest/globals';
 import { Request, Response, NextFunction } from 'express';
 
 // Mock database connection BEFORE any imports
-jest.mock('../../config/db', () => ({
+vi.mock('../../config/db', () => ({
     __esModule: true,
-    default: jest.fn(),
+    default: vi.fn(),
 }));
 
 // Mock services
 import geoService from '../../services/GeoService';
 
-jest.mock('../../services/GeoService', () => ({
+vi.mock('../../services/GeoService', () => ({
     __esModule: true,
-    default: { geocodeAddress: jest.fn() },
+    default: { geocodeAddress: vi.fn() },
 }));
 
-jest.mock('../../services/ReviewService', () => ({
+vi.mock('../../services/ReviewService', () => ({
     reviewService: {
-        addReview: jest.fn(),
-        getTopRatedReviews: jest.fn(),
+        addReview: vi.fn(),
+        getTopRatedReviews: vi.fn(),
     },
 }));
 
@@ -61,7 +61,7 @@ const mockAuthMiddleware = {
 };
 
 beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 });
 
 export { geoService };

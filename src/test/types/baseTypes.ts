@@ -54,15 +54,15 @@ export interface MockSanctuary extends BaseMockEntity {
 
 // Service mock base interface
 export interface MockServiceMethods<T> {
-    getAll: jest.MockedFunction<() => Promise<T[]>>;
-    getAllCached: jest.MockedFunction<() => Promise<T[]>>;
-    findById: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    findByIdCached: jest.MockedFunction<(id: string) => Promise<T | null>>;
-    create: jest.MockedFunction<(data: Partial<T>) => Promise<T>>;
-    createCached: jest.MockedFunction<(data: Partial<T>) => Promise<T>>;
-    updateById: jest.MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
-    updateByIdCached: jest.MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
-    deleteById: jest.MockedFunction<(id: string) => Promise<void>>;
+    getAll: vi.MockedFunction<() => Promise<T[]>>;
+    getAllCached: vi.MockedFunction<() => Promise<T[]>>;
+    findById: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    findByIdCached: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    create: vi.MockedFunction<(data: Partial<T>) => Promise<T>>;
+    createCached: vi.MockedFunction<(data: Partial<T>) => Promise<T>>;
+    updateById: vi.MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
+    updateByIdCached: vi.MockedFunction<(id: string, data: Partial<T>) => Promise<T | null>>;
+    deleteById: vi.MockedFunction<(id: string) => Promise<void>>;
 }
 
 // Specific service interfaces

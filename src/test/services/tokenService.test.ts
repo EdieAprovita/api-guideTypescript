@@ -1,25 +1,26 @@
+import { vi, describe, it, beforeAll, afterAll, beforeEach, expect } from 'vitest';
 import { faker } from '@faker-js/faker';
 import jwt from 'jsonwebtoken';
 import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers';
 import { TEST_JWT_CONFIG, TEST_REDIS_CONFIG, setupTestEnvironment, cleanupTestEnvironment } from '../testConfig';
 
 // Mock jwt module completely
-jest.mock('jsonwebtoken', () => ({
-    sign: jest.fn(),
-    verify: jest.fn(),
-    decode: jest.fn(),
+vi.mock('jsonwebtoken', () => ({
+    sign: vi.fn(),
+    verify: vi.fn(),
+    decode: vi.fn(),
 }));
 
-const mockJwt = jwt as jest.Mocked<typeof jwt>;
+const mockJwt = jwt as unknown as typeof jwt & { [K in keyof typeof jwt]: ReturnType<typeof vi.fn> };
 
 // Mock Redis operations  
 const mockRedis = {
-    setex: jest.fn(),
-    get: jest.fn(),
-    del: jest.fn(),
-    keys: jest.fn(),
-    ttl: jest.fn(),
-    disconnect: jest.fn(),
+    setex: vi.fn(),
+    get: vi.fn(),
+    del: vi.fn(),
+    keys: vi.fn(),
+    ttl: vi.fn(),
+    disconnect: vi.fn(),
 };
 
 // Create a concrete TokenService class for testing
@@ -245,7 +246,7 @@ describe('TokenService', () => {
     });
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         TokenService = new TestTokenService();
         mockRedis.setex.mockResolvedValue('OK');
         mockRedis.get.mockResolvedValue(null);
@@ -256,9 +257,9 @@ describe('TokenService', () => {
 
     // Helper function to setup common mock expectations
     const setupMockToken = (mockPayload: Record<string, unknown> = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() }) => {
-        (mockJwt.sign as jest.Mock).mockReturnValue('mock-token');
-        (mockJwt.verify as jest.Mock).mockReturnValue(mockPayload);
-        (mockJwt.decode as jest.Mock).mockReturnValue(mockPayload);
+        (mockJwt.sign as ReturnType<typeof vi.fn>).mockReturnValue('mock-token');
+        (mockJwt.verify as ReturnType<typeof vi.fn>).mockReturnValue(mockPayload);
+        (mockJwt.decode as ReturnType<typeof vi.fn>).mockReturnValue(mockPayload);
         return mockPayload;
     };
 
@@ -514,7 +515,7 @@ describe('TokenService', () => {
 
     describe('revokeAllUserTokens', () => {
         it('should revoke all user tokens', async () => {
-            const mockRevokeRefreshToken = jest.spyOn(TokenService, 'revokeRefreshToken');
+            const mockRevokeRefreshToken = vi.spyOn(TokenService, 'revokeRefreshToken');
             mockRevokeRefreshToken.mockResolvedValue();
             mockRedis.setex.mockResolvedValue('OK');
 

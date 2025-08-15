@@ -21,18 +21,18 @@ process.env.EMAIL_PASS = generateTestPassword();
 process.env.CLIENT_URL = 'http://localhost:3000';
 
 // Increase timeout for integration tests
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: (30000);
 
 // Clear any global mocks that might interfere with integration tests
-jest.clearAllMocks();
-jest.restoreAllMocks();
+vi.clearAllMocks();
+vi.restoreAllMocks();
 
 // Mock TokenService to avoid Redis issues
-jest.mock('../../services/TokenService', () => {
+vi.mock('../../services/TokenService', () => {
     return {
         __esModule: true,
         default: {
-            verifyAccessToken: jest.fn().mockImplementation(async (token: string) => {
+            verifyAccessToken: vi.fn().mockImplementation(async (token: string) => {
                 try {
                     const secret = process.env.JWT_SECRET || 'test_jwt_secret_key_for_testing';
                     const payload = jwt.verify(token, secret, {
@@ -44,9 +44,9 @@ jest.mock('../../services/TokenService', () => {
                     throw new Error('Invalid or expired access token');
                 }
             }),
-            isUserTokensRevoked: jest.fn().mockResolvedValue(false),
-            isTokenBlacklisted: jest.fn().mockResolvedValue(false),
-            generateTokenPair: jest.fn().mockResolvedValue({
+            isUserTokensRevoked: vi.fn().mockResolvedValue(false),
+            isTokenBlacklisted: vi.fn().mockResolvedValue(false),
+            generateTokenPair: vi.fn().mockResolvedValue({
                 accessToken: 'mock-access-token',
                 refreshToken: 'mock-refresh-token'
             })
@@ -55,12 +55,12 @@ jest.mock('../../services/TokenService', () => {
 });
 
 // Mock auth middleware to use simplified authentication
-jest.mock('../../middleware/authMiddleware', () => {
+vi.mock('../../middleware/authMiddleware', () => {
     const { User } = require('../../models/User');
     
     return {
         __esModule: true,
-        protect: jest.fn().mockImplementation(async (req: any, res: any, next: any) => {
+        protect: vi.fn().mockImplementation(async (req: any, res: any, next: any) => {
             try {
                 let token: string | undefined;
 
@@ -107,7 +107,7 @@ jest.mock('../../middleware/authMiddleware', () => {
                 });
             }
         }),
-        admin: jest.fn().mockImplementation((req: any, res: any, next: any) => {
+        admin: vi.fn().mockImplementation((req: any, res: any, next: any) => {
             if (!req.user || req.user.role !== 'admin') {
                 return res.status(403).json({
                     errors: [{ message: 'Access denied. Admin required.' }]
@@ -115,7 +115,7 @@ jest.mock('../../middleware/authMiddleware', () => {
             }
             next();
         }),
-        professional: jest.fn().mockImplementation((req: any, res: any, next: any) => {
+        professional: vi.fn().mockImplementation((req: any, res: any, next: any) => {
             if (!req.user || req.user.role !== 'professional') {
                 return res.status(403).json({
                     errors: [{ message: 'Access denied. Professional required.' }]
@@ -123,7 +123,7 @@ jest.mock('../../middleware/authMiddleware', () => {
             }
             next();
         }),
-        requireAuth: jest.fn().mockImplementation((req: any, res: any, next: any) => {
+        requireAuth: vi.fn().mockImplementation((req: any, res: any, next: any) => {
             if (!req.user) {
                 return res.status(401).json({
                     message: 'Unauthorized',
@@ -133,7 +133,7 @@ jest.mock('../../middleware/authMiddleware', () => {
             }
             next();
         }),
-        checkOwnership: jest.fn().mockImplementation((resourceField: string = 'userId') => {
+        checkOwnership: vi.fn().mockImplementation((resourceField: string = 'userId') => {
             return (req: any, res: any, next: any) => {
                 if (!req.user) {
                     return res.status(401).json({
@@ -145,36 +145,36 @@ jest.mock('../../middleware/authMiddleware', () => {
                 next();
             };
         }),
-        logout: jest.fn().mockImplementation(async (req: any, res: any, next: any) => {
+        logout: vi.fn().mockImplementation(async (req: any, res: any, next: any) => {
             next();
         }),
-        refreshToken: jest.fn().mockImplementation(async (req: any, res: any) => {
+        refreshToken: vi.fn().mockImplementation(async (req: any, res: any) => {
             res.status(200).json({ message: 'Token refreshed' });
         }),
-        revokeAllTokens: jest.fn().mockImplementation(async (req: any, res: any) => {
+        revokeAllTokens: vi.fn().mockImplementation(async (req: any, res: any) => {
             res.status(200).json({ message: 'All tokens revoked' });
         })
     };
 });
 
 // Explicitly unmock ALL modules that might be mocked
-jest.unmock('../../controllers/userControllers');
-jest.unmock('../../services/UserService');
-jest.unmock('../../services/ReviewService');
-jest.unmock('../../services/RestaurantService');
-jest.unmock('../../middleware/validation');
-jest.unmock('../../middleware/security');
-jest.unmock('../../models/User');
-jest.unmock('../../models/Restaurant');
-jest.unmock('../../models/Review');
-jest.unmock('bcryptjs');
-jest.unmock('jsonwebtoken');
-jest.unmock('../../config/db');
-jest.unmock('../../utils/logger');
+vi.unmock('../../controllers/userControllers');
+vi.unmock('../../services/UserService');
+vi.unmock('../../services/ReviewService');
+vi.unmock('../../services/RestaurantService');
+vi.unmock('../../middleware/validation');
+vi.unmock('../../middleware/security');
+vi.unmock('../../models/User');
+vi.unmock('../../models/Restaurant');
+vi.unmock('../../models/Review');
+vi.unmock('bcryptjs');
+vi.unmock('jsonwebtoken');
+vi.unmock('../../config/db');
+vi.unmock('../../utils/logger');
 
 // Clear all mocks to ensure real implementations are used
-jest.clearAllMocks();
-jest.resetModules();
+vi.clearAllMocks();
+vi.resetModules();
 
 // Ensure bcrypt is available for integration tests
 const bcrypt = require('bcryptjs');

@@ -13,15 +13,15 @@ import {
 import { MockSanctuaryService, MockReviewService } from '../types';
 
 // Only mock the specific services used in this test
-jest.mock('../../services/SanctuaryService');
-jest.mock('../../services/ReviewService');
+vi.mock('../../services/SanctuaryService');
+vi.mock('../../services/ReviewService');
 
 const mockSanctuaryService = sanctuaryService as unknown as MockSanctuaryService;
 const mockReviewService = reviewService as unknown as MockReviewService;
 
 describe('Sanctuary Controllers', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('GET /api/v1/sanctuaries', () => {

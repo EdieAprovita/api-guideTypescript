@@ -1,35 +1,36 @@
+import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest';
 import { CacheService, CacheStats, CacheOptions } from '../../services/CacheService';
 import Redis from 'ioredis';
 import logger from '../../utils/logger';
 
 // Mock Redis
-jest.mock('ioredis');
-jest.mock('../../utils/logger');
+vi.mock('ioredis');
+vi.mock('../../utils/logger');
 
-const MockedRedis = Redis as jest.MockedClass<typeof Redis>;
-const mockedLogger = logger as jest.Mocked<typeof logger>;
+const MockedRedis = Redis as unknown as ReturnType<typeof vi.fn>;
+const mockedLogger = logger as unknown as typeof logger & { [K in keyof typeof logger]: ReturnType<typeof vi.fn> };
 
 describe('CacheService', () => {
     let cacheService: CacheService;
-    let mockRedis: jest.Mocked<Redis>;
+    let mockRedis: any;
 
     beforeEach(() => {
         // Reset mocks
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         
         // Create mock Redis instance
         mockRedis = {
-            get: jest.fn(),
-            setex: jest.fn(),
-            del: jest.fn(),
-            scan: jest.fn(),
-            info: jest.fn(),
-            dbsize: jest.fn(),
-            flushdb: jest.fn(),
-            exists: jest.fn(),
-            expire: jest.fn(),
-            quit: jest.fn(),
-            on: jest.fn(),
+            get: vi.fn(),
+            setex: vi.fn(),
+            del: vi.fn(),
+            scan: vi.fn(),
+            info: vi.fn(),
+            dbsize: vi.fn(),
+            flushdb: vi.fn(),
+            exists: vi.fn(),
+            expire: vi.fn(),
+            quit: vi.fn(),
+            on: vi.fn(),
         };
 
         // Mock Redis constructor

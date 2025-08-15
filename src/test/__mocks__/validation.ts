@@ -1,13 +1,16 @@
+import { vi } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
-import { RateLimitRequestHandler } from 'express-rate-limit';
 
-export const validate = jest.fn(() => {
+// Type-safe mock for rate limit handler
+type MockRateLimitHandler = (req: Request, res: Response, next: NextFunction) => void;
+
+export const validate = vi.fn(() => {
     return (req: Request, res: Response, next: NextFunction) => {
         next();
     };
 });
 
-export const sanitizeInput = jest.fn().mockReturnValue([
+export const sanitizeInput = vi.fn().mockReturnValue([
     (req: Request, res: Response, next: NextFunction) => {
         next();
     },
@@ -16,39 +19,39 @@ export const sanitizeInput = jest.fn().mockReturnValue([
     },
 ]);
 
-export const createRateLimit = jest.fn(() => {
-    return ((req: Request, res: Response, next: NextFunction) => {
+export const createRateLimit = vi.fn((): MockRateLimitHandler => {
+    return (req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler;
+    };
 });
 
 export const rateLimits = {
-    auth: jest.fn((req: Request, res: Response, next: NextFunction) => {
+    auth: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
-    register: jest.fn((req: Request, res: Response, next: NextFunction) => {
+    }) as MockRateLimitHandler,
+    register: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
-    api: jest.fn((req: Request, res: Response, next: NextFunction) => {
+    }) as MockRateLimitHandler,
+    api: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
-    search: jest.fn((req: Request, res: Response, next: NextFunction) => {
+    }) as MockRateLimitHandler,
+    search: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
-    upload: jest.fn((req: Request, res: Response, next: NextFunction) => {
+    }) as MockRateLimitHandler,
+    upload: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
+    }) as MockRateLimitHandler,
 };
 
-export const handleValidationError = jest.fn((error: unknown, req: Request, res: Response, next: NextFunction) => {
+export const handleValidationError = vi.fn((error: unknown, req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-export const securityHeaders = jest.fn((req: Request, res: Response, next: NextFunction) => {
+export const securityHeaders = vi.fn((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-export const validateInputLength = jest.fn(() => {
+export const validateInputLength = vi.fn(() => {
     return (req: Request, res: Response, next: NextFunction) => {
         next();
     };

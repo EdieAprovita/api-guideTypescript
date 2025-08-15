@@ -1,3 +1,4 @@
+import { vi, type MockedFunction } from 'vitest';
 /**
  * Centralized controller test helpers to eliminate duplication
  * This file consolidates common patterns used across controller tests
@@ -81,14 +82,14 @@ export const createMockReqRes = (
     } as unknown as Request;
 
     const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
-        send: jest.fn().mockReturnThis(),
-        cookie: jest.fn().mockReturnThis(),
-        clearCookie: jest.fn().mockReturnThis(),
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn().mockReturnThis(),
+        send: vi.fn().mockReturnThis(),
+        cookie: vi.fn().mockReturnThis(),
+        clearCookie: vi.fn().mockReturnThis(),
     } as unknown as Response;
 
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
 
     return { req, res, next };
 };
@@ -96,7 +97,7 @@ export const createMockReqRes = (
 // Generic controller test patterns
 interface ControllerTestConfig {
     endpoint: string;
-    serviceMock: jest.Mock;
+    serviceMock: Mock;
     expectedMessage?: string;
 }
 
@@ -161,7 +162,7 @@ export const testControllerOperation = async (
 export const testControllerGetAll = async (
     app: Express,
     endpoint: string,
-    serviceMock: jest.Mock,
+    serviceMock: Mock,
     expectedData: unknown[],
     expectedMessage: string = 'Resources fetched successfully'
 ) => testControllerOperation(app, 'get', { endpoint, serviceMock, expectedMessage }, undefined, expectedData);
@@ -169,7 +170,7 @@ export const testControllerGetAll = async (
 export const testControllerGetById = async (
     app: Express,
     endpoint: string,
-    serviceMock: jest.Mock,
+    serviceMock: Mock,
     expectedData: unknown,
     expectedMessage: string = 'Resource fetched successfully'
 ) => testControllerOperation(app, 'get', { endpoint, serviceMock, expectedMessage }, undefined, expectedData);
@@ -177,7 +178,7 @@ export const testControllerGetById = async (
 export const testControllerCreate = async (
     app: Express,
     endpoint: string,
-    serviceMock: jest.Mock,
+    serviceMock: Mock,
     requestData: Record<string, unknown>,
     expectedData: unknown,
     expectedMessage: string = 'Resource created successfully'
@@ -186,7 +187,7 @@ export const testControllerCreate = async (
 export const testControllerUpdate = async (
     app: Express,
     endpoint: string,
-    serviceMock: jest.Mock,
+    serviceMock: Mock,
     requestData: Record<string, unknown>,
     expectedData: unknown,
     expectedMessage: string = 'Resource updated successfully'
@@ -195,7 +196,7 @@ export const testControllerUpdate = async (
 export const testControllerDelete = async (
     app: Express,
     endpoint: string,
-    serviceMock: jest.Mock,
+    serviceMock: Mock,
     expectedMessage: string = 'Resource deleted successfully'
 ) => testControllerOperation(app, 'delete', { endpoint, serviceMock, expectedMessage });
 
@@ -222,23 +223,23 @@ export const setupAuthMocks = () => {
 
 // Common service mock setup
 export const setupServiceMocks = () => ({
-    getAll: jest.fn(),
-    getAllCached: jest.fn(),
-    findById: jest.fn(),
-    findByIdCached: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    updateById: jest.fn(),
-    delete: jest.fn(),
-    deleteById: jest.fn(),
-    addReview: jest.fn(),
-    getTopRatedReviews: jest.fn(),
+    getAll: vi.fn(),
+    getAllCached: vi.fn(),
+    findById: vi.fn(),
+    findByIdCached: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateById: vi.fn(),
+    delete: vi.fn(),
+    deleteById: vi.fn(),
+    addReview: vi.fn(),
+    getTopRatedReviews: vi.fn(),
 });
 
 // Common test setup patterns
 export const setupControllerTest = () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     return {

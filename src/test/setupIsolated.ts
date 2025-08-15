@@ -11,54 +11,54 @@ process.env.JWT_SECRET = testConfig.generateTestPassword();
 process.env.BCRYPT_SALT_ROUNDS = '10';
 
 // Solo mockear dependencias externas críticas que no podemos evitar
-jest.mock('../config/db', () => ({
-    connectDB: jest.fn().mockResolvedValue(undefined),
-    disconnectDB: jest.fn().mockResolvedValue(undefined),
-    isConnected: jest.fn().mockReturnValue(true),
+vi.mock('../config/db', () => ({
+    connectDB: vi.fn().mockResolvedValue(undefined),
+    disconnectDB: vi.fn().mockResolvedValue(undefined),
+    isConnected: vi.fn().mockReturnValue(true),
 }));
 
 // Mock solo servicios externos que causan problemas de conexión
-jest.mock('mongoose', () => ({
-    connect: jest.fn().mockResolvedValue({}),
-    disconnect: jest.fn().mockResolvedValue({}),
+vi.mock('mongoose', () => ({
+    connect: vi.fn().mockResolvedValue({}),
+    disconnect: vi.fn().mockResolvedValue({}),
     connection: {
         readyState: 1,
-        on: jest.fn(),
-        once: jest.fn(),
+        on: vi.fn(),
+        once: vi.fn(),
     },
     Schema: class MockSchema {
         constructor(definition: Record<string, unknown>) {
             Object.assign(this, definition);
         }
-        pre = jest.fn().mockReturnThis();
-        post = jest.fn().mockReturnThis();
-        plugin = jest.fn().mockReturnThis();
+        pre = vi.fn().mockReturnThis();
+        post = vi.fn().mockReturnThis();
+        plugin = vi.fn().mockReturnThis();
     },
-    model: jest.fn(),
+    model: vi.fn(),
     Types: {
-        ObjectId: jest.fn().mockImplementation((id?: string) => id ?? 'mock-object-id'),
+        ObjectId: vi.fn().mockImplementation((id?: string) => id ?? 'mock-object-id'),
     },
 }));
 
 // Mock bcryptjs para evitar operaciones costosas
-jest.mock('bcryptjs', () => ({
-    hash: jest.fn().mockResolvedValue(testConfig.generateTestPassword()),
-    compare: jest.fn().mockResolvedValue(true),
-    genSalt: jest.fn().mockResolvedValue('salt'),
+vi.mock('bcryptjs', () => ({
+    hash: vi.fn().mockResolvedValue(testConfig.generateTestPassword()),
+    compare: vi.fn().mockResolvedValue(true),
+    genSalt: vi.fn().mockResolvedValue('salt'),
 }));
 
 // Mock jsonwebtoken
-jest.mock('jsonwebtoken', () => ({
+vi.mock('jsonwebtoken', () => ({
     __esModule: true,
     default: {
-        sign: jest.fn().mockReturnValue(testConfig.generateTestPassword()),
-        verify: jest.fn().mockReturnValue({ userId: 'mock-user-id' }),
+        sign: vi.fn().mockReturnValue(testConfig.generateTestPassword()),
+        verify: vi.fn().mockReturnValue({ userId: 'mock-user-id' }),
     },
-    sign: jest.fn().mockReturnValue(testConfig.generateTestPassword()),
-    verify: jest.fn().mockReturnValue({ userId: 'mock-user-id' }),
+    sign: vi.fn().mockReturnValue(testConfig.generateTestPassword()),
+    verify: vi.fn().mockReturnValue({ userId: 'mock-user-id' }),
 }));
 
 // No mockear HttpError - usar la implementación real
-// jest.mock('../types/Errors') - REMOVIDO para usar funcionalidad real
+// vi.mock('../types/Errors') - REMOVIDO para usar funcionalidad real
 
 console.log('🔧 Setup aislado cargado - Middleware real habilitado para pruebas');

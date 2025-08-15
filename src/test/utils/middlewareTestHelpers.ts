@@ -1,3 +1,4 @@
+import { vi, type MockedFunction } from 'vitest';
 /**
  * Centralized middleware test helpers to eliminate duplication
  * This file consolidates common patterns used across middleware tests
@@ -181,7 +182,7 @@ export const setupMiddlewareTest = () => {
     const app = createTestApp();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     return { app };
