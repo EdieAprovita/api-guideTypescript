@@ -164,12 +164,8 @@ export function cacheMiddleware(
                     res.setHeader('Cache-Control', `public, max-age=${ttl}`);
                     res.setHeader('Last-Modified', new Date().toUTCString());
 
-                    const maybePromise = cacheService.set(cacheKey, data, type, cacheOptions);
-                    if (maybePromise && typeof (maybePromise as unknown as { catch?: unknown }).catch === 'function') {
-                        (maybePromise as Promise<void>).catch(error => {
-                            logger.error(`Error caching response for ${cacheKey}:`, error);
-                        });
-                    }
+                    // Intentionally fire-and-forget cache write
+                    void cacheService.set(cacheKey, data, type, cacheOptions);
                 }
 
                 // Llamar al método original
@@ -300,7 +296,7 @@ export function searchCacheMiddleware() {
  * Se debe usar en rutas POST, PUT, DELETE
  */
 export function cacheInvalidationMiddleware(tags: string[]) {
-    return async (req: Request, res: Response, next: NextFunction) => {
+    return async (_req: Request, res: Response, next: NextFunction) => {
         // Guardar el método original
         const originalJson = res.json;
 
@@ -309,8 +305,8 @@ export function cacheInvalidationMiddleware(tags: string[]) {
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 logger.debug(`🗑️ Invalidating cache for tags: ${tags.join(', ')}`);
 
-                // Invalidar por tags y patrones de forma asíncrona
-                Promise.all([
+                // Invalidar por tags y patrones de forma asíncrona (fire-and-forget)
+                void Promise.all([
                     ...tags.map(tag => cacheService.invalidateByTag(tag)),
                     cacheService.invalidatePattern('restaurants:*'),
                     cacheService.invalidatePattern('businesses:*'),

@@ -32,7 +32,9 @@ export interface IReviewService {
 
 class ReviewService implements IReviewService {
     async addReview(reviewData: Partial<IReview>): Promise<IReview> {
-        const review = await Review.create(reviewData);
+        // Sanitize and validate review data to prevent NoSQL injection
+        const sanitizedData = this.sanitizeReviewData(reviewData);
+        const review = await Review.create(sanitizedData);
         return review;
     }
 
@@ -78,7 +80,7 @@ class ReviewService implements IReviewService {
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
-        await Review.deleteOne({ _id: reviewId });
+        await Review.deleteOne({ _id: new Types.ObjectId(reviewId) });
     }
 
     async findByUserAndRestaurant(userId: string, restaurantId: string): Promise<IReview | null> {
@@ -257,7 +259,6 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
         }
 
-        const userObjectId = new Types.ObjectId(userId);
         // Use findIndex() instead of indexOf() for ObjectId comparison
         const voteIndex = review.helpfulVotes.findIndex(vote => vote.toString() === userId);
 
@@ -272,8 +273,77 @@ class ReviewService implements IReviewService {
         return review;
     }
 
+    private sanitizeReviewData(reviewData: Partial<IReview>): Partial<IReview> {
+        const sanitized: Partial<IReview> = {};
+        
+        // Only allow specific fields and sanitize them
+        if (reviewData.rating !== undefined) {
+            const rating = Number(reviewData.rating);
+            if (isNaN(rating) || rating < 1 || rating > 5) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Rating must be between 1 and 5'));
+            }
+            sanitized.rating = Math.floor(rating);
+        }
+        
+        if (reviewData.title) {
+            if (typeof reviewData.title !== 'string' || reviewData.title.length < 5 || reviewData.title.length > 100) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Title must be between 5 and 100 characters'));
+            }
+            sanitized.title = reviewData.title.trim();
+        }
+        
+        if (reviewData.content) {
+            if (typeof reviewData.content !== 'string' || reviewData.content.length < 10 || reviewData.content.length > 1000) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Content must be between 10 and 1000 characters'));
+            }
+            sanitized.content = reviewData.content.trim();
+        }
+        
+        if (reviewData.visitDate) {
+            const date = new Date(reviewData.visitDate);
+            if (isNaN(date.getTime())) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid visit date'));
+            }
+            sanitized.visitDate = date;
+        }
+        
+        if (reviewData.recommendedDishes) {
+            if (Array.isArray(reviewData.recommendedDishes)) {
+                sanitized.recommendedDishes = reviewData.recommendedDishes
+                    .filter(dish => typeof dish === 'string' && dish.trim().length > 0 && dish.length <= 50)
+                    .map(dish => dish.trim())
+                    .slice(0, 10); // Limit to 10 dishes
+            }
+        }
+        
+        if (reviewData.tags) {
+            if (Array.isArray(reviewData.tags)) {
+                sanitized.tags = reviewData.tags
+                    .filter(tag => typeof tag === 'string' && tag.trim().length > 0 && tag.length <= 30)
+                    .map(tag => tag.trim())
+                    .slice(0, 5); // Limit to 5 tags
+            }
+        }
+        
+        if (reviewData.author) {
+            if (!Types.ObjectId.isValid(reviewData.author)) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid author ID'));
+            }
+            sanitized.author = new Types.ObjectId(reviewData.author.toString());
+        }
+        
+        if (reviewData.restaurant) {
+            if (!Types.ObjectId.isValid(reviewData.restaurant)) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID'));
+            }
+            sanitized.restaurant = new Types.ObjectId(reviewData.restaurant.toString());
+        }
+        
+        return sanitized;
+    }
+
     // Legacy methods for backward compatibility
-    async listReviewsForModel(refId: string, refModel: string): Promise<IReview[]> {
+    async listReviewsForModel(refId: string): Promise<IReview[]> {
         // Validate ObjectId format to prevent injection
         if (!Types.ObjectId.isValid(refId)) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid reference ID format'));
