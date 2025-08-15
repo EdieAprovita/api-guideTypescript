@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware';
+import { browserCacheValidation, businessCacheMiddleware } from '../middleware/cache';
 import {
     getBusinesses,
     getBusinessById,
@@ -11,8 +12,11 @@ import {
 
 const router = express.Router();
 
-router.get('/', getBusinesses);
-router.get('/:id', getBusinessById);
+// Apply browser cache validation to all GET routes
+router.use(browserCacheValidation());
+
+router.get('/', businessCacheMiddleware(), getBusinesses);
+router.get('/:id', businessCacheMiddleware(), getBusinessById);
 router.post('/', protect, createBusiness);
 router.post('/add-review/:id', protect, addReviewToBusiness);
 router.put('/:id', protect, admin, updateBusiness);
