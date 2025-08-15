@@ -12,6 +12,17 @@ vi.mock('../../models/User');
 vi.mock('../../utils/generateToken');
 vi.mock('../../utils/logger');
 vi.mock('bcryptjs');
+vi.mock('jsonwebtoken', () => ({
+    default: {
+        sign: vi.fn(() => 'mock-jwt-token'),
+        verify: vi.fn(() => ({ userId: 'mock-user-id' })),
+    },
+    sign: vi.fn(() => 'mock-jwt-token'),
+    verify: vi.fn(() => ({ userId: 'mock-user-id' })),
+}));
+
+// Mock environment variables
+vi.stubEnv('JWT_SECRET', 'test-jwt-secret-for-testing-purposes');
 
 // Mock Response object for testing
 const mockResponse = {
@@ -140,9 +151,10 @@ describe('UserService', () => {
                     email: mockUser.email,
                     role: mockUser.role,
                     photo: mockUser.photo,
-                    token: expect.any(String),
                 })
             );
+            expect(result.token).toBeDefined();
+            expect(typeof result.token).toBe('string');
         });
 
         it('should throw error for invalid credentials', async () => {

@@ -1,13 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
-import { 
-    listReviews, 
-    addReview, 
-    getReviewById, 
-    updateReview, 
-    deleteReview 
-} from '../../controllers/reviewControllers';
+import { listReviews, addReview, getReviewById, updateReview, deleteReview } from '../../controllers/reviewControllers';
 import { reviewService } from '../../services/ReviewService';
 import { HttpError, HttpStatusCode } from '../../types/Errors';
 import { IReview } from '../../models/Review';
@@ -16,8 +10,9 @@ import { IReview } from '../../models/Review';
 vi.mock('../../services/ReviewService');
 
 // Mock asyncHandler middleware to simulate error handling
-vi.mock('../../middleware/asyncHandler', () => {
-    return (fn: Function) => {
+vi.mock('../../middleware/asyncHandler', () => ({
+    __esModule: true,
+    default: (fn: (req: Request, res: Response, next: NextFunction) => Promise<void> | void) => {
         return async (req: Request, res: Response, next: NextFunction) => {
             try {
                 await fn(req, res, next);
@@ -25,8 +20,8 @@ vi.mock('../../middleware/asyncHandler', () => {
                 next(error);
             }
         };
-    };
-});
+    },
+}));
 
 const mockReviewService = reviewService as vi.Mocked<typeof reviewService>;
 
@@ -37,17 +32,17 @@ describe('Review Controllers', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        
+
         mockRequest = {
             params: {},
             body: {},
         };
-        
+
         mockResponse = {
             status: vi.fn().mockReturnThis(),
             json: vi.fn().mockReturnThis(),
         };
-        
+
         mockNext = vi.fn();
     });
 
@@ -63,8 +58,8 @@ describe('Review Controllers', () => {
                 user: new Types.ObjectId('507f1f77bcf86cd799439014'),
                 timestamps: {
                     createdAt: new Date(),
-                    updatedAt: new Date()
-                }
+                    updatedAt: new Date(),
+                },
             },
             {
                 _id: '507f1f77bcf86cd799439012',
@@ -76,9 +71,9 @@ describe('Review Controllers', () => {
                 user: new Types.ObjectId('507f1f77bcf86cd799439015'),
                 timestamps: {
                     createdAt: new Date(),
-                    updatedAt: new Date()
-                }
-            }
+                    updatedAt: new Date(),
+                },
+            },
         ];
 
         it('should successfully list reviews for a model', async () => {
@@ -101,7 +96,7 @@ describe('Review Controllers', () => {
             expect(mockNext).toHaveBeenCalledWith(
                 expect.objectContaining({
                     statusCode: HttpStatusCode.BAD_REQUEST,
-                    message: 'Reference ID and model are required'
+                    message: 'Reference ID and model are required',
                 })
             );
             expect(mockReviewService.listReviewsForModel).not.toHaveBeenCalled();
@@ -115,7 +110,7 @@ describe('Review Controllers', () => {
             expect(mockNext).toHaveBeenCalledWith(
                 expect.objectContaining({
                     statusCode: HttpStatusCode.BAD_REQUEST,
-                    message: 'Reference ID and model are required'
+                    message: 'Reference ID and model are required',
                 })
             );
             expect(mockReviewService.listReviewsForModel).not.toHaveBeenCalled();
@@ -149,7 +144,7 @@ describe('Review Controllers', () => {
             rating: 5,
             comment: 'Excellent food and service!',
             username: faker.database.mongodbObjectId(),
-            user: faker.database.mongodbObjectId()
+            user: faker.database.mongodbObjectId(),
         };
 
         const mockCreatedReview: Partial<IReview> = {
@@ -162,8 +157,8 @@ describe('Review Controllers', () => {
             user: new Types.ObjectId('507f1f77bcf86cd799439014'),
             timestamps: {
                 createdAt: new Date(),
-                updatedAt: new Date()
-            }
+                updatedAt: new Date(),
+            },
         };
 
         it('should successfully add a new review', async () => {
@@ -220,8 +215,8 @@ describe('Review Controllers', () => {
             user: new Types.ObjectId('507f1f77bcf86cd799439014'),
             timestamps: {
                 createdAt: new Date(),
-                updatedAt: new Date()
-            }
+                updatedAt: new Date(),
+            },
         };
 
         it('should successfully get a review by id', async () => {
@@ -244,7 +239,7 @@ describe('Review Controllers', () => {
             expect(mockNext).toHaveBeenCalledWith(
                 expect.objectContaining({
                     statusCode: HttpStatusCode.BAD_REQUEST,
-                    message: 'Review ID is required'
+                    message: 'Review ID is required',
                 })
             );
             expect(mockReviewService.getReviewById).not.toHaveBeenCalled();
@@ -274,7 +269,7 @@ describe('Review Controllers', () => {
     describe('updateReview', () => {
         const mockUpdateData = {
             rating: 4,
-            comment: 'Updated comment'
+            comment: 'Updated comment',
         };
 
         const mockUpdatedReview: Partial<IReview> = {
@@ -287,8 +282,8 @@ describe('Review Controllers', () => {
             user: new Types.ObjectId('507f1f77bcf86cd799439014'),
             timestamps: {
                 createdAt: new Date(),
-                updatedAt: new Date()
-            }
+                updatedAt: new Date(),
+            },
         };
 
         it('should successfully update a review', async () => {
@@ -297,13 +292,13 @@ describe('Review Controllers', () => {
                 _id: '507f1f77bcf86cd799439011',
                 author: userId, // Match the user ID
                 rating: 3,
-                comment: 'Original comment'
+                comment: 'Original comment',
             };
 
             mockRequest.params = { id: '507f1f77bcf86cd799439011' };
             mockRequest.body = mockUpdateData;
             (mockRequest as any).user = { _id: userId };
-            
+
             mockReviewService.getReviewById.mockResolvedValue(reviewMock as unknown as IReview);
             mockReviewService.updateReview.mockResolvedValue(mockUpdatedReview as IReview);
 
@@ -325,7 +320,7 @@ describe('Review Controllers', () => {
             expect(mockNext).toHaveBeenCalledWith(
                 expect.objectContaining({
                     statusCode: HttpStatusCode.BAD_REQUEST,
-                    message: 'Review ID is required'
+                    message: 'Review ID is required',
                 })
             );
             expect(mockReviewService.updateReview).not.toHaveBeenCalled();
@@ -334,11 +329,11 @@ describe('Review Controllers', () => {
         it('should handle service errors during update', async () => {
             const userId = '507f1f77bcf86cd799439014';
             const serviceError = new Error('Review not found');
-            
+
             mockRequest.params = { id: '507f1f77bcf86cd799439011' };
             mockRequest.body = mockUpdateData;
             (mockRequest as any).user = { _id: userId };
-            
+
             // Mock getReviewById to throw the error (this happens first)
             mockReviewService.getReviewById.mockRejectedValue(serviceError);
 
@@ -353,14 +348,14 @@ describe('Review Controllers', () => {
                 _id: '507f1f77bcf86cd799439011',
                 author: userId, // Match the user ID
                 rating: 3,
-                comment: 'Original comment'
+                comment: 'Original comment',
             };
             const unknownError = new Error('Unknown error');
-            
+
             mockRequest.params = { id: '507f1f77bcf86cd799439011' };
             mockRequest.body = mockUpdateData;
             (mockRequest as any).user = { _id: userId };
-            
+
             // getReviewById succeeds, but updateReview fails
             mockReviewService.getReviewById.mockResolvedValue(reviewMock as unknown as IReview);
             mockReviewService.updateReview.mockRejectedValue(unknownError);
@@ -378,12 +373,12 @@ describe('Review Controllers', () => {
                 _id: '507f1f77bcf86cd799439011',
                 author: userId, // Match the user ID
                 rating: 3,
-                comment: 'Original comment'
+                comment: 'Original comment',
             };
 
             mockRequest.params = { id: '507f1f77bcf86cd799439011' }; // Changed from reviewId to id
             (mockRequest as any).user = { _id: userId };
-            
+
             mockReviewService.getReviewById.mockResolvedValue(reviewMock as unknown as IReview);
             mockReviewService.deleteReview.mockResolvedValue(undefined);
 
@@ -404,7 +399,7 @@ describe('Review Controllers', () => {
             expect(mockNext).toHaveBeenCalledWith(
                 expect.objectContaining({
                     statusCode: HttpStatusCode.BAD_REQUEST,
-                    message: 'Review ID is required'
+                    message: 'Review ID is required',
                 })
             );
             expect(mockReviewService.deleteReview).not.toHaveBeenCalled();
@@ -413,10 +408,10 @@ describe('Review Controllers', () => {
         it('should handle service errors during deletion', async () => {
             const userId = '507f1f77bcf86cd799439014';
             const serviceError = new Error('Review not found');
-            
+
             mockRequest.params = { id: '507f1f77bcf86cd799439011' };
             (mockRequest as any).user = { _id: userId };
-            
+
             // Mock getReviewById to throw the error (this happens first)
             mockReviewService.getReviewById.mockRejectedValue(serviceError);
 
@@ -428,10 +423,10 @@ describe('Review Controllers', () => {
         it('should handle unknown errors during deletion', async () => {
             const userId = '507f1f77bcf86cd799439014';
             const unknownError = new Error('Unknown error');
-            
+
             mockRequest.params = { id: '507f1f77bcf86cd799439011' };
             (mockRequest as any).user = { _id: userId };
-            
+
             // Mock getReviewById to throw the error (this happens first)
             mockReviewService.getReviewById.mockRejectedValue(unknownError);
 
@@ -452,4 +447,4 @@ describe('Review Controllers', () => {
             expect(mockNext).toHaveBeenCalledWith(httpError);
         });
     });
-}); 
+});

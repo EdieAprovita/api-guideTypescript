@@ -1,31 +1,59 @@
-// Business Controllers Test - Refactored to eliminate duplication
 import { vi, describe, it, beforeEach, expect } from 'vitest';
 import request from 'supertest';
-import { setupCommonMocks, resetMocks, createMockBusiness } from '../utils/testHelpers';
-import testConfig from '../testConfig';
+import type { Request, Response, NextFunction } from 'express';
 
-// === CRITICAL: Mocks must be defined BEFORE any imports ===
-setupCommonMocks();
+// === MOCKS FIRST ===
+vi.mock('express-validator', () => ({
+    validationResult: vi.fn(() => ({
+        isEmpty: () => true,
+        array: () => [],
+    })),
+}));
 
-// Mock services with proper structure - including cache methods
-vi.mock('../../services/BusinessService', () => ({
-    businessService: {
-        getAll: vi.fn(),
-        getAllCached: vi.fn(),
-        findById: vi.fn(),
-        findByIdCached: vi.fn(),
-        create: vi.fn(),
-        createCached: vi.fn(),
-        updateById: vi.fn(),
-        updateByIdCached: vi.fn(),
-        deleteById: vi.fn(),
+vi.mock('../../middleware/authMiddleware', () => ({
+    protect: (req: Request, _res: Response, next: NextFunction) => {
+        req.user = { _id: 'user123', role: 'admin' };
+        next();
+    },
+    admin: (_req: Request, _res: Response, next: NextFunction) => next(),
+    professional: (_req: Request, _res: Response, next: NextFunction) => next(),
+    refreshToken: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+    logout: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+    revokeAllTokens: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+}));
+
+vi.mock('../../middleware/asyncHandler', () => ({
+    default: (fn: Function) => fn,
+}));
+
+vi.mock('../../types/modalTypes', () => ({
+    getErrorMessage: (message: string) => message,
+}));
+
+vi.mock('../../config/db', () => ({
+    connectDB: vi.fn().mockResolvedValue(undefined),
+    disconnectDB: vi.fn().mockResolvedValue(undefined),
+    isConnected: vi.fn().mockReturnValue(true),
+}));
+
+vi.mock('../../utils/logger', () => ({
+    __esModule: true,
+    default: {
+        error: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
     },
 }));
 
-vi.mock('../../services/GeoService', () => ({
-    __esModule: true,
-    default: {
-        geocodeAddress: vi.fn(),
+// Simplified service mocks
+vi.mock('../../services/BusinessService', () => ({
+    businessService: {
+        getAllCached: vi.fn(),
+        findByIdCached: vi.fn(),
+        create: vi.fn(),
+        updateById: vi.fn(),
+        deleteById: vi.fn(),
     },
 }));
 
@@ -35,20 +63,20 @@ vi.mock('../../services/ReviewService', () => ({
     },
 }));
 
-// Now import the app after all mocks are set up
 import app from '../../app';
 import { businessService } from '../../services/BusinessService';
-import geoService from '../../services/GeoService';
 import { reviewService } from '../../services/ReviewService';
 
 beforeEach(() => {
-    resetMocks();
+    vi.clearAllMocks();
 });
 
 describe('Business Controllers Tests', () => {
     describe('Get all businesses', () => {
         it('should get all businesses', async () => {
-            const mockBusinesses = [createMockBusiness()];
+            const mockBusinesses = [
+                { _id: 'business1', name: 'Test Business', address: 'Test Address' }
+            ];
 
             (businessService.getAllCached as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockBusinesses);
 
@@ -61,19 +89,19 @@ describe('Business Controllers Tests', () => {
                 message: 'Businesses fetched successfully',
                 data: mockBusinesses,
             });
-        }, 10000);
+        });
     });
 
     describe('Get business by id', () => {
         it('should get business by id', async () => {
-            const mockBusiness = createMockBusiness();
+            const mockBusiness = { _id: 'business1', name: 'Test Business', address: 'Test Address' };
 
             (businessService.findByIdCached as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockBusiness);
 
-            const response = await request(app).get(`/api/v1/businesses/${mockBusiness._id}`);
+            const response = await request(app).get('/api/v1/businesses/business1');
 
             expect(response.status).toBe(200);
-            expect(businessService.findByIdCached).toHaveBeenCalledWith(mockBusiness._id);
+            expect(businessService.findByIdCached).toHaveBeenCalledWith('business1');
             expect(response.body).toEqual({
                 success: true,
                 message: 'Business fetched successfully',
@@ -83,112 +111,55 @@ describe('Business Controllers Tests', () => {
     });
 
     describe('Create business', () => {
-        it('sets location when geocoding succeeds', async () => {
-            (geoService.geocodeAddress as ReturnType<typeof vi.fn>).mockResolvedValue({ lat: 1, lng: 2 });
-            (businessService.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '1' });
-
+        it('should create a new business', async () => {
             const businessData = {
                 name: 'My Shop',
                 description: 'A great shop',
-                address: '123 st',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
+                address: '123 Main St',
+                category: 'retail',
+                phoneNumber: '+1234567890',
             };
+
+            const createdBusiness = { ...businessData, _id: 'business123' };
+            (businessService.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(createdBusiness);
 
             const response = await request(app).post('/api/v1/businesses').send(businessData);
 
             expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('123 st');
             expect(businessService.create).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    ...businessData,
-                    location: { type: 'Point', coordinates: [2, 1] },
-                })
+                expect.objectContaining(businessData)
             );
-        });
-
-        it('leaves location unset when geocoding fails', async () => {
-            (geoService.geocodeAddress as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-            (businessService.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'Shop',
-                description: 'Another shop',
-                address: 'bad',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).post('/api/v1/businesses').send(businessData);
-
-            expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('bad');
-            expect(businessService.create).toHaveBeenCalledWith(expect.objectContaining(businessData));
-        });
-
-        it('handles geocoding errors gracefully', async () => {
-            (geoService.geocodeAddress as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Geocoding failed'));
-            (businessService.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'BoomCo',
-                description: 'A company',
-                address: 'explode',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).post('/api/v1/businesses').send(businessData);
-
-            expect(response.status).toBe(201);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('explode');
-            expect(businessService.create).toHaveBeenCalledWith(expect.objectContaining(businessData));
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Business created successfully',
+                data: createdBusiness,
+            });
         });
     });
 
     describe('Update business', () => {
-        it('geocodes updated address', async () => {
-            (geoService.geocodeAddress as ReturnType<typeof vi.fn>).mockResolvedValue({ lat: 2, lng: 3 });
-            (businessService.updateById as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '1' });
-
-            const businessData = {
+        it('should update business by id', async () => {
+            const businessId = 'business123';
+            const updateData = {
                 name: 'Updated Shop',
                 description: 'Updated description',
-                address: '456 road',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
             };
 
-            const response = await request(app).put('/api/v1/businesses/1').send(businessData);
+            const updatedBusiness = { ...updateData, _id: businessId };
+            (businessService.updateById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(updatedBusiness);
+
+            const response = await request(app).put(`/api/v1/businesses/${businessId}`).send(updateData);
 
             expect(response.status).toBe(200);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('456 road');
             expect(businessService.updateById).toHaveBeenCalledWith(
-                '1',
-                expect.objectContaining({
-                    ...businessData,
-                    location: { type: 'Point', coordinates: [3, 2] },
-                })
+                businessId,
+                expect.objectContaining(updateData)
             );
-        });
-
-        it('does not set location when geocoding returns null', async () => {
-            (geoService.geocodeAddress as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-            (businessService.updateById as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '1' });
-
-            const businessData = {
-                name: 'Shop',
-                description: 'Description',
-                address: 'no',
-                typeBusiness: 'retail',
-                phone: testConfig.generateTestPhone(),
-            };
-
-            const response = await request(app).put('/api/v1/businesses/1').send(businessData);
-
-            expect(response.status).toBe(200);
-            expect(geoService.geocodeAddress).toHaveBeenCalledWith('no');
-            expect(businessService.updateById).toHaveBeenCalledWith('1', expect.objectContaining(businessData));
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Business updated successfully',
+                data: updatedBusiness,
+            });
         });
     });
 

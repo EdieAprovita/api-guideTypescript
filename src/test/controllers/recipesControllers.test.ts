@@ -7,6 +7,7 @@ setupCommonMocks();
 
 // Mock services with proper structure
 vi.mock('../../services/RecipesService', () => ({
+    __esModule: true,
     recipeService: {
         getAll: vi.fn(),
         findById: vi.fn(),
@@ -49,6 +50,11 @@ describe('Recipes Controllers', () => {
             (recipeService.findById as vi.Mock).mockResolvedValueOnce(mockRecipe);
 
             const response = await request(app).get(`/api/v1/recipes/${mockRecipe._id}`);
+            if (response.status !== 200) {
+                // Debug output to help diagnose failures
+                // eslint-disable-next-line no-console
+                console.error('GET /recipes/:id status', response.status, 'body', response.body);
+            }
 
             expect(response.status).toBe(200);
             expect(recipeService.findById).toHaveBeenCalledWith(mockRecipe._id);
@@ -75,6 +81,10 @@ describe('Recipes Controllers', () => {
             (recipeService.create as vi.Mock).mockResolvedValueOnce(createdRecipe);
 
             const response = await request(app).post('/api/v1/recipes').send(recipeData);
+            if (response.status !== 201) {
+                // eslint-disable-next-line no-console
+                console.error('POST /recipes status', response.status, 'body', response.body);
+            }
 
             expect(response.status).toBe(201);
             expect(recipeService.create).toHaveBeenCalledWith(recipeData);
@@ -97,6 +107,10 @@ describe('Recipes Controllers', () => {
             (recipeService.updateById as vi.Mock).mockResolvedValueOnce(updatedRecipe);
 
             const response = await request(app).put(`/api/v1/recipes/${recipeId}`).send(updateData);
+            if (response.status !== 200) {
+                // eslint-disable-next-line no-console
+                console.error('PUT /recipes/:id status', response.status, 'body', response.body);
+            }
 
             expect(response.status).toBe(200);
             expect(recipeService.updateById).toHaveBeenCalledWith(recipeId, updateData);

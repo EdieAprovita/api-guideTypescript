@@ -223,6 +223,8 @@ describe('Error Handler Middleware Tests', () => {
             app.get('/no-message-error', (_req, _res, next) => {
                 next(new Error());
             });
+            // Register error handler after dynamically adding the route to ensure proper middleware order
+            app.use(errorHandler);
 
             const response = await request(app).get('/no-message-error');
             expect(response.status).toBe(500);

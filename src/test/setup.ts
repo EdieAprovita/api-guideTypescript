@@ -1,6 +1,7 @@
 // Global test setup - Centralized and optimized for Vitest
 import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
+import { Request, Response, NextFunction } from 'express';
 import { generateTestPassword } from './utils/passwordGenerator';
 import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from './__mocks__/middleware';
 import { serviceMocks, modelMocks, externalMocks } from './__mocks__/services';
@@ -46,11 +47,76 @@ vi.mock('../services/TokenService', () => ({
     default: serviceMocks.tokenService,
 }));
 
+// Do not mock CacheWarmingService globally; unit tests rely on real implementation
+
+// Mock CacheService
+vi.mock('../services/CacheService', () => ({
+    __esModule: true,
+    cacheService: serviceMocks.cacheService,
+}));
+
+// Mock RestaurantService
+vi.mock('../services/RestaurantService', () => ({
+    __esModule: true,
+    restaurantService: serviceMocks.restaurantService,
+}));
+
+// Mock BusinessService
+vi.mock('../services/BusinessService', () => ({
+    __esModule: true,
+    businessService: serviceMocks.businessService,
+}));
+
+// Do not mock GeoService here; service unit tests provide their own mocks
+
+// Mock ReviewService
+vi.mock('../services/ReviewService', () => ({
+    __esModule: true,
+    reviewService: serviceMocks.reviewService,
+}));
+
 // Mock User model
 vi.mock('../models/User', () => ({
     __esModule: true,
     User: modelMocks.User,
     default: modelMocks.User,
+}));
+
+// Mock express-validator
+vi.mock('express-validator', () => ({
+    __esModule: true,
+    validationResult: vi.fn(() => ({
+        isEmpty: vi.fn().mockReturnValue(true),
+        array: vi.fn().mockReturnValue([]),
+    })),
+    body: vi.fn(() => ({
+        notEmpty: vi.fn().mockReturnThis(),
+        isLength: vi.fn().mockReturnThis(),
+        isEmail: vi.fn().mockReturnThis(),
+        escape: vi.fn().mockReturnThis(),
+        trim: vi.fn().mockReturnThis(),
+        normalizeEmail: vi.fn().mockReturnThis(),
+    })),
+    param: vi.fn(() => ({
+        isMongoId: vi.fn().mockReturnThis(),
+        notEmpty: vi.fn().mockReturnThis(),
+    })),
+}));
+
+// Mock cache middleware
+vi.mock('../middleware/cache', () => ({
+    __esModule: true,
+    recipeCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    businessCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    restaurantCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    geoLocationCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    userProfileCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    searchCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheInvalidationMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheStatsMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheFlushMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    browserCacheValidation: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
 }));
 
 // Mock external libraries

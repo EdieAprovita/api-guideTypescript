@@ -9,7 +9,7 @@ declare module 'express-serve-static-core' {
 }
 
 export const getErrorMessage = (message: string): string =>
-    process.env.NODE_ENV === 'development' ? message : 'Internal Server Error';
+    process.env.NODE_ENV === 'production' ? 'Internal Server Error' : message;
 
 export interface IContact {
     phone: number;

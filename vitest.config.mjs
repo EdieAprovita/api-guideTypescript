@@ -8,7 +8,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     testTimeout: 20000,
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: ['node_modules', 'dist', '.git'],
+    exclude: ['node_modules', 'dist', '.git', 'src/node_modules/**'],
     coverage: {
       provider: 'v8', // Más rápido que istanbul
       reporter: ['text', 'html', 'lcov', 'json'],

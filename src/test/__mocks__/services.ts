@@ -5,9 +5,15 @@ import testConfig from '../testConfig';
 
 export const createBasicServiceMock = (serviceName: string) => ({
     getAll: vi.fn().mockResolvedValue([]),
+    getAllCached: vi.fn().mockResolvedValue([]),
     findById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
+    findByIdCached: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Mock ${serviceName}` }),
     create: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
+    createCached: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `New ${serviceName}` }),
     updateById: vi.fn().mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
+    updateByIdCached: vi
+        .fn()
+        .mockResolvedValue({ _id: faker.database.mongodbObjectId(), name: `Updated ${serviceName}` }),
     deleteById: vi.fn().mockResolvedValue('Deleted successfully'),
 });
 
@@ -130,6 +136,43 @@ export const serviceMocks = {
         revokeAllUserTokens: vi.fn().mockResolvedValue(undefined),
         isTokenBlacklisted: vi.fn().mockResolvedValue(false),
         isUserTokensRevoked: vi.fn().mockResolvedValue(false),
+    },
+
+    // Cache Service
+    cacheService: {
+        get: vi.fn().mockResolvedValue(null),
+        set: vi.fn().mockResolvedValue(undefined),
+        delete: vi.fn().mockResolvedValue(1),
+        exists: vi.fn().mockResolvedValue(false),
+        flush: vi.fn().mockResolvedValue(undefined),
+        getStats: vi.fn().mockResolvedValue({
+            hitRatio: 0.8,
+            totalRequests: 1000,
+            cacheSize: 50,
+            memoryUsage: '10MB',
+            uptime: 3600,
+        }),
+        isConnected: vi.fn().mockReturnValue(true),
+        connect: vi.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn().mockResolvedValue(undefined),
+    },
+
+    // Cache Warming Service
+    cacheWarmingService: {
+        startAutoWarming: vi.fn().mockResolvedValue(undefined),
+        stopAutoWarming: vi.fn().mockReturnValue(undefined),
+        warmUpCriticalData: vi.fn().mockResolvedValue({
+            success: true,
+            duration: 1000,
+            itemsWarmed: 10,
+            errors: [],
+        }),
+        warmSpecificData: vi.fn().mockResolvedValue(5),
+        getWarmingStats: vi.fn().mockReturnValue({
+            isWarming: false,
+            lastWarmingTime: null,
+            autoWarmingActive: false,
+        }),
     },
 };
 

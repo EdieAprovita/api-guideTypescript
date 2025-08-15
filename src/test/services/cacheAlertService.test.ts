@@ -509,11 +509,10 @@ describe('CacheAlertService', () => {
     });
 
     describe('Singleton Instance', () => {
-        it('should have singleton configured for production', () => {
-            // Test the exported singleton
-            const { cacheAlertService } = require('../../services/CacheAlertService');
-            const config = cacheAlertService.getConfig();
-
+        it('should have singleton configured for production', async () => {
+            const mod = await import('../../services/CacheAlertService');
+            const singleton = (mod as unknown as { cacheAlertService: { getConfig: () => any } }).cacheAlertService;
+            const config = singleton.getConfig();
             expect(config.checkIntervalSeconds).toBe(60);
             expect(config.thresholds.minHitRatio).toBe(70);
             expect(config.thresholds.maxMemoryUsage).toBe('50M');

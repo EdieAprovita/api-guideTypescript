@@ -4,8 +4,14 @@ import jwt from 'jsonwebtoken';
 import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers';
 import { TEST_JWT_CONFIG, TEST_REDIS_CONFIG, setupTestEnvironment, cleanupTestEnvironment } from '../testConfig';
 
-// Mock jwt module completely
+// Mock jwt module completely with default export support (Vitest ESM mocks)
 vi.mock('jsonwebtoken', () => ({
+    __esModule: true,
+    default: {
+        sign: vi.fn(),
+        verify: vi.fn(),
+        decode: vi.fn(),
+    },
     sign: vi.fn(),
     verify: vi.fn(),
     decode: vi.fn(),

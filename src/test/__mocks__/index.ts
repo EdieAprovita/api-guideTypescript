@@ -6,7 +6,7 @@ export * from './services';
 export * from './database';
 
 // Re-export for convenience
-import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from './middleware';
+import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks, cacheMocks } from './middleware';
 import { serviceMocks, modelMocks, externalMocks } from './services';
 import { databaseMocks, dbConfigMocks } from './database';
 
@@ -16,6 +16,7 @@ export const allMocks = {
         validation: validationMocks,
         security: securityMocks,
         userControllers: userControllerMocks,
+        cache: cacheMocks,
     },
     services: serviceMocks,
     models: modelMocks,
@@ -34,4 +35,22 @@ export const resetAllMocks = () => {
 // Helper function to restore all mocks
 export const restoreAllMocks = () => {
     vi.restoreAllMocks();
+};
+
+// Mock CacheWarmingService specifically
+export const mockCacheWarmingService = {
+    startAutoWarming: vi.fn().mockResolvedValue(undefined),
+    stopAutoWarming: vi.fn().mockReturnValue(undefined),
+    warmUpCriticalData: vi.fn().mockResolvedValue({
+        success: true,
+        duration: 1000,
+        itemsWarmed: 10,
+        errors: [],
+    }),
+    warmSpecificData: vi.fn().mockResolvedValue(5),
+    getWarmingStats: vi.fn().mockReturnValue({
+        isWarming: false,
+        lastWarmingTime: null,
+        autoWarmingActive: false,
+    }),
 };

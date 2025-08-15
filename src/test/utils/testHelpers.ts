@@ -1,11 +1,10 @@
-import { vi, type MockedFunction } from 'vitest';
+import { vi, type MockedFunction, expect, type Mock, type Mocked, beforeEach } from 'vitest';
 import request from 'supertest';
 import { Application } from 'express';
 import { TestUser, MockRestaurant, MockBusiness, MockMarket, MockSanctuary } from '../types';
 import { Request, Response, NextFunction } from 'express';
 import { faker } from '@faker-js/faker';
 import { Response as SupertestResponse } from 'supertest';
-import { MockedFunction } from 'jest-mock';
 import jwt from 'jsonwebtoken';
 import testConfig from '../testConfig';
 
@@ -227,6 +226,7 @@ export const createMockData = {
     doctor: (overrides = {}): MockBusiness => ({
         _id: 'doctor-id',
         name: 'Dr. Test',
+        namePlace: 'Dr. Test',
         description: 'Test Doctor Description',
         address: 'Test Address',
         location: { type: 'Point', coordinates: [0, 0] },
@@ -339,6 +339,22 @@ export const createMockExpressValidator = () => ({
     validationResult: vi.fn().mockReturnValue({
         isEmpty: () => true,
         array: () => [],
+        throw: () => {},
+    }),
+    body: vi.fn().mockReturnValue({
+        notEmpty: vi.fn().mockReturnThis(),
+        isEmail: vi.fn().mockReturnThis(),
+        isLength: vi.fn().mockReturnThis(),
+        matches: vi.fn().mockReturnThis(),
+        custom: vi.fn().mockReturnThis(),
+    }),
+    param: vi.fn().mockReturnValue({
+        notEmpty: vi.fn().mockReturnThis(),
+        isMongoId: vi.fn().mockReturnThis(),
+    }),
+    query: vi.fn().mockReturnValue({
+        optional: vi.fn().mockReturnThis(),
+        isInt: vi.fn().mockReturnThis(),
     }),
 });
 
@@ -410,11 +426,18 @@ export const resetMocks = () => {
     vi.clearAllMocks();
 
     // Reset validation result mock
-    const { validationResult } = require('express-validator');
-    validationResult.mockReturnValue({
-        isEmpty: () => true,
-        array: () => [],
-    });
+    try {
+        const { validationResult } = require('express-validator');
+        if (validationResult && typeof validationResult.mockReturnValue === 'function') {
+            validationResult.mockReturnValue({
+                isEmpty: () => true,
+                array: () => [],
+                throw: () => {},
+            });
+        }
+    } catch (error) {
+        // Ignore if express-validator is not mocked
+    }
 };
 
 // === VALIDATION ERROR HELPERS ===
@@ -489,9 +512,7 @@ export const setupJWTMocks = (
 /**
  * Create Redis mock setup for token tests
  */
-export const setupRedisMocks = (
-    mockRedis: Mocked<{ setex: Mock; get: Mock; del: Mock; keys: Mock; ttl: Mock }>
-) => {
+export const setupRedisMocks = (mockRedis: Mocked<{ setex: Mock; get: Mock; del: Mock; keys: Mock; ttl: Mock }>) => {
     mockRedis.setex.mockResolvedValue('OK');
     mockRedis.get.mockResolvedValue(null);
     mockRedis.del.mockResolvedValue(1);
@@ -773,6 +794,7 @@ export const createDeterministicTestData = {
     mockBusiness: (id: string = 'business123', overrides = {}): MockBusiness => ({
         _id: id,
         name: `Test Business ${id}`,
+        namePlace: `Test Business ${id}`,
         description: 'Test Business Description',
         address: 'Test Address',
         location: { type: 'Point', coordinates: [0, 0] },

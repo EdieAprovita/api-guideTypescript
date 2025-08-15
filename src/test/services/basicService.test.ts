@@ -40,7 +40,9 @@ describe('BaseService', () => {
 
     it('should throw NotFoundError if item is not found', async () => {
         model.findById = vi.fn().mockResolvedValue(null);
-        await expect(service.findById('1')).rejects.toThrow(new HttpError(HttpStatusCode.NOT_FOUND, 'Internal Server Error'));
+        await expect(service.findById('1')).rejects.toThrow(
+            new HttpError(HttpStatusCode.NOT_FOUND, 'Item not found')
+        );
     });
 
     describe('create', () => {
@@ -63,7 +65,7 @@ describe('BaseService', () => {
         it('should throw NotFoundError if item is not found', async () => {
             model.findByIdAndUpdate = vi.fn().mockResolvedValue(null);
             await expect(service.updateById('1', {} as IUser)).rejects.toThrow(
-                new HttpError(HttpStatusCode.NOT_FOUND, 'Internal Server Error')
+                new HttpError(HttpStatusCode.NOT_FOUND, 'Item not found')
             );
         });
     });
@@ -78,7 +80,7 @@ describe('BaseService', () => {
         it('should throw NotFoundError if item is not found', async () => {
             model.findById = vi.fn().mockResolvedValue(null);
             await expect(service.deleteById('1')).rejects.toThrow(
-                new HttpError(HttpStatusCode.NOT_FOUND, 'Internal Server Error')
+                new HttpError(HttpStatusCode.NOT_FOUND, 'Item not found')
             );
         });
     });

@@ -16,7 +16,7 @@ import { generateExpiredToken } from '../utils/testHelpers';
 import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
 
 // Aumentar el timeout global para todos los tests de integración
-vi.setConfig({ testTimeout: (45000);
+vi.setConfig({ testTimeout: 45000 });
 
 // Interfaces for type safety
 interface ApiResponse {

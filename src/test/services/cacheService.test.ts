@@ -1,5 +1,5 @@
 import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest';
-import { CacheService, CacheStats, CacheOptions } from '../../services/CacheService';
+import type { CacheService as CacheServiceType, CacheStats, CacheOptions } from '../../services/CacheService';
 import Redis from 'ioredis';
 import logger from '../../utils/logger';
 
@@ -11,13 +11,17 @@ const MockedRedis = Redis as unknown as ReturnType<typeof vi.fn>;
 const mockedLogger = logger as unknown as typeof logger & { [K in keyof typeof logger]: ReturnType<typeof vi.fn> };
 
 describe('CacheService', () => {
-    let cacheService: CacheService;
+    let CacheServiceClass: new () => CacheServiceType;
+    let cacheService: CacheServiceType;
     let mockRedis: any;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Reset mocks
         vi.clearAllMocks();
-        
+        vi.resetModules();
+        // Ensure we use the real module for this suite (override global mock)
+        vi.unmock('../../services/CacheService');
+
         // Create mock Redis instance
         mockRedis = {
             get: vi.fn(),
@@ -37,11 +41,15 @@ describe('CacheService', () => {
         MockedRedis.mockImplementation(() => mockRedis);
 
         // Create fresh instance
-        cacheService = new CacheService();
+        const mod = await import('../../services/CacheService');
+        CacheServiceClass = mod.CacheService as unknown as new () => CacheServiceType;
+        cacheService = new CacheServiceClass();
     });
 
     afterEach(async () => {
-        await cacheService.disconnect();
+        if (cacheService && (cacheService as unknown as { disconnect: () => Promise<void> }).disconnect) {
+            await cacheService.disconnect();
+        }
     });
 
     describe('Constructor and Redis initialization', () => {
@@ -67,19 +75,18 @@ describe('CacheService', () => {
         });
 
         it('should use environment variables for Redis configuration', () => {
-            const { TEST_REDIS_CONFIG } = require('../testConfig');
             process.env.REDIS_HOST = 'test-host';
             process.env.REDIS_PORT = '6380';
-            process.env.REDIS_PASSWORD = TEST_REDIS_CONFIG.password;
+            process.env.REDIS_PASSWORD = 'test-password';
 
-            const testService = new CacheService();
+            const testService = new CacheServiceClass();
             expect(testService).toBeDefined();
 
             expect(MockedRedis).toHaveBeenCalledWith(
                 expect.objectContaining({
                     host: 'test-host',
                     port: 6380,
-                    password: TEST_REDIS_CONFIG.password,
+                    password: 'test-password',
                 })
             );
 
@@ -99,9 +106,7 @@ describe('CacheService', () => {
 
             expect(mockRedis.get).toHaveBeenCalledWith('test-key');
             expect(result).toEqual(testData);
-            expect(mockedLogger.debug).toHaveBeenCalledWith(
-                expect.stringContaining('Cache HIT: test-key')
-            );
+            expect(mockedLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Cache HIT: test-key'));
         });
 
         it('should return null on cache miss', async () => {
@@ -111,9 +116,7 @@ describe('CacheService', () => {
 
             expect(mockRedis.get).toHaveBeenCalledWith('test-key');
             expect(result).toBeNull();
-            expect(mockedLogger.debug).toHaveBeenCalledWith(
-                expect.stringContaining('Cache MISS: test-key')
-            );
+            expect(mockedLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Cache MISS: test-key'));
         });
 
         it('should handle Redis errors gracefully', async () => {
@@ -123,10 +126,7 @@ describe('CacheService', () => {
             const result = await cacheService.get('test-key');
 
             expect(result).toBeNull();
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Cache GET error for key test-key:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Cache GET error for key test-key:', error);
         });
 
         it('should handle invalid JSON gracefully', async () => {
@@ -135,10 +135,7 @@ describe('CacheService', () => {
             const result = await cacheService.get('test-key');
 
             expect(result).toBeNull();
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Cache GET error for key test-key:',
-                expect.any(Error)
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Cache GET error for key test-key:', expect.any(Error));
         });
     });
 
@@ -154,9 +151,7 @@ describe('CacheService', () => {
                 300, // default TTL
                 JSON.stringify(testData)
             );
-            expect(mockedLogger.debug).toHaveBeenCalledWith(
-                expect.stringContaining('Cache SET: test-key (TTL: 300s')
-            );
+            expect(mockedLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Cache SET: test-key (TTL: 300s'));
         });
 
         it('should set value with specific type TTL', async () => {
@@ -179,11 +174,7 @@ describe('CacheService', () => {
 
             await cacheService.set('test-key', testData, 'default', options);
 
-            expect(mockRedis.setex).toHaveBeenCalledWith(
-                'test-key',
-                600,
-                JSON.stringify(testData)
-            );
+            expect(mockRedis.setex).toHaveBeenCalledWith('test-key', 600, JSON.stringify(testData));
         });
 
         it('should handle tags for invalidation', async () => {
@@ -193,11 +184,7 @@ describe('CacheService', () => {
 
             await cacheService.set('test-key', testData, 'default', options);
 
-            expect(mockRedis.setex).toHaveBeenCalledWith(
-                'test-key',
-                300,
-                JSON.stringify(testData)
-            );
+            expect(mockRedis.setex).toHaveBeenCalledWith('test-key', 300, JSON.stringify(testData));
         });
 
         it('should handle Redis errors gracefully', async () => {
@@ -206,10 +193,7 @@ describe('CacheService', () => {
 
             await cacheService.set('test-key', { data: 'test' });
 
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Cache SET error for key test-key:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Cache SET error for key test-key:', error);
         });
     });
 
@@ -221,11 +205,7 @@ describe('CacheService', () => {
 
             await cacheService.setWithTags('test-key', testData, tags);
 
-            expect(mockRedis.setex).toHaveBeenCalledWith(
-                'test-key',
-                300,
-                JSON.stringify(testData)
-            );
+            expect(mockRedis.setex).toHaveBeenCalledWith('test-key', 300, JSON.stringify(testData));
         });
 
         it('should set value with tags and custom TTL', async () => {
@@ -235,11 +215,7 @@ describe('CacheService', () => {
 
             await cacheService.setWithTags('test-key', testData, tags, 600);
 
-            expect(mockRedis.setex).toHaveBeenCalledWith(
-                'test-key',
-                600,
-                JSON.stringify(testData)
-            );
+            expect(mockRedis.setex).toHaveBeenCalledWith('test-key', 600, JSON.stringify(testData));
         });
     });
 
@@ -250,9 +226,7 @@ describe('CacheService', () => {
             await cacheService.invalidate('test-key');
 
             expect(mockRedis.del).toHaveBeenCalledWith('test-key');
-            expect(mockedLogger.debug).toHaveBeenCalledWith(
-                '🗑️ Cache INVALIDATED: test-key'
-            );
+            expect(mockedLogger.debug).toHaveBeenCalledWith('🗑️ Cache INVALIDATED: test-key');
         });
 
         it('should handle Redis errors gracefully', async () => {
@@ -261,33 +235,24 @@ describe('CacheService', () => {
 
             await cacheService.invalidate('test-key');
 
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Cache INVALIDATE error for key test-key:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Cache INVALIDATE error for key test-key:', error);
         });
     });
 
     describe('invalidatePattern method', () => {
         it('should invalidate keys matching pattern', async () => {
-            mockRedis.scan
-                .mockResolvedValueOnce(['0', ['key1', 'key2']])
-                .mockResolvedValueOnce(['0', []]);
+            mockRedis.scan.mockResolvedValueOnce(['0', ['key1', 'key2']]).mockResolvedValueOnce(['0', []]);
             mockRedis.del.mockResolvedValue(2);
 
             await cacheService.invalidatePattern('test:*');
 
             expect(mockRedis.scan).toHaveBeenCalledWith('0', 'MATCH', 'test:*', 'COUNT', 100);
             expect(mockRedis.del).toHaveBeenCalledWith('key1', 'key2');
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🧹 Cache PATTERN INVALIDATED: test:* (2 keys)'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🧹 Cache PATTERN INVALIDATED: test:* (2 keys)');
         });
 
         it('should handle multiple scan batches', async () => {
-            mockRedis.scan
-                .mockResolvedValueOnce(['1', ['key1', 'key2']])
-                .mockResolvedValueOnce(['0', ['key3']]);
+            mockRedis.scan.mockResolvedValueOnce(['1', ['key1', 'key2']]).mockResolvedValueOnce(['0', ['key3']]);
             mockRedis.del.mockResolvedValue(3);
 
             await cacheService.invalidatePattern('test:*');
@@ -330,9 +295,7 @@ describe('CacheService', () => {
             await cacheService.invalidateByTag('restaurants');
 
             expect(mockRedis.del).toHaveBeenCalledWith('test-key1', 'test-key2');
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '🏷️ Cache TAG INVALIDATED: restaurants (2 keys)'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('🏷️ Cache TAG INVALIDATED: restaurants (2 keys)');
         });
 
         it('should handle non-existent tags', async () => {
@@ -351,10 +314,7 @@ describe('CacheService', () => {
 
             await cacheService.invalidateByTag('restaurants');
 
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Cache TAG INVALIDATE error for tag restaurants:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Cache TAG INVALIDATE error for tag restaurants:', error);
         });
     });
 
@@ -371,7 +331,7 @@ describe('CacheService', () => {
             mockRedis.get.mockResolvedValue(JSON.stringify({ test: 'data' }));
             await cacheService.get('test1');
             await cacheService.get('test2');
-            
+
             mockRedis.get.mockResolvedValue(null);
             await cacheService.get('test3');
 
@@ -382,7 +342,7 @@ describe('CacheService', () => {
                 totalRequests: 3,
                 cacheSize: 241,
                 memoryUsage: '1.27M',
-                uptime: 3600
+                uptime: 3600,
             });
         });
 
@@ -397,12 +357,9 @@ describe('CacheService', () => {
                 totalRequests: 0,
                 cacheSize: 0,
                 memoryUsage: 'Error',
-                uptime: 0
+                uptime: 0,
             });
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Error getting cache stats:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Error getting cache stats:', error);
         });
 
         it('should handle malformed Redis info', async () => {
@@ -423,9 +380,7 @@ describe('CacheService', () => {
             await cacheService.flush();
 
             expect(mockRedis.flushdb).toHaveBeenCalled();
-            expect(mockedLogger.warn).toHaveBeenCalledWith(
-                '🧽 Cache FLUSHED completely'
-            );
+            expect(mockedLogger.warn).toHaveBeenCalledWith('🧽 Cache FLUSHED completely');
         });
 
         it('should handle Redis errors gracefully', async () => {
@@ -434,10 +389,7 @@ describe('CacheService', () => {
 
             await cacheService.flush();
 
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Cache FLUSH error:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Cache FLUSH error:', error);
         });
     });
 
@@ -466,10 +418,7 @@ describe('CacheService', () => {
             const result = await cacheService.exists('test-key');
 
             expect(result).toBe(false);
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Cache EXISTS error for key test-key:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Cache EXISTS error for key test-key:', error);
         });
     });
 
@@ -480,9 +429,7 @@ describe('CacheService', () => {
             await cacheService.expire('test-key', 600);
 
             expect(mockRedis.expire).toHaveBeenCalledWith('test-key', 600);
-            expect(mockedLogger.debug).toHaveBeenCalledWith(
-                '⏰ Cache TTL updated: test-key (600s)'
-            );
+            expect(mockedLogger.debug).toHaveBeenCalledWith('⏰ Cache TTL updated: test-key (600s)');
         });
 
         it('should handle Redis errors gracefully', async () => {
@@ -491,31 +438,28 @@ describe('CacheService', () => {
 
             await cacheService.expire('test-key', 600);
 
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Cache EXPIRE error for key test-key:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Cache EXPIRE error for key test-key:', error);
         });
     });
 
     describe('generateKey static method', () => {
         it('should generate consistent cache keys', () => {
-            const key1 = CacheService.generateKey('users', 123, 'profile');
-            const key2 = CacheService.generateKey('users', 123, 'profile');
-            
+            const key1 = CacheServiceClass.generateKey('users', 123, 'profile');
+            const key2 = CacheServiceClass.generateKey('users', 123, 'profile');
+
             expect(key1).toBe('users:123:profile');
             expect(key1).toBe(key2);
         });
 
         it('should handle different data types', () => {
-            const key = CacheService.generateKey('test', 123, true, 'end');
-            
+            const key = CacheServiceClass.generateKey('test', 123, 'true', 'end');
+
             expect(key).toBe('test:123:true:end');
         });
 
         it('should handle empty parts', () => {
-            const key = CacheService.generateKey();
-            
+            const key = CacheServiceClass.generateKey();
+
             expect(key).toBe('');
         });
     });
@@ -527,9 +471,7 @@ describe('CacheService', () => {
             await cacheService.disconnect();
 
             expect(mockRedis.quit).toHaveBeenCalled();
-            expect(mockedLogger.info).toHaveBeenCalledWith(
-                '👋 Redis connection closed gracefully'
-            );
+            expect(mockedLogger.info).toHaveBeenCalledWith('👋 Redis connection closed gracefully');
         });
 
         it('should handle Redis errors gracefully', async () => {
@@ -538,10 +480,7 @@ describe('CacheService', () => {
 
             await cacheService.disconnect();
 
-            expect(mockedLogger.error).toHaveBeenCalledWith(
-                'Error closing Redis connection:',
-                error
-            );
+            expect(mockedLogger.error).toHaveBeenCalledWith('Error closing Redis connection:', error);
         });
     });
 

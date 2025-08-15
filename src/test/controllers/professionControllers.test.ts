@@ -1,8 +1,56 @@
+import { vi, describe, it, beforeEach, expect } from 'vitest';
 import request from 'supertest';
-import { setupCommonMocks, resetMocks } from '../utils/testHelpers';
+import type { Request, Response, NextFunction } from 'express';
 
 // === CRITICAL: Mocks must be defined BEFORE any imports ===
-setupCommonMocks();
+// Mock express-validator
+vi.mock('express-validator', () => ({
+    validationResult: vi.fn(() => ({
+        isEmpty: () => true,
+        array: () => [],
+    })),
+}));
+
+// Mock authMiddleware
+vi.mock('../../middleware/authMiddleware', () => ({
+    protect: (req: Request, _res: Response, next: NextFunction) => {
+        req.user = { _id: 'user123', role: 'admin' };
+        next();
+    },
+    admin: (_req: Request, _res: Response, next: NextFunction) => next(),
+    professional: (_req: Request, _res: Response, next: NextFunction) => next(),
+    refreshToken: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+    logout: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+    revokeAllTokens: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+}));
+
+// Mock asyncHandler
+vi.mock('../../middleware/asyncHandler', () => ({
+    default: (fn: Function) => fn,
+}));
+
+// Mock types
+vi.mock('../../types/modalTypes', () => ({
+    getErrorMessage: (message: string) => message,
+}));
+
+// Mock database
+vi.mock('../../config/db', () => ({
+    connectDB: vi.fn().mockResolvedValue(undefined),
+    disconnectDB: vi.fn().mockResolvedValue(undefined),
+    isConnected: vi.fn().mockReturnValue(true),
+}));
+
+// Mock logger
+vi.mock('../../utils/logger', () => ({
+    __esModule: true,
+    default: {
+        error: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+    },
+}));
 
 // Mock services with proper structure
 vi.mock('../../services/ProfessionService', () => ({
@@ -28,7 +76,7 @@ import { professionService } from '../../services/ProfessionService';
 import { reviewService } from '../../services/ReviewService';
 
 beforeEach(() => {
-    resetMocks();
+    vi.clearAllMocks();
 });
 
 describe('Profession Controllers', () => {
@@ -39,7 +87,7 @@ describe('Profession Controllers', () => {
                 { _id: 'prof2', name: 'Engineer', description: 'Technical professional' },
             ];
 
-            (professionService.getAll as vi.Mock).mockResolvedValueOnce(mockProfessions);
+            (professionService.getAll as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockProfessions);
 
             const response = await request(app).get('/api/v1/professions');
 
@@ -57,7 +105,7 @@ describe('Profession Controllers', () => {
         it('should get profession by id', async () => {
             const mockProfession = { _id: 'prof1', name: 'Doctor', description: 'Medical professional' };
 
-            (professionService.findById as vi.Mock).mockResolvedValueOnce(mockProfession);
+            (professionService.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockProfession);
 
             const response = await request(app).get(`/api/v1/professions/${mockProfession._id}`);
 
@@ -80,7 +128,7 @@ describe('Profession Controllers', () => {
             };
 
             const createdProfession = { ...professionData, _id: 'prof123' };
-            (professionService.create as vi.Mock).mockResolvedValueOnce(createdProfession);
+            (professionService.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(createdProfession);
 
             const response = await request(app).post('/api/v1/professions').send(professionData);
 
@@ -103,7 +151,7 @@ describe('Profession Controllers', () => {
             };
 
             const updatedProfession = { ...updateData, _id: professionId };
-            (professionService.updateById as vi.Mock).mockResolvedValueOnce(updatedProfession);
+            (professionService.updateById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(updatedProfession);
 
             const response = await request(app).put(`/api/v1/professions/${professionId}`).send(updateData);
 
@@ -121,7 +169,7 @@ describe('Profession Controllers', () => {
         it('should delete profession by id', async () => {
             const professionId = 'prof123';
 
-            (professionService.deleteById as vi.Mock).mockResolvedValueOnce(undefined);
+            (professionService.deleteById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
 
             const response = await request(app).delete(`/api/v1/professions/${professionId}`);
 

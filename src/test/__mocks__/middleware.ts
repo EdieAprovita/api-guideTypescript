@@ -14,10 +14,17 @@ export interface TestUser {
 export const authMiddlewareMocks = {
     protect: vi.fn((req: Request, res: Response, next: NextFunction) => {
         const reqWithUser = req as Request & { user?: TestUser };
-        reqWithUser.user = { _id: faker.database.mongodbObjectId(), role: 'user', email: 'faker.internet.email()' };
+        reqWithUser.user = { _id: faker.database.mongodbObjectId(), role: 'admin', email: 'faker.internet.email()' };
         next();
     }),
-    admin: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    admin: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        const reqWithUser = req as Request & { user?: TestUser };
+        if (reqWithUser.user?.role === 'admin') {
+            next();
+        } else {
+            res.status(403).json({ success: false, message: 'Admin access required' });
+        }
+    }),
     professional: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
     requireAuth: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
     checkOwnership: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
@@ -56,9 +63,7 @@ export const validationMocks = {
     securityHeaders: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
     handleValidationError: vi.fn((error: unknown, req: Request, res: Response, next: NextFunction) => next()),
     rateLimits: {
-        auth: vi.fn((req: Request, res: Response, next: NextFunction) =>
-            next()
-        ) as unknown as RateLimitRequestHandler,
+        auth: vi.fn((req: Request, res: Response, next: NextFunction) => next()) as unknown as RateLimitRequestHandler,
         register: vi.fn((req: Request, res: Response, next: NextFunction) =>
             next()
         ) as unknown as RateLimitRequestHandler,
@@ -85,28 +90,40 @@ export const securityMocks = {
     rateLimits: validationMocks.rateLimits, // Reutilizar los mismos rateLimits
 };
 
+// Mock para cache middleware
+export const cacheMocks = {
+    recipeCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    businessCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    restaurantCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    geoLocationCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    userProfileCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    searchCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheInvalidationMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheStatsMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheFlushMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    browserCacheValidation: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    clearCache: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
+};
+
 // Mock para controladores de usuario (usado en authRoutes)
 export const userControllerMocks = {
     refreshToken: vi.fn((req: Request, res: Response) => res.status(200).json({ success: true })),
     logout: vi.fn((req: Request, res: Response) => res.status(200).json({ success: true })),
     revokeAllTokens: vi.fn((req: Request, res: Response) => res.status(200).json({ success: true })),
     registerUser: vi.fn((req: Request, res: Response) =>
-        res
-            .status(201)
-            .json({
-                _id: faker.database.mongodbObjectId(),
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'faker.internet.email()',
-            })
+        res.status(201).json({
+            _id: faker.database.mongodbObjectId(),
+            firstName: 'John',
+            lastName: 'Doe',
+            email: 'faker.internet.email()',
+        })
     ),
     loginUser: vi.fn((req: Request, res: Response) =>
-        res
-            .status(200)
-            .json({
-                token: testConfig.generateTestPassword(),
-                user: { _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' },
-            })
+        res.status(200).json({
+            token: testConfig.generateTestPassword(),
+            user: { _id: faker.database.mongodbObjectId(), email: 'faker.internet.email()' },
+        })
     ),
     forgotPassword: vi.fn((req: Request, res: Response) => res.status(200).json({ success: true })),
     resetPassword: vi.fn((req: Request, res: Response) => res.status(200).json({ success: true })),
@@ -117,14 +134,12 @@ export const userControllerMocks = {
         ])
     ),
     getUserById: vi.fn((req: Request, res: Response) =>
-        res
-            .status(200)
-            .json({
-                _id: faker.database.mongodbObjectId(),
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'john@example.com',
-            })
+        res.status(200).json({
+            _id: faker.database.mongodbObjectId(),
+            firstName: 'John',
+            lastName: 'Doe',
+            email: 'john@example.com',
+        })
     ),
     updateUserProfile: vi.fn((req: Request, res: Response) => res.status(200).json({ success: true })),
     getCurrentUserProfile: vi.fn((req: Request, res: Response) => res.status(200).json({ success: true })),

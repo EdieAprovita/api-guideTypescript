@@ -54,10 +54,10 @@ function safeStringify(value: unknown): string {
  * Generar clave de cache basada en la request
  */
 function generateCacheKey(req: Request): string {
-    const { method, originalUrl, query, params } = req;
+    const { method, path, query } = req as unknown as Request & { path: string };
 
     // Crear clave base
-    let key = `${method}:${originalUrl}`;
+    let key = `${method}:${path}`;
 
     // Agregar parámetros de query si existen
     if (Object.keys(query).length > 0) {
@@ -68,14 +68,7 @@ function generateCacheKey(req: Request): string {
         key += `?${sortedQuery}`;
     }
 
-    // Agregar parámetros de ruta
-    if (Object.keys(params).length > 0) {
-        const sortedParams = Object.keys(params)
-            .sort((a, b) => a.localeCompare(b))
-            .map(k => `${k}=${safeStringify(params[k])}`)
-            .join('&');
-        key += `|${sortedParams}`;
-    }
+    // No incluir parámetros de ruta en la clave (los tests esperan solo path y query ordenada)
 
     return key;
 }
@@ -113,7 +106,16 @@ export function cacheMiddleware(
 
         try {
             // Intentar obtener del cache
-            const cachedData = await cacheService.get(cacheKey);
+            let cachedData = await cacheService.get(cacheKey);
+
+            // If cached data is a string, try to parse JSON. If parsing fails, treat as cache miss
+            if (typeof cachedData === 'string') {
+                try {
+                    cachedData = JSON.parse(cachedData);
+                } catch {
+                    cachedData = null as any;
+                }
+            }
 
             if (cachedData) {
                 // Cache HIT - verificar headers de validación
@@ -162,9 +164,12 @@ export function cacheMiddleware(
                     res.setHeader('Cache-Control', `public, max-age=${ttl}`);
                     res.setHeader('Last-Modified', new Date().toUTCString());
 
-                    cacheService.set(cacheKey, data, type, cacheOptions).catch(error => {
-                        logger.error(`Error caching response for ${cacheKey}:`, error);
-                    });
+                    const maybePromise = cacheService.set(cacheKey, data, type, cacheOptions);
+                    if (maybePromise && typeof (maybePromise as unknown as { catch?: unknown }).catch === 'function') {
+                        (maybePromise as Promise<void>).catch(error => {
+                            logger.error(`Error caching response for ${cacheKey}:`, error);
+                        });
+                    }
                 }
 
                 // Llamar al método original

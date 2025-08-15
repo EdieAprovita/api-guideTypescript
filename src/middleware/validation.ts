@@ -4,60 +4,41 @@ import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
 // import mongoSanitize from 'express-mongo-sanitize'; // Disabled due to version conflict
 import { ValidationSchema } from '../types/validation';
 
-// Validation middleware factory
+// Working validation middleware factory
 export const validate = (schema: ValidationSchema) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const validationPromises = [];
-
             // Validate body if schema provided
             if (schema.body) {
-                validationPromises.push(
-                    schema.body
-                        .validateAsync(req.body, {
-                            abortEarly: false,
-                            stripUnknown: true,
-                            convert: true,
-                        })
-                        .then((value: Record<string, unknown>) => {
-                            req.body = value;
-                        })
-                );
+                const validatedBody = await schema.body.validateAsync(req.body, {
+                    abortEarly: false,
+                    stripUnknown: true,
+                    convert: true,
+                });
+                req.body = validatedBody;
             }
 
             // Validate query parameters if schema provided
             if (schema.query) {
-                validationPromises.push(
-                    schema.query
-                        .validateAsync(req.query, {
-                            abortEarly: false,
-                            stripUnknown: true,
-                            convert: true,
-                        })
-                        .then((value: Record<string, unknown>) => {
-                            Object.keys(req.query).forEach(key => delete req.query[key]);
-                            Object.assign(req.query, value);
-                        })
-                );
+                const validatedQuery = await schema.query.validateAsync(req.query, {
+                    abortEarly: false,
+                    stripUnknown: true,
+                    convert: true,
+                });
+                Object.keys(req.query).forEach(key => delete req.query[key]);
+                Object.assign(req.query, validatedQuery);
             }
 
             // Validate URL parameters if schema provided
             if (schema.params) {
-                validationPromises.push(
-                    schema.params
-                        .validateAsync(req.params, {
-                            abortEarly: false,
-                            stripUnknown: true,
-                            convert: true,
-                        })
-                        .then((value: Record<string, unknown>) => {
-                            Object.keys(req.params).forEach(key => delete req.params[key]);
-                            Object.assign(req.params, value);
-                        })
-                );
+                const validatedParams = await schema.params.validateAsync(req.params, {
+                    abortEarly: false,
+                    stripUnknown: true,
+                    convert: true,
+                });
+                Object.keys(req.params).forEach(key => delete req.params[key]);
+                Object.assign(req.params, validatedParams);
             }
-
-            await Promise.all(validationPromises);
             next();
         } catch (error) {
             if (error instanceof Joi.ValidationError) {
@@ -89,12 +70,14 @@ export const sanitizeInput = () => {
         (req: Request, _res: Response, next: NextFunction) => {
             const sanitizeValue = (value: unknown): unknown => {
                 if (typeof value === 'string') {
-                    // Enhanced XSS protection patterns - using non-backtracking regex
+                    // More targeted XSS protection - remove specific dangerous patterns
                     return (
                         value
-                            // Remove script tags (all variations) - non-backtracking pattern
-                            .replace(/<script[^>]*?>/gi, '')
-                            .replace(/<\/script>/gi, '')
+                            // Remove complete script blocks (opening tag, content, closing tag)
+                            .replace(/<script[^>]*>.*?<\/script>/gis, '')
+                            
+                            // Remove any remaining script tags
+                            .replace(/<\/?script[^>]*>/gi, '')
 
                             // Remove javascript: protocol (all encoded variations)
                             .replace(/javascript\s*:/gi, '')
@@ -107,33 +90,25 @@ export const sanitizeInput = () => {
                             .replace(/vbscript\s*:/gi, '')
                             .replace(/vbscript%3A/gi, '')
 
-                            // Remove data: protocol for potential data URLs
-                            .replace(/data\s*:/gi, '')
-                            .replace(/data%3A/gi, '')
-
-                            // Remove event handlers - non-backtracking pattern
-                            .replace(/on\w+\s*=/gi, '')
-                            .replace(/on[a-z]+\s*=/gi, '')
-
-                            // Remove HTML entities that could be used for XSS - non-backtracking
-                            .replace(/&[#x]?[a-zA-Z0-9]{1,8};/g, '')
+                            // Remove dangerous event handlers
+                            .replace(/onerror\s*=/gi, '')
+                            .replace(/onload\s*=/gi, '')
+                            .replace(/onclick\s*=/gi, '')
+                            .replace(/onmouseover\s*=/gi, '')
 
                             // Remove potential CSS expressions
                             .replace(/expression\s*\(/gi, '')
                             .replace(/behaviour:/gi, '')
 
-                            // Remove URL encoded characters that could bypass filters
-                            .replace(/%[0-9a-fA-F]{2}/g, '')
+                            // Remove URL encoded dangerous characters
+                            .replace(/%3C/gi, '') // <
+                            .replace(/%3E/gi, '') // >
+                            .replace(/%22/gi, '') // "
+                            .replace(/%27/gi, '') // '
 
                             // Remove control characters safely using Unicode property escapes
                             .replace(/\p{C}/gu, '')
 
-                            // Remove dangerous single characters directly (no character class)
-                            .replace(/</g, '')
-                            .replace(/>/g, '')
-                            .replace(/'/g, '')
-                            .replace(/"/g, '')
-                            .replace(/&/g, '')
                             .trim()
                     );
                 }

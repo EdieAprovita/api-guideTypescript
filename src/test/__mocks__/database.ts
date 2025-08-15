@@ -16,6 +16,18 @@ export const databaseMocks = {
 
 // Mock para configuración de base de datos
 export const dbConfigMocks = {
-    default: vi.fn().mockResolvedValue(undefined),
+    default: vi.fn().mockImplementation(async () => {
+        const mongoUri = process.env.DB;
+        
+        if (!mongoUri) {
+            throw new Error('MongoDB URI is not defined in environment variables');
+        }
+        
+        if (mongoUri.includes('invalid://')) {
+            throw new Error('Error connecting to the database: Invalid connection string');
+        }
+        
+        return Promise.resolve();
+    }),
     __esModule: true,
 };
