@@ -7,7 +7,8 @@
 // Use descriptive constant names that clearly indicate these are messages, not secrets
 // Avoid using "PASSWORD" in constant names to prevent false positives from security scanners
 export const VALIDATION_MESSAGE_TEMPLATES = {
-    AUTH_LENGTH_REQUIREMENT: process.env.TEST_AUTH_LENGTH_MESSAGE || 'Authentication credential must meet minimum length',
+    AUTH_LENGTH_REQUIREMENT:
+        process.env.TEST_AUTH_LENGTH_MESSAGE || 'Authentication credential must meet minimum length',
     EMAIL_FORMAT_REQUIREMENT: 'Please enter a valid email address',
     AUTH_COMPLEXITY_REQUIREMENT:
         'Authentication credential must contain at least one uppercase letter, one lowercase letter, one number, and one special character',

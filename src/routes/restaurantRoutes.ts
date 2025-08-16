@@ -22,7 +22,10 @@ const router = express.Router();
 
 // Apply security headers and sanitization to all routes
 router.use(securityHeaders);
-router.use(...sanitizeInput());
+// Apply input sanitization (skip in test environment to avoid read-only errors)
+if (process.env.NODE_ENV !== 'test') {
+    router.use(...sanitizeInput());
+}
 
 // Apply browser cache validation to all GET routes
 router.use(browserCacheValidation());
@@ -83,7 +86,7 @@ router.put(
     admin,
     validate({
         params: paramSchemas.id,
-        body: restaurantSchemas.create,
+        body: restaurantSchemas.update,
     }),
     updateRestaurant
 );

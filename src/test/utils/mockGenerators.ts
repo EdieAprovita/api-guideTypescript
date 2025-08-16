@@ -49,7 +49,7 @@ export const generateLocation = (overrides: Partial<BaseLocation> = {}): BaseLoc
 });
 
 export const generateContactInfo = (overrides: Partial<BaseContactInfo> = {}): BaseContactInfo => ({
-    phone: faker.phone.number(),
+    phone: faker.string.numeric(10),
     email: faker.internet.email(),
     website: faker.internet.url(),
     ...overrides,

@@ -69,4 +69,5 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
     { timestamps: true }
 );
 
-export const Recipe = mongoose.model<IRecipe>('Recipe', recipeSchema);
+export const Recipe =
+    (mongoose.models.Recipe as mongoose.Model<IRecipe>) || mongoose.model<IRecipe>('Recipe', recipeSchema);

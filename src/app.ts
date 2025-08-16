@@ -8,14 +8,14 @@ import { xss } from 'express-xss-sanitizer';
 import connectDB from './config/db';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import corsMiddleware from './middleware/corsOptions';
-import { 
-  configureHelmet, 
-  enforceHTTPS, 
-  detectSuspiciousActivity,
-  limitRequestSize,
-  validateUserAgent,
-  addCorrelationId,
-  requireAPIVersion
+import {
+    configureHelmet,
+    enforceHTTPS,
+    detectSuspiciousActivity,
+    limitRequestSize,
+    validateUserAgent,
+    addCorrelationId,
+    requireAPIVersion,
 } from './middleware/security';
 
 import userRoutes from './routes/userRoutes';
@@ -48,8 +48,12 @@ const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as 
 app.use(enforceHTTPS); // Force HTTPS in production
 app.use(configureHelmet()); // Enhanced helmet configuration with CSP
 app.use(addCorrelationId); // Add correlation ID for request tracing
-if (process.env.NODE_ENV !== 'test') { app.use(requireAPIVersion(['v1'])); } // API versioning support
-if (process.env.NODE_ENV !== 'test') { app.use(validateUserAgent); } // Block malicious user agents
+if (process.env.NODE_ENV !== 'test') {
+    app.use(requireAPIVersion(['v1']));
+} // API versioning support
+if (process.env.NODE_ENV !== 'test') {
+    app.use(validateUserAgent);
+} // Block malicious user agents
 app.use(limitRequestSize(10 * 1024 * 1024)); // 10MB global limit
 app.use(detectSuspiciousActivity); // Detect and block suspicious patterns
 
@@ -70,6 +74,16 @@ if (process.env.NODE_ENV !== 'production') {
 
 app.get('/api/v1', (_req, res) => {
     res.send('API is running');
+});
+
+// Main health check endpoint
+app.get('/health', (_req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        message: 'API is healthy',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
 });
 
 // Routes

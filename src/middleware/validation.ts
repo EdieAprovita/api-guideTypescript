@@ -68,7 +68,22 @@ export const sanitizeInput = () => {
 
         // Enhanced XSS and injection protection
         (req: Request, _res: Response, next: NextFunction) => {
-            const sanitizeValue = (value: unknown): unknown => {
+            // Fields that should not be sanitized (passwords, tokens, etc.)
+            const skipSanitization = [
+                'password',
+                'currentPassword',
+                'newPassword',
+                'confirmPassword',
+                'token',
+                'refreshToken',
+            ];
+
+            const sanitizeValue = (value: unknown, fieldName?: string): unknown => {
+                // Skip sanitization for password fields
+                if (fieldName && skipSanitization.includes(fieldName)) {
+                    return value;
+                }
+
                 if (typeof value === 'string') {
                     // More targeted XSS protection - remove specific dangerous patterns
                     return (
@@ -106,21 +121,26 @@ export const sanitizeInput = () => {
                             .replace(/%22/gi, '') // "
                             .replace(/%27/gi, '') // '
 
-                            // Remove control characters safely using Unicode property escapes
-                            .replace(/\p{C}/gu, '')
+                            // Remove control characters safely using string methods
+                            .split('')
+                            .filter(char => {
+                                const code = char.charCodeAt(0);
+                                return code >= 32 && code !== 127; // Keep printable characters, remove control chars
+                            })
+                            .join('')
 
                             .trim()
                     );
                 }
 
                 if (Array.isArray(value)) {
-                    return value.map(sanitizeValue);
+                    return value.map((item, index) => sanitizeValue(item, `${fieldName}[${index}]`));
                 }
 
                 if (value && typeof value === 'object') {
                     const sanitized: Record<string, unknown> = {};
                     for (const [key, val] of Object.entries(value)) {
-                        sanitized[key] = sanitizeValue(val);
+                        sanitized[key] = sanitizeValue(val, key);
                     }
                     return sanitized;
                 }
@@ -145,7 +165,7 @@ export const sanitizeInput = () => {
             }
 
             next();
-        },
+        }
     ];
 };
 
@@ -153,53 +173,72 @@ export const sanitizeInput = () => {
 export const createRateLimit = (
     config: Partial<{ windowMs: number; max: number; message: string }> = {}
 ): RateLimitRequestHandler => {
+    // Use test-friendly rate limiting in test environment
+    const testConfig =
+        process.env.NODE_ENV === 'test'
+            ? {
+                  windowMs: 1000, // 1 second for tests
+                  max: 5, // 5 requests per second for tests
+                  ...config,
+              }
+            : config;
+
     return rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100,
+        windowMs: testConfig.windowMs || 15 * 60 * 1000, // 15 minutes
+        max: testConfig.max || 100,
         standardHeaders: true,
         legacyHeaders: false,
         handler: (_req: Request, res: Response) => {
             res.status(429).json({
                 success: false,
-                message: config.message ?? 'Too many requests from this IP, please try again later.',
+                message: testConfig.message ?? 'Too many requests from this IP, please try again later.',
             });
         },
-        ...config,
     });
+};
+
+// Helper function to create rate limit or bypass for tests
+const createRateLimitOrBypass = (config: { windowMs: number; max: number; message: string }) => {
+    // If rate limiting is disabled for tests, return a no-op middleware
+    if (process.env.DISABLE_RATE_LIMIT === 'true') {
+        return (_req: Request, _res: Response, next: NextFunction) => next();
+    }
+
+    return createRateLimit(config);
 };
 
 // Predefined rate limits for different endpoints
 export const rateLimits = {
     // Authentication endpoints - stricter limits
-    auth: createRateLimit({
+    auth: createRateLimitOrBypass({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 5, // 5 attempts per window
         message: 'Too many authentication attempts. Please try again in 15 minutes.',
     }),
 
     // Registration endpoint - very strict
-    register: createRateLimit({
+    register: createRateLimitOrBypass({
         windowMs: 60 * 60 * 1000, // 1 hour
         max: 3, // 3 registration attempts per hour
         message: 'Too many registration attempts. Please try again in 1 hour.',
     }),
 
     // General API endpoints
-    api: createRateLimit({
+    api: createRateLimitOrBypass({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 100, // 100 requests per window
         message: 'API rate limit exceeded. Please slow down your requests.',
     }),
 
     // Search endpoints - moderate limits
-    search: createRateLimit({
+    search: createRateLimitOrBypass({
         windowMs: 1 * 60 * 1000, // 1 minute
         max: 30, // 30 searches per minute
         message: 'Search rate limit exceeded. Please wait before searching again.',
     }),
 
     // Upload endpoints - stricter limits
-    upload: createRateLimit({
+    upload: createRateLimitOrBypass({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 10, // 10 uploads per window
         message: 'Upload rate limit exceeded. Please try again later.',

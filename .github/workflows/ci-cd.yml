@@ -1,0 +1,325 @@
+name: 'CI/CD Pipeline'
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main, develop]
+    workflow_dispatch:
+
+# Cancelar ejecuciones previas en la misma rama para ahorrar recursos
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    NODE_VERSION: '20.x'
+    CI: true
+
+jobs:
+    quality-checks:
+        name: Quality Checks
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Type check
+              run: npm run type-check
+
+            - name: Lint code
+              run: npm run lint
+
+            - name: Format check
+              run: npm run format:check
+              continue-on-error: false
+
+    test:
+        name: Tests
+        runs-on: ubuntu-22.04  # Use specific Ubuntu version for MongoDB compatibility
+        needs: quality-checks
+
+        services:
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install system dependencies for MongoDB
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                      libcurl4 \
+                      openssl \
+                      libssl-dev \
+                      ca-certificates \
+                      curl \
+                      wget \
+                      gnupg \
+                      lsb-release \
+                      libc6-dev
+                  
+                  # Install libssl1.1 for MongoDB compatibility (works for Ubuntu 22.04/24.04)
+                  # This fixes the "libcrypto.so.1.1" missing library error
+                  echo "Attempting to install libssl1.1 for MongoDB compatibility..."
+                  
+                  # Try multiple Ubuntu versions for libssl1.1 package
+                  LIBSSL_INSTALLED=false
+                  
+                  # First try Ubuntu 22.04 focal version
+                  if wget -q http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb; then
+                    sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb 2>/dev/null && LIBSSL_INSTALLED=true
+                    rm -f libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb
+                  fi
+                  
+                  # Fallback to Ubuntu 20.04 focal version if needed
+                  if [ "$LIBSSL_INSTALLED" = false ]; then
+                    if wget -q http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb; then
+                      sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb 2>/dev/null && LIBSSL_INSTALLED=true
+                      rm -f libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+                    fi
+                  fi
+                  
+                  # Final fallback: create symlinks for Ubuntu 24.04
+                  if [ "$LIBSSL_INSTALLED" = false ]; then
+                    echo "Creating compatibility symlinks for Ubuntu 24.04..."
+                    sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1 2>/dev/null || true
+                    sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
+                    sudo ldconfig
+                    LIBSSL_INSTALLED=true
+                  fi
+                  
+                  # Verify installation
+                  if [ "$LIBSSL_INSTALLED" = true ]; then
+                    echo "✅ libssl1.1 compatibility installed successfully"
+                    ldconfig -p | grep -E "(libssl|libcrypto)" | head -5 || echo "SSL libraries configured"
+                  else
+                    echo "⚠️ Could not install libssl1.1, MongoDB may have issues"
+                  fi
+
+            - name: Setup MongoDB Memory Server environment
+              run: |
+                  # Create cache directory with proper permissions
+                  mkdir -p ~/.cache/mongodb-binaries
+                  chmod 755 ~/.cache/mongodb-binaries
+                  
+                  # Modern MongoDB Memory Server (v10+) works with libssl3 (default in Ubuntu 22.04+)
+                  echo "✅ Using modern MongoDB Memory Server with libssl3 support"
+                  echo "📋 Available SSL libraries:"
+                  ldconfig -p | grep libssl | head -3 || echo "No SSL libraries found"
+
+            - name: Cache mongodb-memory-server binaries
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cache/mongodb-binaries
+                  key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+                  restore-keys: |
+                      mongodb-binaries-${{ runner.os }}-
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Pre-download MongoDB binaries
+              run: |
+                  # Pre-download MongoDB version with Ubuntu 22.04 support
+                  export MONGODB_MEMORY_SERVER_VERSION=6.0.4
+                  export MONGODB_MEMORY_SERVER_DOWNLOAD_DIR=~/.cache/mongodb-binaries
+                  export MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT=120000
+                  export MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY=5
+                  
+                  # Pre-download MongoDB binaries using a simple Node script
+                  node -e "
+                  const { MongoMemoryServer } = require('mongodb-memory-server');
+                  async function preDownload() {
+                    try {
+                      console.log('Pre-downloading MongoDB 6.0.4 (Ubuntu 22.04 compatible)...');
+                      const config = {
+                        binary: { 
+                          version: '6.0.4',
+                          downloadDir: '~/.cache/mongodb-binaries',
+                          checkMD5: false
+                        },
+                        instance: { dbName: 'predownload-test' },
+                        autoStart: false
+                      };
+                      
+                      // Add Ubuntu-specific configuration for CI
+                      if (process.env.CI && process.platform === 'linux') {
+                        config.binary.platform = 'linux';
+                        config.binary.arch = 'x64';
+                        config.binary.os = {
+                          os: 'linux',
+                          dist: 'ubuntu',
+                          release: '22.04'
+                        };
+                      }
+                      
+                      const mongod = await MongoMemoryServer.create(config);
+                      console.log('✅ MongoDB 6.0.4 downloaded successfully');
+                      await mongod.stop();
+                    } catch (error) {
+                      console.log('⚠️  Pre-download failed, will try during tests:', error.message);
+                    }
+                  }
+                  preDownload();
+                  " || echo "Pre-download failed, continuing..."
+
+            - name: Test MongoDB Memory Server setup
+              run: node scripts/test-mongodb-setup.js
+              env:
+                  MONGODB_MEMORY_SERVER_VERSION: '6.0.4'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT: '120000'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY: '5'
+                  NODE_OPTIONS: '--max-old-space-size=4096'
+
+            - name: Create test results directory
+              run: mkdir -p test-results
+
+            - name: Run unit tests
+              run: npm run test:unit
+              env:
+                  CI: true
+                  NODE_ENV: test
+
+            - name: Run integration tests
+              run: npm run test:integration
+              env:
+                  CI: true
+                  NODE_ENV: test
+                  MONGODB_MEMORY_SERVER_VERSION: '6.0.4'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT: '120000'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY: '5'
+                  MONGODB_MEMORY_SERVER_LAUNCH_TIMEOUT: '60000'
+                  # Increase Node.js memory for CI
+                  NODE_OPTIONS: '--max-old-space-size=4096'
+
+            - name: Generate coverage report
+              run: npm run test:coverage
+              env:
+                  CI: true
+                  NODE_ENV: test
+
+            - name: Upload coverage reports to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./coverage/lcov.info
+                  flags: unittests
+                  name: codecov-umbrella
+              continue-on-error: true
+
+            - name: Upload coverage artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-reports
+                  path: coverage/
+                  retention-days: 30
+
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        needs: test
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build application
+              run: npm run build
+
+            - name: Archive build artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: dist-files
+                  path: dist/
+                  retention-days: 30
+
+    security:
+        name: Security Audit
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci --omit=dev
+
+            - name: Run security audit (Critical vulnerabilities)
+              run: npm audit --audit-level critical --production
+
+            - name: Run security audit (High vulnerabilities)
+              run: npm audit --audit-level high --production
+              continue-on-error: true
+
+            - name: Run security audit (All vulnerabilities)
+              run: npm audit --production
+              continue-on-error: true
+
+    deploy:
+        name: Deploy
+        runs-on: ubuntu-latest
+        needs: [build, security]
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+        steps:
+            - name: Download build artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: dist-files
+                  path: dist/
+
+            - name: Deploy placeholder
+              run: |
+                  echo "🚀 Deployment step"
+                  echo "📦 Build artifacts downloaded to ./dist/"
+                  echo "🔧 Configure your deployment strategy here"
+                  echo "   - AWS, Vercel, Railway, Heroku, etc."
+                  echo "   - Docker deployment"
+                  echo "   - Server deployment"

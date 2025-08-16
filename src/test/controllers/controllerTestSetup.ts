@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
-import { jest } from '@jest/globals';
+
 import { Request, Response, NextFunction } from 'express';
 
 // Mock database connection BEFORE any imports

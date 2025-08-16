@@ -90,4 +90,5 @@ const doctorSchema = new Schema<IDoctor>(
     { timestamps: true }
 );
 doctorSchema.index({ location: '2dsphere' });
-export const Doctor = mongoose.model<IDoctor>('Doctor', doctorSchema);
+export const Doctor =
+    (mongoose.models.Doctor as mongoose.Model<IDoctor>) || mongoose.model<IDoctor>('Doctor', doctorSchema);

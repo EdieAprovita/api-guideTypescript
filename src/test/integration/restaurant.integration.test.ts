@@ -5,8 +5,7 @@ import { createTestRestaurant } from './helpers/testFixtures';
 import { setupTestDB, refreshAdmin, AdminAuth } from './helpers/testSetup';
 import { Restaurant } from '../../models/Restaurant';
 
-// Integration skipped pending environment setup
-describe.skip('Restaurant API Integration Tests', () => {
+describe('Restaurant API Integration Tests', () => {
     setupTestDB();
     let admin: AdminAuth;
 
@@ -20,24 +19,21 @@ describe.skip('Restaurant API Integration Tests', () => {
         budget: '$$' as const,
         contact: [
             {
-                phone: faker.phone.number(),
+                phone: faker.string.numeric(10),
                 facebook: faker.internet.url(),
                 instagram: `@${faker.internet.userName()}`,
             },
         ],
         location: {
             type: 'Point' as const,
-            coordinates: [
-                faker.location.longitude(),
-                faker.location.latitude(),
-            ],
+            coordinates: [faker.location.longitude(), faker.location.latitude()],
         },
         cuisine: ['Italian'],
         reviews: [],
         rating: 0,
         numReviews: 0,
         // Author is provided explicitly for test data consistency
-        author: admin.adminId,
+        author: admin.adminObjectId,
     });
 
     it('should create a restaurant', async () => {
@@ -48,7 +44,6 @@ describe.skip('Restaurant API Integration Tests', () => {
             .set('Authorization', `Bearer ${admin.adminToken}`)
             .send(data);
 
-
         expect(response.status).toBe(201);
         expect(response.body.success).toBe(true);
         expect(response.body.data.restaurantName).toBe(data.restaurantName);
@@ -58,11 +53,10 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should get all restaurants', async () => {
-        await createTestRestaurant(admin.adminId);
-        await createTestRestaurant(admin.adminId);
+        await createTestRestaurant(admin.adminObjectId);
+        await createTestRestaurant(admin.adminObjectId);
 
         const response = await request(app).get('/api/v1/restaurants');
-
 
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body.data)).toBe(true);
@@ -70,19 +64,16 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should get a restaurant by id', async () => {
-        const restaurant = await createTestRestaurant(admin.adminId);
+        const restaurant = await createTestRestaurant(admin.adminObjectId);
 
-        const response = await request(app).get(
-            `/api/v1/restaurants/${restaurant._id}`
-        );
-
+        const response = await request(app).get(`/api/v1/restaurants/${restaurant._id}`);
 
         expect(response.status).toBe(200);
         expect(response.body.data._id.toString()).toBe(restaurant._id.toString());
     });
 
     it('should update a restaurant', async () => {
-        const restaurant = await createTestRestaurant(admin.adminId);
+        const restaurant = await createTestRestaurant(admin.adminObjectId);
 
         const response = await request(app)
             .put(`/api/v1/restaurants/${restaurant._id}`)
@@ -94,7 +85,7 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should delete a restaurant', async () => {
-        const restaurant = await createTestRestaurant(admin.adminId);
+        const restaurant = await createTestRestaurant(admin.adminObjectId);
 
         const response = await request(app)
             .delete(`/api/v1/restaurants/${restaurant._id}`)
@@ -106,13 +97,11 @@ describe.skip('Restaurant API Integration Tests', () => {
     });
 
     it('should search restaurants by location', async () => {
-        const restaurants = await createTestRestaurant(admin.adminId);
+        const restaurants = await createTestRestaurant(admin.adminObjectId);
 
         const [lng, lat] = restaurants.location.coordinates;
 
-        const response = await request(app).get(
-            `/api/v1/restaurants?latitude=${lat}&longitude=${lng}&radius=5000`
-        );
+        const response = await request(app).get(`/api/v1/restaurants?latitude=${lat}&longitude=${lng}&radius=5000`);
 
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body.data)).toBe(true);
