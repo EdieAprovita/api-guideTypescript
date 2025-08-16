@@ -16,10 +16,9 @@ export default defineConfig({
   test: {
     name: 'unit',
     include: [
-      'src/test/services/**/*.simple.test.ts',
-      'src/test/controllers/**/*.simple.test.ts',
-      'src/test/utils/**/*.test.ts',
-      'src/test/models/**/*.test.ts'
+      'src/test/unit/**/*.test.ts',
+      'src/test/unit/**/*.simple.test.ts',
+      'src/test/unit/**/*.simplified.test.ts'
     ],
     exclude: [
       'src/test/integration/**',
@@ -47,7 +46,14 @@ export default defineConfig({
     logHeapUsage: true,
     passWithNoTests: true,
     silent: false,
-    reporters: ['basic'],
+    reporters: [
+      [
+        'default',
+        {
+          summary: false
+        }
+      ]
+    ],
     outputFile: undefined,
     // Disable console intercept to reduce noise
     disableConsoleIntercept: true,

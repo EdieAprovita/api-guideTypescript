@@ -19,7 +19,7 @@
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run --coverage --reporter=verbose",
-    "test:unit": "vitest run src/test/unit",
+    "test:unit": "vitest run --config vitest.unit.config.mts",
     "test:integration": "vitest run src/test/integration",
     "test:services": "vitest run src/test/services",
     "test:controllers": "vitest run src/test/controllers",
