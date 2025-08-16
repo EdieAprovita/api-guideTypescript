@@ -15,20 +15,24 @@ describe('BaseService (simple)', () => {
     let service: BaseService<TestDoc>;
 
     beforeEach(() => {
-        const id1 = new Types.ObjectId().toString();
-        const id2 = new Types.ObjectId().toString();
-        items = [{ _id: id1, name: 'A' } as TestDoc, { _id: id2, name: 'B' } as TestDoc];
+        const id1 = new Types.ObjectId();
+        const id2 = new Types.ObjectId();
+        items = [{ _id: id1.toString(), name: 'A' } as TestDoc, { _id: id2.toString(), name: 'B' } as TestDoc];
 
         fakeModel = {
             modelName: 'Test',
             find: vi.fn().mockResolvedValue(items),
-            findById: vi.fn().mockImplementation(async (id: string) => items.find(i => i._id === id) ?? null),
+            findById: vi.fn().mockImplementation(async (id: Types.ObjectId | string) => {
+                const idStr = id.toString();
+                return items.find(i => i._id === idStr) ?? null;
+            }),
             create: vi.fn().mockImplementation(async (data: Partial<TestDoc>) => {
                 const { _id, ...cleanData } = data as TestDoc;
                 return { ...cleanData, _id: new Types.ObjectId().toString() };
             }),
-            findByIdAndUpdate: vi.fn().mockImplementation(async (id: string, data: Partial<TestDoc>) => {
-                const existing = items.find(i => i._id === id);
+            findByIdAndUpdate: vi.fn().mockImplementation(async (id: Types.ObjectId | string, data: Partial<TestDoc>) => {
+                const idStr = id.toString();
+                const existing = items.find(i => i._id === idStr);
                 if (!existing) return null;
                 return { ...existing, ...data };
             }),
