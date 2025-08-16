@@ -71,19 +71,12 @@ export const getRecipeById = asyncHandler(async (req: Request, res: Response, ne
  */
 
 export const createRecipe = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const result =
-        typeof (validationResult as unknown as (r: Request) => unknown) === 'function'
-            ? (
-                  validationResult as unknown as (r: Request) => {
-                      isEmpty: () => boolean;
-                      array: () => Array<{ msg?: string }>;
-                  }
-              )(req)
-            : undefined;
-    if (result?.isEmpty && !result.isEmpty()) {
-        const firstError = result.array()[0];
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
+    
     try {
         const recipe = await RecipeService.create(req.body);
         res.status(201).json({
@@ -104,19 +97,12 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response, nex
  */
 
 export const updateRecipe = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const result =
-        typeof (validationResult as unknown as (r: Request) => unknown) === 'function'
-            ? (
-                  validationResult as unknown as (r: Request) => {
-                      isEmpty: () => boolean;
-                      array: () => Array<{ msg?: string }>;
-                  }
-              )(req)
-            : undefined;
-    if (result?.isEmpty && !result.isEmpty()) {
-        const firstError = result.array()[0];
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
+    
     try {
         const { id } = req.params;
         if (!id) {
