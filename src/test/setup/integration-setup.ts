@@ -58,21 +58,22 @@ async function createMongoMemoryServer(): Promise<MongoMemoryServer> {
     const config: any = {
         instance: {
             dbName: 'test-integration-' + Date.now(),
-            port: undefined, // Let system choose port
+            port: 0, // Let system choose port (use 0 instead of undefined)
+            storageEngine: 'wiredTiger', // More stable than ephemeralForTest
         },
         binary: {
-            version: process.env.CI ? '5.0.19' : '6.0.0', // Use stable version for CI
-            downloadDir: process.env.CI ? '/tmp/mongodb-binaries' : undefined,
-            downloadTimeout: process.env.CI ? 120000 : 60000, // Longer timeout for CI
+            version: '5.0.19', // Use stable version for both CI and local
+            downloadDir: process.env.CI ? '/tmp/mongodb-binaries' : './mongodb-binaries',
         },
         autoStart: true,
     };
 
     // CI-specific optimizations
     if (process.env.CI) {
-        config.instance.storageEngine = 'ephemeralForTest'; // Faster for CI
         config.instance.auth = false;
         config.instance.replSet = undefined;
+        // Don't use ephemeralForTest in CI - it can be unstable
+        config.instance.storageEngine = 'wiredTiger';
     }
 
     return await MongoMemoryServer.create(config);
@@ -147,7 +148,6 @@ async function setupDatabase(): Promise<void> {
         mongoServer = await MongoMemoryServer.create({
             binary: {
                 version: '4.4.18', // Very stable version
-                downloadTimeout: 60000,
             },
             instance: {
                 dbName: 'test-fallback-' + Date.now(),
@@ -246,11 +246,19 @@ afterAll(
             // Stop MongoDB Memory Server only if it was created
             if (mongoServer) {
                 try {
-                    await mongoServer.stop();
-                    console.log('✅ MongoDB Memory Server stopped');
+                    await mongoServer.stop({ doCleanup: true, force: false });
+                    console.log('✅ MongoDB Memory Server stopped gracefully');
                 } catch (error) {
-                    console.warn('⚠️  Error stopping MongoDB Memory Server:', (error as Error).message);
+                    console.warn('⚠️  Error stopping MongoDB Memory Server gracefully:', (error as Error).message);
+                    // Try force stop
+                    try {
+                        await mongoServer.stop({ doCleanup: true, force: true });
+                        console.log('✅ MongoDB Memory Server force stopped');
+                    } catch (forceError) {
+                        console.error('❌ MongoDB Memory Server force stop failed:', (forceError as Error).message);
+                    }
                 }
+                mongoServer = null;
             }
 
             setupLog('✅ Test database disconnected');
