@@ -15,18 +15,16 @@ export default defineConfig({
         globals: true,
         clearMocks: true, // Clear mocks for integration tests to use real implementations
         setupFiles: ['src/test/setup/integration-setup.ts'],
-        // Extended timeouts for CI with MongoDB Memory Server downloads and setup
-        testTimeout: process.env.CI ? 120000 : 60000, // 2min for CI, 1min local
-        hookTimeout: process.env.CI ? 300000 : 180000, // 5min for CI, 3min local
-        teardownTimeout: process.env.CI ? 60000 : 30000, // Extended cleanup time
+        // Simplified timeouts for reliable test execution
+        testTimeout: 30000, // 30 seconds per test
+        hookTimeout: 60000, // 1 minute for setup/teardown
+        teardownTimeout: 30000, // 30 seconds for cleanup
         bail: 0, // Don't stop on first failure - run all tests to see status
-        maxConcurrency: 1, // Run integration tests sequentially for DB consistency
-        isolate: true, // Isolate tests for better reliability
+        maxConcurrency: 1, // Run integration tests sequentially
         pool: 'forks',
         poolOptions: {
             forks: {
-                singleFork: true, // Use single process for DB consistency
-                isolate: true,
+                singleFork: true,
             },
         },
         // Better error reporting and output
