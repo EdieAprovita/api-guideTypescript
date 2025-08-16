@@ -7,7 +7,7 @@ import logger from '../utils/logger';
 const router = express.Router();
 
 // Get cache statistics
-router.get('/stats', protect, admin, async (req, res) => {
+router.get('/stats', protect, admin, async (_req, res) => {
     try {
         const stats = await cacheService.getStats();
         const performance = await cacheMonitor.getCurrentPerformance();
@@ -30,7 +30,7 @@ router.get('/stats', protect, admin, async (req, res) => {
 });
 
 // Flush all cache
-router.delete('/flush', protect, admin, async (req, res) => {
+router.delete('/flush', protect, admin, async (_req, res) => {
     try {
         await cacheService.flush();
         logger.info('Cache flushed by admin');
@@ -52,17 +52,25 @@ router.delete('/flush', protect, admin, async (req, res) => {
 router.delete('/invalidate/:pattern(*)', protect, admin, async (req, res) => {
     try {
         const { pattern } = req.params;
+        
+        if (!pattern) {
+            return res.status(400).json({
+                success: false,
+                error: 'Pattern parameter is required',
+            });
+        }
+        
         await cacheService.invalidatePattern(pattern);
 
         logger.info(`Cache pattern invalidated: ${pattern}`);
 
-        res.json({
+        return res.json({
             success: true,
             message: `Cache pattern '${pattern}' invalidated successfully`,
         });
     } catch (error) {
         logger.error('Error invalidating cache pattern:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             error: 'Failed to invalidate cache pattern',
         });
@@ -73,17 +81,25 @@ router.delete('/invalidate/:pattern(*)', protect, admin, async (req, res) => {
 router.delete('/invalidate-tag/:tag', protect, admin, async (req, res) => {
     try {
         const { tag } = req.params;
+        
+        if (!tag) {
+            return res.status(400).json({
+                success: false,
+                error: 'Tag parameter is required',
+            });
+        }
+        
         await cacheService.invalidateByTag(tag);
 
         logger.info(`Cache tag invalidated: ${tag}`);
 
-        res.json({
+        return res.json({
             success: true,
             message: `Cache tag '${tag}' invalidated successfully`,
         });
     } catch (error) {
         logger.error('Error invalidating cache tag:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             error: 'Failed to invalidate cache tag',
         });
@@ -91,7 +107,7 @@ router.delete('/invalidate-tag/:tag', protect, admin, async (req, res) => {
 });
 
 // Get cache health status
-router.get('/health', async (req, res) => {
+router.get('/health', async (_req, res) => {
     try {
         const stats = await cacheService.getStats();
         const isHealthy = stats.hitRatio > 0.1; // Consider healthy if hit ratio > 10%
