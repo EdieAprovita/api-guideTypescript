@@ -7,6 +7,12 @@ import { defineConfig } from 'vitest/config';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
+  // CI-specific optimizations
+  optimizeDeps: {
+    // Force pre-bundling of problematic dependencies
+    force: true,
+    include: ['vitest', '@vitest/runner']
+  },
   test: {
     name: 'unit',
     include: [
@@ -35,8 +41,8 @@ export default defineConfig({
         'src/**/*.spec.ts'
       ]
     },
-    testTimeout: 5000, // Fast timeout for unit tests
-    hookTimeout: 5000,
+    testTimeout: 10000, // Increased timeout for CI
+    hookTimeout: 10000,
     bail: 0,
     logHeapUsage: true,
     passWithNoTests: true,
@@ -44,7 +50,14 @@ export default defineConfig({
     reporters: ['basic'],
     outputFile: undefined,
     // Disable console intercept to reduce noise
-    disableConsoleIntercept: true
+    disableConsoleIntercept: true,
+    // CI-specific settings
+    pool: 'forks', // Use forks instead of threads for better CI compatibility
+    poolOptions: {
+      forks: {
+        singleFork: true // Use single fork to avoid resource issues
+      }
+    }
   },
   resolve: {
     alias: {
