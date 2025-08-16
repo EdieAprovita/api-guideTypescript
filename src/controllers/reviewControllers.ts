@@ -6,16 +6,39 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import logger from '../utils/logger';
 
 /**
+ * Helper function to validate review ownership
+ */
+const validateReviewOwnership = async (reviewId: string, userId: string) => {
+    if (!userId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
+    }
+
+    const review = await ReviewService.getReviewById(reviewId);
+
+    // Handle both populated and non-populated author field
+    const authorId =
+        typeof review.author === 'object' && review.author._id
+            ? review.author._id.toString()
+            : review.author.toString();
+
+    if (authorId !== userId.toString()) {
+        throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only modify your own reviews');
+    }
+
+    return review;
+};
+
+/**
  * @description Get all reviews
  * @name listReviews
  */
 
 export const listReviews = asyncHandler(async (req: Request, res: Response) => {
-    const { refId, refModel } = req.params;
-    if (!refId || !refModel) {
-        throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Reference ID and model are required');
+    const { refId } = req.params;
+    if (!refId) {
+        throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Reference ID is required');
     }
-    const reviews = await ReviewService.listReviewsForModel(refId, refModel);
+    const reviews = await ReviewService.listReviewsForModel(refId);
     res.status(200).json(reviews);
 });
 
@@ -116,23 +139,8 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
 
-    // Check if user is the author of the review
-    const review = await ReviewService.getReviewById(id);
-    const userId = req.user?._id;
-
-    if (!userId) {
-        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
-    }
-
-    // Handle both populated and non-populated author field
-    const authorId =
-        typeof review.author === 'object' && review.author._id
-            ? review.author._id.toString()
-            : review.author.toString();
-
-    if (authorId !== userId.toString()) {
-        throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own reviews');
-    }
+    const userId = (req as any).user?._id;
+    await validateReviewOwnership(id, userId);
 
     const updatedReview = await ReviewService.updateReview(id, req.body);
     res.status(200).json({ success: true, data: updatedReview });
@@ -149,23 +157,8 @@ export const deleteReview = asyncHandler(async (req: Request, res: Response) => 
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
 
-    // Check if user is the author of the review
-    const review = await ReviewService.getReviewById(id);
-    const userId = req.user?._id;
-
-    if (!userId) {
-        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
-    }
-
-    // Handle both populated and non-populated author field
-    const authorId =
-        typeof review.author === 'object' && review.author._id
-            ? review.author._id.toString()
-            : review.author.toString();
-
-    if (authorId !== userId.toString()) {
-        throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only delete your own reviews');
-    }
+    const userId = (req as any).user?._id;
+    await validateReviewOwnership(id, userId);
 
     await ReviewService.deleteReview(id);
     res.status(200).json({ success: true, message: 'Review deleted successfully' });

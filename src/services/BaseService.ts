@@ -83,11 +83,7 @@ class BaseService<T extends Document> {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
         }
 
-        // Use findByIdAndDelete with ObjectId to ensure proper parameterization
-        const deletedItem = await this.model.findByIdAndDelete(objectId);
-        if (!deletedItem) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
-        }
+        await this.model.deleteOne({ _id: id });
 
         // Invalidar cache después de eliminar
         if (this.cacheEnabled) {

@@ -1,4 +1,3 @@
-import { vi, Mock } from 'vitest';
 import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import { setupCommonMocks, resetMocks, createMockRecipe } from '../utils/testHelpers';
@@ -8,6 +7,7 @@ setupCommonMocks();
 
 // Mock services with proper structure
 vi.mock('../../services/RecipesService', () => ({
+    __esModule: true,
     recipeService: {
         getAll: vi.fn(),
         findById: vi.fn(),
@@ -30,7 +30,7 @@ describe('Recipes Controllers', () => {
         it('should get all recipes', async () => {
             const mockRecipes = [createMockRecipe(), createMockRecipe()];
 
-            (recipeService.getAll as Mock).mockResolvedValueOnce(mockRecipes);
+            (recipeService.getAll as vi.Mock).mockResolvedValueOnce(mockRecipes);
 
             const response = await request(app).get('/api/v1/recipes');
 
@@ -47,9 +47,14 @@ describe('Recipes Controllers', () => {
         it('should get recipe by id', async () => {
             const mockRecipe = createMockRecipe();
 
-            (recipeService.findById as Mock).mockResolvedValueOnce(mockRecipe);
+            (recipeService.findById as vi.Mock).mockResolvedValueOnce(mockRecipe);
 
             const response = await request(app).get(`/api/v1/recipes/${mockRecipe._id}`);
+            if (response.status !== 200) {
+                // Debug output to help diagnose failures
+                // eslint-disable-next-line no-console
+                console.error('GET /recipes/:id status', response.status, 'body', response.body);
+            }
 
             expect(response.status).toBe(200);
             expect(recipeService.findById).toHaveBeenCalledWith(mockRecipe._id);
@@ -73,9 +78,13 @@ describe('Recipes Controllers', () => {
             };
 
             const createdRecipe = { ...recipeData, _id: 'recipe123' };
-            (recipeService.create as Mock).mockResolvedValueOnce(createdRecipe);
+            (recipeService.create as vi.Mock).mockResolvedValueOnce(createdRecipe);
 
             const response = await request(app).post('/api/v1/recipes').send(recipeData);
+            if (response.status !== 201) {
+                // eslint-disable-next-line no-console
+                console.error('POST /recipes status', response.status, 'body', response.body);
+            }
 
             expect(response.status).toBe(201);
             expect(recipeService.create).toHaveBeenCalledWith(recipeData);
@@ -95,9 +104,13 @@ describe('Recipes Controllers', () => {
             };
 
             const updatedRecipe = { ...updateData, _id: recipeId };
-            (recipeService.updateById as Mock).mockResolvedValueOnce(updatedRecipe);
+            (recipeService.updateById as vi.Mock).mockResolvedValueOnce(updatedRecipe);
 
             const response = await request(app).put(`/api/v1/recipes/${recipeId}`).send(updateData);
+            if (response.status !== 200) {
+                // eslint-disable-next-line no-console
+                console.error('PUT /recipes/:id status', response.status, 'body', response.body);
+            }
 
             expect(response.status).toBe(200);
             expect(recipeService.updateById).toHaveBeenCalledWith(recipeId, updateData);
@@ -112,7 +125,7 @@ describe('Recipes Controllers', () => {
         it('should delete recipe by id', async () => {
             const recipeId = 'recipe123';
 
-            (recipeService.deleteById as Mock).mockResolvedValueOnce(undefined);
+            (recipeService.deleteById as vi.Mock).mockResolvedValueOnce(undefined);
 
             const response = await request(app).delete(`/api/v1/recipes/${recipeId}`);
 

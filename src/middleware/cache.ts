@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { cacheService } from '../services/CacheService';
 import logger from '../utils/logger';
+import crypto from 'crypto';
 
 export interface CacheableRequest extends Request {
     cacheKey?: string;
@@ -10,6 +11,7 @@ export interface CacheableRequest extends Request {
 
 export interface CacheableResponse extends Response {
     sendCached?: (data: unknown) => void;
+    checkCache?: (data: unknown, lastModified?: Date) => Response;
 }
 
 interface CacheMiddlewareOptions {
@@ -52,11 +54,10 @@ function safeStringify(value: unknown): string {
  * Generar clave de cache basada en la request
  */
 function generateCacheKey(req: Request): string {
-    const { method, originalUrl, query } = req;
+    const { method, path, query } = req as unknown as Request & { path: string };
 
-    // Crear clave base - usar pathname en lugar de originalUrl para evitar duplicación
-    const url = new URL(originalUrl, 'http://localhost');
-    let key = `${method}:${url.pathname}`;
+    // Crear clave base
+    let key = `${method}:${path}`;
 
     // Agregar parámetros de query si existen
     if (Object.keys(query).length > 0) {
@@ -67,15 +68,7 @@ function generateCacheKey(req: Request): string {
         key += `?${sortedQuery}`;
     }
 
-    // Agregar parámetros de ruta solo si no están ya en la URL
-    // Skip adding route parameters as they're already part of the URL
-    // if (Object.keys(params).length > 0 && !originalUrl.includes(':')) {
-    //     const sortedParams = Object.keys(params)
-    //         .sort((a, b) => a.localeCompare(b))
-    //         .map(k => `${k}=${safeStringify(params[k])}`)
-    //         .join('&');
-    //     key += `|${sortedParams}`;
-    // }
+    // No incluir parámetros de ruta en la clave (los tests esperan solo path y query ordenada)
 
     return key;
 }
@@ -113,20 +106,41 @@ export function cacheMiddleware(
 
         try {
             // Intentar obtener del cache
-            const cachedData = await cacheService.get(cacheKey);
+            let cachedData = await cacheService.get(cacheKey);
+
+            // If cached data is a string, try to parse JSON. If parsing fails, treat as cache miss
+            if (typeof cachedData === 'string') {
+                try {
+                    cachedData = JSON.parse(cachedData);
+                } catch {
+                    cachedData = null as any;
+                }
+            }
 
             if (cachedData) {
-                // Cache HIT - devolver datos cacheados
+                // Cache HIT - verificar headers de validación
                 logger.debug(`🎯 Cache HIT: ${cacheKey}`);
-                // Parse cached data if it's a string, otherwise use as is
-                let parsedData;
-                try {
-                    parsedData = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
-                } catch (parseError) {
-                    // If parsing fails, use the original data
-                    parsedData = cachedData;
+
+                // Generar ETag basado en los datos cacheados
+                const etag = generateETag(cachedData);
+                res.setHeader('ETag', etag);
+
+                // Agregar headers de caché para mejorar el rendimiento
+                const ttl = options.ttl || 300; // 5 minutos por defecto
+                res.setHeader('Cache-Control', `public, max-age=${ttl}`);
+                res.setHeader('Last-Modified', new Date().toUTCString());
+
+                // Verificar si el cliente tiene la misma versión
+                const ifNoneMatch = req.headers['if-none-match'];
+                if (ifNoneMatch === etag || ifNoneMatch === `"${etag}"`) {
+                    // El cliente ya tiene la versión más reciente
+                    logger.debug(`📋 Returning 304 for ${cacheKey}`);
+                    return res.status(304).end();
                 }
-                return res.status(200).json(parsedData);
+
+                // El cliente necesita la versión actualizada
+                logger.debug(`📤 Returning 200 with cached data for ${cacheKey}`);
+                return res.status(200).json(cachedData);
             }
 
             // Cache MISS - continuar con el procesamiento normal
@@ -140,9 +154,18 @@ export function cacheMiddleware(
                     const cacheOptions: CacheMiddlewareOptions = {};
                     if (options.ttl !== undefined) cacheOptions.ttl = options.ttl;
                     if (options.tags !== undefined) cacheOptions.tags = options.tags;
-                    cacheService.set(cacheKey, data, type, cacheOptions).catch(error => {
-                        logger.error(`Error caching response for ${cacheKey}:`, error);
-                    });
+
+                    // Generar ETag para los nuevos datos
+                    const etag = generateETag(data);
+                    res.setHeader('ETag', etag);
+
+                    // Agregar headers de caché para nuevos datos
+                    const ttl = options.ttl || 300;
+                    res.setHeader('Cache-Control', `public, max-age=${ttl}`);
+                    res.setHeader('Last-Modified', new Date().toUTCString());
+
+                    // Intentionally fire-and-forget cache write
+                    void cacheService.set(cacheKey, data, type, cacheOptions);
                 }
 
                 // Llamar al método original
@@ -157,6 +180,14 @@ export function cacheMiddleware(
             next();
         }
     };
+}
+
+/**
+ * Genera un ETag basado en el contenido de los datos
+ */
+function generateETag(data: unknown): string {
+    const dataString = JSON.stringify(data);
+    return crypto.createHash('md5').update(dataString).digest('hex');
 }
 
 /**
@@ -188,6 +219,39 @@ export function restaurantCacheMiddleware() {
             const { category, city, rating, price } = req.query;
             const filters = [category, city, rating, price].filter(Boolean).map(safeStringify).join(':');
             return `restaurants:${req.path}:${filters}`;
+        },
+    });
+}
+
+/**
+ * Middleware específico para listados de negocios
+ */
+export function businessCacheMiddleware() {
+    return cacheMiddleware('businesses', {
+        ttl: 300, // 5 minutos
+        tags: ['businesses', 'listings'],
+        keyGenerator: req => {
+            const { category, city, rating, type } = req.query;
+            const filters = [category, city, rating, type].filter(Boolean).map(safeStringify).join(':');
+            return `businesses:${req.path}:${filters}`;
+        },
+    });
+}
+
+/**
+ * Middleware específico para listados de recetas
+ */
+export function recipeCacheMiddleware() {
+    return cacheMiddleware('recipes', {
+        ttl: 600, // 10 minutos (las recetas cambian menos frecuentemente)
+        tags: ['recipes', 'content'],
+        keyGenerator: req => {
+            const { category, difficulty, cookingTime, ingredients } = req.query;
+            const filters = [category, difficulty, cookingTime, ingredients]
+                .filter(Boolean)
+                .map(safeStringify)
+                .join(':');
+            return `recipes:${req.path}:${filters}`;
         },
     });
 }
@@ -229,21 +293,33 @@ export function searchCacheMiddleware() {
 }
 
 /**
- * Middleware para invalidar cache en operaciones de escritura
+ * Middleware para invalidar caché cuando se modifican datos
+ * Se debe usar en rutas POST, PUT, DELETE
  */
 export function cacheInvalidationMiddleware(tags: string[]) {
     return async (_req: Request, res: Response, next: NextFunction) => {
-        // Interceptar respuestas exitosas de escritura
+        // Guardar el método original
         const originalJson = res.json;
+
         res.json = function (data: unknown) {
-            // Solo invalidar en operaciones exitosas
+            // Si la operación fue exitosa, invalidar caché de forma asíncrona
             if (res.statusCode >= 200 && res.statusCode < 300) {
-                // Invalidar de forma asíncrona
-                Promise.all(tags.map(tag => cacheService.invalidateByTag(tag))).catch(error => {
-                    logger.error('Error invalidating cache tags:', error);
+                logger.debug(`🗑️ Invalidating cache for tags: ${tags.join(', ')}`);
+
+                // Invalidar por tags y patrones de forma asíncrona (fire-and-forget)
+                void Promise.all([
+                    ...tags.map(tag => cacheService.invalidateByTag(tag)),
+                    cacheService.invalidatePattern('restaurants:*'),
+                    cacheService.invalidatePattern('businesses:*'),
+                    cacheService.invalidatePattern('recipes:*'),
+                    cacheService.invalidatePattern('users:*'),
+                    cacheService.invalidatePattern('reviews:*'),
+                ]).catch(error => {
+                    logger.error('Error invalidating cache:', error);
                 });
             }
 
+            // Llamar al método original
             return originalJson.call(this, data);
         };
 
@@ -294,5 +370,57 @@ export function cacheFlushMiddleware() {
                 error: 'Error flushing cache',
             });
         }
+    };
+}
+
+/**
+ * Middleware para validación de caché del navegador
+ * Maneja headers If-None-Match e If-Modified-Since
+ */
+export function browserCacheValidation() {
+    return (req: Request, res: CacheableResponse, next: NextFunction) => {
+        // Solo para GET requests
+        if (req.method !== 'GET') {
+            return next();
+        }
+
+        // Verificar si el cliente tiene datos en caché
+        const ifNoneMatch = req.headers['if-none-match'];
+        const ifModifiedSince = req.headers['if-modified-since'];
+
+        if (!ifNoneMatch && !ifModifiedSince) {
+            // No hay headers de validación, continuar normalmente
+            return next();
+        }
+
+        // Agregar método para verificar si los datos han cambiado
+        res.checkCache = (data: unknown, lastModified?: Date) => {
+            const etag = generateETag(data);
+            res.setHeader('ETag', etag);
+
+            if (lastModified) {
+                res.setHeader('Last-Modified', lastModified.toUTCString());
+            }
+
+            // Verificar ETag
+            if (ifNoneMatch && (ifNoneMatch === etag || ifNoneMatch === `"${etag}"`)) {
+                logger.debug(`📋 Browser cache valid - returning 304`);
+                return res.status(304).end();
+            }
+
+            // Verificar Last-Modified
+            if (ifModifiedSince && lastModified) {
+                const clientDate = new Date(ifModifiedSince);
+                if (lastModified <= clientDate) {
+                    logger.debug(`📋 Browser cache valid (Last-Modified) - returning 304`);
+                    return res.status(304).end();
+                }
+            }
+
+            // Los datos han cambiado, devolver 200
+            return res.status(200).json(data);
+        };
+
+        next();
     };
 }

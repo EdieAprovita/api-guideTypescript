@@ -1,3 +1,4 @@
+import { vi, type MockedFunction } from 'vitest';
 /**
  * Unified Integration Test Setup Utility
  *

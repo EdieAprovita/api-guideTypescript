@@ -1,3 +1,4 @@
+import { vi, type MockedFunction } from 'vitest';
 /**
  * Centralized mock generators to eliminate duplication
  * This file consolidates all mock generation patterns used across tests

@@ -1,10 +1,10 @@
+// Global test setup - Centralized and optimized for Vitest
 import { vi } from 'vitest';
-// Global test setup - Centralized and optimized
-
 import { faker } from '@faker-js/faker';
+import { Request, Response, NextFunction } from 'express';
 import { generateTestPassword } from './utils/passwordGenerator';
 import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from './__mocks__/middleware';
-import { serviceMocks, modelMocks } from './__mocks__/services';
+import { serviceMocks, modelMocks, externalMocks } from './__mocks__/services';
 import { dbConfigMocks } from './__mocks__/database';
 
 // Mock environment variables with faker-generated values
@@ -47,6 +47,34 @@ vi.mock('../services/TokenService', () => ({
     default: serviceMocks.tokenService,
 }));
 
+// Do not mock CacheWarmingService globally; unit tests rely on real implementation
+
+// Mock CacheService
+vi.mock('../services/CacheService', () => ({
+    __esModule: true,
+    cacheService: serviceMocks.cacheService,
+}));
+
+// Mock RestaurantService
+vi.mock('../services/RestaurantService', () => ({
+    __esModule: true,
+    restaurantService: serviceMocks.restaurantService,
+}));
+
+// Mock BusinessService
+vi.mock('../services/BusinessService', () => ({
+    __esModule: true,
+    businessService: serviceMocks.businessService,
+}));
+
+// Do not mock GeoService here; service unit tests provide their own mocks
+
+// Mock ReviewService
+vi.mock('../services/ReviewService', () => ({
+    __esModule: true,
+    reviewService: serviceMocks.reviewService,
+}));
+
 // Mock User model
 vi.mock('../models/User', () => ({
     __esModule: true,
@@ -54,71 +82,57 @@ vi.mock('../models/User', () => ({
     default: modelMocks.User,
 }));
 
-// Only mock jsonwebtoken for unit tests, not integration tests
-if (!process.env.INTEGRATION_TEST) {
-    // Mock external libraries
-    vi.mock('jsonwebtoken', () => {
-        const { faker } = require('@faker-js/faker');
-        const generateValidObjectId = () => faker.database.mongodbObjectId();
+// Mock express-validator
+vi.mock('express-validator', () => ({
+    __esModule: true,
+    validationResult: vi.fn(() => ({
+        isEmpty: vi.fn().mockReturnValue(true),
+        array: vi.fn().mockReturnValue([]),
+    })),
+    body: vi.fn(() => ({
+        notEmpty: vi.fn().mockReturnThis(),
+        isLength: vi.fn().mockReturnThis(),
+        isEmail: vi.fn().mockReturnThis(),
+        escape: vi.fn().mockReturnThis(),
+        trim: vi.fn().mockReturnThis(),
+        normalizeEmail: vi.fn().mockReturnThis(),
+    })),
+    param: vi.fn(() => ({
+        isMongoId: vi.fn().mockReturnThis(),
+        notEmpty: vi.fn().mockReturnThis(),
+    })),
+}));
 
-        const createMockToken = (payload: any) => {
-            const actualUserId = payload && payload.userId ? payload.userId : generateValidObjectId();
-            const actualEmail = payload && payload.email ? payload.email : 'test@email.com';
-            const actualRole = payload && payload.role ? payload.role : 'user';
-            return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI${actualUserId}","email":"${actualEmail}","role":"${actualRole}"}.mock-signature`;
-        };
+// Mock cache middleware
+vi.mock('../middleware/cache', () => ({
+    __esModule: true,
+    recipeCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    businessCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    restaurantCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    geoLocationCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    userProfileCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    searchCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheInvalidationMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheStatsMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheFlushMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    browserCacheValidation: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+}));
 
-        const extractTokenData = (token: string) => {
-            try {
-                if (token.includes('mock-signature')) {
-                    const payloadPart = token.split('.')[1];
-                    const match = payloadPart.match(/"userId":"([^"]+)"/);
-                    const emailMatch = payloadPart.match(/"email":"([^"]+)"/);
-                    const roleMatch = payloadPart.match(/"role":"([^"]+)"/);
-
-                    return {
-                        userId: match ? match[1] : generateValidObjectId(),
-                        email: emailMatch ? emailMatch[1] : 'test@email.com',
-                        role: roleMatch ? roleMatch[1] : 'user',
-                        exp: Math.floor(Date.now() / 1000) + 3600,
-                    };
-                }
-            } catch (e) {
-                // Fallback
-            }
-
-            return {
-                userId: generateValidObjectId(),
-                email: 'test@email.com',
-                role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600,
-            };
-        };
-
-        return {
-            __esModule: true,
-            default: {
-                sign: vi.fn().mockImplementation(createMockToken),
-                verify: vi.fn().mockImplementation(extractTokenData),
-                decode: vi.fn().mockImplementation(() => extractTokenData('mock-token')),
-            },
-            sign: vi.fn().mockImplementation(createMockToken),
-            verify: vi.fn().mockImplementation(extractTokenData),
-            decode: vi.fn().mockImplementation((token: string) => extractTokenData(token || 'mock-token')),
-        };
-    });
-}
+// Mock external libraries
+vi.mock('jsonwebtoken', () => ({
+    __esModule: true,
+    default: {
+        sign: vi.fn().mockReturnValue(generateTestPassword()),
+        verify: vi.fn().mockReturnValue({ userId: 'someUserId' }),
+    },
+    sign: vi.fn().mockReturnValue(generateTestPassword()),
+    verify: vi.fn().mockReturnValue({ userId: 'someUserId' }),
+}));
 
 vi.mock('bcryptjs', () => ({
     __esModule: true,
-    default: {
-        hash: vi.fn().mockResolvedValue('hashed_password'),
-        compare: vi.fn().mockResolvedValue(true),
-        genSalt: vi.fn().mockResolvedValue('salt'),
-    },
-    hash: vi.fn().mockResolvedValue('hashed_password'),
-    compare: vi.fn().mockResolvedValue(true),
-    genSalt: vi.fn().mockResolvedValue('salt'),
+    ...externalMocks.bcrypt,
 }));
 
 // Mock logger to prevent file system operations

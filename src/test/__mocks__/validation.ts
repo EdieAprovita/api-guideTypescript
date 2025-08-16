@@ -1,6 +1,8 @@
 import { vi } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
-import { RateLimitRequestHandler } from 'express-rate-limit';
+
+// Type-safe mock for rate limit handler
+type MockRateLimitHandler = (req: Request, res: Response, next: NextFunction) => void;
 
 export const validate = vi.fn(() => {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -17,28 +19,28 @@ export const sanitizeInput = vi.fn().mockReturnValue([
     },
 ]);
 
-export const createRateLimit = vi.fn(() => {
-    return ((req: Request, res: Response, next: NextFunction) => {
+export const createRateLimit = vi.fn((): MockRateLimitHandler => {
+    return (req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler;
+    };
 });
 
 export const rateLimits = {
     auth: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
+    }) as MockRateLimitHandler,
     register: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
+    }) as MockRateLimitHandler,
     api: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
+    }) as MockRateLimitHandler,
     search: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
+    }) as MockRateLimitHandler,
     upload: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
-    }) as unknown as RateLimitRequestHandler,
+    }) as MockRateLimitHandler,
 };
 
 export const handleValidationError = vi.fn((error: unknown, req: Request, res: Response, next: NextFunction) => {

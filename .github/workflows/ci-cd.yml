@@ -32,8 +32,11 @@ jobs:
                   cache: 'npm'
                   cache-dependency-path: package-lock.json
 
-            - name: Install dependencies
-              run: npm ci
+            - name: Fix Rollup CI issues and install dependencies
+              run: |
+                  # Make script executable and run it
+                  chmod +x scripts/fix-rollup-ci.sh
+                  ./scripts/fix-rollup-ci.sh
 
             - name: Type check
               run: npm run type-check
@@ -47,7 +50,7 @@ jobs:
 
     test:
         name: Tests
-        runs-on: ubuntu-22.04  # Use specific Ubuntu version for MongoDB compatibility
+        runs-on: ubuntu-22.04 # Use specific Ubuntu version for MongoDB compatibility
         needs: quality-checks
 
         services:
@@ -85,20 +88,20 @@ jobs:
                       gnupg \
                       lsb-release \
                       libc6-dev
-                  
+
                   # Install libssl1.1 for MongoDB compatibility (works for Ubuntu 22.04/24.04)
                   # This fixes the "libcrypto.so.1.1" missing library error
                   echo "Attempting to install libssl1.1 for MongoDB compatibility..."
-                  
+
                   # Try multiple Ubuntu versions for libssl1.1 package
                   LIBSSL_INSTALLED=false
-                  
+
                   # First try Ubuntu 22.04 focal version
                   if wget -q http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb; then
                     sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb 2>/dev/null && LIBSSL_INSTALLED=true
                     rm -f libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb
                   fi
-                  
+
                   # Fallback to Ubuntu 20.04 focal version if needed
                   if [ "$LIBSSL_INSTALLED" = false ]; then
                     if wget -q http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb; then
@@ -106,7 +109,7 @@ jobs:
                       rm -f libssl1.1_1.1.1f-1ubuntu2_amd64.deb
                     fi
                   fi
-                  
+
                   # Final fallback: create symlinks for Ubuntu 24.04
                   if [ "$LIBSSL_INSTALLED" = false ]; then
                     echo "Creating compatibility symlinks for Ubuntu 24.04..."
@@ -115,7 +118,7 @@ jobs:
                     sudo ldconfig
                     LIBSSL_INSTALLED=true
                   fi
-                  
+
                   # Verify installation
                   if [ "$LIBSSL_INSTALLED" = true ]; then
                     echo "✅ libssl1.1 compatibility installed successfully"
@@ -129,7 +132,7 @@ jobs:
                   # Create cache directory with proper permissions
                   mkdir -p ~/.cache/mongodb-binaries
                   chmod 755 ~/.cache/mongodb-binaries
-                  
+
                   # Modern MongoDB Memory Server (v10+) works with libssl3 (default in Ubuntu 22.04+)
                   echo "✅ Using modern MongoDB Memory Server with libssl3 support"
                   echo "📋 Available SSL libraries:"
@@ -143,8 +146,11 @@ jobs:
                   restore-keys: |
                       mongodb-binaries-${{ runner.os }}-
 
-            - name: Install dependencies
-              run: npm ci
+            - name: Fix Rollup CI issues and install dependencies
+              run: |
+                  # Make script executable and run it
+                  chmod +x scripts/fix-rollup-ci.sh
+                  ./scripts/fix-rollup-ci.sh
 
             - name: Pre-download MongoDB binaries
               run: |
@@ -153,7 +159,7 @@ jobs:
                   export MONGODB_MEMORY_SERVER_DOWNLOAD_DIR=~/.cache/mongodb-binaries
                   export MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT=120000
                   export MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY=5
-                  
+
                   # Pre-download MongoDB binaries using a simple Node script
                   node -e "
                   const { MongoMemoryServer } = require('mongodb-memory-server');
@@ -203,11 +209,34 @@ jobs:
             - name: Create test results directory
               run: mkdir -p test-results
 
+            - name: Verify Rollup installation
+              run: |
+                  echo "🔍 Verifying Rollup installation..."
+                  echo "📋 Rollup version:"
+                  npx rollup --version || echo "⚠️ Rollup not accessible via npx"
+
+                  echo "📋 Installed @rollup packages:"
+                  ls -la node_modules/@rollup/ 2>/dev/null || echo "No @rollup directory found"
+
+                  echo "📋 Platform info:"
+                  echo "OS: $(uname -s)"
+                  echo "Arch: $(uname -m)"
+                  echo "Node version: $(node --version)"
+                  echo "NPM version: $(npm --version)"
+
+                  echo "📋 Vitest version:"
+                  npx vitest --version || echo "⚠️ Vitest not accessible"
+
             - name: Run unit tests
               run: npm run test:unit
               env:
                   CI: true
                   NODE_ENV: test
+                  # Fix for Rollup native modules in CI
+                  NODE_OPTIONS: '--max-old-space-size=4096'
+                  # Ensure proper platform detection
+                  npm_config_target_platform: linux
+                  npm_config_target_arch: x64
 
             - name: Run integration tests
               run: npm run test:integration
@@ -259,8 +288,11 @@ jobs:
                   cache: 'npm'
                   cache-dependency-path: package-lock.json
 
-            - name: Install dependencies
-              run: npm ci
+            - name: Fix Rollup CI issues and install dependencies
+              run: |
+                  # Make script executable and run it
+                  chmod +x scripts/fix-rollup-ci.sh
+                  ./scripts/fix-rollup-ci.sh
 
             - name: Build application
               run: npm run build

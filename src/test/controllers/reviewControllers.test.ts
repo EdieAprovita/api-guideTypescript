@@ -1,4 +1,3 @@
-import { vi, Mock } from 'vitest';
 import { faker } from '@faker-js/faker';
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
@@ -13,7 +12,7 @@ vi.mock('../../services/ReviewService');
 // Mock asyncHandler middleware to simulate error handling
 vi.mock('../../middleware/asyncHandler', () => ({
     __esModule: true,
-    default: (fn: Function) => {
+    default: (fn: (req: Request, res: Response, next: NextFunction) => Promise<void> | void) => {
         return async (req: Request, res: Response, next: NextFunction) => {
             try {
                 await fn(req, res, next);
@@ -24,7 +23,7 @@ vi.mock('../../middleware/asyncHandler', () => ({
     },
 }));
 
-const mockReviewService = reviewService as { [K in keyof typeof reviewService]: Mock };
+const mockReviewService = reviewService as vi.Mocked<typeof reviewService>;
 
 describe('Review Controllers', () => {
     let mockRequest: Partial<Request>;

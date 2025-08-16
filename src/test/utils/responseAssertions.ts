@@ -1,3 +1,4 @@
+import { vi, type MockedFunction } from 'vitest';
 /**
  * Response Assertions Utility
  *

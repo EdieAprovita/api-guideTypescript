@@ -1,94 +1,128 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createServiceMock } from '../utils/unified-test-helpers';
+import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest';
+import { CacheWarmingService, cacheWarmingService } from '../../services/CacheWarmingService';
+import { cacheService } from '../../services/CacheService';
+import { restaurantService } from '../../services/RestaurantService';
+import { businessService } from '../../services/BusinessService';
+import logger from '../../utils/logger';
 
-// Crear mocks simples
-const mockCacheService = {
-    set: vi.fn().mockResolvedValue(undefined),
-    get: vi.fn().mockResolvedValue(null),
-    invalidate: vi.fn().mockResolvedValue(undefined),
-    invalidatePattern: vi.fn().mockResolvedValue(undefined),
-    invalidateByTag: vi.fn().mockResolvedValue(undefined),
-};
-
-const mockRestaurantService = createServiceMock([]);
-const mockBusinessService = createServiceMock([]);
-
-const mockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
-
-// Mock dependencies
-vi.mock('../../services/CacheService', () => ({
-    cacheService: mockCacheService,
-}));
-vi.mock('../../services/RestaurantService', () => ({
-    restaurantService: mockRestaurantService,
-}));
-vi.mock('../../services/BusinessService', () => ({
-    businessService: mockBusinessService,
-}));
-vi.mock('../../utils/logger', () => ({
-    default: mockLogger,
-}));
-
-// Import after mocking
-import { CacheWarmingService } from '../../services/CacheWarmingService';
+// Mocks are configured globally in setup.ts
+const mockedCacheService = vi.mocked(cacheService);
+const mockedRestaurantService = vi.mocked(restaurantService);
+const mockedBusinessService = vi.mocked(businessService);
+const mockedLogger = vi.mocked(logger);
 
 describe('CacheWarmingService', () => {
     let warmingService: CacheWarmingService;
 
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.useFakeTimers();
         warmingService = new CacheWarmingService();
     });
 
     afterEach(() => {
         warmingService.stopAutoWarming();
+        vi.useRealTimers();
     });
 
-    it('should initialize correctly', () => {
-        const stats = warmingService.getWarmingStats();
-        expect(stats.isWarming).toBe(false);
-        expect(stats.lastWarmingTime).toBeNull();
-        expect(stats.autoWarmingActive).toBe(false);
+    describe('Constructor', () => {
+        it('should initialize with default state', () => {
+            const stats = warmingService.getWarmingStats();
+
+            expect(stats.isWarming).toBe(false);
+            expect(stats.lastWarmingTime).toBeNull();
+            expect(stats.autoWarmingActive).toBe(false);
+        });
     });
 
-    it('should start auto warming', async () => {
-        mockRestaurantService.getAllCached.mockResolvedValue([]);
-        mockBusinessService.getAllCached.mockResolvedValue([]);
+    describe('startAutoWarming', () => {
+        it('should start automatic warming with default interval', async () => {
+            mockedRestaurantService.getAllCached.mockResolvedValue([]);
+            mockedBusinessService.getAllCached.mockResolvedValue([]);
+            mockedCacheService.set.mockResolvedValue();
 
-        await warmingService.startAutoWarming();
+            await warmingService.startAutoWarming();
 
-        expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Starting automatic cache warming'));
-        const stats = warmingService.getWarmingStats();
-        expect(stats.autoWarmingActive).toBe(true);
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Starting automatic cache warming every 30 minutes');
+
+            const stats = warmingService.getWarmingStats();
+            expect(stats.autoWarmingActive).toBe(true);
+        });
+
+        it('should start automatic warming with custom interval', async () => {
+            mockedRestaurantService.getAllCached.mockResolvedValue([]);
+            mockedBusinessService.getAllCached.mockResolvedValue([]);
+            mockedCacheService.set.mockResolvedValue();
+
+            await warmingService.startAutoWarming(15);
+
+            expect(mockedLogger.info).toHaveBeenCalledWith('🔥 Starting automatic cache warming every 15 minutes');
+        });
     });
 
-    it('should stop auto warming', () => {
-        warmingService.stopAutoWarming();
-        // Should not throw error
-        expect(true).toBe(true);
+    describe('stopAutoWarming', () => {
+        it('should stop automatic warming', async () => {
+            mockedRestaurantService.getAllCached.mockResolvedValue([]);
+            mockedBusinessService.getAllCached.mockResolvedValue([]);
+            mockedCacheService.set.mockResolvedValue();
+
+            await warmingService.startAutoWarming();
+            warmingService.stopAutoWarming();
+
+            expect(mockedLogger.info).toHaveBeenCalledWith('🛑 Automatic cache warming stopped');
+
+            const stats = warmingService.getWarmingStats();
+            expect(stats.autoWarmingActive).toBe(false);
+        });
     });
 
-    it('should warm critical data', async () => {
-        mockRestaurantService.getAllCached.mockResolvedValue([]);
-        mockBusinessService.getAllCached.mockResolvedValue([]);
+    describe('warmUpCriticalData', () => {
+        beforeEach(() => {
+            mockedRestaurantService.getAllCached.mockResolvedValue([]);
+            mockedBusinessService.getAllCached.mockResolvedValue([]);
+            mockedCacheService.set.mockResolvedValue();
+        });
 
-        const result = await warmingService.warmUpCriticalData();
+        it('should warm up all critical data successfully', async () => {
+            const result = await warmingService.warmUpCriticalData();
 
-        expect(result.success).toBe(true);
-        expect(typeof result.duration).toBe('number');
+            expect(result.success).toBe(true);
+            expect(result.itemsWarmed).toBeGreaterThan(0);
+            expect(result.errors).toHaveLength(0);
+            expect(typeof result.duration).toBe('number');
+        });
+
+        it('should skip warming if already in progress', async () => {
+            // Start first warming
+            const firstWarming = warmingService.warmUpCriticalData();
+
+            // Try to start second warming immediately
+            const result = await warmingService.warmUpCriticalData();
+
+            expect(result.success).toBe(false);
+            expect(result.itemsWarmed).toBe(0);
+            expect(result.errors).toContain('Warming already in progress');
+
+            // Wait for first warming to complete
+            await firstWarming;
+        });
     });
 
-    it('should handle warming errors gracefully', async () => {
-        mockRestaurantService.getAllCached.mockRejectedValue(new Error('Test error'));
-        mockBusinessService.getAllCached.mockResolvedValue([]);
+    describe('getWarmingStats', () => {
+        it('should return correct warming statistics', () => {
+            const stats = warmingService.getWarmingStats();
 
-        const result = await warmingService.warmUpCriticalData();
+            expect(stats).toEqual({
+                isWarming: false,
+                lastWarmingTime: null,
+                autoWarmingActive: false,
+            });
+        });
+    });
 
-        expect(result.success).toBe(false);
-        expect(result.errors.length).toBeGreaterThan(0);
+    describe('Singleton Instance', () => {
+        it('should have singleton exported', () => {
+            expect(cacheWarmingService).toBeInstanceOf(CacheWarmingService);
+        });
     });
 });

@@ -14,49 +14,20 @@ export interface TestUser {
 export const authMiddlewareMocks = {
     protect: vi.fn((req: Request, res: Response, next: NextFunction) => {
         const reqWithUser = req as Request & { user?: TestUser };
-        reqWithUser.user = {
-            _id: faker.database.mongodbObjectId(),
-            role: 'user',
-            email: faker.internet.email(),
-        };
+        reqWithUser.user = { _id: faker.database.mongodbObjectId(), role: 'admin', email: 'faker.internet.email()' };
         next();
     }),
     admin: vi.fn((req: Request, res: Response, next: NextFunction) => {
         const reqWithUser = req as Request & { user?: TestUser };
-        reqWithUser.user = {
-            _id: faker.database.mongodbObjectId(),
-            role: 'admin',
-            email: faker.internet.email(),
-        };
-        next();
+        if (reqWithUser.user?.role === 'admin') {
+            next();
+        } else {
+            res.status(403).json({ success: false, message: 'Admin access required' });
+        }
     }),
-    professional: vi.fn((req: Request, res: Response, next: NextFunction) => {
-        const reqWithUser = req as Request & { user?: TestUser };
-        reqWithUser.user = {
-            _id: faker.database.mongodbObjectId(),
-            role: 'professional',
-            email: faker.internet.email(),
-        };
-        next();
-    }),
-    requireAuth: vi.fn((req: Request, res: Response, next: NextFunction) => {
-        const reqWithUser = req as Request & { user?: TestUser };
-        reqWithUser.user = {
-            _id: faker.database.mongodbObjectId(),
-            role: 'user',
-            email: faker.internet.email(),
-        };
-        next();
-    }),
-    checkOwnership: vi.fn(() => (req: Request, res: Response, next: NextFunction) => {
-        const reqWithUser = req as Request & { user?: TestUser };
-        reqWithUser.user = {
-            _id: faker.database.mongodbObjectId(),
-            role: 'user',
-            email: faker.internet.email(),
-        };
-        next();
-    }),
+    professional: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    requireAuth: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+    checkOwnership: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
     logout: vi.fn(async (req: Request, res: Response, next: NextFunction) => {
         res.json({
             success: true,
@@ -117,6 +88,22 @@ export const securityMocks = {
     limitRequestSize: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
     detectSuspiciousActivity: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
     rateLimits: validationMocks.rateLimits, // Reutilizar los mismos rateLimits
+};
+
+// Mock para cache middleware
+export const cacheMocks = {
+    recipeCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    businessCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    restaurantCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    geoLocationCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    userProfileCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    searchCacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheInvalidationMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheStatsMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    cacheFlushMiddleware: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    browserCacheValidation: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
+    clearCache: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
 };
 
 // Mock para controladores de usuario (usado en authRoutes)

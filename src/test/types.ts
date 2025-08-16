@@ -77,13 +77,13 @@ export interface MockPost {
 }
 
 export interface MockReviewService {
-    getTopRatedReviews: MockedFunction<() => Promise<MockReview[]>>;
-    addReview: MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
-    getAll: MockedFunction<() => Promise<MockReview[]>>;
-    findById: MockedFunction<(id: string) => Promise<MockReview | null>>;
-    create: MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
-    updateById: MockedFunction<(id: string, data: Partial<MockReview>) => Promise<MockReview | null>>;
-    deleteById: MockedFunction<(id: string) => Promise<void>>;
+    getTopRatedReviews: vi.MockedFunction<() => Promise<MockReview[]>>;
+    addReview: vi.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
+    getAll: vi.MockedFunction<() => Promise<MockReview[]>>;
+    findById: vi.MockedFunction<(id: string) => Promise<MockReview | null>>;
+    create: vi.MockedFunction<(data: Partial<MockReview>) => Promise<MockReview>>;
+    updateById: vi.MockedFunction<(id: string, data: Partial<MockReview>) => Promise<MockReview | null>>;
+    deleteById: vi.MockedFunction<(id: string) => Promise<void>>;
 }
 
 // Tipos para middleware mocking
@@ -92,13 +92,13 @@ export type TestController = (req: Request, res: Response) => void | Promise<voi
 
 // Utilidades para mocking
 export interface AuthMock {
-    protect: MockedFunction<TestMiddleware>;
-    admin: MockedFunction<TestMiddleware>;
-    professional: MockedFunction<TestMiddleware>;
-    requireAuth: MockedFunction<TestMiddleware>;
-    checkOwnership: MockedFunction<() => TestMiddleware>;
-    logout: MockedFunction<TestController>;
-    refreshToken: MockedFunction<TestController>;
+    protect: vi.MockedFunction<TestMiddleware>;
+    admin: vi.MockedFunction<TestMiddleware>;
+    professional: vi.MockedFunction<TestMiddleware>;
+    requireAuth: vi.MockedFunction<TestMiddleware>;
+    checkOwnership: vi.MockedFunction<() => TestMiddleware>;
+    logout: vi.MockedFunction<TestController>;
+    refreshToken: vi.MockedFunction<TestController>;
 }
 
 // Type guards

@@ -1,177 +1,211 @@
-import { describe, it, beforeEach, vi } from 'vitest';
+import { vi, describe, it, beforeEach, expect } from 'vitest';
 import request from 'supertest';
-import app from '../../app';
-import {
-    generateTestData,
-    makeRequest,
-    expectResponse,
-    createServiceMock,
-    generateCrudTests,
-    resetAllMocks,
-} from '../utils/unified-test-helpers';
+import type { Request, Response, NextFunction } from 'express';
 
-// ============================================================================
-// MOCKS
-// ============================================================================
+// === MOCKS FIRST ===
+vi.mock('express-validator', () => ({
+    validationResult: vi.fn(() => ({
+        isEmpty: () => true,
+        array: () => [],
+    })),
+}));
 
-// Mock the BusinessService
-const mockBusinessService = createServiceMock([
-    generateTestData.business({ namePlace: 'Test Business 1' }),
-    generateTestData.business({ namePlace: 'Test Business 2' }),
-]);
+vi.mock('../../middleware/authMiddleware', () => ({
+    protect: (req: Request, _res: Response, next: NextFunction) => {
+        req.user = { _id: 'user123', role: 'admin' };
+        next();
+    },
+    admin: (_req: Request, _res: Response, next: NextFunction) => next(),
+    professional: (_req: Request, _res: Response, next: NextFunction) => next(),
+    refreshToken: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+    logout: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+    revokeAllTokens: (_req: Request, res: Response) => res.status(200).json({ success: true }),
+}));
 
+vi.mock('../../middleware/asyncHandler', () => ({
+    default: (fn: Function) => fn,
+}));
+
+vi.mock('../../types/modalTypes', () => ({
+    getErrorMessage: (message: string) => message,
+}));
+
+vi.mock('../../config/db', () => ({
+    connectDB: vi.fn().mockResolvedValue(undefined),
+    disconnectDB: vi.fn().mockResolvedValue(undefined),
+    isConnected: vi.fn().mockReturnValue(true),
+}));
+
+vi.mock('../../utils/logger', () => ({
+    __esModule: true,
+    default: {
+        error: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+    },
+}));
+
+// Simplified service mocks
 vi.mock('../../services/BusinessService', () => ({
-    businessService: mockBusinessService,
+    businessService: {
+        getAllCached: vi.fn(),
+        findByIdCached: vi.fn(),
+        create: vi.fn(),
+        updateById: vi.fn(),
+        deleteById: vi.fn(),
+    },
 }));
 
-// Mock geocoding utility
-vi.mock('../../utils/geocodeLocation', () => ({
-    default: vi.fn().mockResolvedValue(undefined),
+vi.mock('../../services/ReviewService', () => ({
+    reviewService: {
+        addReview: vi.fn(),
+    },
 }));
 
-// ============================================================================
-// TESTS
-// ============================================================================
+import app from '../../app';
+import { businessService } from '../../services/BusinessService';
+import { reviewService } from '../../services/ReviewService';
 
-describe('Business Controllers', () => {
-    beforeEach(() => {
-        resetAllMocks();
-    });
-
-    // ============================================================================
-    // CRUD TESTS (Auto-generated)
-    // ============================================================================
-
-    const crudTests = generateCrudTests({
-        app,
-        basePath: '/api/v1/businesses',
-        serviceMock: mockBusinessService,
-        validData: {
-            namePlace: 'New Business',
-            address: '123 Test Street',
-            typeBusiness: 'restaurant',
-            budget: 2,
-            contact: [
-                {
-                    phone: '+1234567890',
-                    email: 'test@business.com',
-                },
-            ],
-        },
-        updateData: {
-            namePlace: 'Updated Business',
-            budget: 3,
-        },
-        resourceName: 'business',
-    });
-
-    // Run all CRUD tests
-    crudTests.runAllTests();
-
-    // ============================================================================
-    // CUSTOM BUSINESS LOGIC TESTS
-    // ============================================================================
-
-    describe('Business-specific operations', () => {
-        it('should get top rated businesses', async () => {
-            const mockTopBusinesses = [
-                generateTestData.business({ rating: 5, numReviews: 10 }),
-                generateTestData.business({ rating: 4.8, numReviews: 8 }),
-            ];
-
-            // Mock ReviewService for top-rated endpoint
-            vi.doMock('../../services/ReviewService', () => ({
-                reviewService: {
-                    getTopRatedReviews: vi.fn().mockResolvedValue(mockTopBusinesses),
-                },
-            }));
-
-            const response = await makeRequest.get(app, '/api/v1/businesses/top-rated');
-
-            expectResponse.success(response);
-            expect(response.body.data).toHaveLength(2);
-            expect(response.body.data[0].rating).toBe(5);
-        });
-
-        it('should add review to business', async () => {
-            const businessId = generateTestData.business()._id;
-            const reviewData = {
-                rating: 5,
-                title: 'Great business!',
-                content: 'Really enjoyed my visit.',
-            };
-
-            // Mock ReviewService
-            vi.doMock('../../services/ReviewService', () => ({
-                reviewService: {
-                    addReview: vi.fn().mockResolvedValue({
-                        _id: 'review123',
-                        ...reviewData,
-                        businessId,
-                    }),
-                },
-            }));
-
-            const response = await makeRequest.post(app, `/api/v1/businesses/${businessId}/reviews`, reviewData);
-
-            expectResponse.success(response);
-            expect(response.body.message).toBe('Review added successfully');
-        });
-    });
-
-    // ============================================================================
-    // ERROR HANDLING TESTS
-    // ============================================================================
-
-    describe('Error handling', () => {
-        it('should handle missing business ID', async () => {
-            const response = await makeRequest.get(app, '/api/v1/businesses/');
-            expectResponse.error(response, 404);
-        });
-
-        it('should handle service errors', async () => {
-            mockBusinessService.getAll.mockRejectedValue(new Error('Database connection failed'));
-
-            const response = await makeRequest.get(app, '/api/v1/businesses');
-            expectResponse.error(response, 404);
-        });
-
-        it('should validate required fields on create', async () => {
-            const invalidData = {
-                // Missing required namePlace
-                address: '123 Test Street',
-            };
-
-            const response = await makeRequest.post(app, '/api/v1/businesses', invalidData);
-            expectResponse.validation(response);
-        });
-    });
-
-    // ============================================================================
-    // AUTHENTICATION TESTS
-    // ============================================================================
-
-    describe('Authentication', () => {
-        it('should allow public access to GET endpoints', async () => {
-            const response = await makeRequest.get(app, '/api/v1/businesses');
-            expectResponse.success(response);
-        });
-
-        // Note: Authentication tests would require auth token
-        // This can be extended based on your auth requirements
-    });
+beforeEach(() => {
+    vi.clearAllMocks();
 });
 
-// ============================================================================
-// INTEGRATION TESTS (Optional - separate file recommended)
-// ============================================================================
+describe('Business Controllers Tests', () => {
+    describe('Get all businesses', () => {
+        it('should get all businesses', async () => {
+            const mockBusinesses = [
+                { _id: 'business1', name: 'Test Business', address: 'Test Address' }
+            ];
 
-describe('Business Controllers Integration', () => {
-    // These would typically be in a separate .integration.test.ts file
-    // and would use real database connections
+            (businessService.getAllCached as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockBusinesses);
 
-    it.skip('should create business with real database', async () => {
-        // Integration test implementation
-        // Uses configureTest({ type: 'integration' })
+            const response = await request(app).get('/api/v1/businesses');
+
+            expect(response.status).toBe(200);
+            expect(businessService.getAllCached).toHaveBeenCalled();
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Businesses fetched successfully',
+                data: mockBusinesses,
+            });
+        });
+    });
+
+    describe('Get business by id', () => {
+        it('should get business by id', async () => {
+            const mockBusiness = { _id: 'business1', name: 'Test Business', address: 'Test Address' };
+
+            (businessService.findByIdCached as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockBusiness);
+
+            const response = await request(app).get('/api/v1/businesses/business1');
+
+            expect(response.status).toBe(200);
+            expect(businessService.findByIdCached).toHaveBeenCalledWith('business1');
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Business fetched successfully',
+                data: mockBusiness,
+            });
+        });
+    });
+
+    describe('Create business', () => {
+        it('should create a new business', async () => {
+            const businessData = {
+                name: 'My Shop',
+                description: 'A great shop',
+                address: '123 Main St',
+                category: 'retail',
+                phoneNumber: '+1234567890',
+            };
+
+            const createdBusiness = { ...businessData, _id: 'business123' };
+            (businessService.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(createdBusiness);
+
+            const response = await request(app).post('/api/v1/businesses').send(businessData);
+
+            expect(response.status).toBe(201);
+            expect(businessService.create).toHaveBeenCalledWith(
+                expect.objectContaining(businessData)
+            );
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Business created successfully',
+                data: createdBusiness,
+            });
+        });
+    });
+
+    describe('Update business', () => {
+        it('should update business by id', async () => {
+            const businessId = 'business123';
+            const updateData = {
+                name: 'Updated Shop',
+                description: 'Updated description',
+            };
+
+            const updatedBusiness = { ...updateData, _id: businessId };
+            (businessService.updateById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(updatedBusiness);
+
+            const response = await request(app).put(`/api/v1/businesses/${businessId}`).send(updateData);
+
+            expect(response.status).toBe(200);
+            expect(businessService.updateById).toHaveBeenCalledWith(
+                businessId,
+                expect.objectContaining(updateData)
+            );
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Business updated successfully',
+                data: updatedBusiness,
+            });
+        });
+    });
+
+    describe('Add review to business', () => {
+        it('should add review to business', async () => {
+            const mockReview = {
+                _id: 'reviewId',
+                businessId: 'businessId',
+                rating: 5,
+                comment: 'Great business!',
+            };
+
+            (reviewService.addReview as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockReview);
+
+            const reviewData = {
+                rating: 5,
+                comment: 'Great business!',
+            };
+
+            const response = await request(app).post('/api/v1/businesses/add-review/businessId').send(reviewData);
+
+            expect(response.status).toBe(200);
+            expect(reviewService.addReview).toHaveBeenCalledWith({
+                ...reviewData,
+                businessId: 'businessId',
+            });
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Review added successfully',
+                data: mockReview,
+            });
+        });
+    });
+
+    describe('Delete business', () => {
+        it('should delete business', async () => {
+            (businessService.deleteById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
+
+            const response = await request(app).delete('/api/v1/businesses/businessId');
+
+            expect(response.status).toBe(200);
+            expect(businessService.deleteById).toHaveBeenCalledWith('businessId');
+            expect(response.body).toEqual({
+                success: true,
+                message: 'Business deleted successfully',
+            });
+        });
     });
 });

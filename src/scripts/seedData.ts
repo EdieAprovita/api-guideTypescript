@@ -502,44 +502,34 @@ export const seedDatabase = async () => {
         console.log('Creating sample reviews...');
         const sampleReviews = [
             {
-                username: chefUser?.username ?? 'chef_sarah',
+                title: 'Amazing Plant-Based Experience',
+                content:
+                    'Amazing plant-based food! The cashew alfredo was incredible. The atmosphere was perfect and the service was outstanding. Highly recommend for anyone looking for delicious vegan options.',
                 rating: 5,
-                comment: 'Amazing plant-based food! The cashew alfredo was incredible.',
-                user: chefUser?._id,
-                refId: createdRestaurants[0]?._id,
-                refModel: 'Restaurant',
+                author: chefUser?._id,
+                restaurant: createdRestaurants[0]?._id,
+                recommendedDishes: ['Cashew Alfredo', 'Vegan Caesar Salad'],
+                tags: ['vegan', 'delicious', 'atmosphere'],
             },
             {
-                username: adminUser?.username ?? 'admin',
-                rating: 4,
-                comment: 'Great recipe, easy to follow and delicious results!',
-                user: adminUser?._id,
-                refId: createdRecipes[0]?._id,
-                refModel: 'Recipe',
-            },
-            {
-                username: ownerUser?.username ?? 'restaurant_owner',
+                title: 'Excellent Vegan Cuisine',
+                content:
+                    'Plant Power Kitchen has the best vegan burgers in LA! The patty was perfectly cooked and the toppings were fresh. The fries were crispy and the milkshake was creamy and delicious.',
                 rating: 5,
-                comment: 'Dr. Green provided excellent nutritional guidance for my plant-based journey.',
-                user: ownerUser?._id,
-                refId: createdDoctors[0]?._id,
-                refModel: 'Doctor',
+                author: adminUser?._id,
+                restaurant: createdRestaurants[1]?._id,
+                recommendedDishes: ['Vegan Burger', 'French Fries', 'Milkshake'],
+                tags: ['vegan-burger', 'fast-food', 'comfort-food'],
             },
             {
-                username: doctorUser?.username ?? 'dr_green',
-                rating: 4,
-                comment: 'Love this Buddha bowl recipe! Perfect for my patients.',
-                user: doctorUser?._id,
-                refId: createdRecipes[1]?._id,
-                refModel: 'Recipe',
-            },
-            {
-                username: adminUser?.username ?? 'admin',
+                title: 'Gourmet Vegan Dining',
+                content:
+                    'The Herbivore offers an exceptional fine dining experience with creative plant-based dishes. The presentation was beautiful and every bite was a delight. Perfect for special occasions.',
                 rating: 5,
-                comment: 'Plant Power Kitchen has the best vegan burgers in LA!',
-                user: adminUser?._id,
-                refId: createdRestaurants[1]?._id,
-                refModel: 'Restaurant',
+                author: ownerUser?._id,
+                restaurant: createdRestaurants[2]?._id,
+                recommendedDishes: ['Truffle Risotto', 'Chocolate Mousse'],
+                tags: ['fine-dining', 'gourmet', 'special-occasion'],
             },
         ];
 
