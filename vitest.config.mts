@@ -73,8 +73,15 @@ export default defineConfig({
             },
         },
 
-        // Reporters
-        reporters: ['basic'],
+        // Reporters - Updated to avoid deprecation warning
+        reporters: [
+            [
+                'default',
+                {
+                    summary: false
+                }
+            ]
+        ],
 
         // Setup files for different test types
         setupFiles: ['./src/test/setup/global-setup.ts'],
