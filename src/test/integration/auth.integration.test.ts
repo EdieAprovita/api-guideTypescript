@@ -2,11 +2,7 @@ import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import app from '../../app';
-import {
-    connect as connectTestDB,
-    closeDatabase as disconnectTestDB,
-    clearDatabase as clearTestDB,
-} from './helpers/testDb';
+import { setupTestDB } from './helpers/testSetup';
 import { createTestUser, createAdminUser, generateAuthTokens } from './helpers/testFixtures';
 import { logTestError } from './helpers/errorLogger';
 import { User } from '../../models/User';
@@ -137,21 +133,19 @@ const setupUserAndTokens = async (isAdmin = false): Promise<{ user: TestUser; to
 
 // Integration skipped pending environment setup
 describe.skip('Authentication Flow Integration Tests', () => {
+    setupTestDB();
+    
     beforeAll(async () => {
         // Clear any mocks to ensure real implementations are used
         vi.clearAllMocks();
         vi.resetAllMocks();
         vi.restoreAllMocks();
 
-        await connectTestDB();
+        // Database connection handled by setupTestDB
     });
 
     afterEach(async () => {
-        await clearTestDB();
-    });
-
-    afterAll(async () => {
-        await disconnectTestDB();
+        // Database cleanup handled by setupTestDB
     });
 
     describe('POST /api/v1/users/register', () => {
