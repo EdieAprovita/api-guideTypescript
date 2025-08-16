@@ -1,11 +1,17 @@
 import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest';
+
+// Mock all dependencies before importing
+vi.mock('../../services/CacheService');
+vi.mock('../../services/RestaurantService');
+vi.mock('../../services/BusinessService');
+vi.mock('../../utils/logger');
+
 import { CacheWarmingService, cacheWarmingService } from '../../services/CacheWarmingService';
 import { cacheService } from '../../services/CacheService';
 import { restaurantService } from '../../services/RestaurantService';
 import { businessService } from '../../services/BusinessService';
 import logger from '../../utils/logger';
 
-// Mocks are configured globally in setup.ts
 const mockedCacheService = vi.mocked(cacheService);
 const mockedRestaurantService = vi.mocked(restaurantService);
 const mockedBusinessService = vi.mocked(businessService);
@@ -37,9 +43,10 @@ describe('CacheWarmingService', () => {
 
     describe('startAutoWarming', () => {
         it('should start automatic warming with default interval', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([]);
-            mockedBusinessService.getAllCached.mockResolvedValue([]);
-            mockedCacheService.set.mockResolvedValue();
+            // Setup mocks properly
+            mockedRestaurantService.getAllCached = vi.fn().mockResolvedValue([]);
+            mockedBusinessService.getAllCached = vi.fn().mockResolvedValue([]);
+            mockedCacheService.set = vi.fn().mockResolvedValue(undefined);
 
             await warmingService.startAutoWarming();
 
@@ -50,9 +57,9 @@ describe('CacheWarmingService', () => {
         });
 
         it('should start automatic warming with custom interval', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([]);
-            mockedBusinessService.getAllCached.mockResolvedValue([]);
-            mockedCacheService.set.mockResolvedValue();
+            mockedRestaurantService.getAllCached = vi.fn().mockResolvedValue([]);
+            mockedBusinessService.getAllCached = vi.fn().mockResolvedValue([]);
+            mockedCacheService.set = vi.fn().mockResolvedValue(undefined);
 
             await warmingService.startAutoWarming(15);
 
@@ -62,9 +69,9 @@ describe('CacheWarmingService', () => {
 
     describe('stopAutoWarming', () => {
         it('should stop automatic warming', async () => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([]);
-            mockedBusinessService.getAllCached.mockResolvedValue([]);
-            mockedCacheService.set.mockResolvedValue();
+            mockedRestaurantService.getAllCached = vi.fn().mockResolvedValue([]);
+            mockedBusinessService.getAllCached = vi.fn().mockResolvedValue([]);
+            mockedCacheService.set = vi.fn().mockResolvedValue(undefined);
 
             await warmingService.startAutoWarming();
             warmingService.stopAutoWarming();
@@ -78,9 +85,9 @@ describe('CacheWarmingService', () => {
 
     describe('warmUpCriticalData', () => {
         beforeEach(() => {
-            mockedRestaurantService.getAllCached.mockResolvedValue([]);
-            mockedBusinessService.getAllCached.mockResolvedValue([]);
-            mockedCacheService.set.mockResolvedValue();
+            mockedRestaurantService.getAllCached = vi.fn().mockResolvedValue([]);
+            mockedBusinessService.getAllCached = vi.fn().mockResolvedValue([]);
+            mockedCacheService.set = vi.fn().mockResolvedValue(undefined);
         });
 
         it('should warm up all critical data successfully', async () => {
