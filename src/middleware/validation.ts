@@ -90,7 +90,7 @@ export const sanitizeInput = () => {
                         value
                             // Remove complete script blocks (opening tag, content, closing tag)
                             .replace(/<script[^>]*>.*?<\/script>/gis, '')
-                            
+
                             // Remove any remaining script tags
                             .replace(/<\/?script[^>]*>/gi, '')
 
@@ -165,7 +165,7 @@ export const sanitizeInput = () => {
             }
 
             next();
-        }
+        },
     ];
 };
 

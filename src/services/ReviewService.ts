@@ -275,7 +275,7 @@ class ReviewService implements IReviewService {
 
     private sanitizeReviewData(reviewData: Partial<IReview>): Partial<IReview> {
         const sanitized: Partial<IReview> = {};
-        
+
         // Only allow specific fields and sanitize them
         if (reviewData.rating !== undefined) {
             const rating = Number(reviewData.rating);
@@ -284,21 +284,31 @@ class ReviewService implements IReviewService {
             }
             sanitized.rating = Math.floor(rating);
         }
-        
+
         if (reviewData.title) {
             if (typeof reviewData.title !== 'string' || reviewData.title.length < 5 || reviewData.title.length > 100) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Title must be between 5 and 100 characters'));
+                throw new HttpError(
+                    HttpStatusCode.BAD_REQUEST,
+                    getErrorMessage('Title must be between 5 and 100 characters')
+                );
             }
             sanitized.title = reviewData.title.trim();
         }
-        
+
         if (reviewData.content) {
-            if (typeof reviewData.content !== 'string' || reviewData.content.length < 10 || reviewData.content.length > 1000) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Content must be between 10 and 1000 characters'));
+            if (
+                typeof reviewData.content !== 'string' ||
+                reviewData.content.length < 10 ||
+                reviewData.content.length > 1000
+            ) {
+                throw new HttpError(
+                    HttpStatusCode.BAD_REQUEST,
+                    getErrorMessage('Content must be between 10 and 1000 characters')
+                );
             }
             sanitized.content = reviewData.content.trim();
         }
-        
+
         if (reviewData.visitDate) {
             const date = new Date(reviewData.visitDate);
             if (isNaN(date.getTime())) {
@@ -306,7 +316,7 @@ class ReviewService implements IReviewService {
             }
             sanitized.visitDate = date;
         }
-        
+
         if (reviewData.recommendedDishes) {
             if (Array.isArray(reviewData.recommendedDishes)) {
                 sanitized.recommendedDishes = reviewData.recommendedDishes
@@ -315,7 +325,7 @@ class ReviewService implements IReviewService {
                     .slice(0, 10); // Limit to 10 dishes
             }
         }
-        
+
         if (reviewData.tags) {
             if (Array.isArray(reviewData.tags)) {
                 sanitized.tags = reviewData.tags
@@ -324,21 +334,21 @@ class ReviewService implements IReviewService {
                     .slice(0, 5); // Limit to 5 tags
             }
         }
-        
+
         if (reviewData.author) {
             if (!Types.ObjectId.isValid(reviewData.author)) {
                 throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid author ID'));
             }
             sanitized.author = new Types.ObjectId(reviewData.author.toString());
         }
-        
+
         if (reviewData.restaurant) {
             if (!Types.ObjectId.isValid(reviewData.restaurant)) {
                 throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID'));
             }
             sanitized.restaurant = new Types.ObjectId(reviewData.restaurant.toString());
         }
-        
+
         return sanitized;
     }
 

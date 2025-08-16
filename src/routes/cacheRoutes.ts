@@ -52,14 +52,14 @@ router.delete('/flush', protect, admin, async (_req, res) => {
 router.delete('/invalidate/:pattern(*)', protect, admin, async (req, res) => {
     try {
         const { pattern } = req.params;
-        
+
         if (!pattern) {
             return res.status(400).json({
                 success: false,
                 error: 'Pattern parameter is required',
             });
         }
-        
+
         await cacheService.invalidatePattern(pattern);
 
         logger.info(`Cache pattern invalidated: ${pattern}`);
@@ -81,14 +81,14 @@ router.delete('/invalidate/:pattern(*)', protect, admin, async (req, res) => {
 router.delete('/invalidate-tag/:tag', protect, admin, async (req, res) => {
     try {
         const { tag } = req.params;
-        
+
         if (!tag) {
             return res.status(400).json({
                 success: false,
                 error: 'Tag parameter is required',
             });
         }
-        
+
         await cacheService.invalidateByTag(tag);
 
         logger.info(`Cache tag invalidated: ${tag}`);

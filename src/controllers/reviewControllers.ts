@@ -14,7 +14,7 @@ const validateReviewOwnership = async (reviewId: string, userId: string) => {
     }
 
     const review = await ReviewService.getReviewById(reviewId);
-    
+
     // Handle both populated and non-populated author field
     const authorId =
         typeof review.author === 'object' && review.author._id
@@ -24,7 +24,7 @@ const validateReviewOwnership = async (reviewId: string, userId: string) => {
     if (authorId !== userId.toString()) {
         throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only modify your own reviews');
     }
-    
+
     return review;
 };
 
