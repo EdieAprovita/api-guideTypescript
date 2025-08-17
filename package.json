@@ -22,7 +22,7 @@
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run --coverage --reporter=verbose",
-    "test:integration": "vitest run src/test/integration",
+    "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:services": "vitest run src/test/services",
     "test:controllers": "vitest run src/test/controllers",
     "test:middleware": "vitest run src/test/middleware",
