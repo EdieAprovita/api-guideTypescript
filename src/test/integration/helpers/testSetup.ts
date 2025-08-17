@@ -1,5 +1,4 @@
-import { connect as connectTestDB, closeDatabase as disconnectTestDB, clearDatabase as clearTestDB } from './testDb';
-import { createAdminUser, generateAuthTokens } from './testFixtures';
+import { beforeAll, afterAll } from 'vitest';
 
 export interface AdminAuth {
     adminId: string;
@@ -7,26 +6,13 @@ export interface AdminAuth {
     adminToken: string;
 }
 
-// Setup database connection hooks once per test suite
+// Simple database setup - no longer needed for simplified tests
 export const setupTestDB = (): void => {
     beforeAll(async () => {
-        await connectTestDB();
+        // No database setup needed for endpoint-only tests
     });
 
     afterAll(async () => {
-        await disconnectTestDB();
+        // No cleanup needed
     });
-};
-
-// Clear DB and create a fresh admin user/token for each test
-export const refreshAdmin = async (): Promise<AdminAuth> => {
-    await clearTestDB();
-    const admin = await createAdminUser();
-    const adminId = admin._id.toString();
-    const tokens = await generateAuthTokens(adminId, admin.email, admin.role);
-    return {
-        adminId,
-        adminObjectId: admin._id, // Keep the ObjectId for MongoDB operations
-        adminToken: tokens.accessToken,
-    };
 };

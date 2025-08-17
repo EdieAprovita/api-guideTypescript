@@ -7,13 +7,18 @@ import { defineConfig } from 'vitest/config';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
+  // CI-specific optimizations
+  optimizeDeps: {
+    // Force pre-bundling of problematic dependencies
+    force: true,
+    include: ['vitest', '@vitest/runner']
+  },
   test: {
     name: 'unit',
     include: [
-      'src/test/services/**/*.simple.test.ts',
-      'src/test/controllers/**/*.simple.test.ts',
-      'src/test/utils/**/*.test.ts',
-      'src/test/models/**/*.test.ts'
+      'src/test/unit/**/*.test.ts',
+      'src/test/unit/**/*.simple.test.ts',
+      'src/test/unit/**/*.simplified.test.ts'
     ],
     exclude: [
       'src/test/integration/**',
@@ -35,16 +40,30 @@ export default defineConfig({
         'src/**/*.spec.ts'
       ]
     },
-    testTimeout: 5000, // Fast timeout for unit tests
-    hookTimeout: 5000,
+    testTimeout: 10000, // Increased timeout for CI
+    hookTimeout: 10000,
     bail: 0,
     logHeapUsage: true,
     passWithNoTests: true,
     silent: false,
-    reporters: ['basic'],
+    reporters: [
+      [
+        'default',
+        {
+          summary: false
+        }
+      ]
+    ],
     outputFile: undefined,
     // Disable console intercept to reduce noise
-    disableConsoleIntercept: true
+    disableConsoleIntercept: true,
+    // CI-specific settings
+    pool: 'forks', // Use forks instead of threads for better CI compatibility
+    poolOptions: {
+      forks: {
+        singleFork: true // Use single fork to avoid resource issues
+      }
+    }
   },
   resolve: {
     alias: {

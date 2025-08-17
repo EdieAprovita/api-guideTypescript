@@ -8,7 +8,7 @@ vi.doUnmock('express-validator');
 
 import { faker } from '@faker-js/faker';
 import mongoose from 'mongoose';
-import { User } from '../../../models/User';
+import { User, IUser } from '../../../models/User';
 import { Restaurant, IRestaurant } from '../../../models/Restaurant';
 import { Business } from '../../../models/Business';
 import { logTestError } from './errorLogger';
@@ -64,14 +64,16 @@ interface UserOverrides {
     password?: string;
     username?: string;
     email?: string;
-    role?: string;
+    role?: 'user' | 'professional' | 'admin';
     isAdmin?: boolean;
     isActive?: boolean;
     isDeleted?: boolean;
     photo?: string;
+    firstName?: string;
+    lastName?: string;
 }
 
-export const createTestUser = async (overrides: UserOverrides = {}) => {
+export const createTestUser = async (overrides: UserOverrides = {}): Promise<IUser> => {
     try {
         // Generate plain password for compatibility
         const plainPassword = overrides.password || generateTestPassword();
@@ -79,20 +81,21 @@ export const createTestUser = async (overrides: UserOverrides = {}) => {
         // Generate unique username and email to avoid conflicts
         const uniqueId = generateSecureUniqueId();
 
-        // Create user data without password since it's causing issues in test environment
+        // Create complete user data including password for integration tests
         const userData = {
             username: overrides.username || `testuser_${uniqueId}`,
             email: (overrides.email || `test_${uniqueId}@example.com`).toLowerCase(),
-            role: 'user',
-            isAdmin: false,
-            isActive: true,
-            isDeleted: false,
-            photo: 'default.png',
-            ...overrides,
-            // Skip password field for integration tests due to schema issues
+            password: plainPassword, // Include password for successful creation
+            role: overrides.role || 'user',
+            isAdmin: overrides.isAdmin || false,
+            isActive: overrides.isActive !== undefined ? overrides.isActive : true,
+            isDeleted: overrides.isDeleted || false,
+            photo: overrides.photo || 'default.png',
+            firstName: overrides.firstName,
+            lastName: overrides.lastName,
         };
 
-        // Create user without password for integration tests
+        // Create user with all required fields
         const user = await User.create(userData);
 
         if (!user) {
@@ -104,8 +107,8 @@ export const createTestUser = async (overrides: UserOverrides = {}) => {
             throw new Error('Created user is not a valid Mongoose document');
         }
 
-        // Return user object with mock password for compatibility with test expectations
-        return { ...user.toObject(), password: plainPassword };
+        // Return user document directly for compatibility with test expectations
+        return user;
     } catch (error) {
         logTestError('createTestUser', error);
         throw new Error(`Failed to create test user: ${error instanceof Error ? error.message : 'Unknown error'}`);

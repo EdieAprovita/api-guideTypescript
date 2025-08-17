@@ -1,4 +1,3 @@
-import { vi, MockedFunction } from 'vitest';
 /**
  * TypeScript interfaces for test mocks to eliminate 'any' usage
  * These provide proper typing for all mock objects used in tests
@@ -19,8 +18,8 @@ export interface TestUser {
     photo?: string;
     createdAt: Date;
     updatedAt: Date;
-    matchPassword?: MockedFunction<(password: string) => Promise<boolean>>;
-    save?: MockedFunction<() => Promise<TestUser>>;
+    matchPassword?: vi.MockedFunction<(password: string) => Promise<boolean>>;
+    save?: vi.MockedFunction<() => Promise<TestUser>>;
     [key: string]: unknown;
 }
 
@@ -32,34 +31,34 @@ export interface MockUserDocument extends TestUser {
 
 // Mock query interface for Mongoose queries
 export interface MockQuery<T = unknown> {
-    select: MockedFunction<(fields: string) => Promise<T>>;
-    exec?: MockedFunction<() => Promise<T>>;
-    lean?: MockedFunction<() => Promise<T>>;
-    sort?: MockedFunction<(sort: Record<string, number>) => MockQuery<T>>;
-    limit?: MockedFunction<(limit: number) => MockQuery<T>>;
-    skip?: MockedFunction<(skip: number) => MockQuery<T>>;
-    where?: MockedFunction<(field: string, value: unknown) => MockQuery<T>>;
+    select: vi.MockedFunction<(fields: string) => Promise<T>>;
+    exec?: vi.MockedFunction<() => Promise<T>>;
+    lean?: vi.MockedFunction<() => Promise<T>>;
+    sort?: vi.MockedFunction<(sort: Record<string, number>) => MockQuery<T>>;
+    limit?: vi.MockedFunction<(limit: number) => MockQuery<T>>;
+    skip?: vi.MockedFunction<(skip: number) => MockQuery<T>>;
+    where?: vi.MockedFunction<(field: string, value: unknown) => MockQuery<T>>;
     [key: string]: unknown;
 }
 
 // Mock response interface - standalone to avoid type conflicts
 export interface MockResponse {
-    status: MockedFunction<(code: number) => MockResponse>;
-    json: MockedFunction<(data: unknown) => MockResponse>;
-    send: MockedFunction<(data: unknown) => MockResponse>;
-    cookie: MockedFunction<(name: string, value: string, options?: unknown) => MockResponse>;
-    clearCookie: MockedFunction<(name: string) => MockResponse>;
-    setHeader?: MockedFunction<(name: string, value: string) => MockResponse>;
-    end?: MockedFunction<() => MockResponse>;
-    sendStatus?: MockedFunction<(code: number) => MockResponse>;
-    redirect?: MockedFunction<(url: string) => MockResponse>;
-    location?: MockedFunction<(url: string) => MockResponse>;
-    links?: MockedFunction<(links: Record<string, string>) => MockResponse>;
-    attachment?: MockedFunction<(filename?: string) => MockResponse>;
-    download?: MockedFunction<(path: string, filename?: string) => MockResponse>;
-    type?: MockedFunction<(type: string) => MockResponse>;
-    vary?: MockedFunction<(field: string) => MockResponse>;
-    format?: MockedFunction<(obj: Record<string, unknown>) => MockResponse>;
+    status: vi.MockedFunction<(code: number) => MockResponse>;
+    json: vi.MockedFunction<(data: unknown) => MockResponse>;
+    send: vi.MockedFunction<(data: unknown) => MockResponse>;
+    cookie: vi.MockedFunction<(name: string, value: string, options?: unknown) => MockResponse>;
+    clearCookie: vi.MockedFunction<(name: string) => MockResponse>;
+    setHeader?: vi.MockedFunction<(name: string, value: string) => MockResponse>;
+    end?: vi.MockedFunction<() => MockResponse>;
+    sendStatus?: vi.MockedFunction<(code: number) => MockResponse>;
+    redirect?: vi.MockedFunction<(url: string) => MockResponse>;
+    location?: vi.MockedFunction<(url: string) => MockResponse>;
+    links?: vi.MockedFunction<(links: Record<string, string>) => MockResponse>;
+    attachment?: vi.MockedFunction<(filename?: string) => MockResponse>;
+    download?: vi.MockedFunction<(path: string, filename?: string) => MockResponse>;
+    type?: vi.MockedFunction<(type: string) => MockResponse>;
+    vary?: vi.MockedFunction<(field: string) => MockResponse>;
+    format?: vi.MockedFunction<(obj: Record<string, unknown>) => MockResponse>;
     [key: string]: unknown; // Allow additional properties for flexibility
 }
 
@@ -76,19 +75,21 @@ export interface MockRequest {
 }
 
 // Mock next function interface
-export interface MockNextFunction extends MockedFunction<NextFunction> {}
+export interface MockNextFunction extends vi.MockedFunction<NextFunction> {}
 
 // Generic model mock interface - reduces duplication across all model types
 export interface MockModel<T = unknown> {
-    findOne: MockedFunction<(filter: Record<string, unknown>) => MockQuery<T | null>>;
-    findById: MockedFunction<(id: string) => Promise<T | null>>;
-    findByIdAndDelete: MockedFunction<(id: string) => Promise<T | null>>;
-    find: MockedFunction<(filter?: Record<string, unknown>) => Promise<T[]>>;
-    create: MockedFunction<(data: Partial<T>) => Promise<T>>;
-    updateOne?: MockedFunction<(filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>>;
-    deleteOne?: MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
-    countDocuments?: MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
-    findByIdAndUpdate?: MockedFunction<
+    findOne: vi.MockedFunction<(filter: Record<string, unknown>) => MockQuery<T | null>>;
+    findById: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    findByIdAndDelete: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    find: vi.MockedFunction<(filter?: Record<string, unknown>) => Promise<T[]>>;
+    create: vi.MockedFunction<(data: Partial<T>) => Promise<T>>;
+    updateOne?: vi.MockedFunction<
+        (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>
+    >;
+    deleteOne?: vi.MockedFunction<(filter: Record<string, unknown>) => Promise<unknown>>;
+    countDocuments?: vi.MockedFunction<(filter?: Record<string, unknown>) => Promise<number>>;
+    findByIdAndUpdate?: vi.MockedFunction<
         (id: string, update: Record<string, unknown>, options?: Record<string, unknown>) => Promise<T | null>
     >;
 }
@@ -108,65 +109,65 @@ export type MockProfessionProfileModel = MockModel<unknown>;
 
 // Redis mock interface
 export interface MockRedis {
-    connect: MockedFunction<() => Promise<void>>;
-    disconnect: MockedFunction<() => Promise<void>>;
-    get: MockedFunction<(key: string) => Promise<string | null>>;
-    set: MockedFunction<(key: string, value: string) => Promise<void>>;
-    setex: MockedFunction<(key: string, ttl: number, value: string) => Promise<void>>;
-    del: MockedFunction<(key: string) => Promise<number>>;
-    exists: MockedFunction<(key: string) => Promise<number>>;
-    expire: MockedFunction<(key: string, ttl: number) => Promise<number>>;
-    ttl: MockedFunction<(key: string) => Promise<number>>;
-    keys: MockedFunction<(pattern: string) => Promise<string[]>>;
-    flushdb: MockedFunction<() => Promise<void>>;
-    on: MockedFunction<(event: string, callback: () => void) => MockRedis>;
-    off: MockedFunction<(event: string, callback: () => void) => MockRedis>;
-    ping: MockedFunction<() => Promise<string>>;
-    info: MockedFunction<(section?: string) => Promise<string>>;
-    memory: MockedFunction<(usage: string) => Promise<unknown>>;
+    connect: vi.MockedFunction<() => Promise<void>>;
+    disconnect: vi.MockedFunction<() => Promise<void>>;
+    get: vi.MockedFunction<(key: string) => Promise<string | null>>;
+    set: vi.MockedFunction<(key: string, value: string) => Promise<void>>;
+    setex: vi.MockedFunction<(key: string, ttl: number, value: string) => Promise<void>>;
+    del: vi.MockedFunction<(key: string) => Promise<number>>;
+    exists: vi.MockedFunction<(key: string) => Promise<number>>;
+    expire: vi.MockedFunction<(key: string, ttl: number) => Promise<number>>;
+    ttl: vi.MockedFunction<(key: string) => Promise<number>>;
+    keys: vi.MockedFunction<(pattern: string) => Promise<string[]>>;
+    flushdb: vi.MockedFunction<() => Promise<void>>;
+    on: vi.MockedFunction<(event: string, callback: () => void) => MockRedis>;
+    off: vi.MockedFunction<(event: string, callback: () => void) => MockRedis>;
+    ping: vi.MockedFunction<() => Promise<string>>;
+    info: vi.MockedFunction<(section?: string) => Promise<string>>;
+    memory: vi.MockedFunction<(usage: string) => Promise<unknown>>;
 }
 
 // JWT mock interface
 export interface MockJWT {
-    sign: MockedFunction<
+    sign: vi.MockedFunction<
         (payload: Record<string, unknown>, secret: string, options?: Record<string, unknown>) => string
     >;
-    verify: MockedFunction<(token: string, secret: string) => Record<string, unknown>>;
-    decode: MockedFunction<(token: string) => Record<string, unknown> | null>;
+    verify: vi.MockedFunction<(token: string, secret: string) => Record<string, unknown>>;
+    decode: vi.MockedFunction<(token: string) => Record<string, unknown> | null>;
 }
 
 // BCrypt mock interface
 export interface MockBCrypt {
-    hash: MockedFunction<(data: string, saltRounds: number) => Promise<string>>;
-    compare: MockedFunction<(data: string, encrypted: string) => Promise<boolean>>;
-    genSalt: MockedFunction<(rounds: number) => Promise<string>>;
+    hash: vi.MockedFunction<(data: string, saltRounds: number) => Promise<string>>;
+    compare: vi.MockedFunction<(data: string, encrypted: string) => Promise<boolean>>;
+    genSalt: vi.MockedFunction<(rounds: number) => Promise<string>>;
 }
 
 // Generic service mock interface - reduces duplication across all service types
 export interface MockService<T = unknown> {
     // Common CRUD operations
-    create?: MockedFunction<(data: Record<string, unknown>) => Promise<T>>;
-    findById?: MockedFunction<(id: string) => Promise<T | null>>;
-    findByIdCached?: MockedFunction<(id: string) => Promise<T | null>>;
-    update?: MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
-    updateById?: MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
-    delete?: MockedFunction<(id: string) => Promise<{ message: string }>>;
-    deleteById?: MockedFunction<(id: string) => Promise<{ message: string }>>;
-    getAll?: MockedFunction<() => Promise<T[]>>;
-    getAllCached?: MockedFunction<() => Promise<T[]>>;
+    create?: vi.MockedFunction<(data: Record<string, unknown>) => Promise<T>>;
+    findById?: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    findByIdCached?: vi.MockedFunction<(id: string) => Promise<T | null>>;
+    update?: vi.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
+    updateById?: vi.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<T>>;
+    delete?: vi.MockedFunction<(id: string) => Promise<{ message: string }>>;
+    deleteById?: vi.MockedFunction<(id: string) => Promise<{ message: string }>>;
+    getAll?: vi.MockedFunction<() => Promise<T[]>>;
+    getAllCached?: vi.MockedFunction<() => Promise<T[]>>;
     // Common specialized operations
-    addReview?: MockedFunction<(reviewData: Record<string, unknown>) => Promise<unknown>>;
-    getTopRatedReviews?: MockedFunction<() => Promise<unknown[]>>;
+    addReview?: vi.MockedFunction<(reviewData: Record<string, unknown>) => Promise<unknown>>;
+    getTopRatedReviews?: vi.MockedFunction<() => Promise<unknown[]>>;
 }
 
 // Specific service type aliases using the generic interface
 export type MockUserService = MockService<TestUser> & {
-    registerUser: MockedFunction<(userData: Record<string, unknown>, res: MockResponse) => Promise<TestUser>>;
-    loginUser: MockedFunction<(email: string, password: string, res: MockResponse) => Promise<TestUser>>;
-    findAllUsers: MockedFunction<() => Promise<TestUser[]>>;
-    findUserById: MockedFunction<(id: string) => Promise<TestUser | null>>;
-    updateUserById: MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<TestUser>>;
-    deleteUserById: MockedFunction<(id: string) => Promise<{ message: string }>>;
+    registerUser: vi.MockedFunction<(userData: Record<string, unknown>, res: MockResponse) => Promise<TestUser>>;
+    loginUser: vi.MockedFunction<(email: string, password: string, res: MockResponse) => Promise<TestUser>>;
+    findAllUsers: vi.MockedFunction<() => Promise<TestUser[]>>;
+    findUserById: vi.MockedFunction<(id: string) => Promise<TestUser | null>>;
+    updateUserById: vi.MockedFunction<(id: string, updateData: Record<string, unknown>) => Promise<TestUser>>;
+    deleteUserById: vi.MockedFunction<(id: string) => Promise<{ message: string }>>;
 };
 
 export type MockBusinessService = MockService<unknown>;
@@ -182,32 +183,32 @@ export type MockProfessionProfileService = MockService<unknown>;
 
 // Cache service mock interface
 export interface MockCacheService {
-    get: MockedFunction<(key: string) => Promise<string | null>>;
-    set: MockedFunction<(key: string, value: string, ttl?: number) => Promise<void>>;
-    delete: MockedFunction<(key: string) => Promise<number>>;
-    exists: MockedFunction<(key: string) => Promise<boolean>>;
-    flush: MockedFunction<() => Promise<void>>;
-    getStats: MockedFunction<() => Promise<Record<string, unknown>>>;
-    isConnected: MockedFunction<() => boolean>;
-    connect: MockedFunction<() => Promise<void>>;
-    disconnect: MockedFunction<() => Promise<void>>;
+    get: vi.MockedFunction<(key: string) => Promise<string | null>>;
+    set: vi.MockedFunction<(key: string, value: string, ttl?: number) => Promise<void>>;
+    delete: vi.MockedFunction<(key: string) => Promise<number>>;
+    exists: vi.MockedFunction<(key: string) => Promise<boolean>>;
+    flush: vi.MockedFunction<() => Promise<void>>;
+    getStats: vi.MockedFunction<() => Promise<Record<string, unknown>>>;
+    isConnected: vi.MockedFunction<() => boolean>;
+    connect: vi.MockedFunction<() => Promise<void>>;
+    disconnect: vi.MockedFunction<() => Promise<void>>;
 }
 
 // Token service mock interface
 export interface MockTokenService {
-    generateAccessToken: MockedFunction<(userId: string) => string>;
-    generateRefreshToken: MockedFunction<(userId: string) => string>;
-    verifyAccessToken: MockedFunction<(token: string) => Promise<Record<string, unknown>>>;
-    verifyRefreshToken: MockedFunction<(token: string) => Promise<Record<string, unknown>>>;
-    revokeToken: MockedFunction<(token: string) => Promise<void>>;
-    isTokenRevoked: MockedFunction<(token: string) => Promise<boolean>>;
+    generateAccessToken: vi.MockedFunction<(userId: string) => string>;
+    generateRefreshToken: vi.MockedFunction<(userId: string) => string>;
+    verifyAccessToken: vi.MockedFunction<(token: string) => Promise<Record<string, unknown>>>;
+    verifyRefreshToken: vi.MockedFunction<(token: string) => Promise<Record<string, unknown>>>;
+    revokeToken: vi.MockedFunction<(token: string) => Promise<void>>;
+    isTokenRevoked: vi.MockedFunction<(token: string) => Promise<boolean>>;
 }
 
 // Geo service mock interface
 export interface MockGeoService {
-    geocodeAddress: MockedFunction<(address: string) => Promise<{ latitude: number; longitude: number }>>;
-    reverseGeocode: MockedFunction<(latitude: number, longitude: number) => Promise<{ address: string }>>;
-    calculateDistance: MockedFunction<(lat1: number, lon1: number, lat2: number, lon2: number) => number>;
+    geocodeAddress: vi.MockedFunction<(address: string) => Promise<{ latitude: number; longitude: number }>>;
+    reverseGeocode: vi.MockedFunction<(latitude: number, longitude: number) => Promise<{ address: string }>>;
+    calculateDistance: vi.MockedFunction<(lat1: number, lon1: number, lat2: number, lon2: number) => number>;
 }
 
 // Factory functions for creating mock objects

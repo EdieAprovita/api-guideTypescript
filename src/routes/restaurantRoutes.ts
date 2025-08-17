@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware';
 import { validate, sanitizeInput, rateLimits, securityHeaders, validateInputLength } from '../middleware/validation';
+import { restaurantCacheMiddleware, browserCacheValidation, cacheInvalidationMiddleware } from '../middleware/cache';
 import { restaurantSchemas, paramSchemas, querySchemas, reviewSchemas } from '../utils/validators';
 import {
     getRestaurants,
@@ -26,12 +27,33 @@ if (process.env.NODE_ENV !== 'test') {
     router.use(...sanitizeInput());
 }
 
+// Apply browser cache validation to all GET routes
+router.use(browserCacheValidation());
+
 // Public routes with rate limiting and search validation
-router.get('/', rateLimits.search, validate({ query: querySchemas.geospatial }), getRestaurants);
+router.get(
+    '/',
+    rateLimits.search,
+    validate({ query: querySchemas.geospatial }),
+    restaurantCacheMiddleware(),
+    getRestaurants
+);
 
-router.get('/top-rated', rateLimits.api, validate({ query: querySchemas.search }), getTopRatedRestaurants);
+router.get(
+    '/top-rated',
+    rateLimits.api,
+    validate({ query: querySchemas.search }),
+    restaurantCacheMiddleware(),
+    getTopRatedRestaurants
+);
 
-router.get('/:id', rateLimits.api, validate({ params: paramSchemas.id }), getRestaurantById);
+router.get(
+    '/:id',
+    rateLimits.api,
+    validate({ params: paramSchemas.id }),
+    restaurantCacheMiddleware(),
+    getRestaurantById
+);
 
 // Protected routes with validation
 router.post(
@@ -40,6 +62,7 @@ router.post(
     validateInputLength(8192), // 8KB limit for restaurant creation
     protect,
     validate({ body: restaurantSchemas.create }),
+    cacheInvalidationMiddleware(['restaurants', 'listings']),
     createRestaurant
 );
 

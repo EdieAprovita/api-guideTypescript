@@ -3,7 +3,7 @@
     "compilerOptions": {
         "skipLibCheck": true,
         "isolatedModules": true,
-        "types": ["node", "@types/jest"],
+        "types": ["vitest/globals", "node", "@types/supertest"],
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "moduleResolution": "node",

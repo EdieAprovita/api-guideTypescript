@@ -1,3 +1,4 @@
+import { vi, type MockedFunction } from 'vitest';
 /**
  * Centralized response expectation utilities
  * This file consolidates all response expectation patterns to eliminate duplication

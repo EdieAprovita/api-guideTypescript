@@ -12,8 +12,14 @@ export const configureHelmet = () => {
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
-                scriptSrc: ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
+                // In production, avoid allowing inline styles. During local/dev, allow inline for DX.
+                styleSrc:
+                    process.env.NODE_ENV === 'production'
+                        ? ["'self'", 'https:']
+                        : ["'self'", "'unsafe-inline'", 'https:'],
+                // In production, do not allow inline scripts or eval to reduce XSS risk.
+                scriptSrc:
+                    process.env.NODE_ENV === 'production' ? ["'self'"] : ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
                 imgSrc: ["'self'", 'data:', 'https:'],
                 connectSrc: ["'self'", 'https:'],
                 fontSrc: ["'self'", 'https:', 'data:'],
@@ -166,18 +172,19 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         return false;
     };
 
-    const isSuspicious = checkValue(req.body) || checkValue(req.query) || checkValue(req.params);
+    const isSuspicious = Boolean(checkValue(req.body) || checkValue(req.query) || checkValue(req.params));
 
     if (isSuspicious) {
-        // Log suspicious activity
-        console.warn(`Suspicious activity detected from IP: ${req.ip}`, {
+        // Log metadata only to avoid leaking sensitive payloads
+        const logDetails = {
             method: req.method,
             url: req.url,
             userAgent: req.get('User-Agent'),
-            body: req.body,
-            query: req.query,
-            params: req.params,
-        });
+            bodyKeys: typeof req.body === 'object' && req.body !== null ? Object.keys(req.body) : undefined,
+            queryKeys: typeof req.query === 'object' && req.query !== null ? Object.keys(req.query) : undefined,
+            paramKeys: typeof req.params === 'object' && req.params !== null ? Object.keys(req.params) : undefined,
+        };
+        console.warn(`Suspicious activity detected from IP: ${req.ip}`, logDetails);
 
         return res.status(400).json({
             success: false,
@@ -195,8 +202,10 @@ export const limitRequestSize = (maxSize: number = 1024 * 1024) => {
     // 1MB default
     return (req: Request, res: Response, next: NextFunction) => {
         const contentLength = req.get('content-length');
+        const numericLength = contentLength ? parseInt(contentLength) : undefined;
+        const computedBodySize = req.body ? Buffer.byteLength(JSON.stringify(req.body)) : 0;
 
-        if (contentLength && parseInt(contentLength) > maxSize) {
+        if ((numericLength && numericLength > maxSize) || computedBodySize > maxSize) {
             return res.status(413).json({
                 success: false,
                 message: 'Request entity too large',

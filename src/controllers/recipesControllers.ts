@@ -76,6 +76,7 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response, nex
         const firstError = errors.array()[0];
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
+
     try {
         const recipe = await RecipeService.create(req.body);
         res.status(201).json({
@@ -101,6 +102,7 @@ export const updateRecipe = asyncHandler(async (req: Request, res: Response, nex
         const firstError = errors.array()[0];
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
+
     try {
         const { id } = req.params;
         if (!id) {
