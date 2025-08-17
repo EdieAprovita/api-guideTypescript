@@ -22,11 +22,30 @@ export default defineConfig({
             exclude: ['src/test/**', 'src/**/*.d.ts', 'src/types/**', 'src/node_modules/**'],
             thresholds: {
                 global: {
-                    branches: 30, // Starting threshold for Phase 1
-                    functions: 30,
-                    lines: 30,
-                    statements: 30,
+                    branches: 40,
+                    functions: 40, 
+                    lines: 40,
+                    statements: 40,
                 },
+                // Specific thresholds for critical modules
+                'src/controllers/**/*.ts': {
+                    branches: 40,
+                    functions: 40,
+                    lines: 40,
+                    statements: 40
+                },
+                'src/services/**/*.ts': {
+                    branches: 35,
+                    functions: 35,
+                    lines: 35,
+                    statements: 35
+                },
+                'src/middleware/**/*.ts': {
+                    branches: 35,
+                    functions: 35,
+                    lines: 35,
+                    statements: 35
+                }
             },
         },
     },
