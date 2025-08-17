@@ -75,7 +75,7 @@ describe('BaseController', () => {
     })
     const req = testUtils.createMockRequest({ body: { name: 'test' } }) as Request
     const res = testUtils.createMockResponse() as Response
-    const next = testUtils.createMockNext()
+    vi.mocked(validationResult).mockReturnValue(mockValidationResultSuccess)
 
     await controller.create(req, res, next)
 
