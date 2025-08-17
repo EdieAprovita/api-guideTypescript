@@ -39,6 +39,11 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
+            include: [
+                'src/controllers/BaseController.ts',
+                'src/services/GeoService.ts',
+                'src/middleware/errorHandler.ts',
+            ],
             exclude: [
                 'node_modules/**',
                 'src/test/**',
