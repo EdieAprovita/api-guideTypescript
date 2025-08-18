@@ -98,6 +98,137 @@ class ReviewService implements IReviewService {
         });
     }
 
+    private validateRating(rating: unknown): number {
+        const ratingNum = Number(rating);
+        if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Rating must be between 1 and 5'));
+        }
+        return Math.floor(ratingNum);
+    }
+
+    private validateTitle(title: unknown): string {
+        if (typeof title !== 'string' || title.length < 5 || title.length > 100) {
+            throw new HttpError(
+                HttpStatusCode.BAD_REQUEST,
+                getErrorMessage('Title must be between 5 and 100 characters')
+            );
+        }
+        return title.trim();
+    }
+
+    private validateContent(content: unknown): string {
+        if (typeof content !== 'string' || content.length < 10 || content.length > 1000) {
+            throw new HttpError(
+                HttpStatusCode.BAD_REQUEST,
+                getErrorMessage('Content must be between 10 and 1000 characters')
+            );
+        }
+        return content.trim();
+    }
+
+    private validateVisitDate(visitDate: unknown): Date {
+        const date = new Date(visitDate as string);
+        if (isNaN(date.getTime())) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid visit date'));
+        }
+        return date;
+    }
+
+    private validateStringArray(items: unknown, maxLength: number, maxItems: number): string[] {
+        if (!Array.isArray(items)) {
+            return [];
+        }
+        return items
+            .filter(item => typeof item === 'string' && item.trim().length > 0 && item.length <= maxLength)
+            .map(item => (item as string).trim())
+            .slice(0, maxItems);
+    }
+
+    private validateObjectId(id: unknown, fieldName: string): Types.ObjectId {
+        if (!Types.ObjectId.isValid(id as string)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(`Invalid ${fieldName} ID`));
+        }
+        return new Types.ObjectId(id as string);
+    }
+
+    private validateAndSanitizeSort(sort: string): Record<string, 1 | -1> {
+        const allowedSortFields = ['rating', 'createdAt', 'helpfulCount', 'visitDate'];
+        const defaultSort: Record<string, 1 | -1> = { createdAt: -1 };
+
+        if (!sort || typeof sort !== 'string') {
+            return defaultSort;
+        }
+
+        // Handle formats like '-createdAt', 'rating', 'rating:desc'
+        let field: string;
+        let direction: number = 1;
+
+        if (sort.startsWith('-')) {
+            field = sort.substring(1);
+            direction = -1;
+        } else if (sort.includes(':')) {
+            const [sortField, sortDirection] = sort.split(':');
+            field = sortField || '';
+            direction = sortDirection === 'desc' || sortDirection === '-1' ? -1 : 1;
+        } else {
+            field = sort;
+            // direction is already 1 by default, no need to reassign
+        }
+
+        // Only allow whitelisted fields
+        if (allowedSortFields.includes(field)) {
+            return { [field]: direction as 1 | -1 };
+        }
+
+        return defaultSort;
+    }
+
+    private sanitizeReviewData(reviewData: Partial<IReview>): Partial<IReview> {
+        const sanitized: Partial<IReview> = {};
+
+        // Validate and sanitize rating
+        if (reviewData.rating !== undefined) {
+            sanitized.rating = this.validateRating(reviewData.rating);
+        }
+
+        // Validate and sanitize title
+        if (reviewData.title) {
+            sanitized.title = this.validateTitle(reviewData.title);
+        }
+
+        // Validate and sanitize content
+        if (reviewData.content) {
+            sanitized.content = this.validateContent(reviewData.content);
+        }
+
+        // Validate and sanitize visit date
+        if (reviewData.visitDate) {
+            sanitized.visitDate = this.validateVisitDate(reviewData.visitDate);
+        }
+
+        // Validate and sanitize recommended dishes
+        if (reviewData.recommendedDishes) {
+            sanitized.recommendedDishes = this.validateStringArray(reviewData.recommendedDishes, 50, 10);
+        }
+
+        // Validate and sanitize tags
+        if (reviewData.tags) {
+            sanitized.tags = this.validateStringArray(reviewData.tags, 30, 5);
+        }
+
+        // Validate and sanitize author ID
+        if (reviewData.author) {
+            sanitized.author = this.validateObjectId(reviewData.author, 'author');
+        }
+
+        // Validate and sanitize restaurant ID
+        if (reviewData.restaurant) {
+            sanitized.restaurant = this.validateObjectId(reviewData.restaurant, 'restaurant');
+        }
+
+        return sanitized;
+    }
+
     async getReviewsByRestaurant(
         restaurantId: string,
         options: {
@@ -128,32 +259,8 @@ class ReviewService implements IReviewService {
             }
         }
 
-        // Validate and sanitize sort parameter to prevent injection
-        const allowedSortFields = ['rating', 'createdAt', 'helpfulCount', 'visitDate'];
-        let sanitizedSort: Record<string, 1 | -1> = { createdAt: -1 }; // default sort
-
-        if (sort && typeof sort === 'string') {
-            // Handle formats like '-createdAt', 'rating', 'rating:desc'
-            let field: string;
-            let direction: number = 1;
-
-            if (sort.startsWith('-')) {
-                field = sort.substring(1);
-                direction = -1;
-            } else if (sort.includes(':')) {
-                const [sortField, sortDirection] = sort.split(':');
-                field = sortField || '';
-                direction = sortDirection === 'desc' || sortDirection === '-1' ? -1 : 1;
-            } else {
-                field = sort;
-                direction = 1;
-            }
-
-            // Only allow whitelisted fields
-            if (allowedSortFields.includes(field)) {
-                sanitizedSort = { [field]: direction as 1 | -1 };
-            }
-        }
+        // Validate and sanitize sort parameter
+        const sanitizedSort = this.validateAndSanitizeSort(sort);
 
         const [reviews, total] = await Promise.all([
             Review.find(query)
@@ -271,85 +378,6 @@ class ReviewService implements IReviewService {
         await review.save();
 
         return review;
-    }
-
-    private sanitizeReviewData(reviewData: Partial<IReview>): Partial<IReview> {
-        const sanitized: Partial<IReview> = {};
-
-        // Only allow specific fields and sanitize them
-        if (reviewData.rating !== undefined) {
-            const rating = Number(reviewData.rating);
-            if (isNaN(rating) || rating < 1 || rating > 5) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Rating must be between 1 and 5'));
-            }
-            sanitized.rating = Math.floor(rating);
-        }
-
-        if (reviewData.title) {
-            if (typeof reviewData.title !== 'string' || reviewData.title.length < 5 || reviewData.title.length > 100) {
-                throw new HttpError(
-                    HttpStatusCode.BAD_REQUEST,
-                    getErrorMessage('Title must be between 5 and 100 characters')
-                );
-            }
-            sanitized.title = reviewData.title.trim();
-        }
-
-        if (reviewData.content) {
-            if (
-                typeof reviewData.content !== 'string' ||
-                reviewData.content.length < 10 ||
-                reviewData.content.length > 1000
-            ) {
-                throw new HttpError(
-                    HttpStatusCode.BAD_REQUEST,
-                    getErrorMessage('Content must be between 10 and 1000 characters')
-                );
-            }
-            sanitized.content = reviewData.content.trim();
-        }
-
-        if (reviewData.visitDate) {
-            const date = new Date(reviewData.visitDate);
-            if (isNaN(date.getTime())) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid visit date'));
-            }
-            sanitized.visitDate = date;
-        }
-
-        if (reviewData.recommendedDishes) {
-            if (Array.isArray(reviewData.recommendedDishes)) {
-                sanitized.recommendedDishes = reviewData.recommendedDishes
-                    .filter(dish => typeof dish === 'string' && dish.trim().length > 0 && dish.length <= 50)
-                    .map(dish => dish.trim())
-                    .slice(0, 10); // Limit to 10 dishes
-            }
-        }
-
-        if (reviewData.tags) {
-            if (Array.isArray(reviewData.tags)) {
-                sanitized.tags = reviewData.tags
-                    .filter(tag => typeof tag === 'string' && tag.trim().length > 0 && tag.length <= 30)
-                    .map(tag => tag.trim())
-                    .slice(0, 5); // Limit to 5 tags
-            }
-        }
-
-        if (reviewData.author) {
-            if (!Types.ObjectId.isValid(reviewData.author)) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid author ID'));
-            }
-            sanitized.author = new Types.ObjectId(reviewData.author.toString());
-        }
-
-        if (reviewData.restaurant) {
-            if (!Types.ObjectId.isValid(reviewData.restaurant)) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID'));
-            }
-            sanitized.restaurant = new Types.ObjectId(reviewData.restaurant.toString());
-        }
-
-        return sanitized;
     }
 
     // Legacy methods for backward compatibility
