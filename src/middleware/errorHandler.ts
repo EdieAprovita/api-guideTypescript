@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import logger from '../utils/logger';
 
-type UnknownError = unknown & {
+type UnknownError = {
     name?: string;
     message?: string;
     stack?: string;
@@ -13,94 +13,155 @@ type UnknownError = unknown & {
     errors?: Array<{ field: string; message: string }>;
 };
 
-export const errorHandler = (err: UnknownError, req: Request, res: Response, _next: NextFunction): void => {
-    if (res.headersSent) return; // Do not modify response if already sent
+interface ErrorResult {
+    status: number;
+    message: string;
+    errorDetail: string;
+    validationErrors?: Array<{ field: string; message: string }>;
+}
 
-    let status = HttpStatusCode.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
-    let errorDetail: string | undefined = 'Unknown error';
-    let validationErrors: Array<{ field: string; message: string }> | undefined;
+const handleHttpError = (err: HttpError): ErrorResult => ({
+    status: err.statusCode,
+    message: err.message,
+    errorDetail: err.message,
+});
 
-    // Map known error types
-    if (err instanceof HttpError) {
-        status = err.statusCode;
-        message = err.message;
-        errorDetail = err.message;
-    } else if (typeof err === 'string') {
-        status = HttpStatusCode.INTERNAL_SERVER_ERROR;
-        message = err;
-        errorDetail = 'An error occurred';
-    } else if (err && typeof err === 'object') {
-        // Mongoose - ValidationError
-        if (err.name === 'ValidationError' && Array.isArray(err.errors)) {
-            status = HttpStatusCode.BAD_REQUEST;
-            message = 'Validation Error';
-            errorDetail = 'Invalid input data';
-            // Standardize validation error messages to keep API consistent
-            validationErrors = err.errors.map(e => {
-                if (e && e.field === 'email') {
-                    return { ...e, message: 'Please enter a valid email address' };
-                }
-                return e;
-            });
-        }
-        // Mongoose - CastError
-        else if (err.name === 'CastError' && err.value) {
-            status = HttpStatusCode.BAD_REQUEST;
-            message = `Invalid _id: ${err.value}`;
-            errorDetail = 'Invalid data format';
-        }
-        // Mongo duplicate key
-        else if (err.code === 11000 && err.keyPattern) {
-            const field = Object.keys(err.keyPattern)[0] ?? 'field';
-            status = HttpStatusCode.BAD_REQUEST;
-            message = `Duplicate field value: ${field}`;
-            errorDetail = 'Duplicate field value entered';
-        }
-        // Built-in errors
-        else if (err instanceof SyntaxError) {
-            status = HttpStatusCode.BAD_REQUEST;
-            message = `Syntax Error: ${err.message}`;
-            errorDetail = 'Invalid request syntax';
-        } else if (err instanceof RangeError) {
-            status = HttpStatusCode.BAD_REQUEST;
-            message = `Range Error: ${err.message}`;
-            errorDetail = 'Value out of range';
-        } else if (err instanceof TypeError) {
-            status = HttpStatusCode.INTERNAL_SERVER_ERROR;
-            message = `Type Error: ${err.message}`;
-            errorDetail = 'Internal type error';
-        } else if (err.message) {
-            status = HttpStatusCode.INTERNAL_SERVER_ERROR;
-            message = err.message;
-            errorDetail = process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message;
-        } else {
-            status = HttpStatusCode.INTERNAL_SERVER_ERROR;
-            message = 'An unknown error occurred';
-            errorDetail = 'Unknown error';
-        }
-    } else {
-        status = HttpStatusCode.INTERNAL_SERVER_ERROR;
-        message = 'An unknown error occurred';
-        errorDetail = 'Unknown error';
+const handleStringError = (err: string): ErrorResult => ({
+    status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+    message: err,
+    errorDetail: 'An error occurred',
+});
+
+const handleValidationError = (err: UnknownError): ErrorResult => {
+    const validationErrors =
+        err.errors?.map(e => {
+            if (e && e.field === 'email') {
+                return { ...e, message: 'Please enter a valid email address' };
+            }
+            return e;
+        }) || [];
+
+    return {
+        status: HttpStatusCode.BAD_REQUEST,
+        message: 'Validation Error',
+        errorDetail: 'Invalid input data',
+        validationErrors,
+    };
+};
+
+const handleCastError = (err: UnknownError): ErrorResult => ({
+    status: HttpStatusCode.BAD_REQUEST,
+    message: `Invalid _id: ${err.value}`,
+    errorDetail: 'Invalid data format',
+});
+
+const handleDuplicateKeyError = (err: UnknownError): ErrorResult => {
+    const field = err.keyPattern ? (Object.keys(err.keyPattern)[0] ?? 'field') : 'field';
+    return {
+        status: HttpStatusCode.BAD_REQUEST,
+        message: `Duplicate field value: ${field}`,
+        errorDetail: 'Duplicate field value entered',
+    };
+};
+
+const handleBuiltInError = (err: Error): ErrorResult => {
+    if (err instanceof SyntaxError) {
+        return {
+            status: HttpStatusCode.BAD_REQUEST,
+            message: `Syntax Error: ${err.message}`,
+            errorDetail: 'Invalid request syntax',
+        };
     }
 
-    // Log
+    if (err instanceof RangeError) {
+        return {
+            status: HttpStatusCode.BAD_REQUEST,
+            message: `Range Error: ${err.message}`,
+            errorDetail: 'Value out of range',
+        };
+    }
+
+    return {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        message: `Type Error: ${err.message}`,
+        errorDetail: 'Internal type error',
+    };
+};
+
+const handleGenericObjectError = (err: UnknownError): ErrorResult => {
+    if (err.name === 'ValidationError' && Array.isArray(err.errors)) {
+        return handleValidationError(err);
+    }
+
+    if (err.name === 'CastError' && err.value) {
+        return handleCastError(err);
+    }
+
+    if (err.code === 11000 && err.keyPattern) {
+        return handleDuplicateKeyError(err);
+    }
+
+    if (err instanceof SyntaxError || err instanceof RangeError || err instanceof TypeError) {
+        return handleBuiltInError(err);
+    }
+
+    if (err.message) {
+        return {
+            status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+            message: err.message,
+            errorDetail: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+        };
+    }
+
+    return {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        message: 'An unknown error occurred',
+        errorDetail: 'Unknown error',
+    };
+};
+
+const processError = (err: unknown): ErrorResult => {
+    if (err instanceof HttpError) {
+        return handleHttpError(err);
+    }
+
+    if (typeof err === 'string') {
+        return handleStringError(err);
+    }
+
+    if (err && typeof err === 'object') {
+        return handleGenericObjectError(err as UnknownError);
+    }
+
+    return {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        message: 'An unknown error occurred',
+        errorDetail: 'Unknown error',
+    };
+};
+
+export const errorHandler = (err: unknown, req: Request, res: Response, _next: NextFunction): void => {
+    if (res.headersSent) return;
+
+    const errorResult = processError(err);
+
     logger.error('Error Handler:', {
-        status,
-        message,
+        status: errorResult.status,
+        message: errorResult.message,
         name: (err as any)?.name,
         path: req.path,
         method: req.method,
         user: req.user ? req.user._id : 'Guest',
     });
 
-    if (validationErrors) {
-        res.status(status).json({ success: false, message, error: errorDetail, errors: validationErrors });
-        return;
-    }
+    const response = {
+        success: false,
+        message: errorResult.message,
+        error: errorResult.errorDetail,
+        ...(errorResult.validationErrors && { errors: errorResult.validationErrors }),
+    };
 
-    res.status(status).json({ success: false, message, error: errorDetail });
+    res.status(errorResult.status).json(response);
 };
 
 export const notFound = (req: Request, res: Response) => {

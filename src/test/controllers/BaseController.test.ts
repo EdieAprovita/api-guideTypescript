@@ -110,4 +110,150 @@ describe('BaseController', () => {
     expect(res.status).toHaveBeenCalledWith(HttpStatusCode.OK)
     expect(next).not.toHaveBeenCalled()
   })
+
+  // Additional tests to improve coverage for uncovered lines (86-97, 107-108)
+  it('update should update resource successfully', async () => {
+    vi.mocked(validationResult).mockReturnValue({
+      isEmpty: () => true,
+      array: () => [],
+      formatter: vi.fn(),
+      errors: [],
+      mapped: vi.fn(),
+      formatWith: vi.fn(),
+      throw: vi.fn()
+    })
+    const req = testUtils.createMockRequest({ 
+      params: { id: '1' }, 
+      body: { name: 'updated' } 
+    }) as Request
+    const res = testUtils.createMockResponse() as Response
+    const next = testUtils.createMockNext()
+
+    await controller.update(req, res, next)
+
+    expect(service.updateById).toHaveBeenCalledWith('1', { name: 'updated' })
+    expect(res.status).toHaveBeenCalledWith(HttpStatusCode.OK)
+    expect(next).not.toHaveBeenCalled()
+  })
+
+  it('update should handle validation errors', async () => {
+    vi.mocked(validationResult).mockReturnValue({
+      isEmpty: () => false,
+      array: () => [{ 
+        type: 'field' as const,
+        location: 'body' as const,
+        path: 'name',
+        value: undefined,
+        msg: 'Invalid data'
+      }],
+      formatter: vi.fn(),
+      errors: [],
+      mapped: vi.fn(),
+      formatWith: vi.fn(),
+      throw: vi.fn()
+    })
+    const req = testUtils.createMockRequest({ 
+      params: { id: '1' }, 
+      body: {} 
+    }) as Request
+    const res = testUtils.createMockResponse() as Response
+    const next = testUtils.createMockNext()
+
+    await controller.update(req, res, next)
+
+    expect(next).toHaveBeenCalled()
+    expect(service.updateById).not.toHaveBeenCalled()
+  })
+
+  it('update should handle resource not found', async () => {
+    vi.mocked(validationResult).mockReturnValue({
+      isEmpty: () => true,
+      array: () => [],
+      formatter: vi.fn(),
+      errors: [],
+      mapped: vi.fn(),
+      formatWith: vi.fn(),
+      throw: vi.fn()
+    })
+    service.updateById.mockResolvedValueOnce(null)
+    const req = testUtils.createMockRequest({ 
+      params: { id: '999' }, 
+      body: { name: 'updated' } 
+    }) as Request
+    const res = testUtils.createMockResponse() as Response
+    const next = testUtils.createMockNext()
+
+    await controller.update(req, res, next)
+
+    expect(next).toHaveBeenCalled()
+    expect(service.updateById).toHaveBeenCalledWith('999', { name: 'updated' })
+  })
+
+  it('update should forward service errors', async () => {
+    vi.mocked(validationResult).mockReturnValue({
+      isEmpty: () => true,
+      array: () => [],
+      formatter: vi.fn(),
+      errors: [],
+      mapped: vi.fn(),
+      formatWith: vi.fn(),
+      throw: vi.fn()
+    })
+    service.updateById.mockRejectedValueOnce(new Error('Service error'))
+    const req = testUtils.createMockRequest({ 
+      params: { id: '1' }, 
+      body: { name: 'updated' } 
+    }) as Request
+    const res = testUtils.createMockResponse() as Response
+    const next = testUtils.createMockNext()
+
+    await controller.update(req, res, next)
+
+    expect(next).toHaveBeenCalled()
+  })
+
+  it('delete should forward service errors', async () => {
+    service.deleteById.mockRejectedValueOnce(new Error('Delete failed'))
+    const req = testUtils.createMockRequest({ params: { id: '1' } }) as Request
+    const res = testUtils.createMockResponse() as Response
+    const next = testUtils.createMockNext()
+
+    await controller.delete(req, res, next)
+
+    expect(next).toHaveBeenCalled()
+    expect(service.deleteById).toHaveBeenCalledWith('1')
+  })
+
+  it('getById should handle invalid id parameter', async () => {
+    const req = testUtils.createMockRequest({ params: {} }) as Request
+    const res = testUtils.createMockResponse() as Response
+    const next = testUtils.createMockNext()
+
+    await controller.getById(req, res, next)
+
+    expect(next).toHaveBeenCalled()
+    expect(service.findById).not.toHaveBeenCalled()
+  })
+
+  it('update should handle invalid id parameter', async () => {
+    const req = testUtils.createMockRequest({ params: {}, body: { name: 'test' } }) as Request
+    const res = testUtils.createMockResponse() as Response
+    const next = testUtils.createMockNext()
+
+    await controller.update(req, res, next)
+
+    expect(next).toHaveBeenCalled()
+    expect(service.updateById).not.toHaveBeenCalled()
+  })
+
+  it('delete should handle invalid id parameter', async () => {
+    const req = testUtils.createMockRequest({ params: {} }) as Request
+    const res = testUtils.createMockResponse() as Response
+    const next = testUtils.createMockNext()
+
+    await controller.delete(req, res, next)
+
+    expect(next).toHaveBeenCalled()
+    expect(service.deleteById).not.toHaveBeenCalled()
+  })
 })

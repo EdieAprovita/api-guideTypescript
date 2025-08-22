@@ -27,7 +27,7 @@ export class CacheService {
     private redis!: Redis;
     private hits = 0;
     private misses = 0;
-    private tagMap: Map<string, Set<string>> = new Map();
+    private readonly tagMap: Map<string, Set<string>> = new Map();
 
     // TTL por tipo de contenido (en segundos)
     private readonly ttlConfig: Record<string, number> = {
@@ -231,10 +231,10 @@ export class CacheService {
             const hitRatio = totalRequests > 0 ? this.hits / totalRequests : 0;
 
             // Extraer uso de memoria del INFO
-            const memMatch = info.match(/used_memory_human:(.+)/);
+            const memMatch = RegExp(/used_memory_human:(.+)/).exec(info);
             const memoryUsage = memMatch?.[1]?.trim() || 'Unknown';
 
-            const uptimeMatch = info.match(/uptime_in_seconds:(\d+)/);
+            const uptimeMatch = RegExp(/uptime_in_seconds:(\d+)/).exec(info);
             const uptime = uptimeMatch?.[1] ? parseInt(uptimeMatch[1]) : 0;
 
             const dbSize = await this.redis.dbsize();
@@ -258,9 +258,6 @@ export class CacheService {
         }
     }
 
-    /**
-     * Limpiar todo el cache (usar con cuidado)
-     */
     async flush(): Promise<void> {
         try {
             await this.redis.flushdb();
