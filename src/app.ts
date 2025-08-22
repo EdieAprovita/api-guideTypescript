@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-// import mongoSanitize from 'express-mongo-sanitize'; // Disabled due to version conflict
 import { xss } from 'express-xss-sanitizer';
 
 import connectDB from './config/db';
@@ -82,7 +81,7 @@ app.get('/health', (_req, res) => {
         status: 'OK',
         message: 'API is healthy',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
     });
 });
 

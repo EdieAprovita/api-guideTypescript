@@ -39,7 +39,7 @@ export interface Alert {
  */
 export class CacheAlertService {
     private config: AlertConfig;
-    private activeAlerts: Map<string, Alert> = new Map();
+    private readonly activeAlerts: Map<string, Alert> = new Map();
     private monitoringInterval: NodeJS.Timeout | null = null;
     private lastCheckTime: Date | null = null;
 
@@ -225,11 +225,17 @@ export class CacheAlertService {
             // Si llegamos aquí, Redis está funcionando
             await this.resolveAlert(alertId);
         } catch (error) {
+            // Log the error for debugging purposes
+            logger.error('Redis connectivity check failed:', error);
+
+            // Extract error message for better alert details
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
             await this.createAlert(
                 {
                     type: 'redis_down',
                     severity: 'critical',
-                    message: 'Redis connectivity check failed',
+                    message: `Redis connectivity check failed: ${errorMessage}`,
                     currentValue: 'disconnected',
                     threshold: 'connected',
                 },
@@ -375,7 +381,7 @@ export class CacheAlertService {
      * Parsear memoria a MB
      */
     private parseMemoryToMB(memoryStr: string): number {
-        const match = memoryStr.match(/^(\d+(?:\.\d+)?)(.*)/);
+        const match = RegExp(/^(\d+(?:\.\d+)?)(.*)/).exec(memoryStr);
         if (!match) return 0;
 
         const value = parseFloat(match[1] || '0');
