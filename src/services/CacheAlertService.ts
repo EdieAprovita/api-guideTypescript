@@ -40,7 +40,7 @@ export interface Alert {
 export class CacheAlertService {
     private config: AlertConfig;
     private readonly activeAlerts: Map<string, Alert> = new Map();
-    private monitoringInterval: NodeJS.Timeout | null = null;
+    private monitoringInterval: number | null = null;
     private lastCheckTime: Date | null = null;
 
     constructor(config: Partial<AlertConfig> = {}) {

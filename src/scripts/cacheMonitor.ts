@@ -19,7 +19,7 @@ interface CachePerformance {
 class CacheMonitor {
     private stats: CacheStats | null = null;
     private performance: CachePerformance | null = null;
-    private monitoringInterval: NodeJS.Timeout | null = null;
+    private monitoringInterval: number | null = null;
 
     async startMonitoring(intervalMinutes: number = 5): Promise<void> {
         logger.info('🚀 Starting cache monitoring...');
