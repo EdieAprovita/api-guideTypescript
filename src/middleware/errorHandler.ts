@@ -33,13 +33,14 @@ const handleStringError = (err: string): ErrorResult => ({
 });
 
 const handleValidationError = (err: UnknownError): ErrorResult => {
-    const validationErrors = err.errors?.map(e => {
-        if (e && e.field === 'email') {
-            return { ...e, message: 'Please enter a valid email address' };
-        }
-        return e;
-    }) || [];
-    
+    const validationErrors =
+        err.errors?.map(e => {
+            if (e && e.field === 'email') {
+                return { ...e, message: 'Please enter a valid email address' };
+            }
+            return e;
+        }) || [];
+
     return {
         status: HttpStatusCode.BAD_REQUEST,
         message: 'Validation Error',
@@ -55,7 +56,7 @@ const handleCastError = (err: UnknownError): ErrorResult => ({
 });
 
 const handleDuplicateKeyError = (err: UnknownError): ErrorResult => {
-    const field = err.keyPattern ? Object.keys(err.keyPattern)[0] ?? 'field' : 'field';
+    const field = err.keyPattern ? (Object.keys(err.keyPattern)[0] ?? 'field') : 'field';
     return {
         status: HttpStatusCode.BAD_REQUEST,
         message: `Duplicate field value: ${field}`,
@@ -71,7 +72,7 @@ const handleBuiltInError = (err: Error): ErrorResult => {
             errorDetail: 'Invalid request syntax',
         };
     }
-    
+
     if (err instanceof RangeError) {
         return {
             status: HttpStatusCode.BAD_REQUEST,
@@ -79,7 +80,7 @@ const handleBuiltInError = (err: Error): ErrorResult => {
             errorDetail: 'Value out of range',
         };
     }
-    
+
     return {
         status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         message: `Type Error: ${err.message}`,
@@ -91,19 +92,19 @@ const handleGenericObjectError = (err: UnknownError): ErrorResult => {
     if (err.name === 'ValidationError' && Array.isArray(err.errors)) {
         return handleValidationError(err);
     }
-    
+
     if (err.name === 'CastError' && err.value) {
         return handleCastError(err);
     }
-    
+
     if (err.code === 11000 && err.keyPattern) {
         return handleDuplicateKeyError(err);
     }
-    
+
     if (err instanceof SyntaxError || err instanceof RangeError || err instanceof TypeError) {
         return handleBuiltInError(err);
     }
-    
+
     if (err.message) {
         return {
             status: HttpStatusCode.INTERNAL_SERVER_ERROR,
@@ -111,7 +112,7 @@ const handleGenericObjectError = (err: UnknownError): ErrorResult => {
             errorDetail: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
         };
     }
-    
+
     return {
         status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         message: 'An unknown error occurred',
@@ -123,15 +124,15 @@ const processError = (err: unknown): ErrorResult => {
     if (err instanceof HttpError) {
         return handleHttpError(err);
     }
-    
+
     if (typeof err === 'string') {
         return handleStringError(err);
     }
-    
+
     if (err && typeof err === 'object') {
         return handleGenericObjectError(err as UnknownError);
     }
-    
+
     return {
         status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         message: 'An unknown error occurred',
@@ -143,7 +144,7 @@ export const errorHandler = (err: unknown, req: Request, res: Response, _next: N
     if (res.headersSent) return;
 
     const errorResult = processError(err);
-    
+
     logger.error('Error Handler:', {
         status: errorResult.status,
         message: errorResult.message,
