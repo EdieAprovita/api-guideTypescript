@@ -1,0 +1,17 @@
+config:
+  target: "http://localhost:5001"
+  phases:
+    - duration: 10
+      arrivalRate: 5
+  defaults:
+    headers:
+      Content-Type: application/json
+scenarios:
+  - name: health-check
+    flow:
+      - get:
+          url: "/api/v1/health"
+  - name: cache-health
+    flow:
+      - get:
+          url: "/api/v1/cache/health"
