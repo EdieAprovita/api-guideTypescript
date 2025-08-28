@@ -349,6 +349,29 @@ class ReviewService implements IReviewService {
             sanitized.restaurant = new Types.ObjectId(reviewData.restaurant.toString());
         }
 
+        if (!sanitized.restaurant) {
+            const anyData = reviewData as any;
+            const aliasId =
+                anyData.restaurantId ||
+                anyData.recipe ||
+                anyData.recipeId ||
+                anyData.market ||
+                anyData.marketId ||
+                anyData.business ||
+                anyData.businessId;
+
+            if (aliasId) {
+                const idStr = aliasId.toString();
+                if (!Types.ObjectId.isValid(idStr)) {
+                    throw new HttpError(
+                        HttpStatusCode.BAD_REQUEST,
+                        getErrorMessage('Invalid target entity ID')
+                    );
+                }
+                sanitized.restaurant = new Types.ObjectId(idStr);
+            }
+        }
+
         return sanitized;
     }
 
