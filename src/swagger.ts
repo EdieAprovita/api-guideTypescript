@@ -1,5 +1,156 @@
 import { OpenAPIV3 } from 'openapi-types';
 
+const createStandardResponses = (successSchema?: string) => ({
+    '200': {
+        description: 'Operation successful',
+        content: {
+            'application/json': {
+                schema: successSchema ? { $ref: `#/components/schemas/${successSchema}` } : { $ref: '#/components/schemas/SuccessResponse' },
+            },
+        },
+    },
+    '400': {
+        description: 'Invalid request',
+        content: {
+            'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+            },
+        },
+    },
+    '404': {
+        description: 'Resource not found',
+        content: {
+            'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+            },
+        },
+    },
+});
+
+const createGetAllEndpoint = (tag: string, schema: string) => ({
+    get: {
+        tags: [tag],
+        summary: `Get all ${tag.toLowerCase()}`,
+        responses: {
+            '200': {
+                description: `${tag} retrieved successfully`,
+                content: {
+                    'application/json': {
+                        schema: {
+                            type: 'array',
+                            items: { $ref: `#/components/schemas/${schema}` },
+                        },
+                    },
+                },
+            },
+        },
+    },
+});
+
+const createPostEndpoint = (tag: string, schema: string) => ({
+    post: {
+        tags: [tag],
+        summary: `Create ${tag.toLowerCase().slice(0, -1)}`,
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+            required: true,
+            content: {
+                'application/json': {
+                    schema: { $ref: `#/components/schemas/${schema}` },
+                },
+            },
+        },
+        responses: {
+            '201': {
+                description: `${tag.slice(0, -1)} created successfully`,
+                content: {
+                    'application/json': {
+                        schema: { $ref: `#/components/schemas/${schema}` },
+                    },
+                },
+            },
+            '400': createStandardResponses()['400'],
+        },
+    },
+});
+
+const createGetByIdEndpoint = (tag: string, schema: string) => ({
+    get: {
+        tags: [tag],
+        summary: `Get ${tag.toLowerCase().slice(0, -1)} by ID`,
+        parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+        responses: createStandardResponses(schema),
+    },
+});
+
+const createPutEndpoint = (tag: string, schema: string) => ({
+    put: {
+        tags: [tag],
+        summary: `Update ${tag.toLowerCase().slice(0, -1)}`,
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+        requestBody: {
+            required: true,
+            content: {
+                'application/json': {
+                    schema: { $ref: `#/components/schemas/${schema}` },
+                },
+            },
+        },
+        responses: createStandardResponses(schema),
+    },
+});
+
+const createDeleteEndpoint = (tag: string) => ({
+    delete: {
+        tags: [tag],
+        summary: `Delete ${tag.toLowerCase().slice(0, -1)}`,
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+        responses: createStandardResponses(),
+    },
+});
+
+const createAddReviewEndpoint = (tag: string) => ({
+    post: {
+        tags: [tag],
+        summary: `Add review to ${tag.toLowerCase().slice(0, -1)}`,
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+        requestBody: {
+            required: true,
+            content: {
+                'application/json': {
+                    schema: { $ref: '#/components/schemas/Review' },
+                },
+            },
+        },
+        responses: {
+            '201': {
+                description: 'Review added successfully',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/Review' },
+                    },
+                },
+            },
+        },
+    },
+});
+
+const createCrudEndpoints = (tag: string, schema: string) => ({
+    [`/${tag.toLowerCase()}`]: {
+        ...createGetAllEndpoint(tag, schema),
+        ...createPostEndpoint(tag, schema),
+    },
+    [`/${tag.toLowerCase()}/{id}`]: {
+        ...createGetByIdEndpoint(tag, schema),
+        ...createPutEndpoint(tag, schema),
+        ...createDeleteEndpoint(tag),
+    },
+    [`/${tag.toLowerCase()}/add-review/{id}`]: createAddReviewEndpoint(tag),
+});
+
 const swaggerDocument: OpenAPIV3.Document = {
     openapi: '3.0.0',
     info: {
@@ -423,6 +574,22 @@ const swaggerDocument: OpenAPIV3.Document = {
                     error: { type: 'string', example: 'ValidationError' },
                 },
             },
+            SuccessResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Operation successful' },
+                },
+            },
+        },
+        parameters: {
+            IdParameter: {
+                name: 'id',
+                in: 'path',
+                required: true,
+                schema: { type: 'string' },
+                description: 'Resource ID',
+            },
         },
     },
     tags: [
@@ -441,6 +608,7 @@ const swaggerDocument: OpenAPIV3.Document = {
         { name: 'Cache Management' },
     ],
     paths: {
+        // Authentication endpoints
         '/users/register': {
             post: {
                 tags: ['Authentication'],
@@ -462,22 +630,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                             },
                         },
                     },
-                    '400': {
-                        description: 'Invalid request',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                            },
-                        },
-                    },
-                    '409': {
-                        description: 'User already exists',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                            },
-                        },
-                    },
+                    ...createStandardResponses(),
                 },
             },
         },
@@ -493,32 +646,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         },
                     },
                 },
-                responses: {
-                    '200': {
-                        description: 'Successful login',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/User' },
-                            },
-                        },
-                    },
-                    '400': {
-                        description: 'Invalid request',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                            },
-                        },
-                    },
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses('User'),
             },
         },
         '/users/forgot-password': {
@@ -539,22 +667,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         },
                     },
                 },
-                responses: {
-                    '200': {
-                        description: 'Password reset email sent',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Password reset email sent' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
         '/users/reset-password': {
@@ -576,22 +689,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         },
                     },
                 },
-                responses: {
-                    '200': {
-                        description: 'Password reset successful',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Password reset successful' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
         '/users/logout': {
@@ -599,24 +697,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                 tags: ['Authentication'],
                 summary: 'Logout user',
                 security: [{ bearerAuth: [] }],
-                responses: {
-                    '200': {
-                        description: 'Logout successful',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Logout successful' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
+        
+        // User management endpoints
         '/users': {
             get: {
                 tags: ['Users'],
@@ -638,83 +723,15 @@ const swaggerDocument: OpenAPIV3.Document = {
             },
         },
         '/users/{id}': {
-            get: {
-                tags: ['Users'],
-                summary: 'Get user by ID',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'User ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'User retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/User' },
-                            },
-                        },
-                    },
-                    '404': {
-                        description: 'User not found',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Users'],
-                summary: 'Delete user',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'User ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'User deleted successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'User deleted successfully' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+            ...createGetByIdEndpoint('Users', 'User'),
+            ...createDeleteEndpoint('Users'),
         },
         '/users/profile/{id}': {
             put: {
                 tags: ['Users'],
                 summary: 'Update user profile',
                 security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'User ID',
-                    },
-                ],
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 requestBody: {
                     required: true,
                     content: {
@@ -732,324 +749,22 @@ const swaggerDocument: OpenAPIV3.Document = {
                         },
                     },
                 },
-                responses: {
-                    '200': {
-                        description: 'Profile updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/User' },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses('User'),
             },
         },
-        // Business endpoints
-        '/businesses': {
-            get: {
-                tags: ['Businesses'],
-                summary: 'Get all businesses',
-                responses: {
-                    '200': {
-                        description: 'Businesses retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Business' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Businesses'],
-                summary: 'Create business',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Business' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Business created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Business' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/businesses/{id}': {
-            get: {
-                tags: ['Businesses'],
-                summary: 'Get business by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Business ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Business retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Business' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Businesses'],
-                summary: 'Update business',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Business ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Business' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Business updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Business' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Businesses'],
-                summary: 'Delete business',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Business ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Business deleted successfully',
-                    },
-                },
-            },
-        },
-        '/businesses/add-review/{id}': {
-            post: {
-                tags: ['Businesses'],
-                summary: 'Add review to business',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Business ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Review' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Review added successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        // Restaurant endpoints  
-        '/restaurants': {
-            get: {
-                tags: ['Restaurants'],
-                summary: 'Get all restaurants',
-                responses: {
-                    '200': {
-                        description: 'Restaurants retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Restaurant' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Restaurants'],
-                summary: 'Create restaurant',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Restaurant' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Restaurant created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Restaurant' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/restaurants/{id}': {
-            get: {
-                tags: ['Restaurants'],
-                summary: 'Get restaurant by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Restaurant ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Restaurant retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Restaurant' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Restaurants'],
-                summary: 'Update restaurant',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Restaurant ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Restaurant' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Restaurant updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Restaurant' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Restaurants'],
-                summary: 'Delete restaurant',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Restaurant ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Restaurant deleted successfully',
-                    },
-                },
-            },
-        },
-        '/restaurants/add-review/{id}': {
-            post: {
-                tags: ['Restaurants'],
-                summary: 'Add review to restaurant',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Restaurant ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Review' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Review added successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
+
+        // CRUD endpoints generated by helpers
+        ...createCrudEndpoints('Businesses', 'Business'),
+        ...createCrudEndpoints('Restaurants', 'Restaurant'),
+        ...createCrudEndpoints('Doctors', 'Doctor'),
+        ...createCrudEndpoints('Markets', 'Market'),
+        ...createCrudEndpoints('Recipes', 'Recipe'),
+        ...createCrudEndpoints('Posts', 'Post'),
+        ...createCrudEndpoints('Sanctuaries', 'Sanctuary'),
+        ...createCrudEndpoints('Professions', 'Profession'),
+        ...createCrudEndpoints('Professional Profiles', 'ProfessionalProfile'),
+
+        // Special endpoints that don't follow CRUD pattern
         '/restaurants/top-rated': {
             get: {
                 tags: ['Restaurants'],
@@ -1069,608 +784,13 @@ const swaggerDocument: OpenAPIV3.Document = {
                 },
             },
         },
-        // Doctor endpoints
-        '/doctors': {
-            get: {
-                tags: ['Doctors'],
-                summary: 'Get all doctors',
-                responses: {
-                    '200': {
-                        description: 'Doctors retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Doctor' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Doctors'],
-                summary: 'Create doctor',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Doctor' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Doctor created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Doctor' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/doctors/{id}': {
-            get: {
-                tags: ['Doctors'],
-                summary: 'Get doctor by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Doctor ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Doctor retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Doctor' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Doctors'],
-                summary: 'Update doctor',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Doctor ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Doctor' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Doctor updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Doctor' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Doctors'],
-                summary: 'Delete doctor',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Doctor ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Doctor deleted successfully',
-                    },
-                },
-            },
-        },
-        '/doctors/add-review/{id}': {
-            post: {
-                tags: ['Doctors'],
-                summary: 'Add review to doctor',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Doctor ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Review' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Review added successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        // Market endpoints
-        '/markets': {
-            get: {
-                tags: ['Markets'],
-                summary: 'Get all markets',
-                responses: {
-                    '200': {
-                        description: 'Markets retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Market' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Markets'],
-                summary: 'Create market',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Market' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Market created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Market' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/markets/{id}': {
-            get: {
-                tags: ['Markets'],
-                summary: 'Get market by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Market ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Market retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Market' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Markets'],
-                summary: 'Update market',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Market ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Market' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Market updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Market' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Markets'],
-                summary: 'Delete market',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Market ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Market deleted successfully',
-                    },
-                },
-            },
-        },
-        '/markets/add-review/{id}': {
-            post: {
-                tags: ['Markets'],
-                summary: 'Add review to market',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Market ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Review' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Review added successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        // Recipe endpoints
-        '/recipes': {
-            get: {
-                tags: ['Recipes'],
-                summary: 'Get all recipes',
-                responses: {
-                    '200': {
-                        description: 'Recipes retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Recipe' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Recipes'],
-                summary: 'Create recipe',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Recipe' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Recipe created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Recipe' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/recipes/{id}': {
-            get: {
-                tags: ['Recipes'],
-                summary: 'Get recipe by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Recipe ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Recipe retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Recipe' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Recipes'],
-                summary: 'Update recipe',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Recipe ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Recipe' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Recipe updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Recipe' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Recipes'],
-                summary: 'Delete recipe',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Recipe ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Recipe deleted successfully',
-                    },
-                },
-            },
-        },
-        '/recipes/add-review/{id}': {
-            post: {
-                tags: ['Recipes'],
-                summary: 'Add review to recipe',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Recipe ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Review' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Review added successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        // Post endpoints
-        '/posts': {
-            get: {
-                tags: ['Posts'],
-                summary: 'Get all posts',
-                responses: {
-                    '200': {
-                        description: 'Posts retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Post' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Posts'],
-                summary: 'Create post',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Post' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Post created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Post' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/posts/{id}': {
-            get: {
-                tags: ['Posts'],
-                summary: 'Get post by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Post ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Post retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Post' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Posts'],
-                summary: 'Update post',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Post ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Post' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Post updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Post' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Posts'],
-                summary: 'Delete post',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Post ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Post deleted successfully',
-                    },
-                },
-            },
-        },
         '/posts/like/{id}': {
             post: {
                 tags: ['Posts'],
                 summary: 'Like a post',
                 security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Post ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Post liked successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Post' },
-                            },
-                        },
-                    },
-                },
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+                responses: createStandardResponses('Post'),
             },
         },
         '/posts/unlike/{id}': {
@@ -1678,25 +798,8 @@ const swaggerDocument: OpenAPIV3.Document = {
                 tags: ['Posts'],
                 summary: 'Unlike a post',
                 security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Post ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Post unliked successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Post' },
-                            },
-                        },
-                    },
-                },
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+                responses: createStandardResponses('Post'),
             },
         },
         '/posts/comment/{id}': {
@@ -1704,15 +807,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                 tags: ['Posts'],
                 summary: 'Add comment to post',
                 security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Post ID',
-                    },
-                ],
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 requestBody: {
                     required: true,
                     content: {
@@ -1733,477 +828,18 @@ const swaggerDocument: OpenAPIV3.Document = {
                 },
             },
         },
-        // Sanctuary endpoints
-        '/sanctuaries': {
-            get: {
-                tags: ['Sanctuaries'],
-                summary: 'Get all sanctuaries',
-                responses: {
-                    '200': {
-                        description: 'Sanctuaries retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Sanctuary' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Sanctuaries'],
-                summary: 'Create sanctuary',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Sanctuary' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Sanctuary created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Sanctuary' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/sanctuaries/{id}': {
-            get: {
-                tags: ['Sanctuaries'],
-                summary: 'Get sanctuary by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Sanctuary ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Sanctuary retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Sanctuary' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Sanctuaries'],
-                summary: 'Update sanctuary',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Sanctuary ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Sanctuary' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Sanctuary updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Sanctuary' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Sanctuaries'],
-                summary: 'Delete sanctuary',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Sanctuary ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Sanctuary deleted successfully',
-                    },
-                },
-            },
-        },
-        '/sanctuaries/add-review/{id}': {
-            post: {
-                tags: ['Sanctuaries'],
-                summary: 'Add review to sanctuary',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Sanctuary ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Review' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Review added successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        // Profession endpoints
-        '/professions': {
-            get: {
-                tags: ['Professions'],
-                summary: 'Get all professions',
-                responses: {
-                    '200': {
-                        description: 'Professions retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/Profession' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Professions'],
-                summary: 'Create profession',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Profession' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Profession created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Profession' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/professions/{id}': {
-            get: {
-                tags: ['Professions'],
-                summary: 'Get profession by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Profession ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Profession retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Profession' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Professions'],
-                summary: 'Update profession',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Profession ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Profession' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Profession updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Profession' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Professions'],
-                summary: 'Delete profession',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Profession ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Profession deleted successfully',
-                    },
-                },
-            },
-        },
-        '/professions/add-review/{id}': {
-            post: {
-                tags: ['Professions'],
-                summary: 'Add review to profession',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Profession ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/Review' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Review added successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        // Professional Profile endpoints
-        '/professionalProfile': {
-            get: {
-                tags: ['Professional Profiles'],
-                summary: 'Get all professional profiles',
-                responses: {
-                    '200': {
-                        description: 'Professional profiles retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: { $ref: '#/components/schemas/ProfessionalProfile' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                tags: ['Professional Profiles'],
-                summary: 'Create professional profile',
-                security: [{ bearerAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/ProfessionalProfile' },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Professional profile created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ProfessionalProfile' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/professionalProfile/{id}': {
-            get: {
-                tags: ['Professional Profiles'],
-                summary: 'Get professional profile by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Professional Profile ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Professional profile retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ProfessionalProfile' },
-                            },
-                        },
-                    },
-                },
-            },
-            put: {
-                tags: ['Professional Profiles'],
-                summary: 'Update professional profile',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Professional Profile ID',
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/ProfessionalProfile' },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'Professional profile updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ProfessionalProfile' },
-                            },
-                        },
-                    },
-                },
-            },
-            delete: {
-                tags: ['Professional Profiles'],
-                summary: 'Delete professional profile',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Professional Profile ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Professional profile deleted successfully',
-                    },
-                },
-            },
-        },
-        // Review endpoints
         '/reviews/{id}': {
             get: {
                 tags: ['Reviews'],
                 summary: 'Get review by ID',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Review ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Review retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                    '404': {
-                        description: 'Review not found',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                            },
-                        },
-                    },
-                },
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+                responses: createStandardResponses('Review'),
             },
             put: {
                 tags: ['Reviews'],
                 summary: 'Update review',
                 security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Review ID',
-                    },
-                ],
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 requestBody: {
                     required: true,
                     content: {
@@ -2212,24 +848,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         },
                     },
                 },
-                responses: {
-                    '200': {
-                        description: 'Review updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                            },
-                        },
-                    },
-                    '404': {
-                        description: 'Review not found',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses('Review'),
             },
         },
         '/reviews/{id}/helpful': {
@@ -2237,84 +856,24 @@ const swaggerDocument: OpenAPIV3.Document = {
                 tags: ['Reviews'],
                 summary: 'Mark review as helpful',
                 security: [{ bearerAuth: [] }],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Review ID',
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Review marked as helpful',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Review marked as helpful' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '404': {
-                        description: 'Review not found',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                            },
-                        },
-                    },
-                },
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+                responses: createStandardResponses(),
             },
         },
+        
         // Cache Management endpoints
         '/cache/stats': {
             get: {
                 tags: ['Cache Management'],
                 summary: 'Get cache statistics',
-                responses: {
-                    '200': {
-                        description: 'Cache stats retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: { type: 'object' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
         '/cache/health': {
             get: {
                 tags: ['Cache Management'],
                 summary: 'Get cache health status',
-                responses: {
-                    '200': {
-                        description: 'Cache health retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: { type: 'object' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
         '/cache/warm': {
@@ -2341,44 +900,14 @@ const swaggerDocument: OpenAPIV3.Document = {
                         },
                     },
                 },
-                responses: {
-                    '200': {
-                        description: 'Cache warming started successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: { type: 'object' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
         '/cache/alerts': {
             get: {
                 tags: ['Cache Management'],
                 summary: 'Get cache alerts',
-                responses: {
-                    '200': {
-                        description: 'Cache alerts retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: { type: 'object' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
         '/cache/invalidate/{pattern}': {
@@ -2395,44 +924,14 @@ const swaggerDocument: OpenAPIV3.Document = {
                         example: 'restaurants:*',
                     },
                 ],
-                responses: {
-                    '200': {
-                        description: 'Cache invalidated successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Cache invalidated successfully' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
         '/cache/flush': {
             delete: {
                 tags: ['Cache Management'],
                 summary: 'Flush all cache',
-                responses: {
-                    '200': {
-                        description: 'All cache flushed successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'All cache flushed successfully' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                responses: createStandardResponses(),
             },
         },
     },
