@@ -1,0 +1,2853 @@
+{
+  "info": {
+    "name": "API Guide TypeScript - Complete Collection",
+    "description": "Complete Postman collection for Express TypeScript API with JWT authentication, organized by functionality.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "restaurantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reviewId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "businessId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doctorId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "marketId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recipeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "postId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sanctuaryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionalProfileId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.accessToken) {",
+                  "        pm.collectionVariables.set('authToken', response.data.accessToken);",
+                  "    }",
+                  "    if (response.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('authToken', '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revoke All Tokens",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/revoke-all-tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "revoke-all-tokens"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('authToken', '');",
+                  "    pm.collectionVariables.set('refreshToken', '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"dateOfBirth\": \"1990-01-01\",\n  \"phoneNumber\": \"+1234567890\",\n  \"location\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -73.935242,\n      40.73061\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.token) {",
+                  "        pm.collectionVariables.set('authToken', response.data.token);",
+                  "    }",
+                  "    if (response.data.user && response.data.user._id) {",
+                  "        pm.collectionVariables.set('userId', response.data.user._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"TestPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.token) {",
+                  "        pm.collectionVariables.set('authToken', response.data.token);",
+                  "    }",
+                  "    if (response.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "    }",
+                  "    if (response.data.user && response.data.user._id) {",
+                  "        pm.collectionVariables.set('userId', response.data.user._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Users (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10&sortBy=username&sortOrder=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "username"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Current User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"updateduser\",\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\",\n  \"phoneNumber\": \"+1234567891\",\n  \"location\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -73.985656,\n      40.748817\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "forgot-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"reset-token-here\",\n  \"password\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "reset-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "User Logout",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/users/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "logout"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User Profile by ID (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"adminupdated\",\n  \"firstName\": \"Admin\",\n  \"lastName\": \"Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/profile/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "profile",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete User by ID (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Restaurants",
+      "item": [
+        {
+          "name": "Get All Restaurants",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/restaurants?page=1&limit=10&latitude=40.730610&longitude=-73.935242&radius=5000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "latitude",
+                  "value": "40.730610"
+                },
+                {
+                  "key": "longitude",
+                  "value": "-73.935242"
+                },
+                {
+                  "key": "radius",
+                  "value": "5000"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Top Rated Restaurants",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/restaurants/top-rated?page=1&limit=10&sortBy=rating&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants",
+                "top-rated"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "rating"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/restaurants/{{restaurantId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants",
+                "{{restaurantId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Restaurant",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantName\": \"Vegan Delights\",\n  \"address\": \"123 Plant Street, New York, NY 10001\",\n  \"location\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -73.935242,\n      40.73061\n    ]\n  },\n  \"contact\": [\n    {\n      \"phone\": \"+1234567890\",\n      \"facebook\": \"https://facebook.com/vegandelights\",\n      \"instagram\": \"https://instagram.com/vegandelights\"\n    }\n  ],\n  \"cuisine\": [\n    \"Vegan\",\n    \"Mediterranean\",\n    \"Organic\"\n  ],\n  \"budget\": \"$$\",\n  \"rating\": 4.5,\n  \"author\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/restaurants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('restaurantId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Restaurant (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantName\": \"Updated Vegan Delights\",\n  \"cuisine\": [\n    \"Vegan\",\n    \"Mediterranean\",\n    \"Organic\",\n    \"Raw\"\n  ],\n  \"budget\": \"$$$\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/restaurants/{{restaurantId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants",
+                "{{restaurantId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Restaurant (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/restaurants/{{restaurantId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants",
+                "{{restaurantId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Review to Restaurant (Legacy)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Amazing vegan experience!\",\n  \"content\": \"The food was absolutely delicious and the service was outstanding. Highly recommended for anyone looking for quality vegan cuisine.\",\n  \"visitDate\": \"2024-01-15\",\n  \"recommendedDishes\": [\n    \"Quinoa Buddha Bowl\",\n    \"Cashew Cheese Pizza\"\n  ],\n  \"tags\": [\n    \"vegan\",\n    \"healthy\",\n    \"delicious\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/restaurants/add-review/{{restaurantId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants",
+                "add-review",
+                "{{restaurantId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Review for Restaurant",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"title\": \"Great vegan options\",\n  \"content\": \"Really enjoyed the variety of vegan dishes available. The atmosphere was cozy and the staff was knowledgeable about ingredients.\",\n  \"visitDate\": \"2024-01-20\",\n  \"recommendedDishes\": [\n    \"Vegan Burger\",\n    \"Lentil Soup\"\n  ],\n  \"tags\": [\n    \"vegan\",\n    \"cozy\",\n    \"good-service\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/restaurants/{{restaurantId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants",
+                "{{restaurantId}}",
+                "reviews"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('reviewId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Restaurant Reviews",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/restaurants/{{restaurantId}}/reviews?page=1&limit=10&rating=5&sort=-createdAt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants",
+                "{{restaurantId}}",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "rating",
+                  "value": "5"
+                },
+                {
+                  "key": "sort",
+                  "value": "-createdAt"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant Review Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/restaurants/{{restaurantId}}/reviews/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restaurants",
+                "{{restaurantId}}",
+                "reviews",
+                "stats"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Get Review by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Updated: Exceptional vegan experience!\",\n  \"content\": \"After multiple visits, I can confidently say this is one of the best vegan restaurants in the city. The quality is consistently high and the menu keeps evolving.\",\n  \"recommendedDishes\": [\n    \"Mushroom Risotto\",\n    \"Chocolate Avocado Mousse\"\n  ],\n  \"tags\": [\n    \"vegan\",\n    \"exceptional\",\n    \"consistent-quality\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Review as Helpful",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId}}/helpful",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}",
+                "helpful"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Helpful Mark from Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId}}/helpful",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}",
+                "helpful"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Businesses",
+      "item": [
+        {
+          "name": "Get All Businesses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/businesses?page=1&limit=10&category=health&sortBy=name&sortOrder=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "businesses"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "category",
+                  "value": "health"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Business by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/businesses/{{businessId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "businesses",
+                "{{businessId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Business",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Green Health Store\",\n  \"description\": \"Organic health products and supplements for a sustainable lifestyle\",\n  \"address\": \"456 Wellness Ave, New York, NY 10002\",\n  \"phoneNumber\": \"+1234567891\",\n  \"email\": \"info@greenhealthstore.com\",\n  \"website\": \"https://greenhealthstore.com\",\n  \"category\": \"health\",\n  \"socialMedia\": {\n    \"facebook\": \"https://facebook.com/greenhealthstore\",\n    \"instagram\": \"https://instagram.com/greenhealthstore\"\n  },\n  \"location\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -73.985656,\n      40.748817\n    ]\n  },\n  \"openingHours\": {\n    \"monday\": {\n      \"open\": \"09:00\",\n      \"close\": \"18:00\"\n    },\n    \"tuesday\": {\n      \"open\": \"09:00\",\n      \"close\": \"18:00\"\n    },\n    \"wednesday\": {\n      \"open\": \"09:00\",\n      \"close\": \"18:00\"\n    },\n    \"thursday\": {\n      \"open\": \"09:00\",\n      \"close\": \"18:00\"\n    },\n    \"friday\": {\n      \"open\": \"09:00\",\n      \"close\": \"18:00\"\n    },\n    \"saturday\": {\n      \"open\": \"10:00\",\n      \"close\": \"16:00\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/businesses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "businesses"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('businessId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Review to Business",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"title\": \"Great selection of organic products\",\n  \"content\": \"This store has an amazing variety of organic health products. The staff is very knowledgeable and helpful in recommending the right supplements.\",\n  \"visitDate\": \"2024-01-18\",\n  \"tags\": [\n    \"organic\",\n    \"helpful-staff\",\n    \"variety\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/businesses/add-review/{{businessId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "businesses",
+                "add-review",
+                "{{businessId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Business",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Premium organic health products, supplements, and wellness consultation services\",\n  \"website\": \"https://newgreenhealthstore.com\",\n  \"openingHours\": {\n    \"sunday\": {\n      \"open\": \"11:00\",\n      \"close\": \"15:00\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/businesses/{{businessId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "businesses",
+                "{{businessId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Business",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/businesses/{{businessId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "businesses",
+                "{{businessId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Doctors",
+      "item": [
+        {
+          "name": "Get All Doctors",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctors?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctors"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Doctor by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctors/{{doctorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctors",
+                "{{doctorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Doctor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Sarah Green\",\n  \"specialization\": \"Nutrition & Holistic Medicine\",\n  \"address\": \"789 Health Plaza, New York, NY 10003\",\n  \"phoneNumber\": \"+1234567892\",\n  \"email\": \"dr.sarah@greenhealth.com\",\n  \"website\": \"https://drsarahgreen.com\",\n  \"location\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -73.975156,\n      40.768817\n    ]\n  },\n  \"bio\": \"Experienced holistic medicine practitioner specializing in plant-based nutrition and wellness coaching.\",\n  \"experience\": \"15 years\",\n  \"certifications\": [\n    \"Board Certified Nutritionist\",\n    \"Holistic Health Practitioner\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctors"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('doctorId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Review to Doctor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Outstanding holistic approach\",\n  \"content\": \"Dr. Green provided excellent guidance on plant-based nutrition. Her holistic approach really helped me improve my overall health and energy levels.\",\n  \"visitDate\": \"2024-01-22\",\n  \"tags\": [\n    \"holistic\",\n    \"knowledgeable\",\n    \"helpful\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctors/add-review/{{doctorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctors",
+                "add-review",
+                "{{doctorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Doctor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Experienced holistic medicine practitioner with 15+ years specializing in plant-based nutrition, wellness coaching, and integrative health solutions.\",\n  \"experience\": \"16 years\",\n  \"certifications\": [\n    \"Board Certified Nutritionist\",\n    \"Holistic Health Practitioner\",\n    \"Integrative Medicine Specialist\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctors/{{doctorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctors",
+                "{{doctorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Doctor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/doctors/{{doctorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctors",
+                "{{doctorId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Markets",
+      "item": [
+        {
+          "name": "Get All Markets",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/markets?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Market by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/markets/{{marketId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets",
+                "{{marketId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Market",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Green Valley Farmers Market\",\n  \"description\": \"Fresh organic produce, local vendors, and sustainable farming products\",\n  \"address\": \"Central Park North, New York, NY 10025\",\n  \"phoneNumber\": \"+1234567893\",\n  \"email\": \"info@greenvalleymarket.com\",\n  \"website\": \"https://greenvalleymarket.com\",\n  \"location\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -73.958156,\n      40.798817\n    ]\n  },\n  \"marketType\": \"Farmers Market\",\n  \"operatingDays\": [\n    \"Saturday\",\n    \"Sunday\"\n  ],\n  \"vendors\": [\n    \"Organic Greens Co\",\n    \"Farm Fresh Herbs\",\n    \"Sustainable Grains\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/markets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('marketId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Review to Market",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Best farmers market in the city\",\n  \"content\": \"Amazing selection of fresh organic produce. The vendors are passionate about sustainable farming and the quality is consistently excellent.\",\n  \"visitDate\": \"2024-01-21\",\n  \"tags\": [\n    \"organic\",\n    \"fresh\",\n    \"sustainable\",\n    \"quality\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/markets/add-review/{{marketId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets",
+                "add-review",
+                "{{marketId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Market",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Premium fresh organic produce, local artisan vendors, and sustainable farming products with live music and community events\",\n  \"operatingDays\": [\n    \"Friday\",\n    \"Saturday\",\n    \"Sunday\"\n  ],\n  \"vendors\": [\n    \"Organic Greens Co\",\n    \"Farm Fresh Herbs\",\n    \"Sustainable Grains\",\n    \"Artisan Bread Co\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/markets/{{marketId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets",
+                "{{marketId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Market",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/markets/{{marketId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets",
+                "{{marketId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recipes",
+      "item": [
+        {
+          "name": "Get All Recipes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Recipe by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{recipeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Recipe",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Quinoa Buddha Bowl\",\n  \"description\": \"A nutritious and colorful bowl packed with quinoa, fresh vegetables, and tahini dressing\",\n  \"ingredients\": [\n    \"1 cup quinoa\",\n    \"2 cups mixed greens\",\n    \"1 avocado, sliced\",\n    \"1 cup cherry tomatoes, halved\",\n    \"1/2 cup chickpeas\",\n    \"2 tbsp tahini\",\n    \"1 lemon, juiced\",\n    \"2 tbsp olive oil\",\n    \"Salt and pepper to taste\"\n  ],\n  \"instructions\": [\n    \"Cook quinoa according to package instructions\",\n    \"Prepare all vegetables and arrange in a bowl\",\n    \"Mix tahini, lemon juice, and olive oil for dressing\",\n    \"Combine all ingredients and drizzle with dressing\",\n    \"Season with salt and pepper, serve immediately\"\n  ],\n  \"prepTime\": 15,\n  \"cookTime\": 20,\n  \"servings\": 2,\n  \"difficulty\": \"easy\",\n  \"cuisine\": \"Mediterranean\",\n  \"dietaryTags\": [\n    \"vegan\",\n    \"gluten-free\",\n    \"healthy\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('recipeId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Review to Recipe",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Absolutely delicious and nutritious!\",\n  \"content\": \"This recipe is perfect! Easy to make, incredibly nutritious, and my whole family loved it. The tahini dressing makes all the difference.\",\n  \"tags\": [\n    \"easy\",\n    \"nutritious\",\n    \"family-friendly\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/recipes/add-review/{{recipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "add-review",
+                "{{recipeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Recipe",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"A super nutritious and colorful bowl packed with protein-rich quinoa, fresh seasonal vegetables, and creamy tahini dressing\",\n  \"prepTime\": 10,\n  \"servings\": 4,\n  \"dietaryTags\": [\n    \"vegan\",\n    \"gluten-free\",\n    \"healthy\",\n    \"high-protein\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{recipeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Recipe",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{recipeId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Get All Posts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/posts?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Post by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My Journey to a Plant-Based Lifestyle\",\n  \"content\": \"After 6 months of transitioning to a plant-based diet, I wanted to share my experiences and the positive changes I've noticed in my health and energy levels. Here are some tips for anyone considering this journey...\",\n  \"category\": \"lifestyle\",\n  \"tags\": [\n    \"plant-based\",\n    \"health\",\n    \"journey\",\n    \"tips\"\n  ],\n  \"imageUrl\": \"https://example.com/plant-based-journey.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('postId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Like Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/posts/like/{{postId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "like",
+                "{{postId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unlike Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/posts/unlike/{{postId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "unlike",
+                "{{postId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Comment to Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Thank you for sharing your journey! I'm also considering transitioning to a plant-based diet. Your tips are really helpful and inspiring.\",\n  \"parentCommentId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/comment/{{postId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "comment",
+                "{{postId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My Journey to a Plant-Based Lifestyle - Updated\",\n  \"content\": \"After 8 months of transitioning to a plant-based diet, I wanted to share my updated experiences and the continued positive changes I've noticed. Here are some additional tips and insights...\",\n  \"tags\": [\n    \"plant-based\",\n    \"health\",\n    \"journey\",\n    \"tips\",\n    \"update\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sanctuaries",
+      "item": [
+        {
+          "name": "Get All Sanctuaries",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sanctuaries?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sanctuaries"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Sanctuary by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sanctuaries/{{sanctuaryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sanctuaries",
+                "{{sanctuaryId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Sanctuary",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Peaceful Paws Animal Sanctuary\",\n  \"description\": \"A safe haven for rescued farm animals, providing lifelong care and promoting compassionate living\",\n  \"address\": \"1234 Sanctuary Lane, Upstate NY 12345\",\n  \"phoneNumber\": \"+1234567894\",\n  \"email\": \"info@peacefulpaws.org\",\n  \"website\": \"https://peacefulpaws.org\",\n  \"location\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -74.125156,\n      41.268817\n    ]\n  },\n  \"animalTypes\": [\n    \"Cows\",\n    \"Pigs\",\n    \"Chickens\",\n    \"Goats\",\n    \"Horses\"\n  ],\n  \"capacity\": 150,\n  \"establishedYear\": 2015,\n  \"visitingHours\": {\n    \"saturday\": {\n      \"open\": \"10:00\",\n      \"close\": \"16:00\"\n    },\n    \"sunday\": {\n      \"open\": \"10:00\",\n      \"close\": \"16:00\"\n    }\n  },\n  \"volunteerOpportunities\": true,\n  \"adoptionPrograms\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sanctuaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sanctuaries"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('sanctuaryId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Review to Sanctuary",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Heartwarming and educational experience\",\n  \"content\": \"Visiting this sanctuary was truly moving. The animals are clearly well-cared for and happy. The staff is incredibly knowledgeable and passionate about animal welfare.\",\n  \"visitDate\": \"2024-01-25\",\n  \"tags\": [\n    \"heartwarming\",\n    \"educational\",\n    \"well-cared-animals\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sanctuaries/add-review/{{sanctuaryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sanctuaries",
+                "add-review",
+                "{{sanctuaryId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Sanctuary",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 175,\n  \"animalTypes\": [\n    \"Cows\",\n    \"Pigs\",\n    \"Chickens\",\n    \"Goats\",\n    \"Horses\",\n    \"Sheep\"\n  ],\n  \"visitingHours\": {\n    \"friday\": {\n      \"open\": \"10:00\",\n      \"close\": \"14:00\"\n    },\n    \"saturday\": {\n      \"open\": \"10:00\",\n      \"close\": \"16:00\"\n    },\n    \"sunday\": {\n      \"open\": \"10:00\",\n      \"close\": \"16:00\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sanctuaries/{{sanctuaryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sanctuaries",
+                "{{sanctuaryId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Sanctuary",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/sanctuaries/{{sanctuaryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sanctuaries",
+                "{{sanctuaryId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Professions",
+      "item": [
+        {
+          "name": "Get All Professions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/professions?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Profession by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/professions/{{professionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professions",
+                "{{professionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Profession",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Plant-Based Nutritionist\",\n  \"description\": \"Specialized nutrition consulting focused on plant-based diets, meal planning, and holistic wellness approaches\",\n  \"category\": \"Healthcare\",\n  \"requirements\": [\n    \"Bachelor's degree in Nutrition or related field\",\n    \"Certified Plant-Based Nutrition Certificate\",\n    \"2+ years experience in nutritional counseling\",\n    \"Knowledge of vegan and vegetarian dietary practices\"\n  ],\n  \"skills\": [\n    \"Nutritional Assessment\",\n    \"Meal Planning\",\n    \"Client Counseling\",\n    \"Plant-Based Diet Expertise\"\n  ],\n  \"averageSalary\": {\n    \"min\": 45000,\n    \"max\": 75000,\n    \"currency\": \"USD\"\n  },\n  \"educationLevel\": \"Bachelor's\",\n  \"workEnvironment\": [\n    \"Private Practice\",\n    \"Wellness Centers\",\n    \"Remote Consultation\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/professions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('professionId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Review to Profession",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Rewarding and impactful career\",\n  \"content\": \"Working as a plant-based nutritionist has been incredibly fulfilling. You get to help people improve their health while promoting sustainable living. The field is growing rapidly.\",\n  \"tags\": [\n    \"fulfilling\",\n    \"impactful\",\n    \"growing-field\",\n    \"meaningful\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/professions/add-review/{{professionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professions",
+                "add-review",
+                "{{professionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profession",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Advanced nutrition consulting specializing in plant-based diets, meal planning, supplement guidance, and holistic wellness approaches for optimal health\",\n  \"averageSalary\": {\n    \"min\": 50000,\n    \"max\": 85000,\n    \"currency\": \"USD\"\n  },\n  \"workEnvironment\": [\n    \"Private Practice\",\n    \"Wellness Centers\",\n    \"Remote Consultation\",\n    \"Corporate Wellness Programs\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/professions/{{professionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professions",
+                "{{professionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Profession",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/professions/{{professionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professions",
+                "{{professionId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Professional Profiles",
+      "item": [
+        {
+          "name": "Get All Professional Profiles",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/professionalProfile?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professionalProfile"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Professional Profile by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/professionalProfile/{{professionalProfileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professionalProfile",
+                "{{professionalProfileId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Professional Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"{{userId}}\",\n  \"profession\": \"{{professionId}}\",\n  \"bio\": \"Certified plant-based nutritionist with 5 years of experience helping clients transition to healthier, sustainable lifestyles through personalized nutrition plans.\",\n  \"experience\": [\n    {\n      \"title\": \"Senior Plant-Based Nutritionist\",\n      \"company\": \"Green Wellness Center\",\n      \"location\": \"New York, NY\",\n      \"from\": \"2022-01-01\",\n      \"to\": \"2024-12-31\",\n      \"current\": true,\n      \"description\": \"Provide comprehensive nutritional counseling and create customized plant-based meal plans for diverse clientele\"\n    }\n  ],\n  \"education\": [\n    {\n      \"school\": \"Columbia University\",\n      \"degree\": \"Master of Science\",\n      \"fieldOfStudy\": \"Nutritional Sciences\",\n      \"from\": \"2018-09-01\",\n      \"to\": \"2020-05-30\",\n      \"current\": false,\n      \"description\": \"Specialized in plant-based nutrition and sustainable food systems\"\n    }\n  ],\n  \"skills\": [\n    {\n      \"skill\": \"Plant-Based Nutrition Planning\",\n      \"company\": \"Green Wellness Center\",\n      \"location\": \"New York, NY\",\n      \"from\": \"2020-06-01\",\n      \"to\": \"2024-12-31\",\n      \"current\": true,\n      \"description\": \"Advanced expertise in creating balanced plant-based nutrition plans\"\n    }\n  ],\n  \"contact\": {\n    \"phone\": \"+1234567895\",\n    \"email\": \"sarah.nutritionist@example.com\",\n    \"facebook\": \"https://facebook.com/sarahnutritionist\",\n    \"instagram\": \"https://instagram.com/sarahnutritionist\"\n  },\n  \"social\": {\n    \"linkedin\": \"https://linkedin.com/in/sarahnutritionist\",\n    \"twitter\": \"https://twitter.com/sarahnutritionist\"\n  },\n  \"website\": \"https://sarahplantnutrition.com\",\n  \"location\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -73.935242,\n      40.73061\n    ]\n  },\n  \"availableForHire\": true,\n  \"hourlyRate\": 85,\n  \"languages\": [\n    \"English\",\n    \"Spanish\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/professionalProfile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professionalProfile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('professionalProfileId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Professional Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Certified plant-based nutritionist with 6 years of experience helping clients transition to healthier, sustainable lifestyles through personalized nutrition plans and holistic wellness coaching.\",\n  \"hourlyRate\": 95,\n  \"languages\": [\n    \"English\",\n    \"Spanish\",\n    \"French\"\n  ],\n  \"availableForHire\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/professionalProfile/{{professionalProfileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professionalProfile",
+                "{{professionalProfileId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Professional Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/professionalProfile/{{professionalProfileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professionalProfile",
+                "{{professionalProfileId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cache Management",
+      "item": [
+        {
+          "name": "Get Cache Stats (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/cache/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cache",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Flush All Cache (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/cache/flush",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cache",
+                "flush"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invalidate Cache by Pattern (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/cache/invalidate/restaurants*",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cache",
+                "invalidate",
+                "restaurants*"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invalidate Cache by Tag (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/cache/invalidate-tag/listings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cache",
+                "invalidate-tag",
+                "listings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Cache Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/cache/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cache",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Start Cache Monitoring (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interval\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cache/monitor/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cache",
+                "monitor",
+                "start"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stop Cache Monitoring (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/cache/monitor/stop",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cache",
+                "monitor",
+                "stop"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

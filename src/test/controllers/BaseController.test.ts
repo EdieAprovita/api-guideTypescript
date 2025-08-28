@@ -71,8 +71,11 @@ describe('BaseController', () => {
   it('create should return created resource', async () => {
     vi.mocked(validationResult).mockReturnValue({
       isEmpty: () => true,
-      array: () => []
-    })
+      array: () => [],
+      formatWith: vi.fn(),
+      throw: vi.fn(),
+      mapped: vi.fn()
+    } as any)
     const req = testUtils.createMockRequest({ body: { name: 'test' } }) as Request
     const res = testUtils.createMockResponse() as Response
     const next = testUtils.createMockNext()
@@ -87,8 +90,17 @@ describe('BaseController', () => {
   it('create should handle validation errors', async () => {
     vi.mocked(validationResult).mockReturnValue({
       isEmpty: () => false,
-      array: () => [{ msg: 'Invalid' }]
-    })
+      array: () => [{ 
+        type: 'field' as const,
+        location: 'body' as const,
+        path: 'name',
+        value: undefined,
+        msg: 'Invalid'
+      }],
+      formatWith: vi.fn(),
+      throw: vi.fn(),
+      mapped: vi.fn()
+    } as any)
     const req = testUtils.createMockRequest({ body: {} }) as Request
     const res = testUtils.createMockResponse() as Response
     const next = testUtils.createMockNext()
@@ -116,12 +128,10 @@ describe('BaseController', () => {
     vi.mocked(validationResult).mockReturnValue({
       isEmpty: () => true,
       array: () => [],
-      formatter: vi.fn(),
-      errors: [],
-      mapped: vi.fn(),
       formatWith: vi.fn(),
-      throw: vi.fn()
-    })
+      throw: vi.fn(),
+      mapped: vi.fn()
+    } as any)
     const req = testUtils.createMockRequest({ 
       params: { id: '1' }, 
       body: { name: 'updated' } 
@@ -146,12 +156,10 @@ describe('BaseController', () => {
         value: undefined,
         msg: 'Invalid data'
       }],
-      formatter: vi.fn(),
-      errors: [],
-      mapped: vi.fn(),
       formatWith: vi.fn(),
-      throw: vi.fn()
-    })
+      throw: vi.fn(),
+      mapped: vi.fn()
+    } as any)
     const req = testUtils.createMockRequest({ 
       params: { id: '1' }, 
       body: {} 
@@ -169,12 +177,10 @@ describe('BaseController', () => {
     vi.mocked(validationResult).mockReturnValue({
       isEmpty: () => true,
       array: () => [],
-      formatter: vi.fn(),
-      errors: [],
-      mapped: vi.fn(),
       formatWith: vi.fn(),
-      throw: vi.fn()
-    })
+      throw: vi.fn(),
+      mapped: vi.fn()
+    } as any)
     service.updateById.mockResolvedValueOnce(null)
     const req = testUtils.createMockRequest({ 
       params: { id: '999' }, 
@@ -193,12 +199,10 @@ describe('BaseController', () => {
     vi.mocked(validationResult).mockReturnValue({
       isEmpty: () => true,
       array: () => [],
-      formatter: vi.fn(),
-      errors: [],
-      mapped: vi.fn(),
       formatWith: vi.fn(),
-      throw: vi.fn()
-    })
+      throw: vi.fn(),
+      mapped: vi.fn()
+    } as any)
     service.updateById.mockRejectedValueOnce(new Error('Service error'))
     const req = testUtils.createMockRequest({ 
       params: { id: '1' }, 
