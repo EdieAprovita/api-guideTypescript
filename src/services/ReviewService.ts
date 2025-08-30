@@ -1,9 +1,15 @@
 import { Review, IReview } from '../models/Review';
+import { Restaurant } from '../models/Restaurant';
+import { Recipe } from '../models/Recipe';
+import { Market } from '../models/Market';
+import { Business } from '../models/Business';
+import { Doctor } from '../models/Doctor';
+import { Sanctuary } from '../models/Sanctuary';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
-import { Types } from 'mongoose';
+import { Types, startSession, ClientSession } from 'mongoose';
 
-type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor';
+type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
 
 interface ReviewQueryOptions {
     page: number;
@@ -61,10 +67,40 @@ export interface IReviewService {
 
 class ReviewService implements IReviewService {
     async addReview(reviewData: Partial<IReview>): Promise<IReview> {
-        // Sanitize and validate review data to prevent NoSQL injection
-        const sanitizedData = this.sanitizeReviewData(reviewData);
-        const review = await Review.create(sanitizedData);
-        return review;
+        const session = await startSession();
+        
+        try {
+            let createdReviewId: string = '';
+            
+            await session.withTransaction(async () => {
+                // Sanitize and validate review data to prevent NoSQL injection
+                const sanitizedData = this.sanitizeReviewData(reviewData);
+                
+                // Create the review
+                const [review] = await Review.create([sanitizedData], { session });
+                if (!review) {
+                    throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage('Failed to create review'));
+                }
+                createdReviewId = review._id.toString();
+                
+                // Update entity rating and numReviews atomically
+                if (review.entityType && review.entity) {
+                    await this.updateEntityRatingAtomic(review.entityType, review.entity, session);
+                    
+                    // Add review reference to entity
+                    await this.addReviewToEntity(review.entityType, review.entity, new Types.ObjectId(review._id), session);
+                }
+            });
+            
+            // Fetch populated review outside transaction for return
+            const populatedReview = await Review.findById(createdReviewId).populate('author', 'firstName lastName');
+            if (!populatedReview) {
+                throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage('Review created but not found'));
+            }
+            return populatedReview;
+        } finally {
+            await session.endSession();
+        }
     }
 
     // Generic polymorphic methods
@@ -214,14 +250,38 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
         }
 
-        const review = await Review.findByIdAndUpdate(reviewId, updateData, { new: true })
-            .populate('author', 'firstName lastName')
-            .populate('restaurant', 'restaurantName');
+        const session = await startSession();
+        
+        try {
+            await session.withTransaction(async () => {
+                const review = await Review.findById(reviewId).session(session);
+                if (!review) {
+                    throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
+                }
 
-        if (!review) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
+                // Update the review
+                const updatedReview = await Review.findByIdAndUpdate(reviewId, updateData, { new: true, session });
+                if (!updatedReview) {
+                    throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage('Failed to update review'));
+                }
+                
+                // If rating was updated, recalculate entity rating
+                if (updateData.rating !== undefined && review.entityType && review.entity) {
+                    await this.updateEntityRatingAtomic(review.entityType, review.entity, session);
+                }
+            });
+            
+            // Fetch populated review outside transaction
+            const populatedReview = await Review.findById(reviewId)
+                .populate('author', 'firstName lastName');
+            
+            if (!populatedReview) {
+                throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found after update'));
+            }
+            return populatedReview;
+        } finally {
+            await session.endSession();
         }
-        return review;
     }
 
     async deleteReview(reviewId: string): Promise<void> {
@@ -230,11 +290,27 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid review ID format'));
         }
 
-        const review = await Review.findById(reviewId);
-        if (!review) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
+        const session = await startSession();
+        
+        try {
+            await session.withTransaction(async () => {
+                const review = await Review.findById(reviewId).session(session);
+                if (!review) {
+                    throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
+                }
+
+                // Delete the review
+                await Review.deleteOne({ _id: new Types.ObjectId(reviewId) }, { session });
+                
+                // Update entity rating and remove review reference
+                if (review.entityType && review.entity) {
+                    await this.updateEntityRatingAtomic(review.entityType, review.entity, session);
+                    await this.removeReviewFromEntity(review.entityType, review.entity, new Types.ObjectId(review._id), session);
+                }
+            });
+        } finally {
+            await session.endSession();
         }
-        await Review.deleteOne({ _id: new Types.ObjectId(reviewId) });
     }
 
 
@@ -320,7 +396,7 @@ class ReviewService implements IReviewService {
     private handleEntityFields(reviewData: Record<string, unknown>, sanitized: Partial<IReview>): void {
         // Priority 1: Direct polymorphic fields
         if (typeof reviewData.entityType === 'string' && reviewData.entity) {
-            const validEntityTypes: EntityType[] = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'];
+            const validEntityTypes: EntityType[] = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor', 'Sanctuary'];
             if (!validEntityTypes.includes(reviewData.entityType as EntityType)) {
                 throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity type'));
             }
@@ -344,7 +420,9 @@ class ReviewService implements IReviewService {
             businessId: 'Business',
             business: 'Business',
             doctorId: 'Doctor',
-            doctor: 'Doctor'
+            doctor: 'Doctor',
+            sanctuaryId: 'Sanctuary',
+            sanctuary: 'Sanctuary'
         };
 
         for (const [field, entityType] of Object.entries(aliasMapping)) {
@@ -471,8 +549,100 @@ class ReviewService implements IReviewService {
             out.restaurant = new Types.ObjectId(hex);
         }
     }
+    // Atomic helper methods for rating aggregation
+    private async updateEntityRatingAtomic(entityType: EntityType, entityId: Types.ObjectId, session: ClientSession): Promise<void> {
+        // Calculate new rating and numReviews from all reviews for this entity
+        const stats = await Review.aggregate([
+            { $match: { entityType, entity: entityId } },
+            { 
+                $group: { 
+                    _id: null, 
+                    averageRating: { $avg: '$rating' }, 
+                    totalReviews: { $sum: 1 } 
+                } 
+            }
+        ]).session(session);
+
+        const rating = stats.length ? Math.round((stats[0].averageRating || 0) * 100) / 100 : 0;
+        const numReviews = stats.length ? stats[0].totalReviews : 0;
+
+        // Update the entity with new aggregated values using switch for type safety
+        switch (entityType) {
+            case 'Restaurant':
+                await Restaurant.updateOne({ _id: entityId }, { rating, numReviews }, { session });
+                break;
+            case 'Recipe':
+                await Recipe.updateOne({ _id: entityId }, { rating, numReviews }, { session });
+                break;
+            case 'Market':
+                await Market.updateOne({ _id: entityId }, { rating, numReviews }, { session });
+                break;
+            case 'Business':
+                await Business.updateOne({ _id: entityId }, { rating, numReviews }, { session });
+                break;
+            case 'Doctor':
+                await Doctor.updateOne({ _id: entityId }, { rating, numReviews }, { session });
+                break;
+            case 'Sanctuary':
+                await Sanctuary.updateOne({ _id: entityId }, { rating, numReviews }, { session });
+                break;
+            default:
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Unsupported entity type'));
+        }
+    }
+
+    private async addReviewToEntity(entityType: EntityType, entityId: Types.ObjectId, reviewId: Types.ObjectId, session: ClientSession): Promise<void> {
+        switch (entityType) {
+            case 'Restaurant':
+                await Restaurant.updateOne({ _id: entityId }, { $addToSet: { reviews: reviewId } }, { session });
+                break;
+            case 'Recipe':
+                await Recipe.updateOne({ _id: entityId }, { $addToSet: { reviews: reviewId } }, { session });
+                break;
+            case 'Market':
+                await Market.updateOne({ _id: entityId }, { $addToSet: { reviews: reviewId } }, { session });
+                break;
+            case 'Business':
+                await Business.updateOne({ _id: entityId }, { $addToSet: { reviews: reviewId } }, { session });
+                break;
+            case 'Doctor':
+                await Doctor.updateOne({ _id: entityId }, { $addToSet: { reviews: reviewId } }, { session });
+                break;
+            case 'Sanctuary':
+                await Sanctuary.updateOne({ _id: entityId }, { $addToSet: { reviews: reviewId } }, { session });
+                break;
+            default:
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Unsupported entity type'));
+        }
+    }
+
+    private async removeReviewFromEntity(entityType: EntityType, entityId: Types.ObjectId, reviewId: Types.ObjectId, session: ClientSession): Promise<void> {
+        switch (entityType) {
+            case 'Restaurant':
+                await Restaurant.updateOne({ _id: entityId }, { $pull: { reviews: reviewId } }, { session });
+                break;
+            case 'Recipe':
+                await Recipe.updateOne({ _id: entityId }, { $pull: { reviews: reviewId } }, { session });
+                break;
+            case 'Market':
+                await Market.updateOne({ _id: entityId }, { $pull: { reviews: reviewId } }, { session });
+                break;
+            case 'Business':
+                await Business.updateOne({ _id: entityId }, { $pull: { reviews: reviewId } }, { session });
+                break;
+            case 'Doctor':
+                await Doctor.updateOne({ _id: entityId }, { $pull: { reviews: reviewId } }, { session });
+                break;
+            case 'Sanctuary':
+                await Sanctuary.updateOne({ _id: entityId }, { $pull: { reviews: reviewId } }, { session });
+                break;
+            default:
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Unsupported entity type'));
+        }
+    }
+
     private validateEntityTypeAndId(entityType: EntityType, entityId: string): void {
-        const validEntityTypes: EntityType[] = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'];
+        const validEntityTypes: EntityType[] = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor', 'Sanctuary'];
         if (!validEntityTypes.includes(entityType)) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity type'));
         }
@@ -511,17 +681,23 @@ class ReviewService implements IReviewService {
         return sanitizedSort;
     }
 
-    // Legacy methods for backward compatibility
+    // Legacy methods for backward compatibility - deprecated, will be removed in Phase 9
+    /** @deprecated Use getReviewsByEntity instead */
     async listReviewsForModel(refId: string): Promise<IReview[]> {
         // Validate ObjectId format to prevent injection
         if (!Types.ObjectId.isValid(refId)) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid reference ID format'));
         }
 
-        const reviews = await Review.find({ restaurant: new Types.ObjectId(refId) });
+        // Use polymorphic approach instead of legacy restaurant field
+        const reviews = await Review.find({ 
+            entityType: 'Restaurant',
+            entity: new Types.ObjectId(refId) 
+        });
         return reviews;
     }
 
+    /** @deprecated Use getReviewStats with entityType instead */
     async getTopRatedReviews(refModel: string): Promise<IReview[]> {
         // Validate refModel parameter to prevent injection
         const allowedModels = ['restaurant', 'business'];
@@ -529,10 +705,14 @@ class ReviewService implements IReviewService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid model type'));
         }
 
+        // Map legacy model names to EntityType
+        const entityType = refModel === 'restaurant' ? 'Restaurant' : 'Business';
+
         const reviews = await Review.aggregate([
+            { $match: { entityType } },
             {
                 $group: {
-                    _id: '$restaurant',
+                    _id: '$entity',
                     avgRating: { $avg: '$rating' },
                 },
             },
@@ -540,6 +720,7 @@ class ReviewService implements IReviewService {
         ]);
         return reviews;
     }
+
 }
 
 export const reviewService = new ReviewService();

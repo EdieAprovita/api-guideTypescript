@@ -57,17 +57,12 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
             required: true,
             default: 0,
         },
-        reviews: {
-            type: [
-                {
-                    user: String,
-                    rating: Number,
-                    comment: String,
-                    date: Date,
-                },
-            ],
-            required: true,
-        },
+        reviews: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'Review',
+            },
+        ],
         numReviews: {
             type: Number,
             required: true,

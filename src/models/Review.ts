@@ -10,7 +10,7 @@ export interface IReview extends Document {
     tags?: string[];
     author: Types.ObjectId;
     // Polymorphic entity fields
-    entityType: 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor';
+    entityType: 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
     entity: Types.ObjectId;
     // Legacy field - deprecated, kept for backward compatibility during migration
     restaurant?: Types.ObjectId;
@@ -66,7 +66,7 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
         // Polymorphic entity fields
         entityType: {
             type: String,
-            enum: ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'],
+            enum: ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor', 'Sanctuary'],
             required: true,
         },
         entity: {
