@@ -4,7 +4,11 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { marketsService as MarketsService } from '../services/MarketsService';
-import { reviewService as ReviewService } from '../services/ReviewService';
+import {
+    createAddReviewHandler,
+    createGetReviewsHandler,
+    createGetReviewStatsHandler,
+} from './factories/reviewEndpointsFactory';
 import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
 /**
@@ -166,48 +170,7 @@ export const deleteMarket = asyncHandler(async (req: Request, res: Response, nex
  * @returns {Promise<Response>}
  */
 
-export const addReviewToMarket = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        const userId = req.user?._id;
-
-        if (!userId) {
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
-        }
-
-        if (!id) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required');
-        }
-
-        // Check if market exists
-        const market = await MarketsService.findById(id);
-        if (!market) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Market not found');
-        }
-
-        // Check if user already reviewed this market
-        const existingReview = await ReviewService.findByUserAndEntity(userId.toString(), 'Market', id);
-        if (existingReview) {
-            throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this market');
-        }
-
-        const reviewData = {
-            ...req.body,
-            author: userId,
-            marketId: id,
-        };
-
-        const newReview = await ReviewService.addReview(reviewData);
-
-        res.status(201).json({
-            success: true,
-            message: 'Review added successfully',
-            data: newReview,
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+export const addReviewToMarket = createAddReviewHandler('Market', MarketsService, 'marketId');
 
 /**
  * @description Get reviews for a market
@@ -216,37 +179,7 @@ export const addReviewToMarket = asyncHandler(async (req: Request, res: Response
  * @access Public
  * @returns {Promise<Response>}
  */
-export const getMarketReviews = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        const { page = 1, limit = 10, rating, sort = '-createdAt' } = req.query;
-
-        if (!id) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required');
-        }
-
-        // Check if market exists
-        const market = await MarketsService.findById(id);
-        if (!market) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Market not found');
-        }
-
-        const reviews = await ReviewService.getReviewsByEntity('Market', id, {
-            page: Number(page),
-            limit: Number(limit),
-            ...(rating && { rating: Number(rating) }),
-            sort: String(sort),
-        });
-
-        res.status(200).json({
-            success: true,
-            data: reviews.data,
-            pagination: reviews.pagination,
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+export const getMarketReviews = createGetReviewsHandler('Market', MarketsService);
 
 /**
  * @description Get review statistics for a market
@@ -255,27 +188,4 @@ export const getMarketReviews = asyncHandler(async (req: Request, res: Response,
  * @access Public
  * @returns {Promise<Response>}
  */
-export const getMarketReviewStats = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-
-        if (!id) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required');
-        }
-
-        // Check if market exists
-        const market = await MarketsService.findById(id);
-        if (!market) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Market not found');
-        }
-
-        const stats = await ReviewService.getReviewStats('Market', id);
-
-        res.status(200).json({
-            success: true,
-            data: stats,
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+export const getMarketReviewStats = createGetReviewStatsHandler('Market', MarketsService);
