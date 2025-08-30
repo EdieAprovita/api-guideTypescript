@@ -164,6 +164,158 @@ const createAddReviewEndpoint = (tag: string) => ({
     },
 });
 
+const createPaginationParameters = () => [
+    { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 }, example: 1 },
+    { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 }, example: 10 },
+    { name: 'rating', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 5 }, example: 5 },
+    { name: 'sort', in: 'query', schema: { type: 'string' }, example: '-createdAt' },
+];
+
+const createReviewListResponse = (entityType: string) => ({
+    '200': {
+        description: 'Reviews fetched successfully',
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'array', items: { $ref: '#/components/schemas/Review' } },
+                        pagination: {
+                            type: 'object',
+                            properties: {
+                                currentPage: { type: 'integer' },
+                                totalPages: { type: 'integer' },
+                                totalItems: { type: 'integer' },
+                                itemsPerPage: { type: 'integer' },
+                                hasNext: { type: 'boolean' },
+                                hasPrevious: { type: 'boolean' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+    '400': {
+        description: 'Invalid request',
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
+    },
+    '404': {
+        description: `${entityType} not found`,
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: `${entityType} not found`, error: 'NotFound' } } },
+    },
+});
+
+const createReviewStatsResponse = (entityType: string) => ({
+    '200': {
+        description: 'Review stats fetched successfully',
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                totalReviews: { type: 'integer' },
+                                averageRating: { type: 'number' },
+                                ratingDistribution: {
+                                    type: 'object',
+                                    properties: {
+                                        '1': { type: 'integer' },
+                                        '2': { type: 'integer' },
+                                        '3': { type: 'integer' },
+                                        '4': { type: 'integer' },
+                                        '5': { type: 'integer' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+    '400': {
+        description: 'Invalid request',
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
+    },
+    '404': {
+        description: `${entityType} not found`,
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: `${entityType} not found`, error: 'NotFound' } } },
+    },
+});
+
+const createReviewEndpoints = (tag: string, paramName = 'id') => ({
+    [`/${tag.toLowerCase()}/{${paramName}}/reviews`]: {
+        get: {
+            tags: [tag],
+            summary: `Get reviews for a ${tag.toLowerCase().slice(0, -1)}`,
+            parameters: [
+                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+                ...createPaginationParameters(),
+            ],
+            responses: createReviewListResponse(tag.slice(0, -1)),
+        },
+    },
+    [`/${tag.toLowerCase()}/{${paramName}}/reviews/stats`]: {
+        get: {
+            tags: [tag],
+            summary: `Get review statistics for a ${tag.toLowerCase().slice(0, -1)}`,
+            parameters: [
+                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+            ],
+            responses: createReviewStatsResponse(tag.slice(0, -1)),
+        },
+    },
+});
+
+const createReviewPostEndpoint = (tag: string, paramName = 'id') => ({
+    [`/${tag.toLowerCase()}/{${paramName}}/reviews`]: {
+        post: {
+            tags: [tag],
+            summary: `Create review for a ${tag.toLowerCase().slice(0, -1)}`,
+            security: [{ bearerAuth: [] }],
+            parameters: [
+                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+            ],
+            requestBody: {
+                required: true,
+                content: { 'application/json': { schema: { $ref: '#/components/schemas/Review' } } },
+            },
+            responses: {
+                '201': {
+                    description: 'Review created successfully',
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/Review' },
+                        },
+                    },
+                },
+                '401': {
+                    description: 'Unauthorized',
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
+                        },
+                    },
+                },
+                '400': {
+                    description: 'Invalid request',
+                    content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
+                },
+                '404': {
+                    description: `${tag.slice(0, -1)} not found`,
+                    content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: `${tag.slice(0, -1)} not found`, error: 'NotFound' } } },
+                },
+            },
+        },
+    },
+});
+
 const createCrudEndpoints = (tag: string, schema: string) => ({
     [`/${tag.toLowerCase()}`]: {
         ...createGetAllEndpoint(tag, schema),
@@ -1062,468 +1214,13 @@ const swaggerDocument: OpenAPIV3.Document = {
             },
         },
 
-        // Review list and stats per-entity (polymorphic)
-        '/markets/{id}/reviews': {
-            get: {
-                tags: ['Markets'],
-                summary: 'Get reviews for a market',
-                parameters: [
-                    { $ref: '#/components/parameters/IdParameter' },
-                    { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 }, example: 1 },
-                    { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 }, example: 10 },
-                    { name: 'rating', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 5 }, example: 5 },
-                    { name: 'sort', in: 'query', schema: { type: 'string' }, example: '-createdAt' },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Reviews fetched successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean' },
-                                        data: { type: 'array', items: { $ref: '#/components/schemas/Review' } },
-                                        pagination: {
-                                            type: 'object',
-                                            properties: {
-                                                currentPage: { type: 'integer' },
-                                                totalPages: { type: 'integer' },
-                                                totalItems: { type: 'integer' },
-                                                itemsPerPage: { type: 'integer' },
-                                                hasNext: { type: 'boolean' },
-                                                hasPrevious: { type: 'boolean' },
-                                            },
-                                        },
-                                    },
-                                },
-                                example: {
-                                    success: true,
-                                    data: [
-                                        {
-                                            _id: '66cf0000000000000000a1',
-                                            entityType: 'Market',
-                                            entity: '66cf0000000000000000m1',
-                                            rating: 5,
-                                            title: 'Excelente mercado',
-                                            content: 'Productos frescos y buenos precios',
-                                            visitDate: '2024-01-15',
-                                            recommendedDishes: [],
-                                            tags: ['orgánico'],
-                                            author: '66cf0000000000000000u1',
-                                            helpfulCount: 2,
-                                            helpfulVotes: ['66cf0000000000000000u2'],
-                                            timestamps: {
-                                                createdAt: '2024-01-20T10:00:00Z',
-                                                updatedAt: '2024-01-20T10:00:00Z',
-                                            },
-                                        },
-                                    ],
-                                    pagination: {
-                                        currentPage: 1,
-                                        totalPages: 1,
-                                        totalItems: 1,
-                                        itemsPerPage: 10,
-                                        hasNext: false,
-                                        hasPrevious: false,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '400': {
-                        description: 'Invalid request',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
-                    },
-                    '404': {
-                        description: 'Market not found',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Market not found', error: 'NotFound' } } },
-                    },
-                },
-            },
-        },
-        '/markets/{id}/reviews/stats': {
-            get: {
-                tags: ['Markets'],
-                summary: 'Get review statistics for a market',
-                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
-                responses: {
-                    '200': {
-                        description: 'Review stats fetched successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean' },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                totalReviews: { type: 'integer' },
-                                                averageRating: { type: 'number' },
-                                                ratingDistribution: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        '1': { type: 'integer' },
-                                                        '2': { type: 'integer' },
-                                                        '3': { type: 'integer' },
-                                                        '4': { type: 'integer' },
-                                                        '5': { type: 'integer' },
-                                                    },
-                                                },
-                                            },
-                                        },
-                                    },
-                                },
-                                example: {
-                                    success: true,
-                                    data: {
-                                        totalReviews: 12,
-                                        averageRating: 4.25,
-                                        ratingDistribution: { '1': 1, '2': 0, '3': 2, '4': 3, '5': 6 },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '400': {
-                        description: 'Invalid request',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
-                    },
-                    '404': {
-                        description: 'Market not found',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Market not found', error: 'NotFound' } } },
-                    },
-                },
-            },
-        },
+        // Review endpoints using helpers
+        ...createReviewEndpoints('Markets'),
+        ...createReviewEndpoints('Recipes'),
 
-        '/recipes/{id}/reviews': {
-            get: {
-                tags: ['Recipes'],
-                summary: 'Get reviews for a recipe',
-                parameters: [
-                    { $ref: '#/components/parameters/IdParameter' },
-                    { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 }, example: 1 },
-                    { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 }, example: 10 },
-                    { name: 'rating', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 5 }, example: 5 },
-                    { name: 'sort', in: 'query', schema: { type: 'string' }, example: '-createdAt' },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Reviews fetched successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean' },
-                                        data: { type: 'array', items: { $ref: '#/components/schemas/Review' } },
-                                        pagination: {
-                                            type: 'object',
-                                            properties: {
-                                                currentPage: { type: 'integer' },
-                                                totalPages: { type: 'integer' },
-                                                totalItems: { type: 'integer' },
-                                                itemsPerPage: { type: 'integer' },
-                                                hasNext: { type: 'boolean' },
-                                                hasPrevious: { type: 'boolean' },
-                                            },
-                                        },
-                                    },
-                                },
-                                example: {
-                                    success: true,
-                                    data: [
-                                        {
-                                            _id: '66cf0000000000000000b1',
-                                            entityType: 'Recipe',
-                                            entity: '66cf0000000000000000r1',
-                                            rating: 4,
-                                            title: 'Rica receta',
-                                            content: 'Sencilla y deliciosa',
-                                            visitDate: '2024-02-01',
-                                            recommendedDishes: [],
-                                            tags: ['rápida'],
-                                            author: '66cf0000000000000000u1',
-                                            helpfulCount: 0,
-                                            helpfulVotes: [],
-                                            timestamps: {
-                                                createdAt: '2024-02-02T12:00:00Z',
-                                                updatedAt: '2024-02-02T12:00:00Z',
-                                            },
-                                        },
-                                    ],
-                                    pagination: {
-                                        currentPage: 1,
-                                        totalPages: 3,
-                                        totalItems: 25,
-                                        itemsPerPage: 10,
-                                        hasNext: true,
-                                        hasPrevious: false,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '400': {
-                        description: 'Invalid request',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
-                    },
-                    '404': {
-                        description: 'Recipe not found',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Recipe not found', error: 'NotFound' } } },
-                    },
-                },
-            },
-        },
-        '/recipes/{id}/reviews/stats': {
-            get: {
-                tags: ['Recipes'],
-                summary: 'Get review statistics for a recipe',
-                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
-                responses: {
-                    '200': {
-                        description: 'Review stats fetched successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean' },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                totalReviews: { type: 'integer' },
-                                                averageRating: { type: 'number' },
-                                                ratingDistribution: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        '1': { type: 'integer' },
-                                                        '2': { type: 'integer' },
-                                                        '3': { type: 'integer' },
-                                                        '4': { type: 'integer' },
-                                                        '5': { type: 'integer' },
-                                                    },
-                                                },
-                                            },
-                                        },
-                                    },
-                                },
-                                example: {
-                                    success: true,
-                                    data: {
-                                        totalReviews: 25,
-                                        averageRating: 4.1,
-                                        ratingDistribution: { '1': 2, '2': 1, '3': 5, '4': 7, '5': 10 },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '400': {
-                        description: 'Invalid request',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
-                    },
-                    '404': {
-                        description: 'Recipe not found',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Recipe not found', error: 'NotFound' } } },
-                    },
-                },
-            },
-        },
-
-        // Restaurant-specific review endpoints using distinct parameter name
-        '/restaurants/{restaurantId}/reviews': {
-            post: {
-                tags: ['Restaurants'],
-                summary: 'Create review for a restaurant',
-                security: [{ bearerAuth: [] }],
-                parameters: [
-                    { name: 'restaurantId', in: 'path', required: true, schema: { type: 'string' }, description: 'Restaurant ID' },
-                ],
-                requestBody: {
-                    required: true,
-                    content: { 'application/json': { schema: { $ref: '#/components/schemas/Review' } } },
-                },
-                responses: {
-                    '201': {
-                        description: 'Review created successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Review' },
-                                example: {
-                                    success: true,
-                                    data: {
-                                        _id: '66cf0000000000000000c1',
-                                        entityType: 'Restaurant',
-                                        entity: '66cf0000000000000000e1',
-                                        rating: 5,
-                                        title: 'Espectacular',
-                                        content: 'Servicio y comida de primera',
-                                        author: '66cf0000000000000000u3',
-                                        helpfulCount: 0,
-                                        helpfulVotes: [],
-                                        timestamps: {
-                                            createdAt: '2024-03-10T09:00:00Z',
-                                            updatedAt: '2024-03-10T09:00:00Z',
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
-                    '400': {
-                        description: 'Invalid request',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
-                    },
-                    '404': {
-                        description: 'Restaurant not found',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Restaurant not found', error: 'NotFound' } } },
-                    },
-                },
-            },
-            get: {
-                tags: ['Restaurants'],
-                summary: 'Get reviews for a restaurant',
-                parameters: [
-                    { name: 'restaurantId', in: 'path', required: true, schema: { type: 'string' }, description: 'Restaurant ID' },
-                    { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 }, example: 1 },
-                    { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 }, example: 10 },
-                    { name: 'rating', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 5 }, example: 5 },
-                    { name: 'sort', in: 'query', schema: { type: 'string' }, example: '-createdAt' },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Reviews fetched successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean' },
-                                        data: { type: 'array', items: { $ref: '#/components/schemas/Review' } },
-                                        pagination: {
-                                            type: 'object',
-                                            properties: {
-                                                currentPage: { type: 'integer' },
-                                                totalPages: { type: 'integer' },
-                                                totalItems: { type: 'integer' },
-                                                itemsPerPage: { type: 'integer' },
-                                                hasNext: { type: 'boolean' },
-                                                hasPrevious: { type: 'boolean' },
-                                            },
-                                        },
-                                    },
-                                },
-                                example: {
-                                    success: true,
-                                    data: [
-                                        {
-                                            _id: '66cf0000000000000000c1',
-                                            entityType: 'Restaurant',
-                                            entity: '66cf0000000000000000e1',
-                                            rating: 5,
-                                            title: 'Espectacular',
-                                            content: 'Servicio y comida de primera',
-                                            author: '66cf0000000000000000u3',
-                                            helpfulCount: 0,
-                                            helpfulVotes: [],
-                                            timestamps: {
-                                                createdAt: '2024-03-10T09:00:00Z',
-                                                updatedAt: '2024-03-10T09:00:00Z',
-                                            },
-                                        },
-                                    ],
-                                    pagination: {
-                                        currentPage: 1,
-                                        totalPages: 5,
-                                        totalItems: 45,
-                                        itemsPerPage: 10,
-                                        hasNext: true,
-                                        hasPrevious: false,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '400': {
-                        description: 'Invalid request',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
-                    },
-                    '404': {
-                        description: 'Restaurant not found',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Restaurant not found', error: 'NotFound' } } },
-                    },
-                },
-            },
-        },
-        '/restaurants/{restaurantId}/reviews/stats': {
-            get: {
-                tags: ['Restaurants'],
-                summary: 'Get review statistics for a restaurant',
-                parameters: [
-                    { name: 'restaurantId', in: 'path', required: true, schema: { type: 'string' }, description: 'Restaurant ID' },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Review stats fetched successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean' },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                totalReviews: { type: 'integer' },
-                                                averageRating: { type: 'number' },
-                                                ratingDistribution: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        '1': { type: 'integer' },
-                                                        '2': { type: 'integer' },
-                                                        '3': { type: 'integer' },
-                                                        '4': { type: 'integer' },
-                                                        '5': { type: 'integer' },
-                                                    },
-                                                },
-                                            },
-                                        },
-                                    },
-                                },
-                                example: {
-                                    success: true,
-                                    data: {
-                                        totalReviews: 45,
-                                        averageRating: 4.4,
-                                        ratingDistribution: { '1': 3, '2': 2, '3': 6, '4': 12, '5': 22 },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '400': {
-                        description: 'Invalid request',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Invalid ID format', error: 'BadRequest' } } },
-                    },
-                    '404': {
-                        description: 'Restaurant not found',
-                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { success: false, message: 'Restaurant not found', error: 'NotFound' } } },
-                    },
-                },
-            },
-        },
+        // Restaurant review endpoints (uses 'restaurantId' instead of 'id')
+        ...createReviewPostEndpoint('Restaurants', 'restaurantId'),
+        ...createReviewEndpoints('Restaurants', 'restaurantId'),
     },
 };
 
