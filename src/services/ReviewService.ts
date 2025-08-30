@@ -297,81 +297,17 @@ class ReviewService implements IReviewService {
     private sanitizeReviewData(reviewData: Partial<IReview>): Partial<IReview> {
         const sanitized: Partial<IReview> = {};
 
-        // Only allow specific fields and sanitize them
-        if (reviewData.rating !== undefined) {
-            const rating = Number(reviewData.rating);
-            if (isNaN(rating) || rating < 1 || rating > 5) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Rating must be between 1 and 5'));
-            }
-            sanitized.rating = Math.floor(rating);
-        }
-
-        if (reviewData.title) {
-            if (typeof reviewData.title !== 'string' || reviewData.title.length < 5 || reviewData.title.length > 100) {
-                throw new HttpError(
-                    HttpStatusCode.BAD_REQUEST,
-                    getErrorMessage('Title must be between 5 and 100 characters')
-                );
-            }
-            sanitized.title = reviewData.title.trim();
-        }
-
-        if (reviewData.content) {
-            if (
-                typeof reviewData.content !== 'string' ||
-                reviewData.content.length < 10 ||
-                reviewData.content.length > 1000
-            ) {
-                throw new HttpError(
-                    HttpStatusCode.BAD_REQUEST,
-                    getErrorMessage('Content must be between 10 and 1000 characters')
-                );
-            }
-            sanitized.content = reviewData.content.trim();
-        }
-
-        if (reviewData.visitDate) {
-            const date = new Date(reviewData.visitDate);
-            if (isNaN(date.getTime())) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid visit date'));
-            }
-            sanitized.visitDate = date;
-        }
-
-        if (reviewData.recommendedDishes) {
-            if (Array.isArray(reviewData.recommendedDishes)) {
-                sanitized.recommendedDishes = reviewData.recommendedDishes
-                    .filter(dish => typeof dish === 'string' && dish.trim().length > 0 && dish.length <= 50)
-                    .map(dish => dish.trim())
-                    .slice(0, 10); // Limit to 10 dishes
-            }
-        }
-
-        if (reviewData.tags) {
-            if (Array.isArray(reviewData.tags)) {
-                sanitized.tags = reviewData.tags
-                    .filter(tag => typeof tag === 'string' && tag.trim().length > 0 && tag.length <= 30)
-                    .map(tag => tag.trim())
-                    .slice(0, 5); // Limit to 5 tags
-            }
-        }
-
-        if (reviewData.author) {
-            if (!Types.ObjectId.isValid(reviewData.author)) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid author ID'));
-            }
-            sanitized.author = new Types.ObjectId(reviewData.author.toString());
-        }
-
-        if (reviewData.restaurant) {
-            if (!Types.ObjectId.isValid(reviewData.restaurant)) {
-                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID'));
-            }
-            sanitized.restaurant = new Types.ObjectId(reviewData.restaurant.toString());
-        }
+        this.applyRating(reviewData, sanitized);
+        this.applyTitle(reviewData, sanitized);
+        this.applyContent(reviewData, sanitized);
+        this.applyVisitDate(reviewData, sanitized);
+        this.applyRecommendedDishes(reviewData, sanitized);
+        this.applyTags(reviewData, sanitized);
+        this.applyAuthor(reviewData, sanitized);
+        this.applyRestaurant(reviewData, sanitized);
 
         // Handle polymorphic entity fields and alias mapping
-        this.handleEntityFields(reviewData, sanitized);
+        this.handleEntityFields(reviewData as Record<string, unknown>, sanitized);
 
         // Legacy: If no restaurant field set but we have entity data, backfill for compatibility
         if (!sanitized.restaurant && sanitized.entity) {
@@ -388,8 +324,8 @@ class ReviewService implements IReviewService {
             if (!validEntityTypes.includes(reviewData.entityType as EntityType)) {
                 throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity type'));
             }
-            const entityIdStr = String(reviewData.entity);
-            if (!Types.ObjectId.isValid(entityIdStr)) {
+            const entityIdStr = this.tryExtractObjectIdHex(reviewData.entity);
+            if (!entityIdStr) {
                 throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity ID'));
             }
             sanitized.entityType = reviewData.entityType as EntityType;
@@ -413,8 +349,8 @@ class ReviewService implements IReviewService {
 
         for (const [field, entityType] of Object.entries(aliasMapping)) {
             if (reviewData[field]) {
-                const idStr = String(reviewData[field]);
-                if (!Types.ObjectId.isValid(idStr)) {
+                const idStr = this.tryExtractObjectIdHex(reviewData[field]);
+                if (!idStr) {
                     throw new HttpError(
                         HttpStatusCode.BAD_REQUEST,
                         getErrorMessage('Invalid target entity ID')
@@ -434,6 +370,107 @@ class ReviewService implements IReviewService {
     }
 
     // Utility methods
+    private tryExtractObjectIdHex(value: unknown): string | null {
+        if (typeof value === 'string') {
+            return Types.ObjectId.isValid(value) ? value : null;
+        }
+        if (value instanceof Types.ObjectId) {
+            return value.toHexString();
+        }
+        if (typeof value === 'object' && value !== null) {
+            const obj = value as { _id?: unknown; id?: unknown };
+            const candidate = obj._id ?? obj.id;
+            if (typeof candidate === 'string' && Types.ObjectId.isValid(candidate)) {
+                return candidate;
+            }
+            if (candidate instanceof Types.ObjectId) {
+                return candidate.toHexString();
+            }
+        }
+        return null;
+    }
+
+    private applyRating(input: Partial<IReview>, out: Partial<IReview>): void {
+        if (input.rating !== undefined) {
+            const rating = Number(input.rating);
+            if (isNaN(rating) || rating < 1 || rating > 5) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Rating must be between 1 and 5'));
+            }
+            out.rating = Math.floor(rating);
+        }
+    }
+
+    private applyTitle(input: Partial<IReview>, out: Partial<IReview>): void {
+        if (input.title) {
+            if (typeof input.title !== 'string' || input.title.length < 5 || input.title.length > 100) {
+                throw new HttpError(
+                    HttpStatusCode.BAD_REQUEST,
+                    getErrorMessage('Title must be between 5 and 100 characters')
+                );
+            }
+            out.title = input.title.trim();
+        }
+    }
+
+    private applyContent(input: Partial<IReview>, out: Partial<IReview>): void {
+        if (input.content) {
+            if (typeof input.content !== 'string' || input.content.length < 10 || input.content.length > 1000) {
+                throw new HttpError(
+                    HttpStatusCode.BAD_REQUEST,
+                    getErrorMessage('Content must be between 10 and 1000 characters')
+                );
+            }
+            out.content = input.content.trim();
+        }
+    }
+
+    private applyVisitDate(input: Partial<IReview>, out: Partial<IReview>): void {
+        if (input.visitDate) {
+            const date = new Date(input.visitDate);
+            if (isNaN(date.getTime())) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid visit date'));
+            }
+            out.visitDate = date;
+        }
+    }
+
+    private applyRecommendedDishes(input: Partial<IReview>, out: Partial<IReview>): void {
+        if (input.recommendedDishes && Array.isArray(input.recommendedDishes)) {
+            out.recommendedDishes = input.recommendedDishes
+                .filter(dish => typeof dish === 'string' && dish.trim().length > 0 && dish.length <= 50)
+                .map(dish => dish.trim())
+                .slice(0, 10);
+        }
+    }
+
+    private applyTags(input: Partial<IReview>, out: Partial<IReview>): void {
+        if (input.tags && Array.isArray(input.tags)) {
+            out.tags = input.tags
+                .filter(tag => typeof tag === 'string' && tag.trim().length > 0 && tag.length <= 30)
+                .map(tag => tag.trim())
+                .slice(0, 5);
+        }
+    }
+
+    private applyAuthor(input: Partial<IReview>, out: Partial<IReview>): void {
+        if (input.author) {
+            const hex = this.tryExtractObjectIdHex(input.author);
+            if (!hex) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid author ID'));
+            }
+            out.author = new Types.ObjectId(hex);
+        }
+    }
+
+    private applyRestaurant(input: Partial<IReview>, out: Partial<IReview>): void {
+        if (input.restaurant) {
+            const hex = this.tryExtractObjectIdHex(input.restaurant);
+            if (!hex) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID'));
+            }
+            out.restaurant = new Types.ObjectId(hex);
+        }
+    }
     private validateEntityTypeAndId(entityType: EntityType, entityId: string): void {
         const validEntityTypes: EntityType[] = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'];
         if (!validEntityTypes.includes(entityType)) {
