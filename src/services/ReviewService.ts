@@ -3,24 +3,53 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { Types } from 'mongoose';
 
+type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor';
+
+interface ReviewQueryOptions {
+    page: number;
+    limit: number;
+    rating?: number;
+    sort: string;
+}
+
+interface PaginatedReviews {
+    data: IReview[];
+    pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        itemsPerPage: number;
+        hasNext: boolean;
+        hasPrevious: boolean;
+    };
+}
+
+interface ReviewStats {
+    totalReviews: number;
+    averageRating: number;
+    ratingDistribution: {
+        1: number;
+        2: number;
+        3: number;
+        4: number;
+        5: number;
+    };
+}
+
 export interface IReviewService {
+    // Generic methods (new polymorphic API)
     addReview(reviewData: Partial<IReview>): Promise<IReview>;
+    getReviewsByEntity(entityType: EntityType, entityId: string, options: ReviewQueryOptions): Promise<PaginatedReviews>;
+    getReviewStats(entityType: EntityType, entityId: string): Promise<ReviewStats>;
+    findByUserAndEntity(userId: string, entityType: EntityType, entityId: string): Promise<IReview | null>;
+    
+    // Standard CRUD operations
     getReviewById(reviewId: string): Promise<IReview>;
     updateReview(reviewId: string, updateData: Partial<IReview>): Promise<IReview>;
     deleteReview(reviewId: string): Promise<void>;
-    findByUserAndRestaurant(userId: string, restaurantId: string): Promise<IReview | null>;
-    getReviewsByRestaurant(
-        restaurantId: string,
-        options: {
-            page: number;
-            limit: number;
-            rating?: number;
-            sort: string;
-        }
-    ): Promise<{ data: IReview[]; pagination: any }>;
-    getReviewStats(restaurantId: string): Promise<any>;
     markAsHelpful(reviewId: string, userId: string): Promise<IReview>;
     removeHelpfulVote(reviewId: string, userId: string): Promise<IReview>;
+    
 }
 
 /**
@@ -36,6 +65,131 @@ class ReviewService implements IReviewService {
         const sanitizedData = this.sanitizeReviewData(reviewData);
         const review = await Review.create(sanitizedData);
         return review;
+    }
+
+    // Generic polymorphic methods
+    async getReviewsByEntity(entityType: EntityType, entityId: string, options: ReviewQueryOptions): Promise<PaginatedReviews> {
+        this.validateEntityTypeAndId(entityType, entityId);
+
+        const { page, limit, rating, sort } = options;
+
+        // Validate and sanitize pagination parameters
+        const sanitizedPage = Math.max(1, Math.floor(Number(page)) || 1);
+        const sanitizedLimit = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
+        const skip = (sanitizedPage - 1) * sanitizedLimit;
+
+        // Build query for polymorphic entity
+        const query: Record<string, unknown> = { 
+            entityType, 
+            entity: Types.ObjectId.createFromHexString(entityId) 
+        };
+
+        // Add rating filter if specified
+        if (rating !== undefined && rating !== null) {
+            const sanitizedRating = Math.floor(Number(rating));
+            if (sanitizedRating >= 1 && sanitizedRating <= 5) {
+                query.rating = sanitizedRating;
+            }
+        }
+
+        // Validate and sanitize sort parameter
+        const sanitizedSort = this.sanitizeSortOptions(sort);
+
+        const [reviews, total] = await Promise.all([
+            Review.find(query)
+                .populate('author', 'firstName lastName')
+                .sort(sanitizedSort)
+                .skip(skip)
+                .limit(sanitizedLimit),
+            Review.countDocuments(query),
+        ]);
+
+        const totalPages = Math.ceil(total / sanitizedLimit);
+
+        return {
+            data: reviews,
+            pagination: {
+                currentPage: sanitizedPage,
+                totalPages,
+                totalItems: total,
+                itemsPerPage: sanitizedLimit,
+                hasNext: sanitizedPage < totalPages,
+                hasPrevious: sanitizedPage > 1,
+            },
+        };
+    }
+
+    async getReviewStats(entityType: EntityType, entityId: string): Promise<ReviewStats> {
+        this.validateEntityTypeAndId(entityType, entityId);
+
+        const stats = await Review.aggregate([
+            { 
+                $match: { 
+                    entityType, 
+                    entity: Types.ObjectId.createFromHexString(entityId) 
+                } 
+            },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: '$rating' },
+                    totalReviews: { $sum: 1 },
+                    ratingDistribution: {
+                        $push: '$rating',
+                    },
+                },
+            },
+        ]);
+
+        if (!stats.length) {
+            return {
+                totalReviews: 0,
+                averageRating: 0,
+                ratingDistribution: {
+                    1: 0,
+                    2: 0,
+                    3: 0,
+                    4: 0,
+                    5: 0,
+                },
+            };
+        }
+
+        const result = stats[0];
+        const distribution: ReviewStats['ratingDistribution'] = {
+            1: 0,
+            2: 0,
+            3: 0,
+            4: 0,
+            5: 0,
+        };
+
+        // Count rating distribution
+        for (const rating of result.ratingDistribution) {
+            if (rating >= 1 && rating <= 5) {
+                distribution[rating as keyof typeof distribution]++;
+            }
+        }
+
+        return {
+            totalReviews: result.totalReviews || 0,
+            averageRating: Math.round((result.averageRating || 0) * 100) / 100,
+            ratingDistribution: distribution,
+        };
+    }
+
+    async findByUserAndEntity(userId: string, entityType: EntityType, entityId: string): Promise<IReview | null> {
+        // Validate ObjectId formats
+        if (!Types.ObjectId.isValid(userId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid user ID format'));
+        }
+        this.validateEntityTypeAndId(entityType, entityId);
+
+        return await Review.findOne({
+            author: Types.ObjectId.createFromHexString(userId),
+            entityType,
+            entity: Types.ObjectId.createFromHexString(entityId),
+        });
     }
 
     async getReviewById(reviewId: string): Promise<IReview> {
@@ -83,139 +237,6 @@ class ReviewService implements IReviewService {
         await Review.deleteOne({ _id: new Types.ObjectId(reviewId) });
     }
 
-    async findByUserAndRestaurant(userId: string, restaurantId: string): Promise<IReview | null> {
-        // Validate ObjectId formats to prevent injection
-        if (!Types.ObjectId.isValid(userId)) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid user ID format'));
-        }
-        if (!Types.ObjectId.isValid(restaurantId)) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
-        }
-
-        return await Review.findOne({
-            author: new Types.ObjectId(userId),
-            restaurant: new Types.ObjectId(restaurantId),
-        });
-    }
-
-    async getReviewsByRestaurant(
-        restaurantId: string,
-        options: {
-            page: number;
-            limit: number;
-            rating?: number;
-            sort: string;
-        }
-    ): Promise<{ data: IReview[]; pagination: any }> {
-        const { page, limit, rating, sort } = options;
-
-        // Validate ObjectId format to prevent injection
-        if (!Types.ObjectId.isValid(restaurantId)) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
-        }
-
-        // Validate and sanitize pagination parameters
-        const sanitizedPage = Math.max(1, Math.floor(Number(page)) || 1);
-        const sanitizedLimit = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
-        const skip = (sanitizedPage - 1) * sanitizedLimit;
-
-        // Validate and sanitize rating filter
-        let query: any = { restaurant: new Types.ObjectId(restaurantId) };
-        if (rating !== undefined && rating !== null) {
-            const sanitizedRating = Math.floor(Number(rating));
-            if (sanitizedRating >= 1 && sanitizedRating <= 5) {
-                query.rating = sanitizedRating;
-            }
-        }
-
-        // Validate and sanitize sort parameter to prevent injection
-        const allowedSortFields = ['rating', 'createdAt', 'helpfulCount', 'visitDate'];
-        let sanitizedSort: Record<string, 1 | -1> = { createdAt: -1 }; // default sort
-
-        if (sort && typeof sort === 'string') {
-            // Handle formats like '-createdAt', 'rating', 'rating:desc'
-            let field: string;
-            let direction: number = 1;
-
-            if (sort.startsWith('-')) {
-                field = sort.substring(1);
-                direction = -1;
-            } else if (sort.includes(':')) {
-                const [sortField, sortDirection] = sort.split(':');
-                field = sortField || '';
-                direction = sortDirection === 'desc' || sortDirection === '-1' ? -1 : 1;
-            } else {
-                field = sort;
-                direction = 1;
-            }
-
-            // Only allow whitelisted fields
-            if (allowedSortFields.includes(field)) {
-                sanitizedSort = { [field]: direction as 1 | -1 };
-            }
-        }
-
-        const [reviews, total] = await Promise.all([
-            Review.find(query)
-                .populate('author', 'firstName lastName')
-                .sort(sanitizedSort)
-                .skip(skip)
-                .limit(sanitizedLimit),
-            Review.countDocuments(query),
-        ]);
-
-        const pages = Math.ceil(total / sanitizedLimit);
-
-        return {
-            data: reviews,
-            pagination: {
-                page: sanitizedPage,
-                limit: sanitizedLimit,
-                total,
-                pages,
-            },
-        };
-    }
-
-    async getReviewStats(restaurantId: string): Promise<any> {
-        // Validate ObjectId format to prevent injection
-        if (!Types.ObjectId.isValid(restaurantId)) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid restaurant ID format'));
-        }
-
-        const stats = await Review.aggregate([
-            { $match: { restaurant: new Types.ObjectId(restaurantId) } },
-            {
-                $group: {
-                    _id: null,
-                    averageRating: { $avg: '$rating' },
-                    totalReviews: { $sum: 1 },
-                    ratingDistribution: {
-                        $push: '$rating',
-                    },
-                },
-            },
-        ]);
-
-        if (stats.length === 0) {
-            return {
-                averageRating: 0,
-                totalReviews: 0,
-                ratingDistribution: {},
-            };
-        }
-
-        const ratingDistribution: { [key: number]: number } = {};
-        stats[0].ratingDistribution.forEach((rating: number) => {
-            ratingDistribution[rating] = (ratingDistribution[rating] || 0) + 1;
-        });
-
-        return {
-            averageRating: Math.round(stats[0].averageRating * 10) / 10,
-            totalReviews: stats[0].totalReviews,
-            ratingDistribution,
-        };
-    }
 
     async markAsHelpful(reviewId: string, userId: string): Promise<IReview> {
         // Validate ObjectId formats to prevent injection
@@ -350,7 +371,7 @@ class ReviewService implements IReviewService {
         }
 
         // Handle polymorphic entity fields and alias mapping
-        this.handleEntityFields(reviewData as any, sanitized);
+        this.handleEntityFields(reviewData, sanitized);
 
         // Legacy: If no restaurant field set but we have entity data, backfill for compatibility
         if (!sanitized.restaurant && sanitized.entity) {
@@ -360,23 +381,24 @@ class ReviewService implements IReviewService {
         return sanitized;
     }
 
-    private handleEntityFields(reviewData: any, sanitized: Partial<IReview>): void {
+    private handleEntityFields(reviewData: Record<string, unknown>, sanitized: Partial<IReview>): void {
         // Priority 1: Direct polymorphic fields
-        if (reviewData.entityType && reviewData.entity) {
-            const validEntityTypes = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'];
-            if (!validEntityTypes.includes(reviewData.entityType)) {
+        if (typeof reviewData.entityType === 'string' && reviewData.entity) {
+            const validEntityTypes: EntityType[] = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'];
+            if (!validEntityTypes.includes(reviewData.entityType as EntityType)) {
                 throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity type'));
             }
-            if (!Types.ObjectId.isValid(reviewData.entity)) {
+            const entityIdStr = String(reviewData.entity);
+            if (!Types.ObjectId.isValid(entityIdStr)) {
                 throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity ID'));
             }
-            sanitized.entityType = reviewData.entityType;
-            sanitized.entity = Types.ObjectId.createFromHexString(reviewData.entity.toString());
+            sanitized.entityType = reviewData.entityType as EntityType;
+            sanitized.entity = Types.ObjectId.createFromHexString(entityIdStr);
             return;
         }
 
         // Priority 2: Alias mapping (Phase 0 compatibility)
-        const aliasMapping: { [key: string]: string } = {
+        const aliasMapping: Record<string, EntityType> = {
             restaurantId: 'Restaurant',
             restaurant: 'Restaurant',
             recipeId: 'Recipe', 
@@ -391,14 +413,14 @@ class ReviewService implements IReviewService {
 
         for (const [field, entityType] of Object.entries(aliasMapping)) {
             if (reviewData[field]) {
-                const idStr = reviewData[field].toString();
+                const idStr = String(reviewData[field]);
                 if (!Types.ObjectId.isValid(idStr)) {
                     throw new HttpError(
                         HttpStatusCode.BAD_REQUEST,
                         getErrorMessage('Invalid target entity ID')
                     );
                 }
-                sanitized.entityType = entityType as IReview['entityType'];
+                sanitized.entityType = entityType;
                 sanitized.entity = Types.ObjectId.createFromHexString(idStr);
                 return;
             }
@@ -409,6 +431,47 @@ class ReviewService implements IReviewService {
             sanitized.entityType = 'Restaurant';
             sanitized.entity = sanitized.restaurant;
         }
+    }
+
+    // Utility methods
+    private validateEntityTypeAndId(entityType: EntityType, entityId: string): void {
+        const validEntityTypes: EntityType[] = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'];
+        if (!validEntityTypes.includes(entityType)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity type'));
+        }
+        if (!Types.ObjectId.isValid(entityId)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity ID format'));
+        }
+    }
+
+    private sanitizeSortOptions(sort: string): Record<string, 1 | -1> {
+        const allowedSortFields = ['rating', 'createdAt', 'helpfulCount', 'visitDate'];
+        let sanitizedSort: Record<string, 1 | -1> = { createdAt: -1 }; // default sort
+
+        if (sort && typeof sort === 'string') {
+            // Handle formats like '-createdAt', 'rating', 'rating:desc'
+            let field: string;
+            let direction: number;
+
+            if (sort.startsWith('-')) {
+                field = sort.substring(1);
+                direction = -1;
+            } else if (sort.includes(':')) {
+                const [sortField, sortDirection] = sort.split(':');
+                field = sortField || '';
+                direction = sortDirection === 'desc' || sortDirection === '-1' ? -1 : 1;
+            } else {
+                field = sort;
+                direction = 1;
+            }
+
+            // Only allow whitelisted fields
+            if (allowedSortFields.includes(field)) {
+                sanitizedSort = { [field]: direction as 1 | -1 };
+            }
+        }
+
+        return sanitizedSort;
     }
 
     // Legacy methods for backward compatibility

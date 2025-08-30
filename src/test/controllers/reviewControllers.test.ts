@@ -9,6 +9,11 @@ vi.mock('../../services/ReviewService', () => ({
         getReviewById: vi.fn(),
         updateReview: vi.fn(),
         deleteReview: vi.fn(),
+        findByUserAndEntity: vi.fn(),
+        getReviewsByEntity: vi.fn(),
+        getReviewStats: vi.fn(),
+        markAsHelpful: vi.fn(),
+        removeHelpfulVote: vi.fn(),
     },
 }));
 

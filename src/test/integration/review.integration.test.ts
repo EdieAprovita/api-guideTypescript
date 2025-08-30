@@ -51,9 +51,19 @@ vi.mock('../../services/ReviewService', () => ({
             author: 'test-user-id',
             restaurant: 'test-restaurant-id'
         }),
-        findByUserAndRestaurant: vi.fn().mockResolvedValue(null),
-        getReviewsByRestaurant: vi.fn().mockResolvedValue({ data: [], pagination: {} }),
+        findByUserAndEntity: vi.fn().mockResolvedValue(null),
+        getReviewsByEntity: vi.fn().mockResolvedValue({ data: [], pagination: {} }),
         getReviewStats: vi.fn().mockResolvedValue({}),
+        getReviewById: vi.fn().mockResolvedValue({
+            _id: 'test-review-id',
+            title: 'Test Review',
+            content: 'Test Content',
+            rating: 5
+        }),
+        updateReview: vi.fn().mockResolvedValue({}),
+        deleteReview: vi.fn().mockResolvedValue(undefined),
+        markAsHelpful: vi.fn().mockResolvedValue({}),
+        removeHelpfulVote: vi.fn().mockResolvedValue({}),
     },
 }));
 
