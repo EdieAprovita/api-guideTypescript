@@ -1598,6 +1598,59 @@
           }
         },
         {
+          "name": "Get Market Reviews",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/markets/{{marketId}}/reviews?page=1&limit=10&rating=5&sort=-createdAt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets",
+                "{{marketId}}",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "rating",
+                  "value": "5"
+                },
+                {
+                  "key": "sort",
+                  "value": "-createdAt"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Market Review Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/markets/{{marketId}}/reviews/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets",
+                "{{marketId}}",
+                "reviews",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
           "name": "Update Market",
           "request": {
             "auth": {
@@ -1851,6 +1904,59 @@
               "path": [
                 "recipes",
                 "{{recipeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Recipe Reviews",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeId}}/reviews?page=1&limit=10&rating=5&sort=-createdAt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{recipeId}}",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "rating",
+                  "value": "5"
+                },
+                {
+                  "key": "sort",
+                  "value": "-createdAt"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Recipe Review Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeId}}/reviews/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{recipeId}}",
+                "reviews",
+                "stats"
               ]
             }
           }
