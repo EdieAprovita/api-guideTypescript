@@ -95,7 +95,18 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
 );
 
 // Compound index to prevent duplicate reviews from same user for same entity
-reviewSchema.index({ author: 1, entityType: 1, entity: 1 }, { unique: true });
+// Note: use a partial filter to avoid E11000 on legacy docs missing polymorphic fields
+reviewSchema.index(
+    { author: 1, entityType: 1, entity: 1 },
+    {
+        unique: true,
+        partialFilterExpression: {
+            author: { $exists: true },
+            entityType: { $exists: true, $ne: null },
+            entity: { $exists: true, $ne: null },
+        },
+    }
+);
 
 // Legacy compound index - kept during migration, will be removed in Phase 9
 reviewSchema.index({ author: 1, restaurant: 1 }, { unique: false });
