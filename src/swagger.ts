@@ -25,6 +25,14 @@ const createStandardResponses = (successSchema?: string) => ({
             },
         },
     },
+    '500': {
+        description: 'Internal server error',
+        content: {
+            'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+            },
+        },
+    },
 });
 
 const createGetAllEndpoint = (tag: string, schema: string) => ({
@@ -133,6 +141,197 @@ const createAddReviewEndpoint = (tag: string) => ({
                         schema: { $ref: '#/components/schemas/Review' },
                     },
                 },
+            },
+            '401': {
+                description: 'Unauthorized',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ErrorResponse' },
+                        example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
+                    },
+                },
+            },
+            '409': {
+                description: 'Conflict',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ErrorResponse' },
+                        example: { success: false, message: `User has already reviewed this ${tag.toLowerCase().slice(0, -1)}`, error: 'Conflict' },
+                    },
+                },
+            },
+        },
+    },
+});
+
+// Common properties with proper typing
+const commonTimestamps = {
+    type: 'object' as const,
+    properties: {
+        createdAt: { type: 'string' as const, format: 'date-time' as const },
+        updatedAt: { type: 'string' as const, format: 'date-time' as const },
+    },
+};
+
+const commonReviews = { type: 'array' as const, items: { type: 'string' as const }, example: ['60c72b2f9b1d8b0015b3c125'] };
+const commonRating = { type: 'number' as const, minimum: 0, maximum: 5, example: 4.5 };
+const commonNumReviews = { type: 'number' as const, example: 25 };
+const commonAuthor = { type: 'string' as const, example: '60c72b2f9b1d8b0015b3c123' };
+const commonLocation = { $ref: '#/components/schemas/GeoJSONPoint' as const };
+const commonContact = { type: 'array' as const, items: { $ref: '#/components/schemas/Contact' as const } };
+
+// Error response factories
+const createUnauthorizedResponse = (message = 'Authentication required') => ({
+    description: 'Unauthorized',
+    content: {
+        'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorResponse' },
+            example: { success: false, message, error: 'Unauthorized' },
+        },
+    },
+});
+
+const createBadRequestResponse = (message = 'Invalid ID format') => ({
+    description: 'Invalid request',
+    content: {
+        'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorResponse' },
+            example: { success: false, message, error: 'BadRequest' },
+        },
+    },
+});
+
+const createNotFoundResponse = (entityType: string) => ({
+    description: `${entityType} not found`,
+    content: {
+        'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorResponse' },
+            example: { success: false, message: `${entityType} not found`, error: 'NotFound' },
+        },
+    },
+});
+
+const createPaginationParameters = () => [
+    { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 }, example: 1 },
+    { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 }, example: 10 },
+    { name: 'rating', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 5 }, example: 5 },
+    { name: 'sort', in: 'query', schema: { type: 'string' }, example: '-createdAt' },
+];
+
+const createReviewListResponse = (entityType: string) => ({
+    '200': {
+        description: 'Reviews fetched successfully',
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: { type: 'array', items: { $ref: '#/components/schemas/Review' } },
+                        pagination: {
+                            type: 'object',
+                            properties: {
+                                currentPage: { type: 'integer' },
+                                totalPages: { type: 'integer' },
+                                totalItems: { type: 'integer' },
+                                itemsPerPage: { type: 'integer' },
+                                hasNext: { type: 'boolean' },
+                                hasPrevious: { type: 'boolean' },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+    '400': createBadRequestResponse(),
+    '404': createNotFoundResponse(entityType),
+});
+
+const createReviewStatsResponse = (entityType: string) => ({
+    '200': {
+        description: 'Review stats fetched successfully',
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                totalReviews: { type: 'integer' },
+                                averageRating: { type: 'number' },
+                                ratingDistribution: {
+                                    type: 'object',
+                                    properties: {
+                                        '1': { type: 'integer' },
+                                        '2': { type: 'integer' },
+                                        '3': { type: 'integer' },
+                                        '4': { type: 'integer' },
+                                        '5': { type: 'integer' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+    '400': createBadRequestResponse(),
+    '404': createNotFoundResponse(entityType),
+});
+
+const createReviewEndpoints = (tag: string, paramName = 'id') => ({
+    [`/${tag.toLowerCase()}/{${paramName}}/reviews`]: {
+        get: {
+            tags: [tag],
+            summary: `Get reviews for a ${tag.toLowerCase().slice(0, -1)}`,
+            parameters: [
+                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+                ...createPaginationParameters(),
+            ],
+            responses: createReviewListResponse(tag.slice(0, -1)),
+        },
+    },
+    [`/${tag.toLowerCase()}/{${paramName}}/reviews/stats`]: {
+        get: {
+            tags: [tag],
+            summary: `Get review statistics for a ${tag.toLowerCase().slice(0, -1)}`,
+            parameters: [
+                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+            ],
+            responses: createReviewStatsResponse(tag.slice(0, -1)),
+        },
+    },
+});
+
+const createReviewPostEndpoint = (tag: string, paramName = 'id') => ({
+    [`/${tag.toLowerCase()}/{${paramName}}/reviews`]: {
+        post: {
+            tags: [tag],
+            summary: `Create review for a ${tag.toLowerCase().slice(0, -1)}`,
+            security: [{ bearerAuth: [] }],
+            parameters: [
+                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+            ],
+            requestBody: {
+                required: true,
+                content: { 'application/json': { schema: { $ref: '#/components/schemas/Review' } } },
+            },
+            responses: {
+                '201': {
+                    description: 'Review created successfully',
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/Review' },
+                        },
+                    },
+                },
+                '401': createUnauthorizedResponse(),
+                '400': createBadRequestResponse(),
+                '404': createNotFoundResponse(tag.slice(0, -1)),
             },
         },
     },
@@ -317,24 +516,18 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c124' },
                     namePlace: { type: 'string', example: 'Tech Solutions Inc' },
-                    author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
+                    author: commonAuthor,
                     address: { type: 'string', example: '123 Business St, New York, NY' },
-                    location: { $ref: '#/components/schemas/GeoJSONPoint' },
+                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/business.jpg' },
-                    contact: { type: 'array', items: { $ref: '#/components/schemas/Contact' } },
+                    contact: commonContact,
                     budget: { type: 'number', example: 50000 },
                     typeBusiness: { type: 'string', example: 'technology' },
                     hours: { type: 'array', items: { $ref: '#/components/schemas/BusinessHours' } },
-                    reviews: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c125'] },
-                    rating: { type: 'number', minimum: 0, maximum: 5, example: 4.5 },
-                    numReviews: { type: 'number', example: 25 },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    reviews: commonReviews,
+                    rating: commonRating,
+                    numReviews: commonNumReviews,
+                    timestamps: commonTimestamps,
                 },
             },
             Restaurant: {
@@ -342,24 +535,18 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c126' },
                     restaurantName: { type: 'string', example: 'El Buen Sabor' },
-                    author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
+                    author: commonAuthor,
                     typePlace: { type: 'string', example: 'restaurant' },
                     address: { type: 'string', example: '123 Main St, New York, NY' },
-                    location: { $ref: '#/components/schemas/GeoJSONPoint' },
+                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/restaurant.jpg' },
                     budget: { type: 'string', enum: ['low', 'medium', 'high'], example: 'medium' },
-                    contact: { type: 'array', items: { $ref: '#/components/schemas/Contact' } },
+                    contact: commonContact,
                     cuisine: { type: 'array', items: { type: 'string' }, example: ['Mexican', 'Latin American'] },
-                    reviews: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c125'] },
-                    rating: { type: 'number', minimum: 0, maximum: 5, example: 4.5 },
-                    numReviews: { type: 'number', example: 25 },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    reviews: commonReviews,
+                    rating: commonRating,
+                    numReviews: commonNumReviews,
+                    timestamps: commonTimestamps,
                 },
             },
             Doctor: {
@@ -367,22 +554,16 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c127' },
                     doctorName: { type: 'string', example: 'Dr. Smith' },
-                    author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
+                    author: commonAuthor,
                     address: { type: 'string', example: '456 Medical St, New York, NY' },
-                    location: { $ref: '#/components/schemas/GeoJSONPoint' },
+                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/doctor.jpg' },
                     specialty: { type: 'string', example: 'Cardiology' },
-                    contact: { type: 'array', items: { $ref: '#/components/schemas/Contact' } },
-                    reviews: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c125'] },
-                    rating: { type: 'number', minimum: 0, maximum: 5, example: 4.5 },
-                    numReviews: { type: 'number', example: 25 },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    contact: commonContact,
+                    reviews: commonReviews,
+                    rating: commonRating,
+                    numReviews: commonNumReviews,
+                    timestamps: commonTimestamps,
                 },
             },
             Market: {
@@ -390,21 +571,15 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c128' },
                     marketName: { type: 'string', example: 'Central Market' },
-                    author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
+                    author: commonAuthor,
                     address: { type: 'string', example: '789 Market St, New York, NY' },
-                    location: { $ref: '#/components/schemas/GeoJSONPoint' },
+                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/market.jpg' },
                     typeMarket: { type: 'string', enum: ['supermarket', 'convenience store', 'grocery store'], example: 'supermarket' },
-                    reviews: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c125'] },
-                    rating: { type: 'number', minimum: 0, maximum: 5, example: 4.5 },
-                    numReviews: { type: 'number', example: 25 },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    reviews: commonReviews,
+                    rating: commonRating,
+                    numReviews: commonNumReviews,
+                    timestamps: commonTimestamps,
                 },
             },
             Recipe: {
@@ -412,7 +587,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c129' },
                     title: { type: 'string', example: 'Delicious Tacos' },
-                    author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
+                    author: commonAuthor,
                     description: { type: 'string', example: 'Authentic Mexican tacos recipe' },
                     instructions: { type: 'string', example: '1. Prepare the meat... 2. Cook the tortillas...' },
                     ingredients: { type: 'array', items: { type: 'string' }, example: ['tortillas', 'beef', 'onions', 'cilantro'] },
@@ -421,16 +596,10 @@ const swaggerDocument: OpenAPIV3.Document = {
                     cookingTime: { type: 'number', example: 30 },
                     difficulty: { type: 'string', example: 'medium' },
                     budget: { type: 'string', example: 'low' },
-                    reviews: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c125'] },
-                    rating: { type: 'number', minimum: 0, maximum: 5, example: 4.5 },
-                    numReviews: { type: 'number', example: 25 },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    reviews: commonReviews,
+                    rating: commonRating,
+                    numReviews: commonNumReviews,
+                    timestamps: commonTimestamps,
                 },
             },
             Post: {
@@ -444,13 +613,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     likes: { type: 'array', items: { $ref: '#/components/schemas/Like' } },
                     comments: { type: 'array', items: { $ref: '#/components/schemas/Comment' } },
                     date: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    timestamps: commonTimestamps,
                 },
             },
             Sanctuary: {
@@ -458,25 +621,19 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c131' },
                     sanctuaryName: { type: 'string', example: 'Wildlife Sanctuary' },
-                    author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
+                    author: commonAuthor,
                     address: { type: 'string', example: '321 Nature St, New York, NY' },
-                    location: { $ref: '#/components/schemas/GeoJSONPoint' },
+                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/sanctuary.jpg' },
                     typeofSanctuary: { type: 'string', example: 'wildlife' },
                     animals: { type: 'array', items: { $ref: '#/components/schemas/Animal' } },
                     capacity: { type: 'number', example: 100 },
                     caretakers: { type: 'array', items: { type: 'string' }, example: ['John Smith', 'Jane Doe'] },
-                    contact: { type: 'array', items: { $ref: '#/components/schemas/Contact' } },
-                    reviews: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c125'] },
-                    rating: { type: 'number', minimum: 0, maximum: 5, example: 4.5 },
-                    numReviews: { type: 'number', example: 25 },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    contact: commonContact,
+                    reviews: commonReviews,
+                    rating: commonRating,
+                    numReviews: commonNumReviews,
+                    timestamps: commonTimestamps,
                 },
             },
             Profession: {
@@ -484,21 +641,15 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c132' },
                     professionName: { type: 'string', example: 'Software Developer' },
-                    author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
+                    author: commonAuthor,
                     address: { type: 'string', example: '654 Professional St, New York, NY' },
-                    location: { $ref: '#/components/schemas/GeoJSONPoint' },
+                    location: commonLocation,
                     specialty: { type: 'string', example: 'Web Development' },
-                    contact: { type: 'array', items: { $ref: '#/components/schemas/Contact' } },
-                    reviews: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c125'] },
-                    rating: { type: 'number', minimum: 0, maximum: 5, example: 4.5 },
-                    numReviews: { type: 'number', example: 25 },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    contact: commonContact,
+                    reviews: commonReviews,
+                    rating: commonRating,
+                    numReviews: commonNumReviews,
+                    timestamps: commonTimestamps,
                 },
             },
             ProfessionalProfile: {
@@ -506,28 +657,33 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c133' },
                     user: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
-                    contact: { type: 'array', items: { $ref: '#/components/schemas/Contact' } },
+                    contact: commonContact,
                     skills: { type: 'array', items: { $ref: '#/components/schemas/Skill' } },
                     experience: { type: 'array', items: { $ref: '#/components/schemas/Experience' } },
                     education: { type: 'array', items: { $ref: '#/components/schemas/Education' } },
                     social: { type: 'array', items: { $ref: '#/components/schemas/Social' } },
                     date: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
-                    reviews: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c125'] },
-                    rating: { type: 'number', minimum: 0, maximum: 5, example: 4.5 },
-                    numReviews: { type: 'number', example: 25 },
-                    timestamps: {
-                        type: 'object',
-                        properties: {
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                        },
-                    },
+                    reviews: commonReviews,
+                    rating: commonRating,
+                    numReviews: commonNumReviews,
+                    timestamps: commonTimestamps,
                 },
             },
             Review: {
                 type: 'object',
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c125' },
+                    entityType: {
+                        type: 'string',
+                        description: 'Polymorphic target type for this review',
+                        enum: ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'],
+                        example: 'Restaurant',
+                    },
+                    entity: {
+                        type: 'string',
+                        description: 'ObjectId of the reviewed entity, paired with entityType',
+                        example: '60c72b2f9b1d8b0015b3c126',
+                    },
                     rating: { type: 'number', minimum: 1, maximum: 5, example: 5 },
                     title: { type: 'string', minLength: 5, maxLength: 100, example: 'Excelente comida' },
                     content: { type: 'string', minLength: 10, maxLength: 1000, example: 'La mejor comida mexicana que he probado' },
@@ -535,7 +691,12 @@ const swaggerDocument: OpenAPIV3.Document = {
                     recommendedDishes: { type: 'array', items: { type: 'string', maxLength: 50 }, example: ['Tacos al pastor', 'Guacamole'] },
                     tags: { type: 'array', items: { type: 'string', maxLength: 30 }, example: ['auténtico', 'familiar'] },
                     author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
-                    restaurant: { type: 'string', example: '60c72b2f9b1d8b0015b3c126' },
+                    restaurant: {
+                        type: 'string',
+                        description: 'DEPRECATED - use entityType + entity instead',
+                        example: '60c72b2f9b1d8b0015b3c126',
+                        deprecated: true,
+                    },
                     helpfulCount: { type: 'number', example: 10 },
                     helpfulVotes: { type: 'array', items: { type: 'string' }, example: ['60c72b2f9b1d8b0015b3c123'] },
                     timestamps: {
@@ -848,7 +1009,54 @@ const swaggerDocument: OpenAPIV3.Document = {
                         },
                     },
                 },
-                responses: createStandardResponses('Review'),
+                responses: {
+                    ...createStandardResponses('Review'),
+                    '401': {
+                        description: 'Unauthorized',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
+                            },
+                        },
+                    },
+                    '403': {
+                        description: 'Forbidden',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                                example: { success: false, message: 'You can only modify your own reviews', error: 'Forbidden' },
+                            },
+                        },
+                    },
+                },
+            },
+            delete: {
+                tags: ['Reviews'],
+                summary: 'Delete review',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+                responses: {
+                    ...createStandardResponses(),
+                    '401': {
+                        description: 'Unauthorized',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
+                            },
+                        },
+                    },
+                    '403': {
+                        description: 'Forbidden',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                                example: { success: false, message: 'You can only modify your own reviews', error: 'Forbidden' },
+                            },
+                        },
+                    },
+                },
             },
         },
         '/reviews/{id}/helpful': {
@@ -857,7 +1065,45 @@ const swaggerDocument: OpenAPIV3.Document = {
                 summary: 'Mark review as helpful',
                 security: [{ bearerAuth: [] }],
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
-                responses: createStandardResponses(),
+                responses: {
+                    ...createStandardResponses('Review'),
+                    '401': {
+                        description: 'Unauthorized',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
+                            },
+                        },
+                    },
+                    '409': {
+                        description: 'Conflict',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                                example: { success: false, message: 'User has already voted', error: 'Conflict' },
+                            },
+                        },
+                    },
+                },
+            },
+            delete: {
+                tags: ['Reviews'],
+                summary: 'Remove helpful vote',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ $ref: '#/components/parameters/IdParameter' }],
+                responses: {
+                    ...createStandardResponses('Review'),
+                    '401': {
+                        description: 'Unauthorized',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
+                            },
+                        },
+                    },
+                },
             },
         },
         
@@ -934,6 +1180,14 @@ const swaggerDocument: OpenAPIV3.Document = {
                 responses: createStandardResponses(),
             },
         },
+
+        // Review endpoints using helpers
+        ...createReviewEndpoints('Markets'),
+        ...createReviewEndpoints('Recipes'),
+
+        // Restaurant review endpoints (uses 'restaurantId' instead of 'id')
+        ...createReviewPostEndpoint('Restaurants', 'restaurantId'),
+        ...createReviewEndpoints('Restaurants', 'restaurantId'),
     },
 };
 

@@ -83,7 +83,7 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
         }
 
         // Check if user already reviewed this restaurant
-        const existingReview = await ReviewService.findByUserAndRestaurant(userId.toString(), restaurantId);
+        const existingReview = await ReviewService.findByUserAndEntity(userId.toString(), 'Restaurant', restaurantId);
         if (existingReview) {
             throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this restaurant');
         }

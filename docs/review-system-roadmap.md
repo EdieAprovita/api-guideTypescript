@@ -11,6 +11,7 @@ This document outlines a chronological, incremental plan to improve the Review s
 ---
 
 ## Phase 0 — Quick Fixes (Hotfix to unblock)
+Status: Completed
 Scope: Days 0–1
 
 - Map incoming alias fields to current Review model to avoid immediate breakage:
@@ -23,12 +24,15 @@ Scope: Days 0–1
 - Risks: Semantic mismatch (non-restaurant reviews stored under `restaurant`). Time-boxed and to be replaced in Phase 1+.
 
 Checklist
-- [ ] Add alias mapping in `src/services/ReviewService.ts` sanitize path.
-- [ ] Smoke test POST review on restaurants/recipes/markets.
+- [x] Add alias mapping in `src/services/ReviewService.ts` sanitize path.
+- [x] Smoke test POST review on restaurants/recipes/markets.
+References
+- `src/services/ReviewService.ts:297` (alias mapping + backfill to legacy `restaurant`)
 
 ---
 
 ## Phase 1 — Model Generalization (Polymorphic reviews)
+Status: Completed (migration dry‑run pending)
 Scope: Days 1–3
 
 - Extend `Review` model with polymorphic target fields:
@@ -41,13 +45,18 @@ Scope: Days 1–3
 - Acceptance: New documents can be written with `entityType + entity`. Existing restaurant reviews remain valid.
 
 Checklist
-- [ ] Update `src/models/Review.ts` schema with `entityType`, `entity (refPath)`, and new indexes.
-- [ ] Write migration script `scripts/migrations/2025-xx-xx-backfill-review-entity.js` to backfill old records.
+- [x] Update `src/models/Review.ts` schema with `entityType`, `entity (refPath)`, and new indexes.
+- [x] Write migration script `scripts/migrations/2025-08-30-backfill-review-entity.js` to backfill old records.
 - [ ] Dry-run migration in a staging dump.
+
+Additions (not originally listed)
+- Made the unique index safe during rollout using a partial filter to avoid E11000 on legacy docs missing polymorphic fields.
+  - `src/models/Review.ts:99` — `partialFilterExpression` for `{ author, entityType, entity }`.
 
 ---
 
 ## Phase 2 — Service API Generalization
+Status: Completed
 Scope: Days 3–5
 
 - Introduce generic service methods (keep legacy wrappers):
@@ -64,13 +73,18 @@ Scope: Days 3–5
 - Acceptance: All entity types supported through service; restaurant-specific methods still function.
 
 Checklist
-- [ ] Implement generic methods in `src/services/ReviewService.ts`.
-- [ ] Maintain and mark legacy methods for deprecation.
+- [x] Implement generic methods in `src/services/ReviewService.ts` (create/list/stats/findByUserAndEntity).
+- [x] Maintain and mark legacy methods for deprecation (e.g., `listReviewsForModel`).
 - [ ] Unit tests for alias mapping and generic queries.
+
+Additions
+- Reduced cognitive complexity and eliminated unsafe stringification (Sonar S6551) by factoring sanitizers and adding `tryExtractObjectIdHex`.
+  - `src/services/ReviewService.ts:373` (extractor) and helpers (apply* methods).
 
 ---
 
 ## Phase 3 — Controllers & Routes Alignment
+Status: Completed
 Scope: Days 5–7
 
 - Restaurants
@@ -88,14 +102,19 @@ Scope: Days 5–7
 - Acceptance: Controllers for all entities create and fetch reviews via polymorphic service; validation covers new IDs.
 
 Checklist
-- [ ] Wire controllers to generic service.
-- [ ] Add/extend routes for list/stats per entity as required.
-- [ ] Extend `src/utils/validators.ts` parameter schemas.
+- [x] Wire controllers to generic service.
+- [x] Add/extend routes for list/stats per entity as required (Restaurants/Recipes/Markets).
+- [x] Extend `src/utils/validators.ts` parameter schemas (used by routes for `recipeId`/`marketId`).
+
+Additions
+- Introduced reusable controller factory to cut duplication across entities (`add`, `list`, `stats`).
+  - `src/controllers/factories/reviewEndpointsFactory.ts`
+  - Applied to `recipesControllers.ts` and `marketsControllers.ts`.
 
 ---
 
 ## Phase 4 — API Docs (Swagger) Update
-Scope: Days 7–8
+Status: Completed
 
 - Component schemas
   - Update `Review` to include `entityType` and `entity`.
@@ -106,13 +125,20 @@ Scope: Days 7–8
 - Acceptance: Swagger reflects new contract and remains accurate for legacy endpoints during transition.
 
 Checklist
-- [ ] Update `swagger.yaml` Review schema and paths under tags: Restaurants, Recipes, Markets, Reviews.
-- [ ] Regenerate any derived `src/swagger.ts` if applicable.
+- [x] Update `swagger.yaml` Review schema including `entityType` + `entity`, deprecate `restaurant`.
+- [x] Document list/stats endpoints for Restaurants, Recipes, Markets.
+- [x] Add helpful votes endpoints (POST/DELETE `reviews/{id}/helpful`).
+- [x] Add examples for success and error responses (400/401/403/404/409/500) across endpoints.
+- [x] Keep `src/swagger.ts` in sync; added equivalent routes and schemas.
+- [x] Update Postman collection (`API_Guide_TypeScript_COMPLETE.postman_collection.json`) with new list/stats endpoints.
+
+Notes
+- Fixed YAML errors (duplicate keys / indentation) to unblock integration tests.
 
 ---
 
 ## Phase 5 — Data Consistency Across Entities
-Scope: Days 8–10
+Status: Pending
 
 - Standardize `reviews` storage in entity models:
   - Prefer `reviews: ObjectId[]` referencing `Review` in all models.
@@ -123,13 +149,18 @@ Scope: Days 8–10
 - Acceptance: All entities store reviews consistently; rating fields stay in sync.
 
 Checklist
-- [ ] Update `src/models/Restaurant.ts` to reference `Review` (if desired) and migrate data.
-- [ ] Add service hooks to update `rating/numReviews` on write paths.
+- [ ] Standardize `reviews: ObjectId[]` reference across all entity models (verify and migrate inconsistencies).
+- [ ] Add service-level hooks on Review create/update/delete to recompute and persist `entity.rating` and `entity.numReviews`.
+- [ ] Backfill existing aggregates to ensure parity.
+
+Suggested implementation
+- Prefer service-layer recomputation (transactional) over Mongoose middleware for clearer control and testability.
+- Provide an idempotent script to recompute aggregates per entity type.
 
 ---
 
 ## Phase 6 — Caching & Performance
-Scope: Days 10–12
+Status: Planned
 
 - Cache keys
   - Per-entity list pages, e.g., `reviews:Restaurant:<id>:p=<n>&l=<k>&r=<rating>&s=<sort>`.
@@ -142,14 +173,14 @@ Scope: Days 10–12
 - Acceptance: Faster reads for hot entities; cache invalidates correctly on write.
 
 Checklist
-- [ ] Implement cache layer in generic service list/stats.
-- [ ] Invalidate keys in controllers after mutations.
-- [ ] Optional: prewarm.
+- [ ] Implement cache layer in `ReviewService.getReviewsByEntity` and `getReviewStats` using keys like `reviews:{EntityType}:{id}:p={n}&l={k}&r={rating}&s={sort}` and `reviews:stats:{EntityType}:{id}`.
+- [ ] Invalidate on review create/update/delete/helpful vote (tag invalidate by entity + reviews).
+- [ ] Optional: prewarm hot entities via `CacheWarmingService`.
 
 ---
 
 ## Phase 7 — Security & Abuse Prevention
-Scope: Days 12–13
+Status: Partially Completed
 
 - Ownership
   - Ensure only authors can update/delete their reviews (already present for generic review routes, extend to entity-specific flows if any).
@@ -162,13 +193,18 @@ Scope: Days 12–13
 - Acceptance: No duplicate reviews per user/entity; safe helpful voting; endpoints rate-limited.
 
 Checklist
-- [ ] Verify indexes created.
+- [x] Enforce uniqueness with `{ author, entityType, entity }` (partial index for safe rollout).
+- [x] Ownership checks for update/delete (403) in controllers.
+- [x] Rate limiting applied on creation endpoints.
 - [ ] Tests for duplicates and helpful votes edge cases.
+
+Additions
+- Partial unique index with `partialFilterExpression` to avoid E11000 blocking during migration.
 
 ---
 
 ## Phase 8 — Telemetry & Metrics
-Scope: Days 13–14
+Status: Planned
 
 - Logging
   - Structured logs on create/update/delete with `entityType`, `entityId`, `authorId`.
@@ -179,13 +215,14 @@ Scope: Days 13–14
 - Acceptance: Basic observability in place for monitoring rollout.
 
 Checklist
-- [ ] Add log lines in controllers/services.
-- [ ] Wire simple counters using existing logging or a lightweight metrics helper.
+- [ ] Structured logs on review mutations with `entityType`, `entityId`, `authorId`.
+- [ ] Counters for reviews created and helpful votes added/removed.
+- [ ] Latency metrics for list/stats (p95), error rates by validation vs persistence.
 
 ---
 
 ## Phase 9 — Deprecation & Cleanup
-Scope: After stable period
+Status: Planned
 
 - Remove deprecated `restaurant` field from `Review`.
 - Remove legacy service methods (`getReviewsByRestaurant`, etc.).
@@ -194,12 +231,15 @@ Scope: After stable period
 - Acceptance: Codebase only uses polymorphic implementation; contracts clean.
 
 Checklist
-- [ ] Announce deprecation, track consumers, schedule removal window.
-- [ ] Code removal and final schema cleanup.
+- [ ] Announce deprecation and schedule removal window.
+- [ ] Remove deprecated `restaurant` field from `Review`.
+- [ ] Remove legacy service methods and `/add-review/:id` endpoints once consumers migrated.
+- [ ] Update tests and Postman to only use polymorphic paths.
 
 ---
 
 ## Phase 10 — Testing Strategy (spans multiple phases)
+Status: In Progress
 
 - Unit Tests
   - Sanitization: rating/title/content/date/tags; alias mapping.
@@ -212,8 +252,29 @@ Checklist
   - Backfill script idempotency; verify counts, distributions, and stats equality before/after.
 
 Checklist
-- [ ] Expand `src/test/controllers/*` and `src/test/integration/*` for new entity types.
-- [ ] Add service unit tests under `src/test/services/ReviewService.test.ts` (or expand existing).
+- [ ] Expand `src/test/controllers/*` and `src/test/integration/*` for Markets/Recipes review list & stats.
+- [ ] Unit tests for alias mapping, ID extraction and sanitizers in `ReviewService`.
+- [ ] Integration tests for helpful votes (duplicate vote, remove non-existent).
+- [ ] Migration tests for backfill script idempotency.
+
+---
+
+## Extras Implemented (Out of Original Scope)
+
+- Controller factories to remove duplication across entities: `src/controllers/factories/reviewEndpointsFactory.ts`.
+- Sonar fixes (S6551) by removing unsafe `String(obj)` coercions and lowering `sanitizeReviewData` complexity.
+- Comprehensive Swagger updates with error response examples (400/401/403/404/409/500) and example payloads for list/stats.
+- Postman collection updated with new review list/stats endpoints for Markets and Recipes.
+- Index safety: unique index made partial to avoid deployment-time E11000.
+
+---
+
+## Next Milestones
+
+1) Phase 5 (data consistency): implement aggregate sync hooks + backfill script.
+2) Phase 6 (caching): add cache for list/stats with invalidation on mutations.
+3) Phase 7 tests: add duplicate/edge-case coverage for helpful votes and unique constraints.
+4) Phase 9: plan deprecation timeline and consumer communication; remove legacy fields/routes when safe.
 
 ---
 
