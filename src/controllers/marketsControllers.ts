@@ -168,45 +168,114 @@ export const deleteMarket = asyncHandler(async (req: Request, res: Response, nex
 
 export const addReviewToMarket = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const reviewData = { ...req.body, marketId: req.params.id };
+        const { id } = req.params;
+        const userId = req.user?._id;
+
+        if (!userId) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
+        }
+
+        if (!id) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required');
+        }
+
+        // Check if market exists
+        const market = await MarketsService.findById(id);
+        if (!market) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Market not found');
+        }
+
+        // Check if user already reviewed this market
+        const existingReview = await ReviewService.findByUserAndEntity(userId.toString(), 'Market', id);
+        if (existingReview) {
+            throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this market');
+        }
+
+        const reviewData = {
+            ...req.body,
+            author: userId,
+            marketId: id,
+        };
+
         const newReview = await ReviewService.addReview(reviewData);
-        res.status(200).json({
+
+        res.status(201).json({
             success: true,
             message: 'Review added successfully',
             data: newReview,
         });
     } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+        next(error);
     }
 });
 
 /**
- * @description Get Top rated markets
- * @name getTopRatedMarkets
- * @route GET /api/markets/top
+ * @description Get reviews for a market
+ * @name getMarketReviews
+ * @route GET /api/markets/:id/reviews
  * @access Public
  * @returns {Promise<Response>}
  */
-
-export const getTopRatedMarkets = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
+export const getMarketReviews = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const getTopRatedMarkets = await ReviewService.getTopRatedReviews('market');
+        const { id } = req.params;
+        const { page = 1, limit = 10, rating, sort = '-createdAt' } = req.query;
+
+        if (!id) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required');
+        }
+
+        // Check if market exists
+        const market = await MarketsService.findById(id);
+        if (!market) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Market not found');
+        }
+
+        const reviews = await ReviewService.getReviewsByEntity('Market', id, {
+            page: Number(page),
+            limit: Number(limit),
+            ...(rating && { rating: Number(rating) }),
+            sort: String(sort),
+        });
+
         res.status(200).json({
             success: true,
-            message: 'Top rated markets fetched successfully',
-            data: getTopRatedMarkets,
+            data: reviews.data,
+            pagination: reviews.pagination,
         });
     } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+        next(error);
+    }
+});
+
+/**
+ * @description Get review statistics for a market
+ * @name getMarketReviewStats
+ * @route GET /api/markets/:id/reviews/stats
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getMarketReviewStats = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required');
+        }
+
+        // Check if market exists
+        const market = await MarketsService.findById(id);
+        if (!market) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Market not found');
+        }
+
+        const stats = await ReviewService.getReviewStats('Market', id);
+
+        res.status(200).json({
+            success: true,
+            data: stats,
+        });
+    } catch (error) {
+        next(error);
     }
 });

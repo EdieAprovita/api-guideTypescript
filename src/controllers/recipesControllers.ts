@@ -156,47 +156,114 @@ export const deleteRecipe = asyncHandler(async (req: Request, res: Response, nex
 
 export const addReviewToRecipe = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const reviewData = { ...req.body, recipeId: req.params.id };
+        const { id } = req.params;
+        const userId = req.user?._id;
+
+        if (!userId) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
+        }
+
+        if (!id) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Recipe ID is required');
+        }
+
+        // Check if recipe exists
+        const recipe = await RecipeService.findById(id);
+        if (!recipe) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Recipe not found');
+        }
+
+        // Check if user already reviewed this recipe
+        const existingReview = await ReviewService.findByUserAndEntity(userId.toString(), 'Recipe', id);
+        if (existingReview) {
+            throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this recipe');
+        }
+
+        const reviewData = {
+            ...req.body,
+            author: userId,
+            recipeId: id,
+        };
+
         const newReview = await ReviewService.addReview(reviewData);
 
-        res.status(200).json({
+        res.status(201).json({
             success: true,
             message: 'Review added successfully',
             data: newReview,
         });
     } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+        next(error);
     }
 });
 
 /**
- * @description Get Top rated recipes
- * @name getTopRatedRecipes
- * @route GET /api/recipes/top-rated
+ * @description Get reviews for a recipe
+ * @name getRecipeReviews
+ * @route GET /api/recipes/:id/reviews
  * @access Public
  * @returns {Promise<Response>}
  */
-
-export const getTopRatedRecipes = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
+export const getRecipeReviews = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const topRatedRecipes = await ReviewService.getTopRatedReviews('recipe');
+        const { id } = req.params;
+        const { page = 1, limit = 10, rating, sort = '-createdAt' } = req.query;
+
+        if (!id) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Recipe ID is required');
+        }
+
+        // Check if recipe exists
+        const recipe = await RecipeService.findById(id);
+        if (!recipe) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Recipe not found');
+        }
+
+        const reviews = await ReviewService.getReviewsByEntity('Recipe', id, {
+            page: Number(page),
+            limit: Number(limit),
+            ...(rating && { rating: Number(rating) }),
+            sort: String(sort),
+        });
 
         res.status(200).json({
             success: true,
-            message: 'Top rated recipes fetched successfully',
-            data: topRatedRecipes,
+            data: reviews.data,
+            pagination: reviews.pagination,
         });
     } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+        next(error);
+    }
+});
+
+/**
+ * @description Get review statistics for a recipe
+ * @name getRecipeReviewStats
+ * @route GET /api/recipes/:id/reviews/stats
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getRecipeReviewStats = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Recipe ID is required');
+        }
+
+        // Check if recipe exists
+        const recipe = await RecipeService.findById(id);
+        if (!recipe) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Recipe not found');
+        }
+
+        const stats = await ReviewService.getReviewStats('Recipe', id);
+
+        res.status(200).json({
+            success: true,
+            data: stats,
+        });
+    } catch (error) {
+        next(error);
     }
 });
