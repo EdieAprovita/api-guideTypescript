@@ -349,30 +349,66 @@ class ReviewService implements IReviewService {
             sanitized.restaurant = new Types.ObjectId(reviewData.restaurant.toString());
         }
 
-        if (!sanitized.restaurant) {
-            const anyData = reviewData as any;
-            const aliasId =
-                anyData.restaurantId ||
-                anyData.recipe ||
-                anyData.recipeId ||
-                anyData.market ||
-                anyData.marketId ||
-                anyData.business ||
-                anyData.businessId;
+        // Handle polymorphic entity fields and alias mapping
+        this.handleEntityFields(reviewData as any, sanitized);
 
-            if (aliasId) {
-                const idStr = aliasId.toString();
+        // Legacy: If no restaurant field set but we have entity data, backfill for compatibility
+        if (!sanitized.restaurant && sanitized.entity) {
+            sanitized.restaurant = sanitized.entity;
+        }
+
+        return sanitized;
+    }
+
+    private handleEntityFields(reviewData: any, sanitized: Partial<IReview>): void {
+        // Priority 1: Direct polymorphic fields
+        if (reviewData.entityType && reviewData.entity) {
+            const validEntityTypes = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor'];
+            if (!validEntityTypes.includes(reviewData.entityType)) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity type'));
+            }
+            if (!Types.ObjectId.isValid(reviewData.entity)) {
+                throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid entity ID'));
+            }
+            sanitized.entityType = reviewData.entityType;
+            sanitized.entity = Types.ObjectId.createFromHexString(reviewData.entity.toString());
+            return;
+        }
+
+        // Priority 2: Alias mapping (Phase 0 compatibility)
+        const aliasMapping: { [key: string]: string } = {
+            restaurantId: 'Restaurant',
+            restaurant: 'Restaurant',
+            recipeId: 'Recipe', 
+            recipe: 'Recipe',
+            marketId: 'Market',
+            market: 'Market',
+            businessId: 'Business',
+            business: 'Business',
+            doctorId: 'Doctor',
+            doctor: 'Doctor'
+        };
+
+        for (const [field, entityType] of Object.entries(aliasMapping)) {
+            if (reviewData[field]) {
+                const idStr = reviewData[field].toString();
                 if (!Types.ObjectId.isValid(idStr)) {
                     throw new HttpError(
                         HttpStatusCode.BAD_REQUEST,
                         getErrorMessage('Invalid target entity ID')
                     );
                 }
-                sanitized.restaurant = new Types.ObjectId(idStr);
+                sanitized.entityType = entityType as IReview['entityType'];
+                sanitized.entity = Types.ObjectId.createFromHexString(idStr);
+                return;
             }
         }
 
-        return sanitized;
+        // Priority 3: Legacy restaurant field (existing behavior)
+        if (sanitized.restaurant) {
+            sanitized.entityType = 'Restaurant';
+            sanitized.entity = sanitized.restaurant;
+        }
     }
 
     // Legacy methods for backward compatibility
