@@ -22,7 +22,7 @@ router.use(browserCacheValidation());
 router.get('/', recipeCacheMiddleware(), getRecipes);
 router.get('/:id', recipeCacheMiddleware(), getRecipeById);
 router.post('/', protect, createRecipe);
-router.post('/add-review/:id', protect, addReviewToRecipe);
+router.post('/add-review/:id', rateLimits.api, protect, addReviewToRecipe);
 
 // Review routes
 router.get('/:id/reviews', rateLimits.api, validate({ params: paramSchemas.recipeId }), getRecipeReviews);
