@@ -8,6 +8,7 @@ import { Sanctuary } from '../models/Sanctuary';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { Types, startSession, ClientSession } from 'mongoose';
+import { cacheService, CacheService } from './CacheService';
 
 type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
 
@@ -97,6 +98,12 @@ class ReviewService implements IReviewService {
             if (!populatedReview) {
                 throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage('Review created but not found'));
             }
+            
+            // Phase 6: Invalidate cache for the entity
+            if (populatedReview.entityType && populatedReview.entity) {
+                await this.invalidateEntityCache(populatedReview.entityType, populatedReview.entity.toString());
+            }
+            
             return populatedReview;
         } finally {
             await session.endSession();
@@ -112,6 +119,20 @@ class ReviewService implements IReviewService {
         // Validate and sanitize pagination parameters
         const sanitizedPage = Math.max(1, Math.floor(Number(page)) || 1);
         const sanitizedLimit = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
+        const sanitizedOptions: ReviewQueryOptions = { 
+            page: sanitizedPage, 
+            limit: sanitizedLimit, 
+            rating, 
+            sort 
+        };
+
+        // Phase 6: Check cache first
+        const cacheKey = this.generateListCacheKey(entityType, entityId, sanitizedOptions);
+        const cached = await cacheService.get<PaginatedReviews>(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
         const skip = (sanitizedPage - 1) * sanitizedLimit;
 
         // Build query for polymorphic entity
@@ -142,7 +163,7 @@ class ReviewService implements IReviewService {
 
         const totalPages = Math.ceil(total / sanitizedLimit);
 
-        return {
+        const result: PaginatedReviews = {
             data: reviews,
             pagination: {
                 currentPage: sanitizedPage,
@@ -153,10 +174,23 @@ class ReviewService implements IReviewService {
                 hasPrevious: sanitizedPage > 1,
             },
         };
+
+        // Phase 6: Cache the result with entity tag for invalidation
+        const entityTag = this.generateEntityCacheTag(entityType, entityId);
+        await cacheService.setWithTags(cacheKey, result, [entityTag, 'reviews']);
+
+        return result;
     }
 
     async getReviewStats(entityType: EntityType, entityId: string): Promise<ReviewStats> {
         this.validateEntityTypeAndId(entityType, entityId);
+
+        // Phase 6: Check cache first
+        const cacheKey = this.generateStatsCacheKey(entityType, entityId);
+        const cached = await cacheService.get<ReviewStats>(cacheKey);
+        if (cached) {
+            return cached;
+        }
 
         const stats = await Review.aggregate([
             { 
@@ -177,8 +211,10 @@ class ReviewService implements IReviewService {
             },
         ]);
 
+        let result: ReviewStats;
+
         if (!stats.length) {
-            return {
+            result = {
                 totalReviews: 0,
                 averageRating: 0,
                 ratingDistribution: {
@@ -189,29 +225,35 @@ class ReviewService implements IReviewService {
                     5: 0,
                 },
             };
-        }
+        } else {
+            const aggregated = stats[0];
+            const distribution: ReviewStats['ratingDistribution'] = {
+                1: 0,
+                2: 0,
+                3: 0,
+                4: 0,
+                5: 0,
+            };
 
-        const result = stats[0];
-        const distribution: ReviewStats['ratingDistribution'] = {
-            1: 0,
-            2: 0,
-            3: 0,
-            4: 0,
-            5: 0,
-        };
-
-        // Count rating distribution
-        for (const rating of result.ratingDistribution) {
-            if (rating >= 1 && rating <= 5) {
-                distribution[rating as keyof typeof distribution]++;
+            // Count rating distribution
+            for (const rating of aggregated.ratingDistribution) {
+                if (rating >= 1 && rating <= 5) {
+                    distribution[rating as keyof typeof distribution]++;
+                }
             }
+
+            result = {
+                totalReviews: aggregated.totalReviews || 0,
+                averageRating: Math.round((aggregated.averageRating || 0) * 100) / 100,
+                ratingDistribution: distribution,
+            };
         }
 
-        return {
-            totalReviews: result.totalReviews || 0,
-            averageRating: Math.round((result.averageRating || 0) * 100) / 100,
-            ratingDistribution: distribution,
-        };
+        // Phase 6: Cache the result with entity tag for invalidation
+        const entityTag = this.generateEntityCacheTag(entityType, entityId);
+        await cacheService.setWithTags(cacheKey, result, [entityTag, 'reviews']);
+
+        return result;
     }
 
     async findByUserAndEntity(userId: string, entityType: EntityType, entityId: string): Promise<IReview | null> {
@@ -278,6 +320,12 @@ class ReviewService implements IReviewService {
             if (!populatedReview) {
                 throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found after update'));
             }
+            
+            // Phase 6: Invalidate cache for the entity
+            if (populatedReview.entityType && populatedReview.entity) {
+                await this.invalidateEntityCache(populatedReview.entityType, populatedReview.entity.toString());
+            }
+            
             return populatedReview;
         } finally {
             await session.endSession();
@@ -291,12 +339,21 @@ class ReviewService implements IReviewService {
         }
 
         const session = await startSession();
+        let entityToInvalidate: { entityType: EntityType; entityId: string } | null = null;
         
         try {
             await session.withTransaction(async () => {
                 const review = await Review.findById(reviewId).session(session);
                 if (!review) {
                     throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Review not found'));
+                }
+
+                // Store entity info for cache invalidation
+                if (review.entityType && review.entity) {
+                    entityToInvalidate = { 
+                        entityType: review.entityType, 
+                        entityId: review.entity.toString() 
+                    };
                 }
 
                 // Delete the review
@@ -308,6 +365,11 @@ class ReviewService implements IReviewService {
                     await this.removeReviewFromEntity(review.entityType, review.entity, new Types.ObjectId(review._id), session);
                 }
             });
+            
+            // Phase 6: Invalidate cache for the entity
+            if (entityToInvalidate?.entityType && entityToInvalidate?.entityId) {
+                await this.invalidateEntityCache(entityToInvalidate.entityType, entityToInvalidate.entityId);
+            }
         } finally {
             await session.endSession();
         }
@@ -339,6 +401,11 @@ class ReviewService implements IReviewService {
         review.helpfulCount = review.helpfulVotes.length;
         await review.save();
 
+        // Phase 6: Invalidate cache for the entity (helpful votes affect stats)
+        if (review.entityType && review.entity) {
+            await this.invalidateEntityCache(review.entityType, review.entity.toString());
+        }
+
         return review;
     }
 
@@ -366,6 +433,11 @@ class ReviewService implements IReviewService {
         review.helpfulVotes.splice(voteIndex, 1);
         review.helpfulCount = review.helpfulVotes.length;
         await review.save();
+
+        // Phase 6: Invalidate cache for the entity (helpful votes affect stats)
+        if (review.entityType && review.entity) {
+            await this.invalidateEntityCache(review.entityType, review.entity.toString());
+        }
 
         return review;
     }
@@ -719,6 +791,26 @@ class ReviewService implements IReviewService {
             { $sort: { avgRating: -1 } },
         ]);
         return reviews;
+    }
+
+    // Cache helper methods for Phase 6
+    private generateListCacheKey(entityType: EntityType, entityId: string, options: ReviewQueryOptions): string {
+        const { page, limit, rating, sort } = options;
+        const ratingPart = rating !== undefined ? `&r=${rating}` : '';
+        return CacheService.generateKey('reviews', entityType, entityId, `p=${page}&l=${limit}${ratingPart}&s=${sort}`);
+    }
+
+    private generateStatsCacheKey(entityType: EntityType, entityId: string): string {
+        return CacheService.generateKey('reviews', 'stats', entityType, entityId);
+    }
+
+    private generateEntityCacheTag(entityType: EntityType, entityId: string): string {
+        return `reviews:${entityType}:${entityId}`;
+    }
+
+    private async invalidateEntityCache(entityType: EntityType, entityId: string): Promise<void> {
+        const entityTag = this.generateEntityCacheTag(entityType, entityId);
+        await cacheService.invalidateByTag(entityTag);
     }
 
 }
