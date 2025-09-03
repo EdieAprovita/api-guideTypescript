@@ -28,7 +28,7 @@ registerLegacyRoutes(router, {
 });
 
 router.post('/', protect, createMarket);
-router.post('/add-review/:id', protect, addReviewToMarket);
+router.post('/add-review/:id', rateLimits.api, protect, addReviewToMarket);
 
 // Review routes
 router.get('/:id/reviews', rateLimits.api, validate({ params: paramSchemas.marketId }), getMarketReviews);

@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware';
+import { rateLimits } from '../middleware/validation';
 import {
     getSanctuaries,
     getSanctuaryById,
@@ -14,7 +15,7 @@ const router = express.Router();
 router.get('/', getSanctuaries);
 router.get('/:id', getSanctuaryById);
 router.post('/', protect, createSanctuary);
-router.post('/add-review/:id', protect, addReviewToSanctuary);
+router.post('/add-review/:id', rateLimits.api, protect, addReviewToSanctuary);
 router.put('/:id', protect, admin, updateSanctuary);
 router.delete('/:id', protect, admin, deleteSanctuary);
 
