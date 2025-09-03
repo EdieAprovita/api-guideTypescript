@@ -235,14 +235,11 @@ export const reviewService = {
 
         // Use aggregation to align with tests and avoid heavy in-memory work
         const safeEntityId = new Types.ObjectId(entityId);
-        const safeEntityType = (entityType as ValidEntityType);
+        const safeEntityType = entityType as ValidEntityType;
         const agg = await Review.aggregate([
             {
                 $match: {
-                    $or: [
-                        { entityType: safeEntityType, entity: safeEntityId },
-                        { restaurant: safeEntityId },
-                    ],
+                    $or: [{ entityType: safeEntityType, entity: safeEntityId }, { restaurant: safeEntityId }],
                 },
             },
             {
