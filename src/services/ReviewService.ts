@@ -127,9 +127,11 @@ const extractRatingForKey = (filters: ReviewFilters): number | undefined => {
 };
 
 const buildSafeQuery = (entityType: string, entityId: string, filters: ReviewFilters) => {
+    const objectId = new Types.ObjectId(entityId);
     const query: Record<string, unknown> = {
         entityType,
-        entity: new Types.ObjectId(entityId),
+        // Support legacy 'restaurant' field for backward compatibility
+        $or: [{ entity: objectId }, { restaurant: objectId }],
     };
 
     if (filters.author && typeof filters.author === 'string' && Types.ObjectId.isValid(filters.author)) {
@@ -232,8 +234,17 @@ export const reviewService = {
         }
 
         // Use aggregation to align with tests and avoid heavy in-memory work
+        const safeEntityId = new Types.ObjectId(entityId);
+        const safeEntityType = (entityType as ValidEntityType);
         const agg = await Review.aggregate([
-            { $match: { entityType, entity: entityId } },
+            {
+                $match: {
+                    $or: [
+                        { entityType: safeEntityType, entity: safeEntityId },
+                        { restaurant: safeEntityId },
+                    ],
+                },
+            },
             {
                 $group: {
                     _id: null,
