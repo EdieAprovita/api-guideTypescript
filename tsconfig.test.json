@@ -7,7 +7,20 @@
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "moduleResolution": "node",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "baseUrl": "./src",
+        "paths": {
+            "@/*": ["*"],
+            "@/config/*": ["config/*"],
+            "@/controllers/*": ["controllers/*"],
+            "@/middleware/*": ["middleware/*"],
+            "@/models/*": ["models/*"],
+            "@/routes/*": ["routes/*"],
+            "@/services/*": ["services/*"],
+            "@/types/*": ["types/*"],
+            "@/utils/*": ["utils/*"],
+            "@test/*": ["test/*"]
+        }
     },
     "include": ["src/**/*.ts", "src/**/*.json", "src/test/**/*.ts", "src/test/**/*.test.ts", "**/*.spec.ts"],
     "exclude": ["node_modules", "dist"]

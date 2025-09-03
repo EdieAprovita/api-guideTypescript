@@ -4,7 +4,11 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import asyncHandler from '../middleware/asyncHandler';
 import { recipeService as RecipeService } from '../services/RecipesService';
-import { reviewService as ReviewService } from '../services/ReviewService';
+import {
+    createAddReviewHandler,
+    createGetReviewsHandler,
+    createGetReviewStatsHandler,
+} from './factories/reviewEndpointsFactory';
 
 /**
  * @description Get all recipes
@@ -154,49 +158,22 @@ export const deleteRecipe = asyncHandler(async (req: Request, res: Response, nex
  * @returns {Promise<Response>}
  */
 
-export const addReviewToRecipe = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const reviewData = { ...req.body, recipeId: req.params.id };
-        const newReview = await ReviewService.addReview(reviewData);
-
-        res.status(200).json({
-            success: true,
-            message: 'Review added successfully',
-            data: newReview,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const addReviewToRecipe = createAddReviewHandler('Recipe', RecipeService, 'recipeId');
 
 /**
- * @description Get Top rated recipes
- * @name getTopRatedRecipes
- * @route GET /api/recipes/top-rated
+ * @description Get reviews for a recipe
+ * @name getRecipeReviews
+ * @route GET /api/recipes/:id/reviews
  * @access Public
  * @returns {Promise<Response>}
  */
+export const getRecipeReviews = createGetReviewsHandler('Recipe', RecipeService);
 
-export const getTopRatedRecipes = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-        const topRatedRecipes = await ReviewService.getTopRatedReviews('recipe');
-
-        res.status(200).json({
-            success: true,
-            message: 'Top rated recipes fetched successfully',
-            data: topRatedRecipes,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+/**
+ * @description Get review statistics for a recipe
+ * @name getRecipeReviewStats
+ * @route GET /api/recipes/:id/reviews/stats
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getRecipeReviewStats = createGetReviewStatsHandler('Recipe', RecipeService);

@@ -9,7 +9,11 @@ export interface IReview extends Document {
     recommendedDishes?: string[];
     tags?: string[];
     author: Types.ObjectId;
-    restaurant: Types.ObjectId;
+    // Polymorphic entity fields
+    entityType: 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
+    entity: Types.ObjectId;
+    // Legacy field - deprecated, kept for backward compatibility during migration
+    restaurant?: Types.ObjectId;
     helpfulCount: number;
     helpfulVotes: Types.ObjectId[];
     timestamps: {
@@ -59,10 +63,22 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
             ref: 'User',
             required: true,
         },
+        // Polymorphic entity fields
+        entityType: {
+            type: String,
+            enum: ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor', 'Sanctuary'],
+            required: true,
+        },
+        entity: {
+            type: Schema.Types.ObjectId,
+            required: true,
+            refPath: 'entityType',
+        },
+        // Legacy field - deprecated, kept for backward compatibility during migration
         restaurant: {
             type: Schema.Types.ObjectId,
             ref: 'Restaurant',
-            required: true,
+            required: false,
         },
         helpfulCount: {
             type: Number,
@@ -78,12 +94,30 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
     { timestamps: true }
 );
 
-// Compound index to prevent duplicate reviews from same user for same restaurant
-reviewSchema.index({ author: 1, restaurant: 1 }, { unique: true });
+// Compound index to prevent duplicate reviews from same user for same entity
+// Note: use a partial filter to avoid E11000 on legacy docs missing polymorphic fields
+reviewSchema.index(
+    { author: 1, entityType: 1, entity: 1 },
+    {
+        unique: true,
+        partialFilterExpression: {
+            author: { $exists: true },
+            entityType: { $exists: true, $ne: null },
+            entity: { $exists: true, $ne: null },
+        },
+    }
+);
 
-// Index for efficient querying
-reviewSchema.index({ restaurant: 1, rating: -1 });
+// Legacy compound index - kept during migration, will be removed in Phase 9
+reviewSchema.index({ author: 1, restaurant: 1 }, { unique: false });
+
+// Index for efficient querying by entity
+reviewSchema.index({ entityType: 1, entity: 1, rating: -1 });
+reviewSchema.index({ entity: 1, createdAt: -1 });
 reviewSchema.index({ author: 1 });
+
+// Legacy index - kept during migration
+reviewSchema.index({ restaurant: 1, rating: -1 });
 
 export const Review =
     (mongoose.models.Review as mongoose.Model<IReview>) || mongoose.model<IReview>('Review', reviewSchema);

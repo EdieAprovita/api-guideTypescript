@@ -4,7 +4,11 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { marketsService as MarketsService } from '../services/MarketsService';
-import { reviewService as ReviewService } from '../services/ReviewService';
+import {
+    createAddReviewHandler,
+    createGetReviewsHandler,
+    createGetReviewStatsHandler,
+} from './factories/reviewEndpointsFactory';
 import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
 /**
@@ -166,47 +170,22 @@ export const deleteMarket = asyncHandler(async (req: Request, res: Response, nex
  * @returns {Promise<Response>}
  */
 
-export const addReviewToMarket = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const reviewData = { ...req.body, marketId: req.params.id };
-        const newReview = await ReviewService.addReview(reviewData);
-        res.status(200).json({
-            success: true,
-            message: 'Review added successfully',
-            data: newReview,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const addReviewToMarket = createAddReviewHandler('Market', MarketsService, 'marketId');
 
 /**
- * @description Get Top rated markets
- * @name getTopRatedMarkets
- * @route GET /api/markets/top
+ * @description Get reviews for a market
+ * @name getMarketReviews
+ * @route GET /api/markets/:id/reviews
  * @access Public
  * @returns {Promise<Response>}
  */
+export const getMarketReviews = createGetReviewsHandler('Market', MarketsService);
 
-export const getTopRatedMarkets = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-        const getTopRatedMarkets = await ReviewService.getTopRatedReviews('market');
-        res.status(200).json({
-            success: true,
-            message: 'Top rated markets fetched successfully',
-            data: getTopRatedMarkets,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+/**
+ * @description Get review statistics for a market
+ * @name getMarketReviewStats
+ * @route GET /api/markets/:id/reviews/stats
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getMarketReviewStats = createGetReviewStatsHandler('Market', MarketsService);

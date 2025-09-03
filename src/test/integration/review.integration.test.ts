@@ -1,27 +1,38 @@
 import { vi, describe, it, expect } from 'vitest';
 
+// Define types for middleware functions
+interface MockRequest {
+    user?: { _id: string; role: string };
+}
+
+interface MockResponse {
+    json: (data: Record<string, unknown>) => void;
+}
+
+type NextFunction = () => void;
+
 // Mock all external dependencies
 vi.mock('../../middleware/authMiddleware', () => ({
-    protect: (req: any, _res: any, next: any) => {
+    protect: (req: MockRequest, _res: MockResponse, next: NextFunction) => {
         // Simple mock that always passes through
         req.user = { _id: 'test-user-id', role: 'user' };
         next();
     },
-    admin: (_req: any, _res: any, next: any) => next(),
-    professional: (_req: any, _res: any, next: any) => next(),
-    requireAuth: (_req: any, _res: any, next: any) => next(),
-    checkOwnership: () => (_req: any, _res: any, next: any) => next(),
-    logout: async (_req: any, res: any) => {
+    admin: (_req: MockRequest, _res: MockResponse, next: NextFunction) => next(),
+    professional: (_req: MockRequest, _res: MockResponse, next: NextFunction) => next(),
+    requireAuth: (_req: MockRequest, _res: MockResponse, next: NextFunction) => next(),
+    checkOwnership: () => (_req: MockRequest, _res: MockResponse, next: NextFunction) => next(),
+    logout: async (_req: MockRequest, res: MockResponse) => {
         res.json({ success: true, message: 'Logged out successfully' });
     },
-    refreshToken: async (_req: any, res: any) => {
+    refreshToken: async (_req: MockRequest, res: MockResponse) => {
         res.json({
             success: true,
             message: 'Tokens refreshed successfully',
             data: { accessToken: 'new-access-token', refreshToken: 'new-refresh-token' },
         });
     },
-    revokeAllTokens: async (_req: any, res: any) => {
+    revokeAllTokens: async (_req: MockRequest, res: MockResponse) => {
         res.json({ success: true, message: 'All tokens revoked successfully' });
     },
 }));
@@ -51,9 +62,19 @@ vi.mock('../../services/ReviewService', () => ({
             author: 'test-user-id',
             restaurant: 'test-restaurant-id'
         }),
-        findByUserAndRestaurant: vi.fn().mockResolvedValue(null),
-        getReviewsByRestaurant: vi.fn().mockResolvedValue({ data: [], pagination: {} }),
+        findByUserAndEntity: vi.fn().mockResolvedValue(null),
+        getReviewsByEntity: vi.fn().mockResolvedValue({ data: [], pagination: {} }),
         getReviewStats: vi.fn().mockResolvedValue({}),
+        getReviewById: vi.fn().mockResolvedValue({
+            _id: 'test-review-id',
+            title: 'Test Review',
+            content: 'Test Content',
+            rating: 5
+        }),
+        updateReview: vi.fn().mockResolvedValue({}),
+        deleteReview: vi.fn().mockResolvedValue(undefined),
+        markAsHelpful: vi.fn().mockResolvedValue({}),
+        removeHelpfulVote: vi.fn().mockResolvedValue({}),
     },
 }));
 
@@ -90,15 +111,15 @@ describe('Review Service Tests - Unit Tests', () => {
         it('should have auth middleware mocked correctly', async () => {
             const { protect } = await import('../../middleware/authMiddleware');
             
-            const req: any = {};
-            const res: any = {};
+            const req: MockRequest = {};
+            const res: MockResponse = { json: vi.fn() };
             const next = vi.fn();
             
             protect(req, res, next);
             
             expect(req.user).toBeDefined();
-            expect(req.user._id).toBe('test-user-id');
-            expect(req.user.role).toBe('user');
+            expect(req.user?._id).toBe('test-user-id');
+            expect(req.user?.role).toBe('user');
             expect(next).toHaveBeenCalled();
         });
     });

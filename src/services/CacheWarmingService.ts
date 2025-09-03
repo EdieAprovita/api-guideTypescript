@@ -14,7 +14,7 @@ import logger from '../utils/logger';
 export class CacheWarmingService {
     private warmingInProgress = false;
     private lastWarmingTime: Date | null = null;
-    private warmingInterval: NodeJS.Timeout | null = null;
+    private warmingInterval: number | null = null;
 
     /**
      * Iniciar precalentamiento automático

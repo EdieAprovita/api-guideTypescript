@@ -124,7 +124,7 @@ router.get(
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
         }
 
-        const reviews = await ReviewService.getReviewsByRestaurant(restaurantId, {
+        const reviews = await ReviewService.getReviewsByEntity('Restaurant', restaurantId, {
             page: Number(page),
             limit: Number(limit),
             ...(rating && { rating: Number(rating) }),
@@ -156,7 +156,7 @@ router.get(
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
         }
 
-        const stats = await ReviewService.getReviewStats(restaurantId);
+        const stats = await ReviewService.getReviewStats('Restaurant', restaurantId);
 
         res.status(200).json({
             success: true,

@@ -244,4 +244,12 @@ export const paramSchemas = {
     restaurantId: Joi.object({
         restaurantId: commonSchemas.objectId.required(),
     }),
+
+    recipeId: Joi.object({
+        id: commonSchemas.objectId.required(),
+    }),
+
+    marketId: Joi.object({
+        id: commonSchemas.objectId.required(),
+    }),
 };
