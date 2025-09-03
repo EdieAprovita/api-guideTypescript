@@ -12,20 +12,11 @@ import {
     getMarketReviewStats,
     deleteMarket,
 } from '../controllers/marketsControllers';
-import { registerLegacyRoutes } from '../utils/registerLegacyRoutes';
 
 const router = express.Router();
 
 router.get('/', getMarkets);
 router.get('/:id', getMarketById);
-
-// Deprecated action routes are kept for legacy clients and will be removed in
-// the next major version.
-registerLegacyRoutes(router, {
-    create: createMarket,
-    update: updateMarket,
-    remove: deleteMarket,
-});
 
 router.post('/', protect, createMarket);
 router.post('/add-review/:id', rateLimits.api, protect, addReviewToMarket);

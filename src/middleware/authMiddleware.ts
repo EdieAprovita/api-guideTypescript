@@ -27,7 +27,7 @@ const extractToken = (req: Request): string | undefined => {
         return req.cookies.jwt;
     }
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    if (req.headers.authorization?.startsWith('Bearer')) {
         return req.headers.authorization.split(' ')[1];
     }
 
@@ -248,7 +248,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
         // Extract token using same logic as protect middleware
         if (req.cookies.jwt) {
             token = req.cookies.jwt;
-        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        } else if (req.headers.authorization?.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
         }
 
@@ -307,7 +307,7 @@ export const refreshToken = async (req: Request, res: Response) => {
  */
 export const revokeAllTokens = async (req: Request, res: Response) => {
     try {
-        if (!req.user || !req.user._id) {
+        if (!req.user?._id) {
             return res.status(401).json({
                 success: false,
                 message: 'User not authenticated',
