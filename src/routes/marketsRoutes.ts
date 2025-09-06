@@ -28,9 +28,11 @@ registerLegacyRoutes(router, {
 });
 
 router.post('/', protect, createMarket);
+// Legacy route - kept for compatibility, will be removed in Phase 9
 router.post('/add-review/:id', rateLimits.api, protect, addReviewToMarket);
 
 // Review routes
+router.post('/:id/reviews', rateLimits.api, protect, validate({ params: paramSchemas.marketId }), addReviewToMarket);
 router.get('/:id/reviews', rateLimits.api, validate({ params: paramSchemas.marketId }), getMarketReviews);
 router.get('/:id/reviews/stats', rateLimits.api, validate({ params: paramSchemas.marketId }), getMarketReviewStats);
 

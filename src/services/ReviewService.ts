@@ -9,6 +9,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { Types, startSession, ClientSession } from 'mongoose';
 import { cacheService, CacheService } from './CacheService';
+import logger from '../utils/logger';
 
 type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
 
@@ -104,6 +105,16 @@ class ReviewService implements IReviewService {
                 await this.invalidateEntityCache(populatedReview.entityType, populatedReview.entity.toString());
             }
             
+            // Phase 8: Structured logging
+            logger.info('Review created successfully', {
+                operation: 'review_created',
+                entityType: populatedReview.entityType,
+                entityId: populatedReview.entity?.toString(),
+                authorId: populatedReview.author?.toString(),
+                reviewId: populatedReview._id,
+                rating: populatedReview.rating
+            });
+            
             return populatedReview;
         } finally {
             await session.endSession();
@@ -122,7 +133,7 @@ class ReviewService implements IReviewService {
         const sanitizedOptions: ReviewQueryOptions = { 
             page: sanitizedPage, 
             limit: sanitizedLimit, 
-            rating, 
+            ...(rating !== undefined && { rating }), 
             sort 
         };
 
@@ -326,6 +337,16 @@ class ReviewService implements IReviewService {
                 await this.invalidateEntityCache(populatedReview.entityType, populatedReview.entity.toString());
             }
             
+            // Phase 8: Structured logging
+            logger.info('Review updated successfully', {
+                operation: 'review_updated',
+                entityType: populatedReview.entityType,
+                entityId: populatedReview.entity?.toString(),
+                authorId: populatedReview.author?.toString(),
+                reviewId: populatedReview._id,
+                rating: populatedReview.rating
+            });
+            
             return populatedReview;
         } finally {
             await session.endSession();
@@ -367,8 +388,20 @@ class ReviewService implements IReviewService {
             });
             
             // Phase 6: Invalidate cache for the entity
-            if (entityToInvalidate?.entityType && entityToInvalidate?.entityId) {
-                await this.invalidateEntityCache(entityToInvalidate.entityType, entityToInvalidate.entityId);
+            if (entityToInvalidate) {
+                const { entityType, entityId } = entityToInvalidate;
+                await this.invalidateEntityCache(entityType, entityId);
+            }
+            
+            // Phase 8: Structured logging
+            if (entityToInvalidate) {
+                const { entityType, entityId } = entityToInvalidate;
+                logger.info('Review deleted successfully', {
+                    operation: 'review_deleted',
+                    entityType,
+                    entityId,
+                    reviewId
+                });
             }
         } finally {
             await session.endSession();
@@ -406,6 +439,15 @@ class ReviewService implements IReviewService {
             await this.invalidateEntityCache(review.entityType, review.entity.toString());
         }
 
+        // Phase 8: Structured logging
+        logger.info('Helpful vote added successfully', {
+            operation: 'helpful_vote_added',
+            entityType: review.entityType,
+            entityId: review.entity?.toString(),
+            reviewId: review._id,
+            userId
+        });
+
         return review;
     }
 
@@ -438,6 +480,15 @@ class ReviewService implements IReviewService {
         if (review.entityType && review.entity) {
             await this.invalidateEntityCache(review.entityType, review.entity.toString());
         }
+
+        // Phase 8: Structured logging
+        logger.info('Helpful vote removed successfully', {
+            operation: 'helpful_vote_removed',
+            entityType: review.entityType,
+            entityId: review.entity?.toString(),
+            reviewId: review._id,
+            userId
+        });
 
         return review;
     }
