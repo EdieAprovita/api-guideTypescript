@@ -1,9 +1,8 @@
-import { Document, Model, Types } from 'mongoose';
+import { Document, Model, Types, FilterQuery } from 'mongoose';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { cacheService, CacheOptions } from './CacheService';
 import logger from '../utils/logger';
-import { FilterQuery } from 'mongoose';
 
 /**
  * @description Base service class

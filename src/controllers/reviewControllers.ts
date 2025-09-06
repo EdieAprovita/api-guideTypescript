@@ -142,7 +142,7 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
     const userId = (req as any).user?._id;
     await validateReviewOwnership(id, userId);
 
-    const updatedReview = await ReviewService.updateReview(id, req.body);
+    const updatedReview = await ReviewService.updateReview(id, req.body, userId);
     res.status(200).json({ success: true, data: updatedReview });
 });
 
@@ -160,6 +160,6 @@ export const deleteReview = asyncHandler(async (req: Request, res: Response) => 
     const userId = (req as any).user?._id;
     await validateReviewOwnership(id, userId);
 
-    await ReviewService.deleteReview(id);
+    await ReviewService.deleteReview(id, userId);
     res.status(200).json({ success: true, message: 'Review deleted successfully' });
 });
