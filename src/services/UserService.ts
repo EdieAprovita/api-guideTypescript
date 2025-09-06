@@ -39,7 +39,7 @@ function validateAndSanitizeEmail(email: string): string {
     }
 
     // Check for valid characters only
-    const validChars = /^[a-zA-Z0-9._%+-@]+$/;
+    const validChars = /^[a-zA-Z0-9._%+@-]+$/;
     if (!validChars.test(sanitizedEmail)) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid email format'));
     }

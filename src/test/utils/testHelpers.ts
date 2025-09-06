@@ -1,8 +1,7 @@
 import { vi, type MockedFunction, expect, type Mock, type Mocked, beforeEach } from 'vitest';
 import request from 'supertest';
-import { Application } from 'express';
+import { Application, Request, Response, NextFunction } from 'express';
 import { TestUser, MockRestaurant, MockBusiness, MockMarket, MockSanctuary } from '../types';
-import { Request, Response, NextFunction } from 'express';
 import { faker } from '@faker-js/faker';
 import { Response as SupertestResponse } from 'supertest';
 import jwt from 'jsonwebtoken';
@@ -437,6 +436,7 @@ export const resetMocks = () => {
         }
     } catch (error) {
         // Ignore if express-validator is not mocked
+        // This is expected behavior when the module is not available in test environment
     }
 };
 
@@ -455,14 +455,7 @@ import {
     generateDeterministicPassword,
 } from './passwordGenerator';
 
-// Import centralized controller test helpers
-import {
-    expectSuccessResponse as expectControllerSuccessResponse,
-    expectErrorResponse as expectControllerErrorResponse,
-    expectResourceCreated as expectControllerResourceCreated,
-    expectResourceUpdated as expectControllerResourceUpdated,
-    expectResourceDeleted as expectControllerResourceDeleted,
-} from './controllerTestHelpers';
+// Controller test helpers are now defined inline to avoid circular dependencies
 
 export const generateTestPassword = generateCentralizedPassword;
 export const generateWeakPassword = generateCentralizedWeakPassword;
