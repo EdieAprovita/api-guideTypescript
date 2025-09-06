@@ -10,10 +10,10 @@ import { DataBaseError } from '../types/Errors';
 const connectDB = async (): Promise<void> => {
     try {
         // Validate environment variable
-        const mongoUri = process.env.DB;
+        const mongoUri = process.env.MONGODB_URI;
 
         if (!mongoUri) {
-            throw new Error('MongoDB URI is not defined in environment variables');
+            throw new Error('MONGODB_URI is not defined in environment variables');
         }
 
         // Connection options for better performance and reliability
