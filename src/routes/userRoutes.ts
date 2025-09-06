@@ -1,7 +1,7 @@
 import express from 'express';
 import Joi from 'joi';
 import { protect, admin } from '../middleware/authMiddleware';
-import { validate, sanitizeInput, rateLimits, securityHeaders, validateInputLength } from '../middleware/validation';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation';
 import { userSchemas, paramSchemas, querySchemas, commonSchemas } from '../utils/validators';
 import {
     registerUser,
@@ -17,17 +17,6 @@ import {
 } from '../controllers/userControllers';
 
 const router = express.Router();
-
-// Apply security headers to all routes
-router.use(securityHeaders);
-
-// Apply input sanitization to all routes (skip in test environment to avoid read-only errors)
-if (process.env.NODE_ENV !== 'test') {
-    const sanitizationMiddlewares = sanitizeInput();
-    if (Array.isArray(sanitizationMiddlewares)) {
-        router.use(...sanitizationMiddlewares);
-    }
-}
 
 // Routes with validation and rate limiting
 router.get('/', rateLimits.api, protect, admin, validate({ query: querySchemas.search }), getUsers);

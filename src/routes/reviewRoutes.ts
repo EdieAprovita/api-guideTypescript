@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware';
-import { validate, sanitizeInput, rateLimits, securityHeaders, validateInputLength } from '../middleware/validation';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation';
 import { reviewSchemas, paramSchemas } from '../utils/validators';
 import { getReviewById, updateReview, deleteReview } from '../controllers/reviewControllers';
 import { reviewService as ReviewService } from '../services/ReviewService';
@@ -9,13 +9,6 @@ import asyncHandler from '../middleware/asyncHandler';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 
 const router = express.Router();
-
-// Apply security headers and sanitization to all routes
-router.use(securityHeaders);
-// Apply input sanitization (skip in test environment to avoid read-only errors)
-if (process.env.NODE_ENV !== 'test') {
-    router.use(...sanitizeInput());
-}
 
 // Get review by ID
 router.get('/:id', rateLimits.api, validate({ params: paramSchemas.id }), getReviewById);
