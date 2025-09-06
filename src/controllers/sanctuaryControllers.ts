@@ -169,7 +169,12 @@ export const deleteSanctuary = asyncHandler(async (req: Request, res: Response, 
 
 export const addReviewToSanctuary = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const reviewData = { ...req.body, sanctuaryId: req.params.id };
+        const reviewData = {
+            ...req.body,
+            entityType: 'Sanctuary',
+            entity: req.params.id,
+            sanctuaryId: req.params.id, // Keep for backward compatibility
+        };
         const newReview = await ReviewService.addReview(reviewData);
 
         res.status(200).json({

@@ -3,7 +3,7 @@ import asyncHandler from '../../middleware/asyncHandler';
 import { HttpError, HttpStatusCode } from '../../types/Errors';
 import { reviewService as ReviewService } from '../../services/ReviewService';
 
-type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor';
+type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
 
 interface EntityService<T> {
     findById(id: string): Promise<T | null>;
@@ -39,7 +39,9 @@ export function createAddReviewHandler<T>(
             const reviewData = {
                 ...req.body,
                 author: userId,
-                [aliasFieldName]: id,
+                entityType,
+                entity: id,
+                [aliasFieldName]: id, // Keep for backward compatibility
             } as Record<string, unknown>;
 
             const newReview = await ReviewService.addReview(reviewData);
