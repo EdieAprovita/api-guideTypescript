@@ -2,6 +2,7 @@ import { Review, IReview } from '../models/Review';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { cacheService } from './CacheService';
 import mongoose, { Types, startSession } from 'mongoose';
+import logger from '../utils/logger';
 
 interface ReviewFilters {
     entityType?: string;
@@ -302,9 +303,24 @@ export const reviewService = {
                 throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'Failed to create review');
             }
 
+            // Fetch populated review for logging
+            const populatedReview = await Review.findById(review._id).populate('author', 'firstName lastName');
+            
             await cacheService.invalidateByTag(`reviews:${reviewData.entityType}:${reviewData.entity}`);
 
-            return review;
+            // Phase 8: Structured logging
+            if (populatedReview) {
+                logger.info('Review created successfully', {
+                    operation: 'review_created',
+                    entityType: populatedReview.entityType,
+                    entityId: populatedReview.entity?.toString(),
+                    authorId: populatedReview.author?._id?.toString(),
+                    reviewId: populatedReview._id,
+                    rating: populatedReview.rating
+                });
+            }
+
+            return populatedReview ?? review;
         } finally {
             await session.endSession();
         }
@@ -341,12 +357,22 @@ export const reviewService = {
                     reviewId,
                     { ...updateData, updatedAt: new Date() },
                     { new: true, session }
-                );
+                ).populate('author', 'firstName lastName');
                 return updated;
             });
 
             if (updatedReview) {
                 await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
+                
+                // Phase 8: Structured logging
+                logger.info('Review updated successfully', {
+                    operation: 'review_updated',
+                    entityType: updatedReview.entityType,
+                    entityId: updatedReview.entity?.toString(),
+                    authorId: updatedReview.author?._id?.toString(),
+                    reviewId: updatedReview._id,
+                    rating: updatedReview.rating
+                });
             }
 
             return updatedReview!;
@@ -374,6 +400,10 @@ export const reviewService = {
         }
 
         const session = await startSession();
+        const entityToInvalidate = { 
+            entityType: review.entityType, 
+            entityId: review.entity.toString() 
+        };
 
         try {
             await session.withTransaction(async () => {
@@ -381,6 +411,14 @@ export const reviewService = {
             });
 
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
+            
+            // Phase 8: Structured logging
+            logger.info('Review deleted successfully', {
+                operation: 'review_deleted',
+                entityType: entityToInvalidate.entityType,
+                entityId: entityToInvalidate.entityId,
+                reviewId
+            });
         } finally {
             await session.endSession();
         }
@@ -415,6 +453,15 @@ export const reviewService = {
             });
 
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
+
+            // Phase 8: Structured logging
+            logger.info('Helpful vote added successfully', {
+                operation: 'helpful_vote_added',
+                entityType: review.entityType,
+                entityId: review.entity?.toString(),
+                reviewId: review._id,
+                userId
+            });
 
             return updatedReview;
         } finally {
@@ -451,6 +498,15 @@ export const reviewService = {
             });
 
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
+
+            // Phase 8: Structured logging
+            logger.info('Helpful vote removed successfully', {
+                operation: 'helpful_vote_removed',
+                entityType: review.entityType,
+                entityId: review.entity?.toString(),
+                reviewId: review._id,
+                userId
+            });
 
             return updatedReview;
         } finally {

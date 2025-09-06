@@ -2586,6 +2586,107 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Markets
+      summary: Create review for a market
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Market ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rating
+              - title
+              - content
+              properties:
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                title:
+                  type: string
+                  minLength: 5
+                  maxLength: 100
+                  example: "Excelente mercado"
+                content:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+                  example: "Gran variedad de productos orgánicos y precios justos"
+                visitDate:
+                  type: string
+                  format: date
+                  example: "2024-01-15"
+                recommendedDishes:
+                  type: array
+                  items:
+                    type: string
+                    maxLength: 50
+                  example: ["Frutas orgánicas", "Verduras frescas"]
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    maxLength: 30
+                  example: ["orgánico", "fresco", "local"]
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Review added successfully"
+                  data:
+                    $ref: '#/components/schemas/Review'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Market not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User has already reviewed this market
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /markets/:id/reviews/stats:
     get:
@@ -2773,6 +2874,107 @@ paths:
                 success: false
                 message: Recipe not found
                 error: NotFound
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Recipes
+      summary: Create review for a recipe
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Recipe ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rating
+              - title
+              - content
+              properties:
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                title:
+                  type: string
+                  minLength: 5
+                  maxLength: 100
+                  example: "Receta increíble"
+                content:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+                  example: "Esta receta es fácil de seguir y muy deliciosa"
+                visitDate:
+                  type: string
+                  format: date
+                  example: "2024-01-15"
+                recommendedDishes:
+                  type: array
+                  items:
+                    type: string
+                    maxLength: 50
+                  example: ["Pasta", "Ensalada"]
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    maxLength: 30
+                  example: ["fácil", "delicioso"]
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Review added successfully"
+                  data:
+                    $ref: '#/components/schemas/Review'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Recipe not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User has already reviewed this recipe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
