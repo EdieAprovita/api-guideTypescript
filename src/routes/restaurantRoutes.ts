@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware';
-import { validate, sanitizeInput, rateLimits, securityHeaders, validateInputLength } from '../middleware/validation';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation';
 import { restaurantCacheMiddleware, browserCacheValidation, cacheInvalidationMiddleware } from '../middleware/cache';
 import { restaurantSchemas, paramSchemas, querySchemas, reviewSchemas } from '../utils/validators';
 import {
@@ -20,12 +20,6 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 
 const router = express.Router();
 
-// Apply security headers and sanitization to all routes
-router.use(securityHeaders);
-// Apply input sanitization (skip in test environment to avoid read-only errors)
-if (process.env.NODE_ENV !== 'test') {
-    router.use(...sanitizeInput());
-}
 
 // Apply browser cache validation to all GET routes
 router.use(browserCacheValidation());

@@ -1,12 +1,10 @@
 import express from 'express';
 import { refreshToken, revokeAllTokens, logout, protect } from '../middleware/authMiddleware';
-import { validate, rateLimits, securityHeaders, validateInputLength } from '../middleware/validation';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation';
 import Joi from 'joi';
 
 const router = express.Router();
 
-// Apply security headers to all auth routes
-router.use(securityHeaders);
 
 // Refresh token endpoint
 router.post(
