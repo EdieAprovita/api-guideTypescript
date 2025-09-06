@@ -305,7 +305,7 @@ export const reviewService = {
 
             // Fetch populated review for logging
             const populatedReview = await Review.findById(review._id).populate('author', 'firstName lastName');
-            
+
             await cacheService.invalidateByTag(`reviews:${reviewData.entityType}:${reviewData.entity}`);
 
             // Phase 8: Structured logging
@@ -316,7 +316,7 @@ export const reviewService = {
                     entityId: populatedReview.entity?.toString(),
                     authorId: populatedReview.author?._id?.toString(),
                     reviewId: populatedReview._id,
-                    rating: populatedReview.rating
+                    rating: populatedReview.rating,
                 });
             }
 
@@ -363,7 +363,7 @@ export const reviewService = {
 
             if (updatedReview) {
                 await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
-                
+
                 // Phase 8: Structured logging
                 logger.info('Review updated successfully', {
                     operation: 'review_updated',
@@ -371,7 +371,7 @@ export const reviewService = {
                     entityId: updatedReview.entity?.toString(),
                     authorId: updatedReview.author?._id?.toString(),
                     reviewId: updatedReview._id,
-                    rating: updatedReview.rating
+                    rating: updatedReview.rating,
                 });
             }
 
@@ -400,9 +400,9 @@ export const reviewService = {
         }
 
         const session = await startSession();
-        const entityToInvalidate = { 
-            entityType: review.entityType, 
-            entityId: review.entity.toString() 
+        const entityToInvalidate = {
+            entityType: review.entityType,
+            entityId: review.entity.toString(),
         };
 
         try {
@@ -411,13 +411,13 @@ export const reviewService = {
             });
 
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
-            
+
             // Phase 8: Structured logging
             logger.info('Review deleted successfully', {
                 operation: 'review_deleted',
                 entityType: entityToInvalidate.entityType,
                 entityId: entityToInvalidate.entityId,
-                reviewId
+                reviewId,
             });
         } finally {
             await session.endSession();
@@ -460,7 +460,7 @@ export const reviewService = {
                 entityType: review.entityType,
                 entityId: review.entity?.toString(),
                 reviewId: review._id,
-                userId
+                userId,
             });
 
             return updatedReview;
@@ -505,7 +505,7 @@ export const reviewService = {
                 entityType: review.entityType,
                 entityId: review.entity?.toString(),
                 reviewId: review._id,
-                userId
+                userId,
             });
 
             return updatedReview;
