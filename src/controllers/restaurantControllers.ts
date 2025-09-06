@@ -175,7 +175,12 @@ export const deleteRestaurant = asyncHandler(async (req: Request, res: Response,
 
 export const addReviewToRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const reviewData = { ...req.body, restaurantId: req.params.id };
+        const reviewData = {
+            ...req.body,
+            entityType: 'Restaurant',
+            entity: req.params.id,
+            restaurantId: req.params.id, // Keep for backward compatibility
+        };
         const newReview = await ReviewService.addReview(reviewData);
 
         // Invalidar cache del restaurante específico después de agregar review

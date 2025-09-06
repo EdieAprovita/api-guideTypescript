@@ -167,7 +167,12 @@ export const deleteBusiness = asyncHandler(async (req: Request, res: Response, n
 
 export const addReviewToBusiness = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const reviewData = { ...req.body, businessId: req.params.id };
+        const reviewData = {
+            ...req.body,
+            entityType: 'Business',
+            entity: req.params.id,
+            businessId: req.params.id, // Keep for backward compatibility
+        };
         const newReview = await ReviewService.addReview(reviewData);
 
         res.status(200).json({

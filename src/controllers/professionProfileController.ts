@@ -167,7 +167,12 @@ export const deleteProfessionProfile = asyncHandler(async (req: Request, res: Re
 
 export const addReviewToProfessionProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const reviewData = { ...req.body, professionProfileId: req.params.id };
+        const reviewData = {
+            ...req.body,
+            entityType: 'Business', // Map ProfessionProfile to Business for now
+            entity: req.params.id,
+            professionProfileId: req.params.id, // Keep for backward compatibility
+        };
         const newReview = await ReviewService.addReview(reviewData);
         res.status(200).json({
             success: true,
