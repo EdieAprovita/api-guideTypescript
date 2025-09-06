@@ -5,7 +5,6 @@ import Joi from 'joi';
 
 const router = express.Router();
 
-
 // Refresh token endpoint
 router.post(
     '/refresh-token',

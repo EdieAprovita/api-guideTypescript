@@ -20,7 +20,6 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 
 const router = express.Router();
 
-
 // Apply browser cache validation to all GET routes
 router.use(browserCacheValidation());
 

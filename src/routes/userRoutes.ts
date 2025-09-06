@@ -18,8 +18,6 @@ import {
 
 const router = express.Router();
 
-
-
 // Routes with validation and rate limiting
 router.get('/', rateLimits.api, protect, admin, validate({ query: querySchemas.search }), getUsers);
 

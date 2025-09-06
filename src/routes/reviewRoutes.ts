@@ -10,7 +10,6 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 
 const router = express.Router();
 
-
 // Get review by ID
 router.get('/:id', rateLimits.api, validate({ params: paramSchemas.id }), getReviewById);
 
