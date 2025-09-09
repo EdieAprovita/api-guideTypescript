@@ -839,6 +839,53 @@ components:
               type: string
               format: date-time
 
+    ReviewRequest:
+      type: object
+      description: Schema for creating reviews via entity-specific endpoints
+      required:
+        - rating
+        - title
+        - content
+      properties:
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+          example: 5
+          description: Rating from 1 to 5 stars
+        title:
+          type: string
+          minLength: 5
+          maxLength: 100
+          example: "Excelente lugar"
+          description: Review title
+        content:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          example: "Una experiencia increíble, muy recomendado"
+          description: Review content
+        visitDate:
+          type: string
+          format: date
+          example: "2024-01-15"
+          description: Date of visit (optional)
+        recommendedDishes:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+          example: ["Tacos al pastor", "Guacamole"]
+          description: Recommended dishes/items (optional)
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+          example: ["auténtico", "familiar"]
+          description: Review tags (optional)
+      additionalProperties: false
+
     ErrorResponse:
       type: object
       properties:
@@ -987,7 +1034,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /users/:id:
+  /users/{id}:
     get:
       tags:
       - Users
@@ -1006,7 +1053,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /users/profile/:id:
+  /users/profile/{id}:
     put:
       tags:
       - Users
@@ -1075,7 +1122,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /businesses/:id:
+  /businesses/{id}:
     get:
       tags:
       - Businesses
@@ -1117,7 +1164,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /businesses/add-review/:id:
+  /businesses/add-review/{id}:
     post:
       tags:
       - Businesses
@@ -1185,7 +1232,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /restaurants/:id:
+  /restaurants/{id}:
     get:
       tags:
       - Restaurants
@@ -1226,7 +1273,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /restaurants/add-review/:id:
+  /restaurants/add-review/{id}:
     post:
       tags:
       - Restaurants
@@ -1311,7 +1358,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /doctors/:id:
+  /doctors/{id}:
     get:
       tags:
       - Doctors
@@ -1352,7 +1399,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /doctors/add-review/:id:
+  /doctors/add-review/{id}:
     post:
       tags:
       - Doctors
@@ -1415,7 +1462,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /markets/:id:
+  /markets/{id}:
     get:
       tags:
       - Markets
@@ -1456,7 +1503,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /markets/add-review/:id:
+  /markets/add-review/{id}:
     post:
       tags:
       - Markets
@@ -1523,7 +1570,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /recipes/:id:
+  /recipes/{id}:
     get:
       tags:
       - Recipes
@@ -1564,7 +1611,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /recipes/add-review/:id:
+  /recipes/add-review/{id}:
     post:
       tags:
       - Recipes
@@ -1652,7 +1699,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /posts/:id:
+  /posts/{id}:
     get:
       tags:
       - Posts
@@ -1694,7 +1741,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /posts/like/:id:
+  /posts/like/{id}:
     post:
       tags:
       - Posts
@@ -1706,7 +1753,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /posts/unlike/:id:
+  /posts/unlike/{id}:
     post:
       tags:
       - Posts
@@ -1718,7 +1765,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /posts/comment/:id:
+  /posts/comment/{id}:
     post:
       tags:
       - Posts
@@ -1782,7 +1829,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /sanctuaries/:id:
+  /sanctuaries/{id}:
     get:
       tags:
       - Sanctuaries
@@ -1823,7 +1870,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /sanctuaries/add-review/:id:
+  /sanctuaries/add-review/{id}:
     post:
       tags:
       - Sanctuaries
@@ -1885,7 +1932,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /professions/:id:
+  /professions/{id}:
     get:
       tags:
       - Professions
@@ -1926,7 +1973,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /professions/add-review/:id:
+  /professions/add-review/{id}:
     post:
       tags:
       - Professions
@@ -1993,7 +2040,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /professionalProfile/:id:
+  /professionalProfile/{id}:
     get:
       tags:
       - Professional Profiles
@@ -2232,6 +2279,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Review'
+            example:
+              rating: 4
+              title: "Actualizada reseña"
+              content: "Contenido actualizado de la reseña"
+              visitDate: "2024-01-20"
+              recommendedDishes: ["Plato actualizado"]
+              tags: ["actualizado"]
       responses:
         '200':
           description: Review updated successfully
@@ -2469,7 +2523,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /markets/:id/reviews:
+  /markets/{id}/reviews:
     get:
       tags:
       - Markets
@@ -2688,7 +2742,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /markets/:id/reviews/stats:
+  /markets/{id}/reviews/stats:
     get:
       tags:
       - Markets
@@ -2763,7 +2817,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /recipes/:id/reviews:
+  /recipes/{id}/reviews:
     get:
       tags:
       - Recipes
@@ -2982,7 +3036,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /recipes/:id/reviews/stats:
+  /recipes/{id}/reviews/stats:
     get:
       tags:
       - Recipes
@@ -3057,7 +3111,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /restaurants/:restaurantId/reviews:
+  /restaurants/{restaurantId}/reviews:
     post:
       tags:
       - Restaurants
@@ -3076,7 +3130,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Review'
+              $ref: '#/components/schemas/ReviewRequest'
+            example:
+              rating: 5
+              title: "Espectacular"
+              content: "Servicio y comida de primera"
+              visitDate: "2024-03-10"
+              recommendedDishes: ["Tacos al pastor"]
+              tags: ["auténtico", "excelente"]
       responses:
         '201':
           description: Review created successfully
@@ -3233,7 +3294,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /restaurants/:restaurantId/reviews/stats:
+  /restaurants/{restaurantId}/reviews/stats:
     get:
       tags:
       - Restaurants
