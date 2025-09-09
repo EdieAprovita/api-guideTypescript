@@ -223,3 +223,7 @@ tmp/
 dump.rdb
 *.rdb
 
+
+# Performance test reports
+performance-reports/
+artillery.temp.yml

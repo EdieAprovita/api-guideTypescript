@@ -1,17 +1,48 @@
 config:
   target: "http://localhost:5001"
   phases:
-    - duration: 10
+    - duration: 60
       arrivalRate: 5
+      rampTo: 10
+      name: "Load test"
   defaults:
     headers:
       Content-Type: application/json
+  # Performance thresholds
+  ensure:
+    - http.response_time.p95: 500
+    - http.codes.200: 98
+  # Metrics
+  plugins:
+    ensure: {}
+
+# Test data variables  
+variables:
+  testRestaurantId: "66cf0000000000000000r1"
+  testMarketId: "66cf0000000000000000m1"
+  
 scenarios:
-  - name: health-check
+  # Core API endpoints (60% weight)
+  - name: "api-browsing"
+    weight: 60
     flow:
       - get:
-          url: "/api/v1/health"
-  - name: cache-health
+          url: "/api/v1/restaurants"
+          name: "GET /restaurants"
+      - get:
+          url: "/api/v1/markets" 
+          name: "GET /markets"
+      - get:
+          url: "/api/v1/recipes"
+          name: "GET /recipes"
+            
+  # Cache performance (40% weight)
+  - name: "cache-testing"
+    weight: 40
     flow:
       - get:
           url: "/api/v1/cache/health"
+          name: "GET /cache/health"
+      - get:
+          url: "/api/v1/restaurants"
+          name: "GET /restaurants (cached)"
