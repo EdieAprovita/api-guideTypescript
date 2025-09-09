@@ -71,6 +71,18 @@ if (process.env.NODE_ENV !== 'production') {
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 }
 
+app.get('/', (_req, res) => {
+    res.json({
+        message: 'Vegan Guide API',
+        version: 'v1',
+        endpoints: {
+            health: '/health',
+            api: '/api/v1',
+            docs: '/api-docs'
+        }
+    });
+});
+
 app.get('/api/v1', (_req, res) => {
     res.send('API is running');
 });
