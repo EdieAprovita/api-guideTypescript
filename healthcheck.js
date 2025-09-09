@@ -2,10 +2,10 @@ const http = require('http');
 
 const options = {
     hostname: 'localhost',
-    port: process.env.PORT || 5001,
-    path: '/api/v1/health',
+    port: process.env.PORT || 8080,
+    path: '/health',  // Use the correct health endpoint
     method: 'GET',
-    timeout: 2000,
+    timeout: 5000,    // Increase timeout for Cloud Run
 };
 
 const req = http.request(options, res => {
