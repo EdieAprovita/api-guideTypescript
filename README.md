@@ -31,6 +31,40 @@ The Swagger documentation provides:
 - Authentication examples
 - Error response documentation
 
+### Swagger UI en Producción (Cloud Run)
+
+Por seguridad, en producción el endpoint `/api-docs` está deshabilitado por defecto. Puedes habilitarlo bajo credenciales con variables de entorno en tu servicio de Cloud Run:
+
+1) Habilitar y proteger con Basic Auth
+
+```bash
+gcloud run services update api-guidetypescript \
+  --region=europe-west1 \
+  --set-env-vars ENABLE_SWAGGER_UI=true,SWAGGER_AUTH_USER=admin,SWAGGER_AUTH_PASS='cambia-esta-contraseña'
+```
+
+2) Verificar
+
+```bash
+# sin credenciales debe responder 401
+curl -I https://api-guidetypescript-787324382752.europe-west1.run.app/api-docs
+
+# con credenciales debe responder 200
+curl -u admin:'cambia-esta-contraseña' -I https://api-guidetypescript-787324382752.europe-west1.run.app/api-docs
+```
+
+3) Deshabilitar nuevamente en producción
+
+```bash
+gcloud run services update api-guidetypescript \
+  --region=europe-west1 \
+  --set-env-vars ENABLE_SWAGGER_UI=false,SWAGGER_AUTH_USER=,SWAGGER_AUTH_PASS=
+```
+
+Notas:
+- Si solo configuras `ENABLE_SWAGGER_UI=true` sin usuario/contraseña, `/api-docs` quedará abierto. Se recomienda usar Basic Auth en producción.
+- También puedes consumir el spec directamente desde el repositorio (`swagger.yaml`) o desde el endpoint `/api-docs` cuando esté habilitado.
+
 ## 🛠️ API Endpoints
 
 ### Authentication

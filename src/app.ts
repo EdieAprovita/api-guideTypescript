@@ -33,6 +33,7 @@ import reviewRoutes from './routes/reviewRoutes';
 import swaggerUi, { JsonObject } from 'swagger-ui-express';
 import fs from 'fs';
 import yaml from 'js-yaml';
+import basicAuth from './middleware/basicAuth';
 
 dotenv.config();
 if (process.env.NODE_ENV !== 'test') {
@@ -40,6 +41,16 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 const app = express();
+
+// 🔧 Configure Express to trust proxies (essential for GCP, Heroku, etc.)
+// This allows Express to correctly identify real client IPs from X-Forwarded-For headers
+if (process.env.NODE_ENV === 'production') {
+    // In production (GCP), trust the first proxy
+    app.set('trust proxy', 1);
+} else {
+    // In development, trust all proxies (for local testing with proxies)
+    app.set('trust proxy', true);
+}
 
 const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as JsonObject;
 
@@ -67,8 +78,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(corsMiddleware);
-if (process.env.NODE_ENV !== 'production') {
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+const enableSwaggerUI = process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER_UI === 'true';
+if (enableSwaggerUI) {
+    // Protect Swagger UI in production if credentials are provided
+    if (process.env.NODE_ENV === 'production') {
+        app.use('/api-docs', basicAuth(), swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+    } else {
+        app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+    }
 }
 
 app.get('/', (_req, res) => {
