@@ -1598,6 +1598,59 @@
           }
         },
         {
+          "name": "Create Review for Market",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Best farmers market in the city\",\n  \"content\": \"Amazing selection of fresh organic produce. The vendors are passionate about sustainable farming and the quality is consistently excellent.\",\n  \"visitDate\": \"2024-01-21\",\n  \"tags\": [\n    \"organic\",\n    \"fresh\",\n    \"sustainable\",\n    \"quality\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/markets/{{marketId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "markets",
+                "{{marketId}}",
+                "reviews"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('reviewId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
           "name": "Get Market Reviews",
           "request": {
             "method": "GET",
@@ -1845,6 +1898,59 @@
               ]
             }
           }
+        },
+        {
+          "name": "Create Review for Recipe",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Absolutely delicious and nutritious!\",\n  \"content\": \"This recipe is perfect! Easy to make, incredibly nutritious, and my whole family loved it. The tahini dressing makes all the difference.\",\n  \"tags\": [\n    \"easy\",\n    \"nutritious\",\n    \"family-friendly\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{recipeId}}",
+                "reviews"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data._id) {",
+                  "        pm.collectionVariables.set('reviewId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "Update Recipe",
@@ -2949,6 +3055,40 @@
                 "cache",
                 "monitor",
                 "stop"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "API Root",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": [
+                "{{baseUrl}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Service Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:5001/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "health"
               ]
             }
           }
