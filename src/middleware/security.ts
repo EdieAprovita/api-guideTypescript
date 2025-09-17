@@ -113,19 +113,24 @@ export const createAdvancedRateLimit = (options: {
         skipSuccessfulRequests: options.skipSuccessfulRequests ?? false,
         skipFailedRequests: options.skipFailedRequests ?? false,
         // Enhanced key generator for proxy environments
-        keyGenerator: options.keyGenerator ?? ((req: Request) => {
-            // req.ip should now work correctly with trust proxy configuration
-            const clientIP = req.ip || 
-                           req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
-                           req.headers['x-real-ip']?.toString() ||
-                           req.connection?.remoteAddress ||
-                           'unknown';
-            return clientIP;
-        }),
+        keyGenerator:
+            options.keyGenerator ??
+            ((req: Request) => {
+                // req.ip should now work correctly with trust proxy configuration
+                const clientIP =
+                    req.ip ||
+                    req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
+                    req.headers['x-real-ip']?.toString() ||
+                    req.connection?.remoteAddress ||
+                    'unknown';
+                return clientIP;
+            }),
         handler: (req: Request, res: Response) => {
             // Log rate limit violations with better IP tracking
-            console.warn(`Rate limit exceeded for IP: ${req.ip}, X-Forwarded-For: ${req.headers['x-forwarded-for']}, User-Agent: ${req.headers['user-agent']}`);
-            
+            console.warn(
+                `Rate limit exceeded for IP: ${req.ip}, X-Forwarded-For: ${req.headers['x-forwarded-for']}, User-Agent: ${req.headers['user-agent']}`
+            );
+
             res.status(429).json({
                 success: false,
                 message: options.message ?? 'Rate limit exceeded',
@@ -146,13 +151,14 @@ export const smartRateLimit = createAdvancedRateLimit({
         if (req.user) {
             return `user:${req.user._id}`;
         }
-        
+
         // Enhanced IP detection for unauthenticated users
-        const clientIP = req.ip || 
-                       req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
-                       req.headers['x-real-ip']?.toString() ||
-                       req.connection?.remoteAddress ||
-                       'unknown';
+        const clientIP =
+            req.ip ||
+            req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
+            req.headers['x-real-ip']?.toString() ||
+            req.connection?.remoteAddress ||
+            'unknown';
         return `ip:${clientIP}`;
     },
 });
@@ -337,14 +343,14 @@ export const getClientIPInfo = (req: Request) => {
         connectionRemoteAddress: req.connection?.remoteAddress,
         socketRemoteAddress: (req.socket as any)?.remoteAddress,
         xForwardedProto: req.headers['x-forwarded-proto'],
-        userAgent: req.headers['user-agent']
+        userAgent: req.headers['user-agent'],
     };
-    
+
     // In development, log IP info for debugging
     if (process.env.NODE_ENV === 'development' || process.env.DEBUG_IP_INFO === 'true') {
         console.log('🔍 Client IP Debug Info:', ipInfo);
     }
-    
+
     return ipInfo;
 };
 

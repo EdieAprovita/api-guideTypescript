@@ -39,4 +39,3 @@ export const basicAuth = () => {
 };
 
 export default basicAuth;
-
