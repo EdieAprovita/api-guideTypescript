@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import { xss } from 'express-xss-sanitizer';
+import { xssSanitizer } from './middleware/xssSanitizer';
 
 import connectDB from './config/db';
 import { errorHandler, notFound } from './middleware/errorHandler';
@@ -68,7 +68,7 @@ app.use(limitRequestSize(10 * 1024 * 1024)); // 10MB global limit
 app.use(detectSuspiciousActivity); // Detect and block suspicious patterns
 
 // app.use(mongoSanitize()); // prevent MongoDB operator injection - disabled due to version conflict
-app.use(xss()); // sanitize user input against XSS
+app.use(xssSanitizer()); // sanitize user input against XSS using secure DOMPurify
 
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
