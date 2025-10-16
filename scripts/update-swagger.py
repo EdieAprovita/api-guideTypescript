@@ -90,6 +90,38 @@ def update_swagger():
                                     'schema': {'type': 'object'}
                                 }
                             }
+                        },
+                        '400': {
+                            'description': 'Bad Request',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/ErrorResponse'}
+                                }
+                            }
+                        },
+                        '401': {
+                            'description': 'Unauthorized',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/ErrorResponse'}
+                                }
+                            }
+                        },
+                        '403': {
+                            'description': 'Forbidden',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/ErrorResponse'}
+                                }
+                            }
+                        },
+                        '422': {
+                            'description': 'Unprocessable Entity',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/ErrorResponse'}
+                                }
+                            }
                         }
                     },
                     'security': [{'bearerAuth': []}]
