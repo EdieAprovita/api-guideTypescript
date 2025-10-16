@@ -1171,25 +1171,44 @@ paths:
       tags:
       - Businesses
       summary: Add Review to Businesses (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              example:
-                rating: 5
-                comment: Excellent!
-                name: User Name
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
       responses:
-        '200':
-          description: Successful response
+        '201':
+          description: Review created successfully
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
   /businesses/add-review/{id}:
     post:
+      deprecated: true
       tags:
       - Businesses
-      summary: Add Review to Business
+      summary: Add Review to Business (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -1299,25 +1318,44 @@ paths:
       tags:
       - Restaurants
       summary: Add Review to Restaurants (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              example:
-                rating: 5
-                comment: Excellent!
-                name: User Name
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
       responses:
-        '200':
-          description: Successful response
+        '201':
+          description: Review created successfully
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
   /restaurants/add-review/{id}:
     post:
+      deprecated: true
       tags:
       - Restaurants
-      summary: Add Review to Restaurant
+      summary: Add Review to Restaurant (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -1444,25 +1482,44 @@ paths:
       tags:
       - Doctors
       summary: Add Review to Doctors (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              example:
-                rating: 5
-                comment: Excellent!
-                name: User Name
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
       responses:
-        '200':
-          description: Successful response
+        '201':
+          description: Review created successfully
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
   /doctors/add-review/{id}:
     post:
+      deprecated: true
       tags:
       - Doctors
-      summary: Add Review to Doctor
+      summary: Add Review to Doctor (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -1934,25 +1991,44 @@ paths:
       tags:
       - Sanctuaries
       summary: Add Review to Sanctuaries (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              example:
-                rating: 5
-                comment: Excellent!
-                name: User Name
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
       responses:
-        '200':
-          description: Successful response
+        '201':
+          description: Review created successfully
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
   /sanctuaries/add-review/{id}:
     post:
+      deprecated: true
       tags:
       - Sanctuaries
-      summary: Add Review to Sanctuary
+      summary: Add Review to Sanctuary (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -2056,25 +2132,44 @@ paths:
       tags:
       - Professions
       summary: Add Review to Professions (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              example:
-                rating: 5
-                comment: Excellent!
-                name: User Name
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
       responses:
-        '200':
-          description: Successful response
+        '201':
+          description: Review created successfully
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
   /professions/add-review/{id}:
     post:
+      deprecated: true
       tags:
       - Professions
-      summary: Add Review to Profession
+      summary: Add Review to Profession (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:

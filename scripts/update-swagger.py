@@ -4,7 +4,6 @@ Script to update swagger.yaml with standardized review endpoints.
 This script adds new /{id}/reviews paths while keeping legacy /add-review paths.
 """
 
-import re
 from pathlib import Path
 
 def update_swagger():
@@ -18,6 +17,7 @@ def update_swagger():
         ('businesses/add-review/{id}', 'businesses/{id}/reviews', 'Businesses'),
         ('restaurants/add-review/{id}', 'restaurants/{id}/reviews', 'Restaurants'),
         ('doctors/add-review/{id}', 'doctors/{id}/reviews', 'Doctors'),
+        ('markets/add-review/{id}', 'markets/{id}/reviews', 'Markets'),
         ('recipes/add-review/{id}', 'recipes/{id}/reviews', 'Recipes'),
         ('sanctuaries/add-review/{id}', 'sanctuaries/{id}/reviews', 'Sanctuaries'),
         ('professions/add-review/{id}', 'professions/{id}/reviews', 'Professions'),

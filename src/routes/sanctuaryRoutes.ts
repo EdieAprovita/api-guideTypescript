@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware';
-import { rateLimits } from '../middleware/validation';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation';
+import { paramSchemas, reviewSchemas } from '../utils/validators';
 import {
     getSanctuaries,
     getSanctuaryById,
@@ -17,10 +18,30 @@ router.get('/:id', getSanctuaryById);
 router.post('/', protect, createSanctuary);
 
 // Standardized review routes (new OpenAPI 3.0 compliant paths)
-router.post('/:id/reviews', rateLimits.api, protect, addReviewToSanctuary);
+router.post(
+    '/:id/reviews',
+    rateLimits.api,
+    validateInputLength(2048),
+    protect,
+    validate({
+        params: paramSchemas.id,
+        body: reviewSchemas.create,
+    }),
+    addReviewToSanctuary
+);
 
 // Legacy review route (kept for backward compatibility)
-router.post('/add-review/:id', rateLimits.api, protect, addReviewToSanctuary);
+router.post(
+    '/add-review/:id',
+    rateLimits.api,
+    validateInputLength(2048),
+    protect,
+    validate({
+        params: paramSchemas.id,
+        body: reviewSchemas.create,
+    }),
+    addReviewToSanctuary
+);
 
 router.put('/:id', protect, admin, updateSanctuary);
 router.delete('/:id', protect, admin, deleteSanctuary);
