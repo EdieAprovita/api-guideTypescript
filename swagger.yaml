@@ -1166,6 +1166,25 @@ paths:
           description: Successful response
           content:
             application/json: {}
+  /businesses/{id}/reviews:
+    post:
+      tags:
+      - Businesses
+      summary: Add Review to Businesses (Standardized)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Excellent!
+                name: User Name
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
   /businesses/add-review/{id}:
     post:
       tags:
@@ -1270,6 +1289,25 @@ paths:
       tags:
       - Restaurants
       summary: Delete Restaurant
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /restaurants/{id}/reviews:
+    post:
+      tags:
+      - Restaurants
+      summary: Add Review to Restaurants (Standardized)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Excellent!
+                name: User Name
       responses:
         '200':
           description: Successful response
@@ -1396,6 +1434,25 @@ paths:
       tags:
       - Doctors
       summary: Delete Doctor
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /doctors/{id}/reviews:
+    post:
+      tags:
+      - Doctors
+      summary: Add Review to Doctors (Standardized)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Excellent!
+                name: User Name
       responses:
         '200':
           description: Successful response
@@ -1872,6 +1929,25 @@ paths:
           description: Successful response
           content:
             application/json: {}
+  /sanctuaries/{id}/reviews:
+    post:
+      tags:
+      - Sanctuaries
+      summary: Add Review to Sanctuaries (Standardized)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Excellent!
+                name: User Name
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
   /sanctuaries/add-review/{id}:
     post:
       tags:
@@ -1970,6 +2046,25 @@ paths:
       tags:
       - Professions
       summary: Delete Profession
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /professions/{id}/reviews:
+    post:
+      tags:
+      - Professions
+      summary: Add Review to Professions (Standardized)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                comment: Excellent!
+                name: User Name
       responses:
         '200':
           description: Successful response
