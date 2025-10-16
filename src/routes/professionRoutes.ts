@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware';
-import { rateLimits } from '../middleware/validation';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation';
+import { paramSchemas, reviewSchemas } from '../utils/validators';
 import {
     getProfessions,
     getProfessionById,
@@ -15,7 +16,33 @@ const router = express.Router();
 router.get('/', getProfessions);
 router.get('/:id', getProfessionById);
 router.post('/', protect, createProfession);
-router.post('/add-review/:id', rateLimits.api, protect, addReviewToProfession);
+
+// Standardized review routes (new OpenAPI 3.0 compliant paths)
+router.post(
+    '/:id/reviews',
+    rateLimits.api,
+    protect,
+    validateInputLength(2048),
+    validate({
+        params: paramSchemas.id,
+        body: reviewSchemas.create,
+    }),
+    addReviewToProfession
+);
+
+// Legacy review route (kept for backward compatibility)
+router.post(
+    '/add-review/:id',
+    rateLimits.api,
+    protect,
+    validateInputLength(2048),
+    validate({
+        params: paramSchemas.id,
+        body: reviewSchemas.create,
+    }),
+    addReviewToProfession
+);
+
 router.put('/:id', protect, admin, updateProfession);
 router.delete('/:id', protect, admin, deleteProfession);
 
