@@ -845,9 +845,9 @@ components:
       type: object
       description: Schema for creating reviews via entity-specific endpoints
       required:
-        - rating
-        - title
-        - content
+      - rating
+      - title
+      - content
       properties:
         rating:
           type: number
@@ -877,14 +877,14 @@ components:
           items:
             type: string
             maxLength: 50
-          example: ["Tacos al pastor", "Guacamole"]
+          example: [ "Tacos al pastor", "Guacamole" ]
           description: Recommended dishes/items (optional)
         tags:
           type: array
           items:
             type: string
             maxLength: 30
-          example: ["auténtico", "familiar"]
+          example: [ "auténtico", "familiar" ]
           description: Review tags (optional)
       additionalProperties: false
 
@@ -2476,8 +2476,8 @@ paths:
               title: "Actualizada reseña"
               content: "Contenido actualizado de la reseña"
               visitDate: "2024-01-20"
-              recommendedDishes: ["Plato actualizado"]
-              tags: ["actualizado"]
+              recommendedDishes: [ "Plato actualizado" ]
+              tags: [ "actualizado" ]
       responses:
         '200':
           description: Review updated successfully
@@ -2784,21 +2784,21 @@ paths:
               example:
                 success: true
                 data:
-                  - _id: "66cf0000000000000000a1"
-                    entityType: "Market"
-                    entity: "66cf0000000000000000m1"
-                    rating: 5
-                    title: "Excelente mercado"
-                    content: "Productos frescos y buenos precios"
-                    visitDate: "2024-01-15"
-                    recommendedDishes: []
-                    tags: ["orgánico"]
-                    author: "66cf0000000000000000u1"
-                    helpfulCount: 2
-                    helpfulVotes: ["66cf0000000000000000u2"]
-                    timestamps:
-                      createdAt: "2024-01-20T10:00:00Z"
-                      updatedAt: "2024-01-20T10:00:00Z"
+                - _id: "66cf0000000000000000a1"
+                  entityType: "Market"
+                  entity: "66cf0000000000000000m1"
+                  rating: 5
+                  title: "Excelente mercado"
+                  content: "Productos frescos y buenos precios"
+                  visitDate: "2024-01-15"
+                  recommendedDishes: []
+                  tags: [ "orgánico" ]
+                  author: "66cf0000000000000000u1"
+                  helpfulCount: 2
+                  helpfulVotes: [ "66cf0000000000000000u2" ]
+                  timestamps:
+                    createdAt: "2024-01-20T10:00:00Z"
+                    updatedAt: "2024-01-20T10:00:00Z"
                 pagination:
                   currentPage: 1
                   totalPages: 1
@@ -2880,13 +2880,13 @@ paths:
                   items:
                     type: string
                     maxLength: 50
-                  example: ["Frutas orgánicas", "Verduras frescas"]
+                  example: [ "Frutas orgánicas", "Verduras frescas" ]
                 tags:
                   type: array
                   items:
                     type: string
                     maxLength: 30
-                  example: ["orgánico", "fresco", "local"]
+                  example: [ "orgánico", "fresco", "local" ]
       responses:
         '201':
           description: Review created successfully
@@ -3078,21 +3078,21 @@ paths:
               example:
                 success: true
                 data:
-                  - _id: "66cf0000000000000000b1"
-                    entityType: "Recipe"
-                    entity: "66cf0000000000000000r1"
-                    rating: 4
-                    title: "Rica receta"
-                    content: "Sencilla y deliciosa"
-                    visitDate: "2024-02-01"
-                    recommendedDishes: []
-                    tags: ["rápida"]
-                    author: "66cf0000000000000000u1"
-                    helpfulCount: 0
-                    helpfulVotes: []
-                    timestamps:
-                      createdAt: "2024-02-02T12:00:00Z"
-                      updatedAt: "2024-02-02T12:00:00Z"
+                - _id: "66cf0000000000000000b1"
+                  entityType: "Recipe"
+                  entity: "66cf0000000000000000r1"
+                  rating: 4
+                  title: "Rica receta"
+                  content: "Sencilla y deliciosa"
+                  visitDate: "2024-02-01"
+                  recommendedDishes: []
+                  tags: [ "rápida" ]
+                  author: "66cf0000000000000000u1"
+                  helpfulCount: 0
+                  helpfulVotes: []
+                  timestamps:
+                    createdAt: "2024-02-02T12:00:00Z"
+                    updatedAt: "2024-02-02T12:00:00Z"
                 pagination:
                   currentPage: 1
                   totalPages: 3
@@ -3174,13 +3174,13 @@ paths:
                   items:
                     type: string
                     maxLength: 50
-                  example: ["Pasta", "Ensalada"]
+                  example: [ "Pasta", "Ensalada" ]
                 tags:
                   type: array
                   items:
                     type: string
                     maxLength: 30
-                  example: ["fácil", "delicioso"]
+                  example: [ "fácil", "delicioso" ]
       responses:
         '201':
           description: Review created successfully
@@ -3328,8 +3328,8 @@ paths:
               title: "Espectacular"
               content: "Servicio y comida de primera"
               visitDate: "2024-03-10"
-              recommendedDishes: ["Tacos al pastor"]
-              tags: ["auténtico", "excelente"]
+              recommendedDishes: [ "Tacos al pastor" ]
+              tags: [ "auténtico", "excelente" ]
       responses:
         '201':
           description: Review created successfully
@@ -3441,18 +3441,18 @@ paths:
               example:
                 success: true
                 data:
-                  - _id: "66cf0000000000000000c1"
-                    entityType: "Restaurant"
-                    entity: "66cf0000000000000000e1"
-                    rating: 5
-                    title: "Espectacular"
-                    content: "Servicio y comida de primera"
-                    author: "66cf0000000000000000u3"
-                    helpfulCount: 0
-                    helpfulVotes: []
-                    timestamps:
-                      createdAt: "2024-03-10T09:00:00Z"
-                      updatedAt: "2024-03-10T09:00:00Z"
+                - _id: "66cf0000000000000000c1"
+                  entityType: "Restaurant"
+                  entity: "66cf0000000000000000e1"
+                  rating: 5
+                  title: "Espectacular"
+                  content: "Servicio y comida de primera"
+                  author: "66cf0000000000000000u3"
+                  helpfulCount: 0
+                  helpfulVotes: []
+                  timestamps:
+                    createdAt: "2024-03-10T09:00:00Z"
+                    updatedAt: "2024-03-10T09:00:00Z"
                 pagination:
                   currentPage: 1
                   totalPages: 5
@@ -3560,4 +3560,3 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-    
