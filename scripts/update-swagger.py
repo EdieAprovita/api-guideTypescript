@@ -10,11 +10,12 @@ Requires: ruamel.yaml (pip install ruamel.yaml)
 import sys
 from pathlib import Path
 
+import sys
 try:
-    from ruamel.yaml import YAML
+    import yaml
 except ImportError:
     print("❌ PyYAML is required. Install with: pip install pyyaml")
-    exit(1)
+    sys.exit(1)
 
 def update_swagger():
     swagger_path = Path('swagger.yaml')
