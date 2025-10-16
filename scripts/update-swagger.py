@@ -17,7 +17,7 @@ except ImportError:
 def update_swagger():
     swagger_path = Path('swagger.yaml')
     
-    # Load YAML with safe_load to preserve structure
+    # Load YAML as Python data structures (comments and formatting are not preserved)
     with open(swagger_path, 'r') as f:
         swagger = yaml.safe_load(f)
     
