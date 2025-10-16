@@ -10,15 +10,15 @@
 
 ### Routes Updated (7 files modified)
 
-| File | Changes | Status |
-|------|---------|--------|
-| **businessRoutes.ts** | Added `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
-| **doctorsRoutes.ts** | Added `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
-| **restaurantRoutes.ts** | Added `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
-| **marketsRoutes.ts** | Cleaned up `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
-| **recipesRoutes.ts** | Cleaned up `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
-| **sanctuaryRoutes.ts** | Added `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
-| **professionRoutes.ts** | Added `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
+| File                    | Changes                                            | Status  |
+| ----------------------- | -------------------------------------------------- | ------- |
+| **businessRoutes.ts**   | Added `/:id/reviews` + kept `/add-review/:id`      | ✅ DONE |
+| **doctorsRoutes.ts**    | Added `/:id/reviews` + kept `/add-review/:id`      | ✅ DONE |
+| **restaurantRoutes.ts** | Added `/:id/reviews` + kept `/add-review/:id`      | ✅ DONE |
+| **marketsRoutes.ts**    | Cleaned up `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
+| **recipesRoutes.ts**    | Cleaned up `/:id/reviews` + kept `/add-review/:id` | ✅ DONE |
+| **sanctuaryRoutes.ts**  | Added `/:id/reviews` + kept `/add-review/:id`      | ✅ DONE |
+| **professionRoutes.ts** | Added `/:id/reviews` + kept `/add-review/:id`      | ✅ DONE |
 
 ### Test Results
 
@@ -74,6 +74,7 @@ POST /api/v1/professions/add-review/{id}
 ### Phase 2B: Swagger Documentation (2-3 hours)
 
 Will update `swagger.yaml` to:
+
 1. Add new standardized paths
 2. Update parameter naming (`{id}` standard)
 3. Mark legacy routes as deprecated
@@ -124,13 +125,13 @@ Lines Deleted: 6
 
 ## ⏰ ESTIMATED TIMELINE
 
-| Phase | Time | Status |
-|-------|------|--------|
-| **2A: Routes** | 2-3h | ✅ DONE |
+| Phase           | Time | Status     |
+| --------------- | ---- | ---------- |
+| **2A: Routes**  | 2-3h | ✅ DONE    |
 | **2B: Swagger** | 2-3h | ⏳ PENDING |
-| **2C: Testing** | 1h | ⏳ PENDING |
-| **2D: PR** | 30m | ⏳ PENDING |
-| **Total** | 6-8h | 25% ✅ |
+| **2C: Testing** | 1h   | ⏳ PENDING |
+| **2D: PR**      | 30m  | ⏳ PENDING |
+| **Total**       | 6-8h | 25% ✅     |
 
 ---
 
