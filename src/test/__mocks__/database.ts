@@ -26,8 +26,6 @@ export const dbConfigMocks = {
         if (mongoUri.includes('invalid://')) {
             throw new Error('Error connecting to the database: Invalid connection string');
         }
-
-        return Promise.resolve();
     }),
     __esModule: true,
 };
