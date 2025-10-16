@@ -25,8 +25,8 @@ router.post('/', protect, createBusiness);
 router.post(
     '/:id/reviews',
     rateLimits.api,
-    protect,
     validateInputLength(2048),
+    protect,
     validate({
         params: paramSchemas.id,
         body: reviewSchemas.create,
@@ -38,8 +38,8 @@ router.post(
 router.post(
     '/add-review/:id',
     rateLimits.api,
-    protect,
     validateInputLength(2048),
+    protect,
     validate({
         params: paramSchemas.id,
         body: reviewSchemas.create,
