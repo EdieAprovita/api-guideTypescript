@@ -76,9 +76,9 @@ def build_review_post_operation(resource_plural: str, resource_singular: str) ->
                     }
                 }
             },
-            '400': build_error_response('Bad Request'),
-            '401': build_error_response('Unauthorized'),
-            '403': build_error_response('Forbidden'),
+            '400': build_error_response('Validation error'),
+            '401': build_error_response('Authentication error'),
+            '403': build_error_response('Authorization error'),
             '422': build_error_response('Unprocessable Entity')
         },
         'security': [{'bearerAuth': []}]
