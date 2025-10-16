@@ -10,19 +10,102 @@ Requires: ruamel.yaml (pip install ruamel.yaml)
 import sys
 from pathlib import Path
 
-import sys
 try:
-    import yaml
+    from ruamel.yaml import YAML
 except ImportError:
-    print("❌ PyYAML is required. Install with: pip install pyyaml")
+    print("❌ ruamel.yaml is required. Install with: pip install ruamel.yaml")
     sys.exit(1)
 
+# Constants for reusable values
+APP_JSON = 'application/json'
+ERROR_RESPONSE_REF = '#/components/schemas/ErrorResponse'
+
+def build_error_response(description: str) -> dict:
+    """Build a standardized error response schema."""
+    return {
+        'description': description,
+        'content': {
+            APP_JSON: {
+                'schema': {'$ref': ERROR_RESPONSE_REF}
+            }
+        }
+    }
+
+def build_review_post_operation(resource_plural: str, resource_singular: str) -> dict:
+    """Build a standardized review POST operation with all error responses."""
+    return {
+        'tags': [resource_plural],
+        'summary': f'Add Review to {resource_singular} (Standardized)',
+        'parameters': [
+            {
+                'in': 'path',
+                'name': 'id',
+                'required': True,
+                'schema': {'type': 'string'}
+            }
+        ],
+        'requestBody': {
+            'required': True,
+            'content': {
+                APP_JSON: {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'rating': {
+                                'type': 'integer',
+                                'minimum': 1,
+                                'maximum': 5
+                            },
+                            'comment': {
+                                'type': 'string',
+                                'maxLength': 1000
+                            },
+                            'name': {'type': 'string'}
+                        },
+                        'required': ['rating', 'comment']
+                    }
+                }
+            }
+        },
+        'responses': {
+            '201': {
+                'description': 'Review created successfully',
+                'content': {
+                    APP_JSON: {
+                        'schema': {'type': 'object'}
+                    }
+                }
+            },
+            '400': build_error_response('Bad Request'),
+            '401': build_error_response('Unauthorized'),
+            '403': build_error_response('Forbidden'),
+            '422': build_error_response('Unprocessable Entity')
+        },
+        'security': [{'bearerAuth': []}]
+    }
+
+def mark_legacy_deprecated(paths: dict, legacy_key: str, new_path: str) -> None:
+    """Mark legacy operation as deprecated with appropriate summary."""
+    if legacy_key in paths and 'post' in paths[legacy_key]:
+        paths[legacy_key]['post']['deprecated'] = True
+        current_summary = paths[legacy_key]['post'].get('summary', '')
+        if 'Legacy' not in current_summary:
+            paths[legacy_key]['post']['summary'] = f"{current_summary} (Legacy - Use /{new_path})"
+        print(f"✅ Marked {legacy_key} as deprecated")
+
 def update_swagger():
+    """Main function to update swagger.yaml with standardized review endpoints."""
     swagger_path = Path('swagger.yaml')
     
-    # Load YAML as Python data structures (comments and formatting are not preserved)
+    # Use ruamel.yaml with proper configuration to preserve formatting
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.default_flow_style = None
+    yaml.width = 4096  # Prevent line wrapping
+    
+    # Load YAML preserving comments and formatting
     with open(swagger_path, 'r') as f:
-        swagger = yaml.safe_load(f)
+        swagger = yaml.load(f)
     
     # Define mapping of resources to update
     # Format: (legacy_path, new_path, resource_plural, resource_singular)
@@ -42,92 +125,10 @@ def update_swagger():
         legacy_key = f"/{legacy_path}"
         new_key = f"/{new_path}"
         
-        # Only add if doesn't already exist
         if new_key not in paths:
             if legacy_key in paths:
-                # Create new path definition based on existing legacy path
-                
-                # Build new POST operation with standardized structure
-                new_post_op = {
-                    'tags': [resource_plural],
-                    'summary': f'Add Review to {resource_singular} (Standardized)',
-                    'parameters': [
-                        {
-                            'in': 'path',
-                            'name': 'id',
-                            'required': True,
-                            'schema': {'type': 'string'}
-                        }
-                    ],
-                    'requestBody': {
-                        'required': True,
-                        'content': {
-                            'application/json': {
-                                'schema': {
-                                    'type': 'object',
-                                    'properties': {
-                                        'rating': {
-                                            'type': 'integer',
-                                            'minimum': 1,
-                                            'maximum': 5
-                                        },
-                                        'comment': {
-                                            'type': 'string',
-                                            'maxLength': 1000
-                                        },
-                                        'name': {'type': 'string'}
-                                    },
-                                    'required': ['rating', 'comment']
-                                }
-                            }
-                        }
-                    },
-                    'responses': {
-                        '201': {
-                            'description': 'Review created successfully',
-                            'content': {
-                                'application/json': {
-                                    'schema': {'type': 'object'}
-                                }
-                            }
-                        },
-                        '400': {
-                            'description': 'Bad Request',
-                            'content': {
-                                'application/json': {
-                                    'schema': {'$ref': '#/components/schemas/ErrorResponse'}
-                                }
-                            }
-                        },
-                        '401': {
-                            'description': 'Unauthorized',
-                            'content': {
-                                'application/json': {
-                                    'schema': {'$ref': '#/components/schemas/ErrorResponse'}
-                                }
-                            }
-                        },
-                        '403': {
-                            'description': 'Forbidden',
-                            'content': {
-                                'application/json': {
-                                    'schema': {'$ref': '#/components/schemas/ErrorResponse'}
-                                }
-                            }
-                        },
-                        '422': {
-                            'description': 'Unprocessable Entity',
-                            'content': {
-                                'application/json': {
-                                    'schema': {'$ref': '#/components/schemas/ErrorResponse'}
-                                }
-                            }
-                        }
-                    },
-                    'security': [{'bearerAuth': []}]
-                }
-                
-                # Add new path with the POST operation
+                # Create and add new standardized path
+                new_post_op = build_review_post_operation(resource_plural, resource_singular)
                 paths[new_key] = {'post': new_post_op}
                 print(f"✅ Added {new_key} POST operation")
                 

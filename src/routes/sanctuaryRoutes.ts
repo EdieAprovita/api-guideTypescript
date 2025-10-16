@@ -21,8 +21,8 @@ router.post('/', protect, createSanctuary);
 router.post(
     '/:id/reviews',
     rateLimits.api,
-    validateInputLength(2048),
     protect,
+    validateInputLength(2048),
     validate({
         params: paramSchemas.id,
         body: reviewSchemas.create,
@@ -34,8 +34,8 @@ router.post(
 router.post(
     '/add-review/:id',
     rateLimits.api,
-    validateInputLength(2048),
     protect,
+    validateInputLength(2048),
     validate({
         params: paramSchemas.id,
         body: reviewSchemas.create,
