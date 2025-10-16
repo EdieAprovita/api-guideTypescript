@@ -59,6 +59,20 @@ router.post(
     createRestaurant
 );
 
+// Standardized review route (new OpenAPI 3.0 compliant path)
+router.post(
+    '/:id/reviews',
+    rateLimits.api,
+    validateInputLength(2048), // 2KB limit for reviews
+    protect,
+    validate({
+        params: paramSchemas.id,
+        body: reviewSchemas.create,
+    }),
+    addReviewToRestaurant
+);
+
+// Legacy review route (kept for backward compatibility)
 router.post(
     '/add-review/:id',
     rateLimits.api,

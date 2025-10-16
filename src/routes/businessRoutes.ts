@@ -19,7 +19,13 @@ router.use(browserCacheValidation());
 router.get('/', businessCacheMiddleware(), getBusinesses);
 router.get('/:id', businessCacheMiddleware(), getBusinessById);
 router.post('/', protect, createBusiness);
+
+// Standardized review routes (new OpenAPI 3.0 compliant paths)
+router.post('/:id/reviews', rateLimits.api, protect, addReviewToBusiness);
+
+// Legacy review route (kept for backward compatibility)
 router.post('/add-review/:id', rateLimits.api, protect, addReviewToBusiness);
+
 router.put('/:id', protect, admin, updateBusiness);
 router.delete('/:id', protect, admin, deleteBusiness);
 
