@@ -13,6 +13,7 @@
 The Swagger documentation uses **inconsistent parameter naming conventions**:
 
 #### Pattern 1: Generic `{id}` (Most Common - 70%)
+
 ```yaml
 /users/{id}
 /restaurants/{id}
@@ -27,12 +28,14 @@ The Swagger documentation uses **inconsistent parameter naming conventions**:
 ```
 
 #### Pattern 2: Specific Resource ID (30%)
+
 ```yaml
 /restaurants/{restaurantId}/reviews
 /restaurants/{restaurantId}/reviews/stats
 ```
 
 #### Pattern 3: Deprecated Legacy Routes
+
 ```yaml
 /businesses/add-review/{id}      ❌ Should be: /businesses/{id}/reviews
 /restaurants/add-review/{id}     ❌ Should be: /restaurants/{id}/reviews
@@ -44,19 +47,18 @@ The Swagger documentation uses **inconsistent parameter naming conventions**:
 ```
 
 #### Pattern 4: Nested Routes Inconsistency
-```yaml
-✅ Consistent:
-  /markets/{id}/reviews
-  /markets/{id}/reviews/stats
-  /recipes/{id}/reviews
-  /recipes/{id}/reviews/stats
-  /restaurants/{restaurantId}/reviews
-  /restaurants/{restaurantId}/reviews/stats
 
-❌ Inconsistent Parameter Naming:
-  /restaurants/{restaurantId}/...  (specific name)
-  /recipes/{id}/...                (generic name)
-  /markets/{id}/...                (generic name)
+```yaml
+✅ Consistent: /markets/{id}/reviews
+    /markets/{id}/reviews/stats
+    /recipes/{id}/reviews
+    /recipes/{id}/reviews/stats
+    /restaurants/{restaurantId}/reviews
+    /restaurants/{restaurantId}/reviews/stats
+
+❌ Inconsistent Parameter Naming: /restaurants/{restaurantId}/...  (specific name)
+    /recipes/{id}/...                (generic name)
+    /markets/{id}/...                (generic name)
 ```
 
 ---
@@ -132,11 +134,13 @@ The Swagger documentation uses **inconsistent parameter naming conventions**:
 ## ✨ BENEFITS OF STANDARDIZATION
 
 ### 1. **Consistency**
+
 - ✅ All standard CRUD operations use `{id}`
 - ✅ Reduces cognitive load for API consumers
 - ✅ Easier to generate client SDKs
 
 ### 2. **Predictability**
+
 ```
 Pattern: GET /api/v1/{resource}/{id}
 Pattern: GET /api/v1/{resource}/{id}/{subresource}
@@ -144,11 +148,13 @@ Pattern: POST /api/v1/{resource}/{id}/{action}
 ```
 
 ### 3. **OpenAPI 3.0 Compliance**
+
 - ✅ Aligns with OpenAPI best practices
 - ✅ Better Swagger UI rendering
 - ✅ Improves API documentation clarity
 
 ### 4. **Legacy Support**
+
 - ✅ Old `/add-review/{id}` routes still work
 - ✅ New standardized routes available
 - ✅ Gradual migration path for clients
@@ -163,16 +169,23 @@ Pattern: POST /api/v1/{resource}/{id}/{action}
 // businessRoutes.ts - ADD alongside existing routes
 
 // New standardized route
-router.post('/:id/reviews', rateLimits.api, protect, validate({
-    params: paramSchemas.id,
-    body: reviewSchemas.create,
-}), addReviewToBusiness);
+router.post(
+    '/:id/reviews',
+    rateLimits.api,
+    protect,
+    validate({
+        params: paramSchemas.id,
+        body: reviewSchemas.create,
+    }),
+    addReviewToBusiness
+);
 
 // Keep legacy route for backward compatibility
 router.post('/add-review/:id', rateLimits.api, protect, addReviewToBusiness);
 ```
 
-**Impact**: 
+**Impact**:
+
 - ✅ No breaking changes
 - ✅ Both routes work
 - ✅ Gradual migration
@@ -180,6 +193,7 @@ router.post('/add-review/:id', rateLimits.api, protect, addReviewToBusiness);
 ### Phase 2B: Swagger Update
 
 Update `swagger.yaml` with:
+
 1. All new standardized paths
 2. Deprecation notices on legacy paths
 3. Unified parameter naming
@@ -187,6 +201,7 @@ Update `swagger.yaml` with:
 ### Phase 2C: API Documentation
 
 Update docs to recommend:
+
 - New standardized paths for new integrations
 - Legacy paths for backward compatibility
 - Migration guide for existing clients
@@ -234,23 +249,25 @@ swagger.yaml
 
 ## 📈 MIGRATION TIMELINE
 
-| Task | Timeline | Status |
-|------|----------|--------|
-| **Phase 2A: Routes** | 2-3 hours | NOT STARTED |
-| **Phase 2B: Swagger** | 2-3 hours | NOT STARTED |
-| **Phase 2C: Testing** | 1 hour | NOT STARTED |
-| **Phase 2D: Documentation** | 1 hour | NOT STARTED |
-| **TOTAL** | 6-8 hours | NOT STARTED |
+| Task                        | Timeline  | Status      |
+| --------------------------- | --------- | ----------- |
+| **Phase 2A: Routes**        | 2-3 hours | NOT STARTED |
+| **Phase 2B: Swagger**       | 2-3 hours | NOT STARTED |
+| **Phase 2C: Testing**       | 1 hour    | NOT STARTED |
+| **Phase 2D: Documentation** | 1 hour    | NOT STARTED |
+| **TOTAL**                   | 6-8 hours | NOT STARTED |
 
 ---
 
 ## 🎯 BACKWARD COMPATIBILITY
 
 ### What Changes
+
 - ✅ Swagger documentation (API consumers prefer seeing both)
 - ✅ New routes available via standardized paths
 
 ### What Stays the Same
+
 - ✅ Old `add-review` routes continue to work
 - ✅ No database schema changes
 - ✅ No breaking API changes
