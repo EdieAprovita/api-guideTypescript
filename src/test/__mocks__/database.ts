@@ -17,7 +17,7 @@ export const databaseMocks = {
 // Mock para configuración de base de datos
 export const dbConfigMocks = {
     default: vi.fn().mockImplementation(async () => {
-        const mongoUri = process.env.DB;
+        const mongoUri = process.env.MONGODB_URI;
         
         if (!mongoUri) {
             throw new Error('MongoDB URI is not defined in environment variables');
