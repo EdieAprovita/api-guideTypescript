@@ -12,53 +12,72 @@ def update_swagger():
         content = f.read()
     
     # Define mapping of resources to update
-    # Format: (legacy_path, new_path, description_suffix)
+    # Format: (legacy_path, new_path, resource_name)
     updates = [
-        ('businesses/add-review/{id}', 'businesses/{id}/reviews', 'Businesses'),
-        ('restaurants/add-review/{id}', 'restaurants/{id}/reviews', 'Restaurants'),
-        ('doctors/add-review/{id}', 'doctors/{id}/reviews', 'Doctors'),
-        ('markets/add-review/{id}', 'markets/{id}/reviews', 'Markets'),
-        ('recipes/add-review/{id}', 'recipes/{id}/reviews', 'Recipes'),
-        ('sanctuaries/add-review/{id}', 'sanctuaries/{id}/reviews', 'Sanctuaries'),
-        ('professions/add-review/{id}', 'professions/{id}/reviews', 'Professions'),
+        ('businesses/add-review/{id}', 'businesses/{id}/reviews', 'Businesses', 'Business'),
+        ('restaurants/add-review/{id}', 'restaurants/{id}/reviews', 'Restaurants', 'Restaurant'),
+        ('doctors/add-review/{id}', 'doctors/{id}/reviews', 'Doctors', 'Doctor'),
+        ('markets/add-review/{id}', 'markets/{id}/reviews', 'Markets', 'Market'),
+        ('recipes/add-review/{id}', 'recipes/{id}/reviews', 'Recipes', 'Recipe'),
+        ('sanctuaries/add-review/{id}', 'sanctuaries/{id}/reviews', 'Sanctuaries', 'Sanctuary'),
+        ('professions/add-review/{id}', 'professions/{id}/reviews', 'Professions', 'Profession'),
     ]
     
-    # For each update, find the legacy path definition and add a new standardized path before it
-    # BUT ONLY if the new path doesn't already exist
-    for legacy, new, resource in updates:
+    for legacy, new, resource_plural, resource_singular in updates:
         legacy_pattern = f"  /{legacy}:"
         new_pattern = f"  /{new}:"
+        
+        # Generate proper Swagger definition
         new_path_def = f"""  /{new}:
     post:
       tags:
-      - {resource}
-      summary: Add Review to {resource} (Standardized)
+      - {resource_plural}
+      summary: Add Review to {resource_singular} (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              example:
-                rating: 5
-                comment: Excellent!
-                name: User Name
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
       responses:
-        '200':
-          description: Successful response
+        '201':
+          description: Review created successfully
           content:
-            application/json: {{}}
+            application/json:
+              schema:
+                type: object
+      security:
+      - bearerAuth: []
 """
         
-        # Check if new path already exists
+        # Only add if doesn't already exist
         if new_pattern not in content:
-            # Insert new path before legacy path
             if legacy_pattern in content:
                 content = content.replace(legacy_pattern, new_path_def + legacy_pattern, 1)
-                print(f"✅ Added /{new} (before /{legacy})")
+                print(f"✅ Added /{new} POST operation")
             else:
                 print(f"⚠️  Could not find {legacy_pattern}")
         else:
-            print(f"ℹ️  /{new} already exists, skipping (has GET/POST)")
+            print(f"ℹ️  /{new} already exists, skipping")
     
     with open(swagger_path, 'w') as f:
         f.write(content)

@@ -1170,7 +1170,7 @@ paths:
     post:
       tags:
       - Businesses
-      summary: Add Review to Businesses (Standardized)
+      summary: Add Review to Business (Standardized)
       parameters:
       - in: path
         name: id
@@ -1317,7 +1317,7 @@ paths:
     post:
       tags:
       - Restaurants
-      summary: Add Review to Restaurants (Standardized)
+      summary: Add Review to Restaurant (Standardized)
       parameters:
       - in: path
         name: id
@@ -1481,7 +1481,7 @@ paths:
     post:
       tags:
       - Doctors
-      summary: Add Review to Doctors (Standardized)
+      summary: Add Review to Doctor (Standardized)
       parameters:
       - in: path
         name: id
@@ -1990,7 +1990,7 @@ paths:
     post:
       tags:
       - Sanctuaries
-      summary: Add Review to Sanctuaries (Standardized)
+      summary: Add Review to Sanctuary (Standardized)
       parameters:
       - in: path
         name: id
@@ -2131,7 +2131,7 @@ paths:
     post:
       tags:
       - Professions
-      summary: Add Review to Professions (Standardized)
+      summary: Add Review to Profession (Standardized)
       parameters:
       - in: path
         name: id
