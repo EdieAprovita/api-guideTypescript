@@ -2,17 +2,27 @@
 """
 Script to update swagger.yaml with standardized review endpoints.
 This script adds new /{id}/reviews paths while keeping legacy /add-review paths.
+Uses PyYAML for robust YAML parsing and manipulation.
+
+Requires: PyYAML (pip install pyyaml)
 """
 
 from pathlib import Path
+try:
+    import yaml
+except ImportError:
+    print("❌ PyYAML is required. Install with: pip install pyyaml")
+    exit(1)
 
 def update_swagger():
     swagger_path = Path('swagger.yaml')
+    
+    # Load YAML with safe_load to preserve structure
     with open(swagger_path, 'r') as f:
-        content = f.read()
+        swagger = yaml.safe_load(f)
     
     # Define mapping of resources to update
-    # Format: (legacy_path, new_path, resource_name)
+    # Format: (legacy_path, new_path, resource_plural, resource_singular)
     updates = [
         ('businesses/add-review/{id}', 'businesses/{id}/reviews', 'Businesses', 'Business'),
         ('restaurants/add-review/{id}', 'restaurants/{id}/reviews', 'Restaurants', 'Restaurant'),
@@ -23,66 +33,81 @@ def update_swagger():
         ('professions/add-review/{id}', 'professions/{id}/reviews', 'Professions', 'Profession'),
     ]
     
-    for legacy, new, resource_plural, resource_singular in updates:
-        legacy_pattern = f"  /{legacy}:"
-        new_pattern = f"  /{new}:"
-        
-        # Generate proper Swagger definition
-        new_path_def = f"""  /{new}:
-    post:
-      tags:
-      - {resource_plural}
-      summary: Add Review to {resource_singular} (Standardized)
-      parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                rating:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-                comment:
-                  type: string
-                  maxLength: 1000
-                name:
-                  type: string
-              required:
-              - rating
-              - comment
-      responses:
-        '201':
-          description: Review created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-      security:
-      - bearerAuth: []
-"""
+    paths = swagger.get('paths', {})
+    
+    for legacy_path, new_path, resource_plural, resource_singular in updates:
+        legacy_key = f"/{legacy_path}"
+        new_key = f"/{new_path}"
         
         # Only add if doesn't already exist
-        if new_pattern not in content:
-            if legacy_pattern in content:
-                content = content.replace(legacy_pattern, new_path_def + legacy_pattern, 1)
-                print(f"✅ Added /{new} POST operation")
+        if new_key not in paths:
+            if legacy_key in paths:
+                # Create new path definition based on existing legacy path
+                
+                # Build new POST operation with standardized structure
+                new_post_op = {
+                    'tags': [resource_plural],
+                    'summary': f'Add Review to {resource_singular} (Standardized)',
+                    'parameters': [
+                        {
+                            'in': 'path',
+                            'name': 'id',
+                            'required': True,
+                            'schema': {'type': 'string'}
+                        }
+                    ],
+                    'requestBody': {
+                        'required': True,
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'rating': {
+                                            'type': 'integer',
+                                            'minimum': 1,
+                                            'maximum': 5
+                                        },
+                                        'comment': {
+                                            'type': 'string',
+                                            'maxLength': 1000
+                                        },
+                                        'name': {'type': 'string'}
+                                    },
+                                    'required': ['rating', 'comment']
+                                }
+                            }
+                        }
+                    },
+                    'responses': {
+                        '201': {
+                            'description': 'Review created successfully',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'type': 'object'}
+                                }
+                            }
+                        }
+                    },
+                    'security': [{'bearerAuth': []}]
+                }
+                
+                # Add new path with the POST operation
+                paths[new_key] = {'post': new_post_op}
+                print(f"✅ Added {new_key} POST operation")
             else:
-                print(f"⚠️  Could not find {legacy_pattern}")
+                print(f"⚠️  Could not find {legacy_key}")
         else:
-            print(f"ℹ️  /{new} already exists, skipping")
+            print(f"ℹ️  {new_key} already exists, skipping")
     
+    # Update the swagger dict
+    swagger['paths'] = paths
+    
+    # Write back to file with proper YAML formatting
     with open(swagger_path, 'w') as f:
-        f.write(content)
+        yaml.dump(swagger, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
     
-    print("\n✅ swagger.yaml updated successfully!")
+    print("\n✅ swagger.yaml updated successfully with PyYAML!")
 
 if __name__ == '__main__':
     update_swagger()

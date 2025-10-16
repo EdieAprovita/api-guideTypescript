@@ -30,7 +30,7 @@ router.post(
     validateInputLength(2048),
     protect,
     validate({
-        params: paramSchemas.id,
+        params: paramSchemas.recipeId,
         body: reviewSchemas.create,
     }),
     addReviewToRecipe

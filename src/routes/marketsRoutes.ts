@@ -27,7 +27,7 @@ router.post(
     validateInputLength(2048),
     protect,
     validate({
-        params: paramSchemas.id,
+        params: paramSchemas.marketId,
         body: reviewSchemas.create,
     }),
     addReviewToMarket
