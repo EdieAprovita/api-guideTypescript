@@ -1,30 +1,39 @@
 const http = require('http');
 
 const options = {
-    hostname: 'localhost',
+    hostname: '0.0.0.0', // Listen on all interfaces for Cloud Run
     port: process.env.PORT || 8080,
-    path: '/health',  // Use the correct health endpoint
+    path: '/health',
     method: 'GET',
-    timeout: 5000,    // Increase timeout for Cloud Run
+    timeout: 8000, // Increased timeout for Cloud Run startup
 };
 
 const req = http.request(options, res => {
-    if (res.statusCode === 200) {
-        console.log('Health check passed');
-        process.exit(0);
-    } else {
-        console.log(`Health check failed with status: ${res.statusCode}`);
-        process.exit(1);
-    }
+    let data = '';
+
+    res.on('data', chunk => {
+        data += chunk;
+    });
+
+    res.on('end', () => {
+        if (res.statusCode === 200) {
+            console.log('✅ Health check passed');
+            process.exit(0);
+        } else {
+            console.log(`❌ Health check failed with status: ${res.statusCode}`);
+            console.log(`Response: ${data}`);
+            process.exit(1);
+        }
+    });
 });
 
 req.on('error', err => {
-    console.log(`Health check error: ${err.message}`);
+    console.log(`❌ Health check error: ${err.message}`);
     process.exit(1);
 });
 
 req.on('timeout', () => {
-    console.log('Health check timeout');
+    console.log('⏱️ Health check timeout');
     req.destroy();
     process.exit(1);
 });
