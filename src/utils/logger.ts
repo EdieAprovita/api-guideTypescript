@@ -72,7 +72,7 @@ const baseTransports: winston.transport[] = [
     }),
 ];
 
-// Configuración de file transports
+// File transports configuration
 const fileTransports: winston.transport[] =
     process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test'
         ? [
