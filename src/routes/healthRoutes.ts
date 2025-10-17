@@ -20,7 +20,7 @@ router.get('/', (_req: Request, res: Response) => {
 });
 
 /**
- * @description Readiness probe - indica si el servidor está listo para requests
+ * @description Readiness probe - indicates if the server is ready to accept requests
  * @route GET /ready
  */
 router.get('/ready', async (_req: Request, res: Response) => {
