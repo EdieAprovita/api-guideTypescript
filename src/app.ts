@@ -2,8 +2,8 @@ import dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import { xss } from 'express-xss-sanitizer';
 import requestLogger from './middleware/requestLogger';
+import { xssSanitizer } from './middleware/xssSanitizer';
 import fs from 'node:fs';
 
 import connectDB from './config/db';
@@ -100,8 +100,8 @@ app.get('/', (_req, res) => {
         endpoints: {
             health: '/health',
             api: '/api/v1',
-            docs: '/api-docs'
-        }
+            docs: '/api-docs',
+        },
     });
 });
 
