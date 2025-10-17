@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
  * Agrega correlation ID único a cada request y loguea entrada/salida
  */
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-    // Generar o usar correlation ID existente
+    // Generate or use existing correlation ID
     const correlationId = req.get('X-Correlation-ID') || uuidv4();
     (req as any).correlationId = correlationId;
 
