@@ -3,11 +3,16 @@ dotenv.config();
 import app from './app';
 import { colorTheme } from './types/colorTheme';
 
-const PORT = process.env.PORT ?? 5001;
+// Cloud Run provides PORT via environment variable, default to 8080 for production compatibility
+const PORT = process.env.PORT ?? 8080;
+// Listen on all network interfaces (0.0.0.0) - required for Cloud Run
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 
-const server = app.listen(PORT, () => {
+const server = app.listen(Number(PORT), HOST, () => {
     console.log(
-        colorTheme.secondary.bold(`🚀 Server running in ${process.env.NODE_ENV ?? 'development'} mode on port ${PORT}`)
+        colorTheme.secondary.bold(
+            `🚀 Server running in ${process.env.NODE_ENV ?? 'development'} mode on ${HOST}:${PORT}`
+        )
     );
     console.log(colorTheme.info.bold(`📚 API Documentation available at: http://localhost:${PORT}/api-docs`));
 });

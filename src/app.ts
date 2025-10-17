@@ -37,8 +37,13 @@ import yaml from 'js-yaml';
 import basicAuth from './middleware/basicAuth';
 
 dotenv.config();
+// Connect to MongoDB asynchronously without blocking server startup
+// This is critical for Cloud Run to pass health checks during startup
 if (process.env.NODE_ENV !== 'test') {
-    connectDB();
+    connectDB().catch(err => {
+        console.error('Failed to connect to MongoDB on startup:', err);
+        // Continue running - the app can still serve health checks and may reconnect later
+    });
 }
 
 const app = express();
