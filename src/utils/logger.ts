@@ -109,7 +109,7 @@ const createFileHandler = (filename: string): winston.transport[] =>
 const createExceptionHandler = (): winston.transport[] => createFileHandler('exceptions.log');
 const createRejectionHandler = (): winston.transport[] => createFileHandler('rejections.log');
 
-// Crear logger
+// Create logger
 const logger = winston.createLogger({
     levels: logLevels,
     format: customFormat,
