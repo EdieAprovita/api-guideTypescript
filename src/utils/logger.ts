@@ -128,7 +128,7 @@ export default logger;
 // Export typed convenience methods
 export const logInfo = (message: string, meta?: any) => logger.info(message, meta);
 
-// Función auxiliar para procesar errores
+// Helper function to process errors
 const processError = (message: string, error?: Error | string, meta?: any) => {
     if (error instanceof Error) {
         logger.error(message, { error: error.message, stack: error.stack, ...meta });
