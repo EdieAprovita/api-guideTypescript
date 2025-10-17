@@ -1,7 +1,7 @@
 const http = require('http');
 
 const options = {
-    hostname: 'localhost', // Use localhost for health check requests (0.0.0.0 is not routable)
+    hostname: 'localhost', // Use localhost for health check requests (0.0.0.0 is for binding, not connecting)
     port: process.env.PORT || 8080,
     path: '/health',
     method: 'GET',
