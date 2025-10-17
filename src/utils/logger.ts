@@ -2,7 +2,7 @@ import winston from 'winston';
 import path from 'path';
 import fs from 'node:fs';
 
-// Crear directorio de logs si no existe
+// Create logs directory if it doesn't exist
 const logsDir = path.join(process.cwd(), 'logs');
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
