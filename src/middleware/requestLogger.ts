@@ -14,7 +14,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
     // Save correlation ID in response headers
     res.setHeader('X-Correlation-ID', correlationId);
 
-    // Loguear entrada
+    // Log entry
     const startTime = Date.now();
     logger.debug(`[${correlationId}] Incoming ${req.method} ${req.path}`, {
         correlationId,
