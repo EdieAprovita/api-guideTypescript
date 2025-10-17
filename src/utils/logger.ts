@@ -64,7 +64,7 @@ const consoleFormat = winston.format.combine(
 
 // Create transports
 const baseTransports: winston.transport[] = [
-    // Console transport (siempre activo excepto en tests)
+    // Console transport (always active except in tests)
     new winston.transports.Console({
         format: consoleFormat,
         level: process.env.LOG_LEVEL || 'debug',
