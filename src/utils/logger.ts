@@ -149,12 +149,7 @@ export const logDebug = (message: string, meta?: any) => logger.debug(message, m
  * @param meta Optional metadata
  * @param shouldExit Whether to exit the process (default: true)
  */
-export const logFatal = (
-    message: string,
-    error?: Error,
-    meta?: any,
-    shouldExit: boolean = true
-) => {
+export const logFatal = (message: string, error?: Error, meta?: any, shouldExit: boolean = true) => {
     processError(message, error, meta);
     if (shouldExit && process.env.NODE_ENV !== 'test') {
         process.exit(1);
