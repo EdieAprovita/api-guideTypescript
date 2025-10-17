@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 const router = express.Router();
 
 /**
- * @description Liveness probe - indica si el servidor está vivo
+ * @description Liveness probe - indicates if the server is alive
  * @route GET /health
  */
 router.get('/', (_req: Request, res: Response) => {
