@@ -25,7 +25,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
         userAgent: req.get('user-agent'),
     });
 
-    // Interceptar response
+    // Intercept response
     const originalSend = res.send;
     res.send = function (data: any) {
         const duration = Date.now() - startTime;
