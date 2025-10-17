@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Script para probar la configuración de Cloud Run localmente
-# Este script simula el entorno de Cloud Run y verifica que el contenedor inicie correctamente
+# Script to test Cloud Run configuration locally
+# This script simulates the Cloud Run environment and checks that the container starts correctly
 
 set -e  # Exit on error
 
