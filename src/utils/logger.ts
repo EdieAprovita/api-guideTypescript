@@ -2,18 +2,13 @@ import winston from 'winston';
 import path from 'path';
 import fs from 'node:fs';
 
-// Create logs directory if it doesn't exist
-const logsDir = path.join(process.cwd(), 'logs');
-if (!fs.existsSync(logsDir)) {
-    fs.mkdirSync(logsDir, { recursive: true });
-}
-
 /**
  * @description Logger configuration with Winston
  * Supports multiple transports:
- * - Console (development)
- * - File (rotating, production)
- * - Error file (errors only)
+ * - Console (all environments)
+ * - File (only in development with write permissions)
+ *
+ * Cloud Run optimized: Uses console-only logging in production
  */
 
 // Define log levels
@@ -49,8 +44,11 @@ const baseFormat = winston.format.combine(
 // Custom format for files
 const customFormat = winston.format.combine(baseFormat, winston.format.json());
 
-// Console format (development)
-const consoleFormat = winston.format.combine(
+// Console format for production (JSON for Cloud Logging)
+const productionConsoleFormat = winston.format.combine(baseFormat, winston.format.json());
+
+// Console format for development (human-readable)
+const developmentConsoleFormat = winston.format.combine(
     baseFormat,
     winston.format.colorize(),
     winston.format.printf(({ level, message, timestamp, ...meta }) => {
@@ -62,19 +60,39 @@ const consoleFormat = winston.format.combine(
     })
 );
 
+// Determine if we should use file logging (only in development)
+const shouldUseFileLogging = process.env.NODE_ENV === 'development';
+
+// Create logs directory only if needed and possible
+let logsDir = '';
+let canWriteLogs = false;
+
+if (shouldUseFileLogging) {
+    logsDir = path.join(process.cwd(), 'logs');
+    try {
+        if (!fs.existsSync(logsDir)) {
+            fs.mkdirSync(logsDir, { recursive: true });
+        }
+        canWriteLogs = true;
+    } catch (error) {
+        console.warn('⚠️  Unable to create logs directory, using console-only logging');
+        canWriteLogs = false;
+    }
+}
+
 // Create transports
 const baseTransports: winston.transport[] = [
     // Console transport (always active except in tests)
     new winston.transports.Console({
-        format: consoleFormat,
-        level: process.env.LOG_LEVEL || 'debug',
+        format: process.env.NODE_ENV === 'production' ? productionConsoleFormat : developmentConsoleFormat,
+        level: process.env.LOG_LEVEL || 'info',
         silent: process.env.NODE_ENV === 'test' && !process.env.DEBUG_TESTS,
     }),
 ];
 
-// File transports configuration
+// File transports configuration (only in development with write permissions)
 const fileTransports: winston.transport[] =
-    process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test'
+    canWriteLogs && shouldUseFileLogging
         ? [
               new winston.transports.File({
                   filename: path.join(logsDir, 'application.log'),
@@ -95,9 +113,9 @@ const fileTransports: winston.transport[] =
 
 const transports: winston.transport[] = [...baseTransports, ...fileTransports];
 
-// Create generic handler for log files
+// Create generic handler for log files (only if we can write)
 const createFileHandler = (filename: string): winston.transport[] =>
-    process.env.NODE_ENV !== 'test'
+    canWriteLogs && process.env.NODE_ENV !== 'test'
         ? [
               new winston.transports.File({
                   filename: path.join(logsDir, filename),
