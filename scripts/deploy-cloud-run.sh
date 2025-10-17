@@ -25,7 +25,7 @@ echo -e "${BLUE}📋 Archivos modificados:${NC}"
 git status --short
 
 echo ""
-read -p "¿Deseas probar localmente antes de hacer push? (recomendado) [Y/n] " -n 1 -r
+read -p "Do you want to test locally before pushing? (recommended) [Y/n] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
     echo ""
