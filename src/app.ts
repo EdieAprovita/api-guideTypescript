@@ -78,7 +78,13 @@ if (process.env.NODE_ENV === 'production') {
     app.set('trust proxy', true);
 }
 
-const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as JsonObject;
+// Load Swagger documentation (with fallback for production)
+let swaggerDocument: JsonObject | null = null;
+try {
+    swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as JsonObject;
+} catch (error) {
+    console.warn('⚠️  Unable to load swagger.yaml, Swagger UI will be disabled');
+}
 
 // Add request logger early in the middleware chain
 app.use(requestLogger);
@@ -107,7 +113,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(corsMiddleware);
 const enableSwaggerUI = process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER_UI === 'true';
-if (enableSwaggerUI) {
+if (enableSwaggerUI && swaggerDocument) {
     // Protect Swagger UI in production if credentials are provided
     if (process.env.NODE_ENV === 'production') {
         app.use('/api-docs', basicAuth(), swaggerUi.serve, swaggerUi.setup(swaggerDocument));
