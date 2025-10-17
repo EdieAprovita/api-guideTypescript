@@ -26,7 +26,7 @@ const logLevels = {
     trace: 5,
 };
 
-// Colores para console output
+// Colors for console output
 const logColors = {
     fatal: 'red',
     error: 'red',
