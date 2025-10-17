@@ -142,9 +142,21 @@ export const logError = (message: string, error?: Error | string, meta?: any) =>
 export const logWarn = (message: string, meta?: any) => logger.warn(message, meta);
 export const logDebug = (message: string, meta?: any) => logger.debug(message, meta);
 
-export const logFatal = (message: string, error?: Error, meta?: any) => {
+/**
+ * Logs a fatal error. By default, exits the process unless in 'test' environment or shouldExit is false.
+ * @param message The error message
+ * @param error Optional error object
+ * @param meta Optional metadata
+ * @param shouldExit Whether to exit the process (default: true)
+ */
+export const logFatal = (
+    message: string,
+    error?: Error,
+    meta?: any,
+    shouldExit: boolean = true
+) => {
     processError(message, error, meta);
-    if (process.env.NODE_ENV !== 'test') {
+    if (shouldExit && process.env.NODE_ENV !== 'test') {
         process.exit(1);
     }
 };
