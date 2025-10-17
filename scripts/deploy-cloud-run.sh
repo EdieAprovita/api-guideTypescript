@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 🚀 Script de Deploy Rápido para Cloud Run
-# Este script hace commit y push de los cambios de forma segura
+# 🚀 Fast Deploy Script for Cloud Run
+# This script safely commits and pushes changes
 
 set -e
 
