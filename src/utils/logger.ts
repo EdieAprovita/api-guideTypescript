@@ -95,7 +95,7 @@ const fileTransports: winston.transport[] =
 
 const transports: winston.transport[] = [...baseTransports, ...fileTransports];
 
-// Crear handler genérico para archivos de log
+// Create generic handler for log files
 const createFileHandler = (filename: string): winston.transport[] =>
     process.env.NODE_ENV !== 'test'
         ? [
