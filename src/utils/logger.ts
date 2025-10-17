@@ -49,7 +49,7 @@ const baseFormat = winston.format.combine(
 // Custom format for files
 const customFormat = winston.format.combine(baseFormat, winston.format.json());
 
-// Formato para consola (desarrollo)
+// Console format (development)
 const consoleFormat = winston.format.combine(
     baseFormat,
     winston.format.colorize(),
