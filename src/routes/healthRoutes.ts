@@ -27,7 +27,7 @@ router.get('/ready', async (_req: Request, res: Response) => {
     try {
         logger.debug('Readiness probe requested');
 
-        // Verificar MongoDB
+        // Verify MongoDB
         const mongoConnected = mongoose.connection.readyState === 1;
 
         if (mongoConnected) {
