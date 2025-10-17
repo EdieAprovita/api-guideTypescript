@@ -125,7 +125,7 @@ const logger = winston.createLogger({
 // Export as default and also individual methods
 export default logger;
 
-// Exportar métodos de conveniencia tipados
+// Export typed convenience methods
 export const logInfo = (message: string, meta?: any) => logger.info(message, meta);
 
 // Función auxiliar para procesar errores
