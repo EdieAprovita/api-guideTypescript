@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 const router = express.Router();
 
 /**
- * @description Liveness probe - indica si el servidor está vivo
+ * @description Liveness probe - indicates if the server is alive
  * @route GET /health
  */
 router.get('/', (_req: Request, res: Response) => {
@@ -20,14 +20,14 @@ router.get('/', (_req: Request, res: Response) => {
 });
 
 /**
- * @description Readiness probe - indica si el servidor está listo para requests
+ * @description Readiness probe - indicates if the server is ready to accept requests
  * @route GET /ready
  */
 router.get('/ready', async (_req: Request, res: Response) => {
     try {
         logger.debug('Readiness probe requested');
 
-        // Verificar MongoDB
+        // Verify MongoDB
         const mongoConnected = mongoose.connection.readyState === 1;
 
         if (mongoConnected) {

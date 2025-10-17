@@ -3,18 +3,18 @@ import logger from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * @description Middleware para loguear requests con correlation ID
- * Agrega correlation ID único a cada request y loguea entrada/salida
+ * @description Middleware to log requests with a correlation ID
+ * Adds a unique correlation ID to each request and logs entry/exit
  */
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-    // Generar o usar correlation ID existente
+    // Generate or use existing correlation ID
     const correlationId = req.get('X-Correlation-ID') || uuidv4();
     (req as any).correlationId = correlationId;
 
-    // Guardar correlation ID en response headers
+    // Save correlation ID in response headers
     res.setHeader('X-Correlation-ID', correlationId);
 
-    // Loguear entrada
+    // Log entry
     const startTime = Date.now();
     logger.debug(`[${correlationId}] Incoming ${req.method} ${req.path}`, {
         correlationId,
@@ -25,12 +25,12 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
         userAgent: req.get('user-agent'),
     });
 
-    // Interceptar response
+    // Intercept response
     const originalSend = res.send;
     res.send = function (data: any) {
         const duration = Date.now() - startTime;
 
-        // Loguear salida
+        // Log exit
         if (res.statusCode >= 400) {
             logger.warn(`[${correlationId}] Outgoing ${req.method} ${req.path} - ${res.statusCode}`, {
                 correlationId,

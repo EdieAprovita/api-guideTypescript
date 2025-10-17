@@ -2,7 +2,7 @@ import winston from 'winston';
 import path from 'path';
 import fs from 'node:fs';
 
-// Crear directorio de logs si no existe
+// Create logs directory if it doesn't exist
 const logsDir = path.join(process.cwd(), 'logs');
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
@@ -12,11 +12,11 @@ if (!fs.existsSync(logsDir)) {
  * @description Logger configuration with Winston
  * Supports multiple transports:
  * - Console (development)
- * - File (rotativo, production)
- * - Error file (solo errores)
+ * - File (rotating, production)
+ * - Error file (errors only)
  */
 
-// Define los niveles de log
+// Define log levels
 const logLevels = {
     fatal: 0,
     error: 1,
@@ -26,7 +26,7 @@ const logLevels = {
     trace: 5,
 };
 
-// Colores para console output
+// Colors for console output
 const logColors = {
     fatal: 'red',
     error: 'red',
@@ -38,7 +38,7 @@ const logColors = {
 
 winston.addColors(logColors);
 
-// Formato base compartido
+// Shared base format
 const baseFormat = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.ms(),
@@ -46,10 +46,10 @@ const baseFormat = winston.format.combine(
     winston.format.splat()
 );
 
-// Formato personalizado para archivos
+// Custom format for files
 const customFormat = winston.format.combine(baseFormat, winston.format.json());
 
-// Formato para consola (desarrollo)
+// Console format (development)
 const consoleFormat = winston.format.combine(
     baseFormat,
     winston.format.colorize(),
@@ -62,9 +62,9 @@ const consoleFormat = winston.format.combine(
     })
 );
 
-// Crear transports
+// Create transports
 const baseTransports: winston.transport[] = [
-    // Console transport (siempre activo excepto en tests)
+    // Console transport (always active except in tests)
     new winston.transports.Console({
         format: consoleFormat,
         level: process.env.LOG_LEVEL || 'debug',
@@ -72,7 +72,7 @@ const baseTransports: winston.transport[] = [
     }),
 ];
 
-// Configuración de file transports
+// File transports configuration
 const fileTransports: winston.transport[] =
     process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test'
         ? [
@@ -81,7 +81,7 @@ const fileTransports: winston.transport[] =
                   format: customFormat,
                   level: process.env.LOG_LEVEL || 'debug',
                   maxsize: 20 * 1024 * 1024, // 20MB
-                  maxFiles: 14, // 14 archivos
+                  maxFiles: 14, // 14 files
               }),
               new winston.transports.File({
                   filename: path.join(logsDir, 'error.log'),
@@ -95,7 +95,7 @@ const fileTransports: winston.transport[] =
 
 const transports: winston.transport[] = [...baseTransports, ...fileTransports];
 
-// Crear handler genérico para archivos de log
+// Create generic handler for log files
 const createFileHandler = (filename: string): winston.transport[] =>
     process.env.NODE_ENV !== 'test'
         ? [
@@ -109,7 +109,7 @@ const createFileHandler = (filename: string): winston.transport[] =>
 const createExceptionHandler = (): winston.transport[] => createFileHandler('exceptions.log');
 const createRejectionHandler = (): winston.transport[] => createFileHandler('rejections.log');
 
-// Crear logger
+// Create logger
 const logger = winston.createLogger({
     levels: logLevels,
     format: customFormat,
@@ -122,13 +122,13 @@ const logger = winston.createLogger({
     rejectionHandlers: createRejectionHandler(),
 });
 
-// Exportar como default y también métodos individuales
+// Export as default and also individual methods
 export default logger;
 
-// Exportar métodos de conveniencia tipados
+// Export typed convenience methods
 export const logInfo = (message: string, meta?: any) => logger.info(message, meta);
 
-// Función auxiliar para procesar errores
+// Helper function to process errors
 const processError = (message: string, error?: Error | string, meta?: any) => {
     if (error instanceof Error) {
         logger.error(message, { error: error.message, stack: error.stack, ...meta });
