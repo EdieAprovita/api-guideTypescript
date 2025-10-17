@@ -46,7 +46,7 @@ const baseFormat = winston.format.combine(
     winston.format.splat()
 );
 
-// Formato personalizado para archivos
+// Custom format for files
 const customFormat = winston.format.combine(baseFormat, winston.format.json());
 
 // Formato para consola (desarrollo)
