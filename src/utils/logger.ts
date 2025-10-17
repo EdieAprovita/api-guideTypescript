@@ -122,7 +122,7 @@ const logger = winston.createLogger({
     rejectionHandlers: createRejectionHandler(),
 });
 
-// Exportar como default y también métodos individuales
+// Export as default and also individual methods
 export default logger;
 
 // Exportar métodos de conveniencia tipados
