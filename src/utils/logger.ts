@@ -81,7 +81,7 @@ const fileTransports: winston.transport[] =
                   format: customFormat,
                   level: process.env.LOG_LEVEL || 'debug',
                   maxsize: 20 * 1024 * 1024, // 20MB
-                  maxFiles: 14, // 14 archivos
+                  maxFiles: 14, // 14 files
               }),
               new winston.transports.File({
                   filename: path.join(logsDir, 'error.log'),
