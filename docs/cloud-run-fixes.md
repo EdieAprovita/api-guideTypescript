@@ -91,7 +91,7 @@ HEALTHCHECK --interval=30s --timeout=15s --start-period=40s --retries=3 \
 
 ```javascript
 const options = {
-    hostname: '0.0.0.0', // Todas las interfaces
+    hostname: 'localhost', // Interfaz local
     port: process.env.PORT || 8080,
     path: '/health',
     timeout: 8000, // 8 segundos
