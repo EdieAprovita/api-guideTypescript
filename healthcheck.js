@@ -1,7 +1,7 @@
 const http = require('http');
 
 const options = {
-    hostname: '0.0.0.0', // Listen on all interfaces for Cloud Run
+    hostname: 'localhost', // Use localhost for health check requests
     port: process.env.PORT || 8080,
     path: '/health',
     method: 'GET',
