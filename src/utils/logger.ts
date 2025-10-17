@@ -16,7 +16,7 @@ if (!fs.existsSync(logsDir)) {
  * - Error file (errors only)
  */
 
-// Define los niveles de log
+// Define log levels
 const logLevels = {
     fatal: 0,
     error: 1,
