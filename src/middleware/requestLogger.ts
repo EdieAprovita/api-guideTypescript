@@ -3,8 +3,8 @@ import logger from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * @description Middleware para loguear requests con correlation ID
- * Agrega correlation ID único a cada request y loguea entrada/salida
+ * @description Middleware to log requests with a correlation ID
+ * Adds a unique correlation ID to each request and logs entry/exit
  */
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
     // Generate or use existing correlation ID
