@@ -30,7 +30,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
     res.send = function (data: any) {
         const duration = Date.now() - startTime;
 
-        // Loguear salida
+        // Log exit
         if (res.statusCode >= 400) {
             logger.warn(`[${correlationId}] Outgoing ${req.method} ${req.path} - ${res.statusCode}`, {
                 correlationId,
