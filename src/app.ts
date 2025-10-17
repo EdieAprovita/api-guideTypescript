@@ -15,7 +15,6 @@ import {
     detectSuspiciousActivity,
     limitRequestSize,
     validateUserAgent,
-    addCorrelationId,
     requireAPIVersion,
 } from './middleware/security';
 
@@ -62,7 +61,6 @@ app.use(requestLogger);
 // Enhanced security middleware configuration
 app.use(enforceHTTPS); // Force HTTPS in production
 app.use(configureHelmet()); // Enhanced helmet configuration with CSP
-app.use(addCorrelationId); // Add correlation ID for request tracing
 if (process.env.NODE_ENV !== 'test') {
     app.use(requireAPIVersion(['v1']));
 } // API versioning support
