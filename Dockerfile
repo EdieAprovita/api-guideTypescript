@@ -53,11 +53,13 @@ USER nodejs
 EXPOSE 8080
 
 # Set environment variables
-ENV NODE_ENV=production
-# PORT will be provided by Cloud Run dynamically
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=512" \
+    PORT=8080
 
-# Health check - increased timeouts for Cloud Run startup
-HEALTHCHECK --interval=30s --timeout=15s --start-period=40s --retries=3 \
+# Health check - optimized for Cloud Run startup
+# Cloud Run ignores HEALTHCHECK, but useful for local testing
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD node healthcheck.js
 
 # Use dumb-init for proper signal handling

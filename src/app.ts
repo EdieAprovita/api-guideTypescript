@@ -37,14 +37,34 @@ import yaml from 'js-yaml';
 import basicAuth from './middleware/basicAuth';
 
 dotenv.config();
+
+// MongoDB connection state tracking
+let isMongoConnected = false;
+let mongoConnectionError: Error | null = null;
+
 // Connect to MongoDB asynchronously without blocking server startup
 // This is critical for Cloud Run to pass health checks during startup
 if (process.env.NODE_ENV !== 'test') {
-    connectDB().catch(err => {
-        console.error('Failed to connect to MongoDB on startup:', err);
-        // Continue running - the app can still serve health checks and may reconnect later
-    });
+    // Start MongoDB connection in background
+    connectDB()
+        .then(() => {
+            isMongoConnected = true;
+            console.log('✅ MongoDB connected successfully');
+        })
+        .catch(err => {
+            isMongoConnected = false;
+            mongoConnectionError = err;
+            console.error('⚠️  Failed to connect to MongoDB on startup:', err.message);
+            console.log('📌 Server will continue running without database connection');
+            // Continue running - the app can still serve health checks and may reconnect later
+        });
 }
+
+// Export connection status for health checks
+export const getMongoStatus = () => ({
+    connected: isMongoConnected,
+    error: mongoConnectionError?.message || null,
+});
 
 const app = express();
 
