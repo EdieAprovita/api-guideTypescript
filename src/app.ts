@@ -3,6 +3,8 @@ import express from 'express';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { xss } from 'express-xss-sanitizer';
+import requestLogger from './middleware/requestLogger';
+import fs from 'node:fs';
 
 import connectDB from './config/db';
 import { errorHandler, notFound } from './middleware/errorHandler';
@@ -30,8 +32,8 @@ import sanctuaryRoutes from './routes/sanctuaryRoutes';
 import authRoutes from './routes/authRoutes';
 import cacheRoutes from './routes/cacheRoutes';
 import reviewRoutes from './routes/reviewRoutes';
+import healthRoutes from './routes/healthRoutes';
 import swaggerUi, { JsonObject } from 'swagger-ui-express';
-import fs from 'fs';
 import yaml from 'js-yaml';
 
 dotenv.config();
@@ -42,6 +44,9 @@ if (process.env.NODE_ENV !== 'test') {
 const app = express();
 
 const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as JsonObject;
+
+// Add request logger early in the middleware chain
+app.use(requestLogger);
 
 // Enhanced security middleware configuration
 app.use(enforceHTTPS); // Force HTTPS in production
@@ -75,15 +80,8 @@ app.get('/api/v1', (_req, res) => {
     res.send('API is running');
 });
 
-// Main health check endpoint
-app.get('/health', (_req, res) => {
-    res.status(200).json({
-        status: 'OK',
-        message: 'API is healthy',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-    });
-});
+// Health check endpoints (without authentication)
+app.use('/health', healthRoutes);
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
