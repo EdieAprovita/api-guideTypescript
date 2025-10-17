@@ -11,7 +11,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
     const correlationId = req.get('X-Correlation-ID') || uuidv4();
     (req as any).correlationId = correlationId;
 
-    // Guardar correlation ID en response headers
+    // Save correlation ID in response headers
     res.setHeader('X-Correlation-ID', correlationId);
 
     // Loguear entrada
