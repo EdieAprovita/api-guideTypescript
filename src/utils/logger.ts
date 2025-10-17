@@ -13,7 +13,7 @@ if (!fs.existsSync(logsDir)) {
  * Supports multiple transports:
  * - Console (development)
  * - File (rotativo, production)
- * - Error file (solo errores)
+ * - Error file (errors only)
  */
 
 // Define los niveles de log
