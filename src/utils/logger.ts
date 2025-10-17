@@ -62,7 +62,7 @@ const consoleFormat = winston.format.combine(
     })
 );
 
-// Crear transports
+// Create transports
 const baseTransports: winston.transport[] = [
     // Console transport (siempre activo excepto en tests)
     new winston.transports.Console({
