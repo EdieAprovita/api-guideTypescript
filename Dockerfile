@@ -49,15 +49,15 @@ COPY healthcheck.js ./
 # Switch to non-root user
 USER nodejs
 
-# Expose port
-EXPOSE 5001
+# Expose port (Cloud Run will override PORT env var)
+EXPOSE 8080
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=5001
+# Don't set PORT - Cloud Run will provide it dynamically
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# Health check - increased timeout for Cloud Run
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD node healthcheck.js
 
 # Use dumb-init for proper signal handling

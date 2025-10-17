@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware';
-import { validate, rateLimits } from '../middleware/validation';
-import { paramSchemas } from '../utils/validators';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation';
+import { paramSchemas, reviewSchemas } from '../utils/validators';
 import {
     getMarkets,
     getMarketById,
@@ -19,11 +19,32 @@ router.get('/', getMarkets);
 router.get('/:id', getMarketById);
 
 router.post('/', protect, createMarket);
-// Legacy route - kept for compatibility, will be removed in Phase 9
-router.post('/add-review/:id', rateLimits.api, protect, addReviewToMarket);
 
-// Review routes
-router.post('/:id/reviews', rateLimits.api, protect, validate({ params: paramSchemas.marketId }), addReviewToMarket);
+// Standardized review routes (new OpenAPI 3.0 compliant paths)
+router.post(
+    '/:id/reviews',
+    rateLimits.api,
+    protect,
+    validateInputLength(2048),
+    validate({
+        params: paramSchemas.marketId,
+        body: reviewSchemas.create,
+    }),
+    addReviewToMarket
+);
+
+// Legacy review route (kept for backward compatibility)
+router.post(
+    '/add-review/:id',
+    rateLimits.api,
+    protect,
+    validateInputLength(2048),
+    validate({
+        params: paramSchemas.marketId,
+        body: reviewSchemas.create,
+    }),
+    addReviewToMarket
+);
 router.get('/:id/reviews', rateLimits.api, validate({ params: paramSchemas.marketId }), getMarketReviews);
 router.get('/:id/reviews/stats', rateLimits.api, validate({ params: paramSchemas.marketId }), getMarketReviewStats);
 

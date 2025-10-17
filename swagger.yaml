@@ -11,6 +11,8 @@ servers:
   description: Development server
 - url: https://api.apiguide.com/api/v1
   description: Production server
+- url: https://api-guidetypescript-787324382752.europe-west1.run.app/api/v1
+  description: Cloud Run production server
 components:
   securitySchemes:
     bearerAuth:
@@ -843,9 +845,9 @@ components:
       type: object
       description: Schema for creating reviews via entity-specific endpoints
       required:
-        - rating
-        - title
-        - content
+      - rating
+      - title
+      - content
       properties:
         rating:
           type: number
@@ -875,14 +877,14 @@ components:
           items:
             type: string
             maxLength: 50
-          example: ["Tacos al pastor", "Guacamole"]
+          example: [ "Tacos al pastor", "Guacamole" ]
           description: Recommended dishes/items (optional)
         tags:
           type: array
           items:
             type: string
             maxLength: 30
-          example: ["auténtico", "familiar"]
+          example: [ "auténtico", "familiar" ]
           description: Review tags (optional)
       additionalProperties: false
 
@@ -1164,11 +1166,75 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /businesses/add-review/{id}:
+  /businesses/{id}/reviews:
     post:
       tags:
       - Businesses
-      summary: Add Review to Business
+      summary: Add Review to Business (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Authorization error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - bearerAuth: []
+  /businesses/add-review/{id}:
+    post:
+      deprecated: true
+      tags:
+      - Businesses
+      summary: Add Review to Business (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -1273,11 +1339,75 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /restaurants/add-review/{id}:
+  /restaurants/{id}/reviews:
     post:
       tags:
       - Restaurants
-      summary: Add Review to Restaurant
+      summary: Add Review to Restaurant (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Authorization error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - bearerAuth: []
+  /restaurants/add-review/{id}:
+    post:
+      deprecated: true
+      tags:
+      - Restaurants
+      summary: Add Review to Restaurant (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -1399,11 +1529,75 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /doctors/add-review/{id}:
+  /doctors/{id}/reviews:
     post:
       tags:
       - Doctors
-      summary: Add Review to Doctor
+      summary: Add Review to Doctor (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Authorization error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - bearerAuth: []
+  /doctors/add-review/{id}:
+    post:
+      deprecated: true
+      tags:
+      - Doctors
+      summary: Add Review to Doctor (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -1870,11 +2064,75 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /sanctuaries/add-review/{id}:
+  /sanctuaries/{id}/reviews:
     post:
       tags:
       - Sanctuaries
-      summary: Add Review to Sanctuary
+      summary: Add Review to Sanctuary (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Authorization error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - bearerAuth: []
+  /sanctuaries/add-review/{id}:
+    post:
+      deprecated: true
+      tags:
+      - Sanctuaries
+      summary: Add Review to Sanctuary (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -1973,11 +2231,75 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /professions/add-review/{id}:
+  /professions/{id}/reviews:
     post:
       tags:
       - Professions
-      summary: Add Review to Profession
+      summary: Add Review to Profession (Standardized)
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  maxLength: 1000
+                name:
+                  type: string
+              required:
+              - rating
+              - comment
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Authorization error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - bearerAuth: []
+  /professions/add-review/{id}:
+    post:
+      deprecated: true
+      tags:
+      - Professions
+      summary: Add Review to Profession (Legacy - Use /{id}/reviews)
       requestBody:
         content:
           application/json:
@@ -2284,8 +2606,8 @@ paths:
               title: "Actualizada reseña"
               content: "Contenido actualizado de la reseña"
               visitDate: "2024-01-20"
-              recommendedDishes: ["Plato actualizado"]
-              tags: ["actualizado"]
+              recommendedDishes: [ "Plato actualizado" ]
+              tags: [ "actualizado" ]
       responses:
         '200':
           description: Review updated successfully
@@ -2592,21 +2914,21 @@ paths:
               example:
                 success: true
                 data:
-                  - _id: "66cf0000000000000000a1"
-                    entityType: "Market"
-                    entity: "66cf0000000000000000m1"
-                    rating: 5
-                    title: "Excelente mercado"
-                    content: "Productos frescos y buenos precios"
-                    visitDate: "2024-01-15"
-                    recommendedDishes: []
-                    tags: ["orgánico"]
-                    author: "66cf0000000000000000u1"
-                    helpfulCount: 2
-                    helpfulVotes: ["66cf0000000000000000u2"]
-                    timestamps:
-                      createdAt: "2024-01-20T10:00:00Z"
-                      updatedAt: "2024-01-20T10:00:00Z"
+                - _id: "66cf0000000000000000a1"
+                  entityType: "Market"
+                  entity: "66cf0000000000000000m1"
+                  rating: 5
+                  title: "Excelente mercado"
+                  content: "Productos frescos y buenos precios"
+                  visitDate: "2024-01-15"
+                  recommendedDishes: []
+                  tags: [ "orgánico" ]
+                  author: "66cf0000000000000000u1"
+                  helpfulCount: 2
+                  helpfulVotes: [ "66cf0000000000000000u2" ]
+                  timestamps:
+                    createdAt: "2024-01-20T10:00:00Z"
+                    updatedAt: "2024-01-20T10:00:00Z"
                 pagination:
                   currentPage: 1
                   totalPages: 1
@@ -2688,13 +3010,13 @@ paths:
                   items:
                     type: string
                     maxLength: 50
-                  example: ["Frutas orgánicas", "Verduras frescas"]
+                  example: [ "Frutas orgánicas", "Verduras frescas" ]
                 tags:
                   type: array
                   items:
                     type: string
                     maxLength: 30
-                  example: ["orgánico", "fresco", "local"]
+                  example: [ "orgánico", "fresco", "local" ]
       responses:
         '201':
           description: Review created successfully
@@ -2886,21 +3208,21 @@ paths:
               example:
                 success: true
                 data:
-                  - _id: "66cf0000000000000000b1"
-                    entityType: "Recipe"
-                    entity: "66cf0000000000000000r1"
-                    rating: 4
-                    title: "Rica receta"
-                    content: "Sencilla y deliciosa"
-                    visitDate: "2024-02-01"
-                    recommendedDishes: []
-                    tags: ["rápida"]
-                    author: "66cf0000000000000000u1"
-                    helpfulCount: 0
-                    helpfulVotes: []
-                    timestamps:
-                      createdAt: "2024-02-02T12:00:00Z"
-                      updatedAt: "2024-02-02T12:00:00Z"
+                - _id: "66cf0000000000000000b1"
+                  entityType: "Recipe"
+                  entity: "66cf0000000000000000r1"
+                  rating: 4
+                  title: "Rica receta"
+                  content: "Sencilla y deliciosa"
+                  visitDate: "2024-02-01"
+                  recommendedDishes: []
+                  tags: [ "rápida" ]
+                  author: "66cf0000000000000000u1"
+                  helpfulCount: 0
+                  helpfulVotes: []
+                  timestamps:
+                    createdAt: "2024-02-02T12:00:00Z"
+                    updatedAt: "2024-02-02T12:00:00Z"
                 pagination:
                   currentPage: 1
                   totalPages: 3
@@ -2982,13 +3304,13 @@ paths:
                   items:
                     type: string
                     maxLength: 50
-                  example: ["Pasta", "Ensalada"]
+                  example: [ "Pasta", "Ensalada" ]
                 tags:
                   type: array
                   items:
                     type: string
                     maxLength: 30
-                  example: ["fácil", "delicioso"]
+                  example: [ "fácil", "delicioso" ]
       responses:
         '201':
           description: Review created successfully
@@ -3136,8 +3458,8 @@ paths:
               title: "Espectacular"
               content: "Servicio y comida de primera"
               visitDate: "2024-03-10"
-              recommendedDishes: ["Tacos al pastor"]
-              tags: ["auténtico", "excelente"]
+              recommendedDishes: [ "Tacos al pastor" ]
+              tags: [ "auténtico", "excelente" ]
       responses:
         '201':
           description: Review created successfully
@@ -3249,18 +3571,18 @@ paths:
               example:
                 success: true
                 data:
-                  - _id: "66cf0000000000000000c1"
-                    entityType: "Restaurant"
-                    entity: "66cf0000000000000000e1"
-                    rating: 5
-                    title: "Espectacular"
-                    content: "Servicio y comida de primera"
-                    author: "66cf0000000000000000u3"
-                    helpfulCount: 0
-                    helpfulVotes: []
-                    timestamps:
-                      createdAt: "2024-03-10T09:00:00Z"
-                      updatedAt: "2024-03-10T09:00:00Z"
+                - _id: "66cf0000000000000000c1"
+                  entityType: "Restaurant"
+                  entity: "66cf0000000000000000e1"
+                  rating: 5
+                  title: "Espectacular"
+                  content: "Servicio y comida de primera"
+                  author: "66cf0000000000000000u3"
+                  helpfulCount: 0
+                  helpfulVotes: []
+                  timestamps:
+                    createdAt: "2024-03-10T09:00:00Z"
+                    updatedAt: "2024-03-10T09:00:00Z"
                 pagination:
                   currentPage: 1
                   totalPages: 5
@@ -3368,4 +3690,3 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-    

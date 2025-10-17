@@ -203,6 +203,42 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 
+## Swagger UI en producción (opcional)
+
+Para habilitar la documentación en Cloud Run en la ruta `/api-docs`, configura estas variables de entorno en el servicio:
+
+- `ENABLE_SWAGGER_UI=true`
+- Opcional (recomendado): proteger con Basic Auth
+  - `SWAGGER_AUTH_USER=admin`
+  - `SWAGGER_AUTH_PASS=una-contraseña-segura`
+
+Cuando `ENABLE_SWAGGER_UI` está activo en producción y existen `SWAGGER_AUTH_USER` y `SWAGGER_AUTH_PASS`, el endpoint `/api-docs` solicita credenciales Basic Auth. En desarrollo no se requiere configuración.
+
+### Comandos `gcloud` de ejemplo (tu servicio)
+
+Habilitar y proteger `/api-docs`:
+
+```bash
+gcloud run services update api-guidetypescript \
+  --region=europe-west1 \
+  --set-env-vars ENABLE_SWAGGER_UI=true,SWAGGER_AUTH_USER=admin,SWAGGER_AUTH_PASS='cambia-esta-contraseña'
+```
+
+Deshabilitar `/api-docs`:
+
+```bash
+gcloud run services update api-guidetypescript \
+  --region=europe-west1 \
+  --set-env-vars ENABLE_SWAGGER_UI=false,SWAGGER_AUTH_USER=,SWAGGER_AUTH_PASS=
+```
+
+Verificación rápida:
+
+```bash
+curl -I https://api-guidetypescript-787324382752.europe-west1.run.app/api-docs        # 401
+curl -u admin:'cambia-esta-contraseña' -I https://api-guidetypescript-787324382752.europe-west1.run.app/api-docs  # 200
+```
+
 # Crear usuario no-root para seguridad
 RUN addgroup -S nodejs && adduser -S node -G nodejs
 

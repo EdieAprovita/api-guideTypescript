@@ -107,6 +107,12 @@ web_modules/
 .env.*.local
 .env.backup
 
+# Docker environment files (CRITICAL: Never commit these!)
+.env.docker
+.env.compose
+docker.env
+.docker.env
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

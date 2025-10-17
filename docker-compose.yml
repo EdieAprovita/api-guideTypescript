@@ -1,3 +1,28 @@
+# =============================================================================
+# DOCKER COMPOSE CONFIGURATION FOR VEGAN GUIDE API
+# =============================================================================
+#
+# 🚨 CRITICAL SECURITY NOTICE:
+# 
+# ⚠️  THIS WILL NOT WORK WITHOUT PROPER CONFIGURATION!
+#
+# MANDATORY STEPS BEFORE RUNNING:
+# 1. Copy .env.docker.example to .env.docker
+# 2. Generate secure passwords: openssl rand -base64 32
+# 3. Generate JWT secrets: openssl rand -hex 64  
+# 4. Replace ALL placeholder values in .env.docker
+# 5. NEVER commit .env.docker to version control
+#
+# 🛑 ALL HARDCODED PASSWORDS HAVE BEEN REMOVED FOR SECURITY!
+#
+# Usage:
+# - Production: docker-compose --profile prod up
+# - Development: docker-compose --profile dev up
+#
+# =============================================================================
+
+# Load environment variables from .env.docker file
+# Create this file based on .env.docker.example
 services:
     # MongoDB Database
     mongodb:
@@ -7,8 +32,8 @@ services:
         ports:
             - '27017:27017'
         environment:
-            MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
-            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME is required}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required - check .env.docker}
             MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-vegan-city-guide}
         volumes:
             - mongodb_data:/data/db
@@ -29,16 +54,16 @@ services:
         restart: unless-stopped
         ports:
             - '6379:6379'
-        command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123} --maxmemory 512mb --maxmemory-policy allkeys-lru
+        command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required - check .env.docker} --maxmemory 512mb --maxmemory-policy allkeys-lru
         environment:
-            REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required - check .env.docker}
         volumes:
             - redis_data:/data
             - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
         networks:
             - vegan-city-guide-network
         healthcheck:
-            test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-redis123}', 'ping']
+            test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
             interval: 30s
             timeout: 10s
             retries: 3
@@ -48,7 +73,7 @@ services:
     api:
         build:
             context: .
-            dockerfile: dockerfile
+            dockerfile: Dockerfile
             target: production
         container_name: vegan-city-guide-api
         restart: unless-stopped
@@ -57,15 +82,15 @@ services:
         environment:
             NODE_ENV: ${NODE_ENV:-production}
             PORT: ${PORT:-5001}
-            MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/${MONGO_DATABASE:-vegan-city-guide}?authSource=admin
-            REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379
-            JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-for-docker}
-            JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-jwt-refresh-key-for-docker}
+            MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME is required}:${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required}@mongodb:27017/${MONGO_DATABASE:-vegan-city-guide}?authSource=admin
+            REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
+            JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required - check .env.docker}
+            JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required - check .env.docker}
             JWT_EXPIRE: ${JWT_EXPIRE:-30d}
             JWT_REFRESH_EXPIRE: ${JWT_REFRESH_EXPIRE:-7d}
             REDIS_HOST: redis
             REDIS_PORT: 6379
-            REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
         depends_on:
             mongodb:
                 condition: service_healthy
@@ -89,7 +114,7 @@ services:
     api-dev:
         build:
             context: .
-            dockerfile: dockerfile
+            dockerfile: Dockerfile
             target: builder
         container_name: vegan-city-guide-api-dev
         restart: unless-stopped
@@ -98,15 +123,15 @@ services:
         environment:
             NODE_ENV: development
             PORT: 5001
-            MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/${MONGO_DATABASE:-vegan-city-guide}?authSource=admin
-            REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379
-            JWT_SECRET: ${JWT_SECRET_DEV:-your-super-secret-jwt-key-for-docker-dev}
-            JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET_DEV:-your-super-secret-jwt-refresh-key-for-docker-dev}
+            MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME is required}:${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required}@mongodb:27017/${MONGO_DATABASE:-vegan-city-guide}?authSource=admin
+            REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
+            JWT_SECRET: ${JWT_SECRET_DEV:?JWT_SECRET_DEV is required - check .env.docker}
+            JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET_DEV:?JWT_REFRESH_SECRET_DEV is required - check .env.docker}
             JWT_EXPIRE: ${JWT_EXPIRE:-30d}
             JWT_REFRESH_EXPIRE: ${JWT_REFRESH_EXPIRE:-7d}
             REDIS_HOST: redis
             REDIS_PORT: 6379
-            REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
         depends_on:
             mongodb:
                 condition: service_healthy

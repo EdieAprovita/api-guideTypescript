@@ -59,6 +59,7 @@ router.post(
     createRestaurant
 );
 
+// Legacy review route (kept for backward compatibility)
 router.post(
     '/add-review/:id',
     rateLimits.api,

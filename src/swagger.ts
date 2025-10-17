@@ -364,6 +364,7 @@ const swaggerDocument: OpenAPIV3.Document = {
     servers: [
         { url: 'http://localhost:5001/api/v1', description: 'Development server' },
         { url: 'https://api.apiguide.com/api/v1', description: 'Production server' },
+        { url: 'https://api-guidetypescript-787324382752.europe-west1.run.app/api/v1', description: 'Cloud Run production server' },
     ],
     security: [{ bearerAuth: [] }],
     components: {
