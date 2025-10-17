@@ -12,7 +12,7 @@ if (!fs.existsSync(logsDir)) {
  * @description Logger configuration with Winston
  * Supports multiple transports:
  * - Console (development)
- * - File (rotativo, production)
+ * - File (rotating, production)
  * - Error file (errors only)
  */
 
