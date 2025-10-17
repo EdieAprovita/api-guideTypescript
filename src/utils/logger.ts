@@ -38,7 +38,7 @@ const logColors = {
 
 winston.addColors(logColors);
 
-// Formato base compartido
+// Shared base format
 const baseFormat = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.ms(),
