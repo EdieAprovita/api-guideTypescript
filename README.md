@@ -502,18 +502,23 @@ npm run test:coverage:fast
 
 ### Coverage Thresholds
 
+The project uses different coverage configurations depending on the test suite:
+
+**Default Configuration** (`vitest.config.mts`):
 ```javascript
 Global Thresholds:
-- Branches: 40%
-- Functions: 40%
-- Lines: 40%
-- Statements: 40%
+- Branches: 30%
+- Functions: 30%
+- Lines: 30%
+- Statements: 30%
 
 Module-Specific Thresholds:
 - Controllers: 40% (all metrics)
 - Services: 35% (all metrics)
 - Middleware: 35% (all metrics)
 ```
+
+**Note**: The default `npm test` and `npm run test:coverage` commands use `vitest.config.mts`. Integration tests use a separate configuration file (`vitest.integration.config.mts`).
 
 ### Test Structure
 
