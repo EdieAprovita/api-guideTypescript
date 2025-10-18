@@ -505,7 +505,7 @@ npm run test:coverage:fast
 The project uses different coverage configurations depending on the test suite:
 
 **Default Configuration** (`vitest.config.mts`):
-```javascript
+```
 Global Thresholds:
 - Branches: 30%
 - Functions: 30%
