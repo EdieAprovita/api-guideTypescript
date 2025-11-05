@@ -19,6 +19,8 @@ This script will:
 - ✅ Replace all placeholders automatically
 - ✅ Provide security reminders
 
+> ℹ️ **Requisitos**: asegúrate de tener `openssl` y `python3` instalados antes de ejecutar el script.
+
 ### Option 2: Manual Setup
 
 ```bash
@@ -92,7 +94,7 @@ grep -v "^#" .env.docker | grep "REPLACE_WITH"
 
 - [Complete Security Guide](docs/docker-security-setup.md)
 - [Proxy Configuration](docs/proxy-configuration.md)
-- [Environment Variables](docs/environment-setup.md)
+- [Environment Variables Reference](env.example)
 
 ---
 

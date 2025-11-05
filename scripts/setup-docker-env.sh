@@ -57,6 +57,15 @@ check_openssl() {
     fi
 }
 
+# Check if python3 is available (used to safely update the template)
+check_python() {
+    if ! command -v python3 &> /dev/null; then
+        print_error "python3 is required but not installed."
+        print_error "Please install Python 3 before running this script."
+        exit 1
+    fi
+}
+
 # Check if we're in the right directory
 check_directory() {
     if [[ ! -f "docker-compose.yml" ]]; then
@@ -83,6 +92,7 @@ main() {
     # Checks
     check_directory
     check_openssl
+    check_python
     
     # Check if .env.docker already exists
     if [[ -f ".env.docker" ]]; then
@@ -119,32 +129,33 @@ main() {
     
     print_header "📝 UPDATING CONFIGURATION FILE"
     
-    # Replace placeholders in .env.docker
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        sed -i '' "s/REPLACE_WITH_SECURE_PASSWORD_FROM_OPENSSL/${MONGO_PASSWORD}/g" .env.docker
-        sed -i '' "s/REPLACE_WITH_64_CHARACTER_HEX_STRING_FROM_OPENSSL/${JWT_SECRET}/g" .env.docker
-        sed -i '' "s/REPLACE_WITH_DIFFERENT_64_CHARACTER_HEX_STRING/${JWT_SECRET_DEV}/g" .env.docker
-        sed -i '' "s/REPLACE_WITH_DIFFERENT_64_CHARACTER_HEX_STRING/${JWT_REFRESH_SECRET_DEV}/g" .env.docker
-    else
-        # Linux
-        sed -i "s/REPLACE_WITH_SECURE_PASSWORD_FROM_OPENSSL/${MONGO_PASSWORD}/g" .env.docker
-        sed -i "s/REPLACE_WITH_64_CHARACTER_HEX_STRING_FROM_OPENSSL/${JWT_SECRET}/g" .env.docker
-        sed -i "s/REPLACE_WITH_DIFFERENT_64_CHARACTER_HEX_STRING/${JWT_SECRET_DEV}/g" .env.docker
-        sed -i "s/REPLACE_WITH_DIFFERENT_64_CHARACTER_HEX_STRING/${JWT_REFRESH_SECRET_DEV}/g" .env.docker
-    fi
+    # Expose secrets for Python replacement
+    export MONGO_PASSWORD REDIS_PASSWORD JWT_SECRET JWT_REFRESH_SECRET JWT_SECRET_DEV JWT_REFRESH_SECRET_DEV
     
-    # Handle multiple replacements for Redis and JWT_REFRESH_SECRET
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS - Replace the second occurrence for Redis
-        sed -i '' "s/REPLACE_WITH_SECURE_PASSWORD_FROM_OPENSSL/${REDIS_PASSWORD}/" .env.docker
-        # Replace the second occurrence for JWT_REFRESH_SECRET
-        sed -i '' "s/REPLACE_WITH_64_CHARACTER_HEX_STRING_FROM_OPENSSL/${JWT_REFRESH_SECRET}/" .env.docker
-    else
-        # Linux
-        sed -i "s/REPLACE_WITH_SECURE_PASSWORD_FROM_OPENSSL/${REDIS_PASSWORD}/" .env.docker
-        sed -i "s/REPLACE_WITH_64_CHARACTER_HEX_STRING_FROM_OPENSSL/${JWT_REFRESH_SECRET}/" .env.docker
-    fi
+    # Safely replace placeholders using python (avoids escaping issues with sed)
+    python3 - <<'PY'
+import os
+from pathlib import Path
+
+path = Path(".env.docker")
+text = path.read_text()
+
+replacements = {
+    "REPLACE_WITH_MONGO_PASSWORD": os.environ["MONGO_PASSWORD"],
+    "REPLACE_WITH_REDIS_PASSWORD": os.environ["REDIS_PASSWORD"],
+    "REPLACE_WITH_JWT_SECRET": os.environ["JWT_SECRET"],
+    "REPLACE_WITH_JWT_REFRESH_SECRET": os.environ["JWT_REFRESH_SECRET"],
+    "REPLACE_WITH_JWT_SECRET_DEV": os.environ["JWT_SECRET_DEV"],
+    "REPLACE_WITH_JWT_REFRESH_SECRET_DEV": os.environ["JWT_REFRESH_SECRET_DEV"],
+}
+
+for placeholder, value in replacements.items():
+    if placeholder not in text:
+        raise SystemExit(f"[ERROR] Placeholder '{placeholder}' not found in .env.docker")
+    text = text.replace(placeholder, value, 1)
+
+path.write_text(text)
+PY
     
     print_header "✅ SETUP COMPLETE!"
     

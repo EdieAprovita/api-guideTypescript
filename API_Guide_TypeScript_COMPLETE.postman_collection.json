@@ -1206,6 +1206,43 @@
           }
         },
         {
+          "name": "Create Review for Business",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"title\": \"Great selection of organic products\",\n  \"content\": \"This store has an amazing variety of organic health products. The staff is very knowledgeable and helpful in recommending the right supplements.\",\n  \"visitDate\": \"2024-01-18\",\n  \"tags\": [\n    \"organic\",\n    \"helpful-staff\",\n    \"variety\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/businesses/{{businessId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "businesses",
+                "{{businessId}}",
+                "reviews"
+              ]
+            }
+          }
+        },
+        {
           "name": "Update Business",
           "request": {
             "auth": {
@@ -1397,6 +1434,43 @@
                 "doctors",
                 "add-review",
                 "{{doctorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Review for Doctor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Outstanding holistic approach\",\n  \"content\": \"Dr. Green provided excellent guidance on plant-based nutrition. Her holistic approach really helped me improve my overall health and energy levels.\",\n  \"visitDate\": \"2024-01-22\",\n  \"tags\": [\n    \"holistic\",\n    \"knowledgeable\",\n    \"helpful\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctors/{{doctorId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctors",
+                "{{doctorId}}",
+                "reviews"
               ]
             }
           }
@@ -2452,6 +2526,43 @@
           }
         },
         {
+          "name": "Create Review for Sanctuary",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Heartwarming and educational experience\",\n  \"content\": \"Visiting this sanctuary was truly moving. The animals are clearly well-cared for and happy. The staff is incredibly knowledgeable and passionate about animal welfare.\",\n  \"visitDate\": \"2024-01-25\",\n  \"tags\": [\n    \"heartwarming\",\n    \"educational\",\n    \"well-cared-animals\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sanctuaries/{{sanctuaryId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sanctuaries",
+                "{{sanctuaryId}}",
+                "reviews"
+              ]
+            }
+          }
+        },
+        {
           "name": "Update Sanctuary",
           "request": {
             "auth": {
@@ -2643,6 +2754,43 @@
                 "professions",
                 "add-review",
                 "{{professionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Review for Profession",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"title\": \"Rewarding and impactful career\",\n  \"content\": \"Working as a plant-based nutritionist has been incredibly fulfilling. You get to help people improve their health while promoting sustainable living. The field is growing rapidly.\",\n  \"tags\": [\n    \"fulfilling\",\n    \"impactful\",\n    \"growing-field\",\n    \"meaningful\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/professions/{{professionId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "professions",
+                "{{professionId}}",
+                "reviews"
               ]
             }
           }

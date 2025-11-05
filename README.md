@@ -837,11 +837,8 @@ For support and questions:
 
 - [CI/CD Setup Guide](docs/CI_SETUP.md)
 - [Cloud Run Deployment Guide](docs/CLOUD_RUN_DEPLOYMENT.md)
-- [GCP Deployment Guide](docs/gcp-deployment-guide.md)
 - [Docker Security Setup](docs/docker-security-setup.md)
-- [Testing Coverage Plan](docs/testing-coverage-plan.md)
 - [Security Vulnerabilities Fixed](docs/security-vulnerabilities-fixed.md)
-- [Review System Roadmap](docs/review-system-roadmap.md)
 
 ## 🌟 Project Stats
 
@@ -865,7 +862,6 @@ The API is deployed on Google Cloud Run for production use:
 
 For deployment instructions, see:
 - [Cloud Run Deployment Guide](docs/CLOUD_RUN_DEPLOYMENT.md)
-- [GCP Deployment Guide](docs/gcp-deployment-guide.md)
 
 ### Kubernetes Deployment
 
