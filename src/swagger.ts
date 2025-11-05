@@ -768,6 +768,7 @@ const swaggerDocument: OpenAPIV3.Document = {
         { name: 'Professional Profiles' },
         { name: 'Reviews' },
         { name: 'Cache Management' },
+        { name: 'Health Checks' },
     ],
     paths: {
         // Authentication endpoints
@@ -862,7 +863,96 @@ const swaggerDocument: OpenAPIV3.Document = {
                 responses: createStandardResponses(),
             },
         },
-        
+        '/auth/refresh-token': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Refresh an expired access token',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['refreshToken'],
+                                properties: {
+                                    refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                                },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': {
+                        description: 'Token refreshed successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                                        refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '400': createBadRequestResponse('Invalid or expired refresh token'),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/auth/logout': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Logout and blacklist current token',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': {
+                        description: 'Logged out successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Logged out successfully' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/auth/revoke-all-tokens': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Revoke all user tokens (logout from all devices)',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': {
+                        description: 'All tokens revoked successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'All tokens revoked successfully' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+
         // User management endpoints
         '/users': {
             get: {
@@ -888,10 +978,77 @@ const swaggerDocument: OpenAPIV3.Document = {
             ...createGetByIdEndpoint('Users', 'User'),
             ...createDeleteEndpoint('Users'),
         },
+        '/users/profile': {
+            get: {
+                tags: ['Users'],
+                summary: 'Get current authenticated user profile',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': {
+                        description: 'User profile retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: { $ref: '#/components/schemas/User' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '401': createUnauthorizedResponse(),
+                    '404': createNotFoundResponse('User'),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+            put: {
+                tags: ['Users'],
+                summary: 'Update current user profile',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    username: { type: 'string', example: 'updatedUsername' },
+                                    email: { type: 'string', format: 'email', example: 'updated@example.com' },
+                                    firstName: { type: 'string', example: 'John' },
+                                    lastName: { type: 'string', example: 'Doe' },
+                                    photo: { type: 'string', example: 'profile.jpg' },
+                                },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': {
+                        description: 'Profile updated successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: { $ref: '#/components/schemas/User' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '401': createUnauthorizedResponse(),
+                    '400': createBadRequestResponse('Invalid profile data'),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
         '/users/profile/{id}': {
             put: {
                 tags: ['Users'],
-                summary: 'Update user profile',
+                summary: 'Update user profile by ID (admin)',
                 security: [{ bearerAuth: [] }],
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 requestBody: {
@@ -1113,20 +1270,207 @@ const swaggerDocument: OpenAPIV3.Document = {
             get: {
                 tags: ['Cache Management'],
                 summary: 'Get cache statistics',
-                responses: createStandardResponses(),
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': {
+                        description: 'Cache statistics retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                stats: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        hitRatio: { type: 'number', example: 0.75 },
+                                                        totalRequests: { type: 'number', example: 1000 },
+                                                        cacheSize: { type: 'number', example: 500 },
+                                                        memoryUsage: { type: 'string', example: '256MB' },
+                                                        uptime: { type: 'number', example: 3600 },
+                                                    },
+                                                },
+                                                performance: { type: 'object' },
+                                                timestamp: { type: 'string', format: 'date-time' },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
             },
         },
         '/cache/health': {
             get: {
                 tags: ['Cache Management'],
                 summary: 'Get cache health status',
-                responses: createStandardResponses(),
+                responses: {
+                    '200': {
+                        description: 'Cache health status retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                status: { type: 'string', enum: ['healthy', 'unhealthy'], example: 'healthy' },
+                                                hitRatio: { type: 'number', example: 0.75 },
+                                                totalRequests: { type: 'number', example: 1000 },
+                                                cacheSize: { type: 'number', example: 500 },
+                                                memoryUsage: { type: 'string', example: '256MB' },
+                                                uptime: { type: 'number', example: 3600 },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '500': {
+                        description: 'Cache health check failed',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: false },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                status: { type: 'string', example: 'unhealthy' },
+                                                error: { type: 'string' },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             },
         },
-        '/cache/warm': {
+        '/cache/invalidate/{pattern}': {
+            delete: {
+                tags: ['Cache Management'],
+                summary: 'Invalidate cache by pattern',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'pattern',
+                        in: 'path',
+                        required: true,
+                        schema: { type: 'string' },
+                        description: 'Cache pattern to invalidate (supports wildcards)',
+                        example: 'restaurants:*',
+                    },
+                ],
+                responses: {
+                    '200': {
+                        description: 'Cache pattern invalidated successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Cache pattern invalidated successfully' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '400': createBadRequestResponse('Pattern parameter is required'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/cache/invalidate-tag/{tag}': {
+            delete: {
+                tags: ['Cache Management'],
+                summary: 'Invalidate cache by tag',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'tag',
+                        in: 'path',
+                        required: true,
+                        schema: { type: 'string' },
+                        description: 'Cache tag to invalidate',
+                        example: 'restaurants',
+                    },
+                ],
+                responses: {
+                    '200': {
+                        description: 'Cache tag invalidated successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Cache tag invalidated successfully' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '400': createBadRequestResponse('Tag parameter is required'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/cache/flush': {
+            delete: {
+                tags: ['Cache Management'],
+                summary: 'Flush all cache',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': {
+                        description: 'Cache flushed successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Cache flushed successfully' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/cache/monitor/{action}': {
             post: {
                 tags: ['Cache Management'],
-                summary: 'Warm cache with data',
+                summary: 'Start or stop cache monitoring',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'action',
+                        in: 'path',
+                        required: true,
+                        schema: { type: 'string', enum: ['start', 'stop'] },
+                        description: 'Action to perform: start or stop monitoring',
+                        example: 'start',
+                    },
+                ],
                 requestBody: {
                     required: false,
                     content: {
@@ -1134,51 +1478,35 @@ const swaggerDocument: OpenAPIV3.Document = {
                             schema: {
                                 type: 'object',
                                 properties: {
-                                    dataType: {
-                                        type: 'string',
-                                        enum: ['all', 'restaurants', 'businesses', 'users', 'categories', 'geo'],
-                                        default: 'all',
-                                        description: 'Type of data to warm',
+                                    interval: {
+                                        type: 'number',
+                                        description: 'Monitoring interval in minutes (only for start action)',
+                                        example: 5,
                                     },
-                                    autoStart: { type: 'boolean', default: true },
-                                    intervalMinutes: { type: 'number', default: 30 },
                                 },
                             },
                         },
                     },
                 },
-                responses: createStandardResponses(),
-            },
-        },
-        '/cache/alerts': {
-            get: {
-                tags: ['Cache Management'],
-                summary: 'Get cache alerts',
-                responses: createStandardResponses(),
-            },
-        },
-        '/cache/invalidate/{pattern}': {
-            delete: {
-                tags: ['Cache Management'],
-                summary: 'Invalidate cache by pattern',
-                parameters: [
-                    {
-                        name: 'pattern',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Cache pattern to invalidate',
-                        example: 'restaurants:*',
+                responses: {
+                    '200': {
+                        description: 'Cache monitoring action executed successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Cache monitoring started' },
+                                    },
+                                },
+                            },
+                        },
                     },
-                ],
-                responses: createStandardResponses(),
-            },
-        },
-        '/cache/flush': {
-            delete: {
-                tags: ['Cache Management'],
-                summary: 'Flush all cache',
-                responses: createStandardResponses(),
+                    '400': createBadRequestResponse('Invalid action. Use "start" or "stop"'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
             },
         },
 
@@ -1189,6 +1517,163 @@ const swaggerDocument: OpenAPIV3.Document = {
         // Restaurant review endpoints (uses 'restaurantId' instead of 'id')
         ...createReviewPostEndpoint('Restaurants', 'restaurantId'),
         ...createReviewEndpoints('Restaurants', 'restaurantId'),
+
+        // Health Check endpoints
+        '/health': {
+            get: {
+                tags: ['Health Checks'],
+                summary: 'Liveness probe - Check if server is alive',
+                description: 'Indicates if the server process is running. Used by orchestrators like Kubernetes for liveness probes.',
+                responses: {
+                    '200': {
+                        description: 'Server is alive',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        status: { type: 'string', example: 'alive' },
+                                        timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                                        uptime: { type: 'number', description: 'Process uptime in seconds', example: 3600.5 },
+                                        environment: { type: 'string', example: 'production' },
+                                    },
+                                },
+                                example: {
+                                    status: 'alive',
+                                    timestamp: '2024-01-15T10:30:00Z',
+                                    uptime: 3600.5,
+                                    environment: 'production',
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/health/ready': {
+            get: {
+                tags: ['Health Checks'],
+                summary: 'Readiness probe - Check if server is ready to accept requests',
+                description: 'Indicates if the server is ready to accept traffic. Verifies MongoDB connection status. Used by orchestrators for readiness probes.',
+                responses: {
+                    '200': {
+                        description: 'Server is ready',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        ready: { type: 'boolean', example: true },
+                                        mongodb: { type: 'boolean', example: true },
+                                        timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                                        message: { type: 'string', example: 'Service is ready to accept requests' },
+                                    },
+                                },
+                                example: {
+                                    ready: true,
+                                    mongodb: true,
+                                    timestamp: '2024-01-15T10:30:00Z',
+                                    message: 'Service is ready to accept requests',
+                                },
+                            },
+                        },
+                    },
+                    '503': {
+                        description: 'Server is not ready',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        ready: { type: 'boolean', example: false },
+                                        mongodb: { type: 'boolean', example: false },
+                                        timestamp: { type: 'string', format: 'date-time' },
+                                        message: { type: 'string', example: 'Service is not ready' },
+                                    },
+                                },
+                                example: {
+                                    ready: false,
+                                    mongodb: false,
+                                    timestamp: '2024-01-15T10:30:00Z',
+                                    message: 'Service is not ready',
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/health/deep': {
+            get: {
+                tags: ['Health Checks'],
+                summary: 'Deep health check - Comprehensive system status',
+                description: 'Provides detailed health information including database connectivity, memory usage, and uptime. Useful for monitoring and debugging.',
+                responses: {
+                    '200': {
+                        description: 'System is healthy',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        status: { type: 'string', enum: ['healthy', 'degraded'], example: 'healthy' },
+                                        timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                                        uptime: { type: 'string', description: 'Formatted uptime', example: '60 minutes' },
+                                        services: {
+                                            type: 'object',
+                                            properties: {
+                                                mongodb: { type: 'boolean', example: true },
+                                            },
+                                        },
+                                        memory: {
+                                            type: 'object',
+                                            properties: {
+                                                rss: { type: 'string', description: 'Resident Set Size', example: '128MB' },
+                                                heapUsed: { type: 'string', description: 'Heap memory used', example: '64MB' },
+                                                heapTotal: { type: 'string', description: 'Total heap memory', example: '256MB' },
+                                            },
+                                        },
+                                    },
+                                },
+                                example: {
+                                    status: 'healthy',
+                                    timestamp: '2024-01-15T10:30:00Z',
+                                    uptime: '60 minutes',
+                                    services: {
+                                        mongodb: true,
+                                    },
+                                    memory: {
+                                        rss: '128MB',
+                                        heapUsed: '64MB',
+                                        heapTotal: '256MB',
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '503': {
+                        description: 'System is unhealthy or degraded',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        status: { type: 'string', enum: ['degraded', 'unhealthy'], example: 'degraded' },
+                                        message: { type: 'string', example: 'Health check failed' },
+                                        timestamp: { type: 'string', format: 'date-time' },
+                                    },
+                                },
+                                example: {
+                                    status: 'unhealthy',
+                                    message: 'Health check failed',
+                                    timestamp: '2024-01-15T10:30:00Z',
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
     },
 };
 
