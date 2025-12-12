@@ -51,7 +51,12 @@ class BaseService<T extends Document> {
         // Si se proporciona userId en el constructor, úsalo como author por defecto
         // Pero si data ya tiene author, respeta ese valor
         if (this.userId && !(sanitizedData as any).author) {
-            const dataWithAuthor = { ...sanitizedData, author: this.userId } as Partial<T>;
+            // Sanitize userId to ensure it's also safe
+            const sanitizedUserId = sanitizeNoSQLInput({ id: this.userId }).id as string;
+            const dataWithAuthor = sanitizeNoSQLInput({
+                ...sanitizedData,
+                author: sanitizedUserId,
+            }) as Partial<T>;
             return this.model.create(dataWithAuthor);
         }
 
