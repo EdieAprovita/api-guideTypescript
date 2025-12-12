@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+// @ts-ignore - isomorphic-dompurify doesn't have types but works fine
 import DOMPurify from 'isomorphic-dompurify';
 
 /**

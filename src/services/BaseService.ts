@@ -49,6 +49,7 @@ class BaseService<T extends Document> {
         if (this.userId && !(data as any).author) {
             data = { ...data, author: this.userId } as Partial<T>;
         }
+
         return this.model.create(data);
     }
 

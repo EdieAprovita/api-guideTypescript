@@ -6,6 +6,7 @@ import { sendSuccessResponse, sendCreatedResponse, sendDeletedResponse } from '.
 import asyncHandler from '../middleware/asyncHandler';
 import BaseService from '../services/BaseService';
 import { Document } from 'mongoose';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 
 export class BaseController<T extends Document> {
     protected service: BaseService<T>;
@@ -75,7 +76,9 @@ export class BaseController<T extends Document> {
         if (!this.validateRequest(req, next)) return;
 
         try {
-            const resource = await this.service.create(req.body);
+            // 🔒 Sanitize user input to prevent NoSQL injection
+            const sanitizedData = sanitizeNoSQLInput(req.body);
+            const resource = await this.service.create(sanitizedData);
             sendCreatedResponse(res, resource, 'Resource created successfully');
         } catch (error) {
             this.handleError(error, next, 'Failed to create resource');
@@ -87,7 +90,9 @@ export class BaseController<T extends Document> {
         if (!this.validateRequest(req, next)) return;
 
         try {
-            const resource = await this.service.updateById(req.params.id!, req.body);
+            // 🔒 Sanitize user input to prevent NoSQL injection
+            const sanitizedData = sanitizeNoSQLInput(req.body);
+            const resource = await this.service.updateById(req.params.id!, sanitizedData);
             if (!resource) {
                 throw new HttpError(HttpStatusCode.NOT_FOUND, 'Resource not found');
             }

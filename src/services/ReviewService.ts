@@ -281,10 +281,15 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Valid author ID is required');
         }
 
+        // 🔒 Build query safely with validated ObjectIds to prevent NoSQL injection
+        const authorId = new Types.ObjectId(reviewData.author.toString());
+        const entityId = new Types.ObjectId(reviewData.entity.toString());
+        const entityTypeValue = String(reviewData.entityType);
+
         const existingReview = await Review.findOne({
-            author: new Types.ObjectId(reviewData.author.toString()),
-            entityType: reviewData.entityType,
-            entity: new Types.ObjectId(reviewData.entity.toString()),
+            author: authorId,
+            entityType: entityTypeValue,
+            entity: entityId,
         });
 
         if (existingReview) {
