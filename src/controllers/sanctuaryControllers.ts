@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { sanctuaryService as SanctuaryService } from '../services/SanctuaryService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 import { reviewService as ReviewService } from '../services/ReviewService';
 import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
@@ -78,8 +79,9 @@ export const createSanctuary = asyncHandler(async (req: Request, res: Response, 
     }
 
     try {
-        await geocodeAndAssignLocation(req.body);
-        const sanctuary = await SanctuaryService.create(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
+        const sanctuary = await SanctuaryService.create(sanitizedData);
         res.status(201).json({
             success: true,
             message: 'sanctuary created successfully',
@@ -114,8 +116,9 @@ export const updateSanctuary = asyncHandler(async (req: Request, res: Response, 
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Sanctuary ID is required'));
         }
-        await geocodeAndAssignLocation(req.body);
-        const sanctuary = await SanctuaryService.updateById(id, req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
+        const sanctuary = await SanctuaryService.updateById(id, sanitizedData);
         res.status(200).json({
             success: true,
             message: 'sanctuary updated successfully',

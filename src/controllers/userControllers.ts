@@ -3,6 +3,7 @@ import asyncHandler from '../middleware/asyncHandler';
 import UserServices from '../services/UserService';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 
 /**
  * @description Authenticate user and get token
@@ -13,7 +14,8 @@ import { getErrorMessage } from '../types/modalTypes';
 
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const result = await UserServices.registerUser(req.body, res);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const result = await UserServices.registerUser(sanitizedData, res);
         res.status(201).json(result);
     } catch (error) {
         // Log error details in test environment for debugging
@@ -36,7 +38,8 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
 
 export const loginUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email, password } = req.body;
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const { email, password } = sanitizedData;
         const result = await UserServices.loginUser(email, password, res);
         res.status(200).json(result);
     } catch (error) {
@@ -60,7 +63,8 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email } = req.body;
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const { email } = sanitizedData;
         const response = await UserServices.forgotPassword(email);
         res.status(200).json(response);
     } catch (error) {
@@ -83,7 +87,8 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response, n
 
 export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { token, newPassword } = req.body;
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const { token, newPassword } = sanitizedData;
         const response = await UserServices.resetPassword(token, newPassword);
         res.status(200).json(response);
     } catch (error) {
@@ -252,7 +257,8 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
             throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own profile');
         }
 
-        const updatedUser = await UserServices.updateUserById(targetUserId, req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const updatedUser = await UserServices.updateUserById(targetUserId, sanitizedData);
         res.json(updatedUser);
     } catch (error) {
         next(

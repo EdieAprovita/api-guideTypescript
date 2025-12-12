@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { marketsService as MarketsService } from '../services/MarketsService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 import {
     createAddReviewHandler,
     createGetReviewsHandler,
@@ -82,8 +83,9 @@ export const createMarket = asyncHandler(async (req: Request, res: Response, nex
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
-        await geocodeAndAssignLocation(req.body);
-        const market = await MarketsService.create(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
+        const market = await MarketsService.create(sanitizedData);
         res.status(201).json({
             success: true,
             message: 'Market created successfully',
@@ -118,8 +120,9 @@ export const updateMarket = asyncHandler(async (req: Request, res: Response, nex
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required'));
         }
-        await geocodeAndAssignLocation(req.body);
-        const market = await MarketsService.updateById(id, req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
+        const market = await MarketsService.updateById(id, sanitizedData);
         res.status(200).json({
             success: true,
             message: 'Market updated successfully',

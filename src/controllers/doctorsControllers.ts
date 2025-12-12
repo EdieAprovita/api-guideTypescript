@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { doctorService as DoctorService } from '../services/DoctorService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 import { reviewService as ReviewService } from '../services/ReviewService';
 import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
@@ -78,8 +79,9 @@ export const createDoctor = asyncHandler(async (req: Request, res: Response, nex
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
-        await geocodeAndAssignLocation(req.body);
-        const doctor = await DoctorService.create(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
+        const doctor = await DoctorService.create(sanitizedData);
         res.status(201).json({
             success: true,
             message: 'Doctor created successfully',
@@ -114,8 +116,9 @@ export const updateDoctor = asyncHandler(async (req: Request, res: Response, nex
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Doctor ID is required'));
         }
-        await geocodeAndAssignLocation(req.body);
-        const doctor = await DoctorService.updateById(id, req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
+        const doctor = await DoctorService.updateById(id, sanitizedData);
         res.status(200).json({
             success: true,
             message: 'Doctor updated successfully',
@@ -170,8 +173,9 @@ export const deleteDoctor = asyncHandler(async (req: Request, res: Response, nex
 
 export const addReviewToDoctor = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const sanitizedBody = sanitizeNoSQLInput(req.body);
         const reviewData = {
-            ...req.body,
+            ...sanitizedBody,
             entityType: 'Doctor',
             entity: req.params.id,
             doctorId: req.params.id, // Keep for backward compatibility

@@ -4,6 +4,7 @@ import { reviewService as ReviewService } from '../services/ReviewService';
 import { restaurantService as RestaurantService } from '../services/RestaurantService';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import logger from '../utils/logger';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 
 /**
  * Helper function to validate review ownership
@@ -48,8 +49,8 @@ export const listReviews = asyncHandler(async (req: Request, res: Response) => {
  */
 
 export const addReview = asyncHandler(async (req: Request, res: Response) => {
-    const reviewData = req.body;
-    const newReview = await ReviewService.addReview(reviewData);
+    const sanitizedData = sanitizeNoSQLInput(req.body);
+    const newReview = await ReviewService.addReview(sanitizedData);
     res.status(201).json(newReview);
 });
 
@@ -88,8 +89,9 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
             throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this restaurant');
         }
 
+        const sanitizedBody = sanitizeNoSQLInput(req.body);
         const reviewData = {
-            ...req.body,
+            ...sanitizedBody,
             author: userId,
             restaurant: restaurantId,
         };

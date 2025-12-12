@@ -5,7 +5,7 @@
  * @group security
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { sanitizeNoSQLInput, sanitizeQueryParams } from '../../utils/sanitizer';
 
 // Mock the logger to prevent console output during tests

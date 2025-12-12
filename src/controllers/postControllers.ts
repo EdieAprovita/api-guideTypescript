@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { postService as PostService } from '../services/PostService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 
 /**
  * @description Get all posts
@@ -76,7 +77,8 @@ export const createPost = asyncHandler(async (req: Request, res: Response, next:
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
-        const post = await PostService.create(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const post = await PostService.create(sanitizedData);
         res.status(201).json({
             success: true,
             message: 'Post created successfully',
@@ -111,7 +113,8 @@ export const updatePost = asyncHandler(async (req: Request, res: Response, next:
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID is required'));
         }
-        const post = await PostService.updateById(id, req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const post = await PostService.updateById(id, sanitizedData);
         res.status(200).json({
             success: true,
             message: 'Post updated successfully',
@@ -147,7 +150,8 @@ export const addComment = asyncHandler(async (req: Request, res: Response, next:
         if (!id || !userId) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID and user authentication required'));
         }
-        const { text, name, avatar } = req.body;
+        const sanitizedBody = sanitizeNoSQLInput(req.body);
+        const { text, name, avatar } = sanitizedBody;
         const comments = await PostService.addComment(id, userId.toString(), text, name, avatar);
         res.status(201).json({
             success: true,

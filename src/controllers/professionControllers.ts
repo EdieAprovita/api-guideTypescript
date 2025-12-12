@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { professionService as ProfessionService } from '../services/ProfessionService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 import { reviewService as ReviewService } from '../services/ReviewService';
 
 /**
@@ -79,7 +80,8 @@ export const createProfession = asyncHandler(async (req: Request, res: Response,
     }
 
     try {
-        const profession = await ProfessionService.create(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const profession = await ProfessionService.create(sanitizedData);
         res.status(201).json({
             success: true,
             message: 'Profession created successfully',
@@ -115,7 +117,8 @@ export const updateProfession = asyncHandler(async (req: Request, res: Response,
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Profession ID is required'));
         }
-        const profession = await ProfessionService.updateById(id, req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const profession = await ProfessionService.updateById(id, sanitizedData);
         res.status(200).json({
             success: true,
             message: 'Profession updated successfully',

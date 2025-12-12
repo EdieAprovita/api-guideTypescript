@@ -12,7 +12,7 @@ export default defineConfig({
             'src/test/unit/**/*.test.ts',
             'src/test/services/**/*.test.ts',
             'src/test/controllers/**/*.test.ts',
-            'src/test/middleware/**/*.test.ts'
+            'src/test/middleware/**/*.test.ts',
         ],
 
         // Exclude problematic integration tests for now
@@ -33,12 +33,12 @@ export default defineConfig({
 
         // Optimized timeout settings
         testTimeout: 10000, // Reduced from 30000
-        hookTimeout: 5000,  // Reduced from 15000
+        hookTimeout: 5000, // Reduced from 15000
 
         // Coverage configuration - Simplified
         coverage: {
             provider: 'v8',
-            reporter: ['text', 'json', 'html'],
+            reporter: ['text', 'json', 'html', 'lcov'],
             include: [
                 'src/controllers/BaseController.ts',
                 'src/services/GeoService.ts',
@@ -60,28 +60,28 @@ export default defineConfig({
             ],
             thresholds: {
                 global: {
-                    branches: 30,    // Reduced from 60
-                    functions: 30,   // Reduced from 60
-                    lines: 30,       // Reduced from 60
-                    statements: 30,  // Reduced from 60
+                    branches: 30, // Reduced from 60
+                    functions: 30, // Reduced from 60
+                    lines: 30, // Reduced from 60
+                    statements: 30, // Reduced from 60
                 },
                 'src/controllers/**': {
-                    branches: 40,    // Reduced from 70
-                    functions: 40,   // Reduced from 70
-                    lines: 40,       // Reduced from 70
-                    statements: 40,  // Reduced from 70
+                    branches: 40, // Reduced from 70
+                    functions: 40, // Reduced from 70
+                    lines: 40, // Reduced from 70
+                    statements: 40, // Reduced from 70
                 },
                 'src/services/**': {
-                    branches: 35,    // Reduced from 65
-                    functions: 35,   // Reduced from 65
-                    lines: 35,       // Reduced from 65
-                    statements: 35,  // Reduced from 65
+                    branches: 35, // Reduced from 65
+                    functions: 35, // Reduced from 65
+                    lines: 35, // Reduced from 65
+                    statements: 35, // Reduced from 65
                 },
                 'src/middleware/**': {
-                    branches: 35,    // Reduced from 65
-                    functions: 35,   // Reduced from 65
-                    lines: 35,       // Reduced from 65
-                    statements: 35,  // Reduced from 65
+                    branches: 35, // Reduced from 65
+                    functions: 35, // Reduced from 65
+                    lines: 35, // Reduced from 65
+                    statements: 35, // Reduced from 65
                 },
             },
         },
@@ -97,7 +97,7 @@ export default defineConfig({
         poolOptions: {
             forks: {
                 singleFork: false, // Allow parallel execution
-                isolate: true,      // Better isolation
+                isolate: true, // Better isolation
             },
         },
         maxConcurrency: 4, // Allow some parallel execution
@@ -111,7 +111,7 @@ export default defineConfig({
         // Mock configuration - Simplified
         clearMocks: true,
         restoreMocks: false, // Don't restore to avoid overhead
-        mockReset: false,    // Don't reset to avoid overhead
+        mockReset: false, // Don't reset to avoid overhead
 
         // Globals
         globals: true,

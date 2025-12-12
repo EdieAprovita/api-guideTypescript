@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { businessService as BusinessService } from '../services/BusinessService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 import { reviewService as ReviewService } from '../services/ReviewService';
 import { sendSuccessResponse, sendCreatedResponse } from '../utils/responseHelpers';
 import geocodeAndAssignLocation from '../utils/geocodeLocation';
@@ -74,8 +75,9 @@ export const createBusiness = asyncHandler(async (req: Request, res: Response, n
     }
 
     try {
-        await geocodeAndAssignLocation(req.body);
-        const business = await BusinessService.create(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
+        const business = await BusinessService.create(sanitizedData);
         sendCreatedResponse(res, business, 'Business created successfully');
     } catch (error) {
         // Check if it's a validation error from mongoose
@@ -111,8 +113,9 @@ export const updateBusiness = asyncHandler(async (req: Request, res: Response, n
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Business ID is required'));
         }
-        await geocodeAndAssignLocation(req.body);
-        const updatedBusiness = await BusinessService.updateById(id, req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
+        const updatedBusiness = await BusinessService.updateById(id, sanitizedData);
         res.status(200).json({
             success: true,
             message: 'Business updated successfully',
@@ -167,8 +170,9 @@ export const deleteBusiness = asyncHandler(async (req: Request, res: Response, n
 
 export const addReviewToBusiness = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const sanitizedBody = sanitizeNoSQLInput(req.body);
         const reviewData = {
-            ...req.body,
+            ...sanitizedBody,
             entityType: 'Business',
             entity: req.params.id,
             businessId: req.params.id, // Keep for backward compatibility

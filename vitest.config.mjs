@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +14,7 @@ export default defineConfig({
         include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
         exclude: ['node_modules', 'dist', '.git', 'src/node_modules/**'],
         coverage: {
-            provider: 'v8', // Más rápido que istanbul
+            provider: 'istanbul', // Cambiado temporalmente para generar lcov.info
             reporter: ['text', 'html', 'lcov', 'json'],
             reportsDirectory: './coverage',
             clean: true,
@@ -23,7 +23,7 @@ export default defineConfig({
             thresholds: {
                 global: {
                     branches: 40,
-                    functions: 40, 
+                    functions: 40,
                     lines: 40,
                     statements: 40,
                 },
@@ -32,20 +32,20 @@ export default defineConfig({
                     branches: 40,
                     functions: 40,
                     lines: 40,
-                    statements: 40
+                    statements: 40,
                 },
                 'src/services/**/*.ts': {
                     branches: 35,
                     functions: 35,
                     lines: 35,
-                    statements: 35
+                    statements: 35,
                 },
                 'src/middleware/**/*.ts': {
                     branches: 35,
                     functions: 35,
                     lines: 35,
-                    statements: 35
-                }
+                    statements: 35,
+                },
             },
         },
     },

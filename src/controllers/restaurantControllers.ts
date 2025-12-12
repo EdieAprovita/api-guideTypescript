@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { restaurantService as RestaurantService } from '../services/RestaurantService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 import { reviewService as ReviewService } from '../services/ReviewService';
 import geocodeAndAssignLocation from '../utils/geocodeLocation';
 
@@ -81,9 +82,10 @@ export const createRestaurant = asyncHandler(async (req: Request, res: Response,
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
-        await geocodeAndAssignLocation(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
         // Usar método con invalidación automática de cache
-        const restaurant = await RestaurantService.createCached(req.body);
+        const restaurant = await RestaurantService.createCached(sanitizedData);
         res.status(201).json({
             success: true,
             message: 'Restaurant created successfully',
@@ -118,9 +120,10 @@ export const updateRestaurant = asyncHandler(async (req: Request, res: Response,
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
         }
-        await geocodeAndAssignLocation(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        await geocodeAndAssignLocation(sanitizedData);
         // Usar método con invalidación automática de cache
-        const restaurant = await RestaurantService.updateByIdCached(id, req.body);
+        const restaurant = await RestaurantService.updateByIdCached(id, sanitizedData);
         res.status(200).json({
             success: true,
             message: 'Restaurant updated successfully',
@@ -175,8 +178,9 @@ export const deleteRestaurant = asyncHandler(async (req: Request, res: Response,
 
 export const addReviewToRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const sanitizedBody = sanitizeNoSQLInput(req.body);
         const reviewData = {
-            ...req.body,
+            ...sanitizedBody,
             entityType: 'Restaurant',
             entity: req.params.id,
             restaurantId: req.params.id, // Keep for backward compatibility

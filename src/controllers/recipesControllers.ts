@@ -4,6 +4,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import asyncHandler from '../middleware/asyncHandler';
 import { recipeService as RecipeService } from '../services/RecipesService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 import {
     createAddReviewHandler,
     createGetReviewsHandler,
@@ -82,7 +83,8 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response, nex
     }
 
     try {
-        const recipe = await RecipeService.create(req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const recipe = await RecipeService.create(sanitizedData);
         res.status(201).json({
             success: true,
             data: recipe,
@@ -112,7 +114,8 @@ export const updateRecipe = asyncHandler(async (req: Request, res: Response, nex
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Recipe ID is required'));
         }
-        const recipe = await RecipeService.updateById(id, req.body);
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const recipe = await RecipeService.updateById(id, sanitizedData);
 
         if (!recipe) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'Recipe not found');
