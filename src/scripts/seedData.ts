@@ -563,7 +563,8 @@ export const seedDatabase = async () => {
 };
 
 // Run seeder if called directly
-if (require.main === module) {
+// Run seeder if this file is executed directly (ESM compatible)
+if (import.meta.url === `file://${process.argv[1]}`) {
     seedDatabase()
         .then(() => {
             console.log('Seeding completed successfully!');

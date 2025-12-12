@@ -110,7 +110,5 @@ class CacheMonitor {
 // Export singleton instance
 export const cacheMonitor = new CacheMonitor();
 
-// Auto-start monitoring if this file is imported
-if (require.main === module) {
-    cacheMonitor.startMonitoring(2); // Monitor every 2 minutes
-}
+// Note: Auto-start monitoring removed for ES modules
+// If you need to run monitoring, import and call cacheMonitor.startMonitoring() explicitly

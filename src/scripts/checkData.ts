@@ -78,7 +78,8 @@ const checkData = async () => {
 };
 
 // Run if called directly
-if (require.main === module) {
+// Check if this file is being run directly (ESM compatible)
+if (import.meta.url === `file://${process.argv[1]}`) {
     checkData();
 }
 

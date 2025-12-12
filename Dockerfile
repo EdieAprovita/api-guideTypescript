@@ -55,11 +55,13 @@ EXPOSE 8080
 # Set environment variables
 ENV NODE_ENV=production \
     NODE_OPTIONS="--max-old-space-size=512" \
-    PORT=8080
+    PORT=8080 \
+    LOG_LEVEL=info
 
 # Health check - optimized for Cloud Run startup
 # Cloud Run ignores HEALTHCHECK, but useful for local testing
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# Increased start-period to allow app initialization
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
   CMD node healthcheck.cjs
 
 # Use dumb-init for proper signal handling

@@ -64,26 +64,30 @@ export const configureHelmet = () => {
 
 /**
  * HTTPS enforcement middleware without user-controlled redirects
+ * Cloud Run compatible: respects X-Forwarded-Proto header
  */
 export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) => {
-    if (process.env.NODE_ENV === 'production') {
-        // Check if request is already HTTPS
-        const isSecure = req.secure || false;
-        const isForwardedHttps = req.headers['x-forwarded-proto'] === 'https';
-        const isForwardedSsl = req.headers['x-forwarded-ssl'] === 'on';
-        const isHttps = isSecure || isForwardedHttps || isForwardedSsl;
+    // Skip HTTPS enforcement in development/test or if running in Cloud Run
+    if (process.env.NODE_ENV !== 'production' || process.env.K_SERVICE) {
+        return next();
+    }
 
-        if (!isHttps) {
-            // Instead of redirecting based on user input, return an error
-            // or redirect to a predefined secure URL
-            const secureBaseUrl = process.env.SECURE_BASE_URL || 'https://localhost';
+    // Check if request is already HTTPS
+    const isSecure = req.secure || false;
+    const isForwardedHttps = req.headers['x-forwarded-proto'] === 'https';
+    const isForwardedSsl = req.headers['x-forwarded-ssl'] === 'on';
+    const isHttps = isSecure || isForwardedHttps || isForwardedSsl;
 
-            // Build redirect URL using only trusted environment variables
-            // Don't include user-controlled path to prevent open redirect attacks
-            const redirectURL = secureBaseUrl;
+    if (!isHttps) {
+        // Instead of redirecting based on user input, return an error
+        // or redirect to a predefined secure URL
+        const secureBaseUrl = process.env.SECURE_BASE_URL || 'https://localhost';
 
-            return res.redirect(302, redirectURL);
-        }
+        // Build redirect URL using only trusted environment variables
+        // Don't include user-controlled path to prevent open redirect attacks
+        const redirectURL = secureBaseUrl;
+
+        return res.redirect(302, redirectURL);
     }
 
     // Allow HTTPS requests or non-production environments
