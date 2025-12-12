@@ -5,7 +5,9 @@ const createStandardResponses = (successSchema?: string) => ({
         description: 'Operation successful',
         content: {
             'application/json': {
-                schema: successSchema ? { $ref: `#/components/schemas/${successSchema}` } : { $ref: '#/components/schemas/SuccessResponse' },
+                schema: successSchema
+                    ? { $ref: `#/components/schemas/${successSchema}` }
+                    : { $ref: '#/components/schemas/SuccessResponse' },
             },
         },
     },
@@ -156,7 +158,11 @@ const createAddReviewEndpoint = (tag: string) => ({
                 content: {
                     'application/json': {
                         schema: { $ref: '#/components/schemas/ErrorResponse' },
-                        example: { success: false, message: `User has already reviewed this ${tag.toLowerCase().slice(0, -1)}`, error: 'Conflict' },
+                        example: {
+                            success: false,
+                            message: `User has already reviewed this ${tag.toLowerCase().slice(0, -1)}`,
+                            error: 'Conflict',
+                        },
                     },
                 },
             },
@@ -173,7 +179,11 @@ const commonTimestamps = {
     },
 };
 
-const commonReviews = { type: 'array' as const, items: { type: 'string' as const }, example: ['60c72b2f9b1d8b0015b3c125'] };
+const commonReviews = {
+    type: 'array' as const,
+    items: { type: 'string' as const },
+    example: ['60c72b2f9b1d8b0015b3c125'],
+};
 const commonRating = { type: 'number' as const, minimum: 0, maximum: 5, example: 4.5 };
 const commonNumReviews = { type: 'number' as const, example: 25 };
 const commonAuthor = { type: 'string' as const, example: '60c72b2f9b1d8b0015b3c123' };
@@ -283,38 +293,35 @@ const createReviewStatsResponse = (entityType: string) => ({
     '404': createNotFoundResponse(entityType),
 });
 
-const createReviewEndpoints = (tag: string, paramName = 'id') => ({
+const createReviewCollectionEndpoints = (tag: string, paramName = 'id') => ({
     [`/${tag.toLowerCase()}/{${paramName}}/reviews`]: {
         get: {
             tags: [tag],
             summary: `Get reviews for a ${tag.toLowerCase().slice(0, -1)}`,
             parameters: [
-                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+                {
+                    name: paramName,
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                    description: `${tag.slice(0, -1)} ID`,
+                },
                 ...createPaginationParameters(),
             ],
             responses: createReviewListResponse(tag.slice(0, -1)),
         },
-    },
-    [`/${tag.toLowerCase()}/{${paramName}}/reviews/stats`]: {
-        get: {
-            tags: [tag],
-            summary: `Get review statistics for a ${tag.toLowerCase().slice(0, -1)}`,
-            parameters: [
-                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
-            ],
-            responses: createReviewStatsResponse(tag.slice(0, -1)),
-        },
-    },
-});
-
-const createReviewPostEndpoint = (tag: string, paramName = 'id') => ({
-    [`/${tag.toLowerCase()}/{${paramName}}/reviews`]: {
         post: {
             tags: [tag],
             summary: `Create review for a ${tag.toLowerCase().slice(0, -1)}`,
             security: [{ bearerAuth: [] }],
             parameters: [
-                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+                {
+                    name: paramName,
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                    description: `${tag.slice(0, -1)} ID`,
+                },
             ],
             requestBody: {
                 required: true,
@@ -333,6 +340,22 @@ const createReviewPostEndpoint = (tag: string, paramName = 'id') => ({
                 '400': createBadRequestResponse(),
                 '404': createNotFoundResponse(tag.slice(0, -1)),
             },
+        },
+    },
+    [`/${tag.toLowerCase()}/{${paramName}}/reviews/stats`]: {
+        get: {
+            tags: [tag],
+            summary: `Get review statistics for a ${tag.toLowerCase().slice(0, -1)}`,
+            parameters: [
+                {
+                    name: paramName,
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                    description: `${tag.slice(0, -1)} ID`,
+                },
+            ],
+            responses: createReviewStatsResponse(tag.slice(0, -1)),
         },
     },
 });
@@ -354,7 +377,8 @@ const swaggerDocument: OpenAPIV3.Document = {
     openapi: '3.0.0',
     info: {
         title: 'API Guide TypeScript',
-        description: 'Complete API collection for the Express TypeScript API with proper authentication and all endpoints',
+        description:
+            'Complete API collection for the Express TypeScript API with proper authentication and all endpoints',
         version: '1.0.0',
         contact: {
             name: 'API Support',
@@ -364,7 +388,10 @@ const swaggerDocument: OpenAPIV3.Document = {
     servers: [
         { url: 'http://localhost:5001/api/v1', description: 'Development server' },
         { url: 'https://api.apiguide.com/api/v1', description: 'Production server' },
-        { url: 'https://api-guidetypescript-787324382752.europe-west1.run.app/api/v1', description: 'Cloud Run production server' },
+        {
+            url: 'https://api-guidetypescript-787324382752.europe-west1.run.app/api/v1',
+            description: 'Cloud Run production server',
+        },
     ],
     security: [{ bearerAuth: [] }],
     components: {
@@ -576,7 +603,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                     address: { type: 'string', example: '789 Market St, New York, NY' },
                     location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/market.jpg' },
-                    typeMarket: { type: 'string', enum: ['supermarket', 'convenience store', 'grocery store'], example: 'supermarket' },
+                    typeMarket: {
+                        type: 'string',
+                        enum: ['supermarket', 'convenience store', 'grocery store'],
+                        example: 'supermarket',
+                    },
                     reviews: commonReviews,
                     rating: commonRating,
                     numReviews: commonNumReviews,
@@ -591,7 +622,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                     author: commonAuthor,
                     description: { type: 'string', example: 'Authentic Mexican tacos recipe' },
                     instructions: { type: 'string', example: '1. Prepare the meat... 2. Cook the tortillas...' },
-                    ingredients: { type: 'array', items: { type: 'string' }, example: ['tortillas', 'beef', 'onions', 'cilantro'] },
+                    ingredients: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        example: ['tortillas', 'beef', 'onions', 'cilantro'],
+                    },
                     typeDish: { type: 'string', example: 'main course' },
                     image: { type: 'string', format: 'uri', example: 'https://example.com/recipe.jpg' },
                     cookingTime: { type: 'number', example: 30 },
@@ -687,10 +722,23 @@ const swaggerDocument: OpenAPIV3.Document = {
                     },
                     rating: { type: 'number', minimum: 1, maximum: 5, example: 5 },
                     title: { type: 'string', minLength: 5, maxLength: 100, example: 'Excelente comida' },
-                    content: { type: 'string', minLength: 10, maxLength: 1000, example: 'La mejor comida mexicana que he probado' },
+                    content: {
+                        type: 'string',
+                        minLength: 10,
+                        maxLength: 1000,
+                        example: 'La mejor comida mexicana que he probado',
+                    },
                     visitDate: { type: 'string', format: 'date', example: '2024-01-15' },
-                    recommendedDishes: { type: 'array', items: { type: 'string', maxLength: 50 }, example: ['Tacos al pastor', 'Guacamole'] },
-                    tags: { type: 'array', items: { type: 'string', maxLength: 30 }, example: ['auténtico', 'familiar'] },
+                    recommendedDishes: {
+                        type: 'array',
+                        items: { type: 'string', maxLength: 50 },
+                        example: ['Tacos al pastor', 'Guacamole'],
+                    },
+                    tags: {
+                        type: 'array',
+                        items: { type: 'string', maxLength: 30 },
+                        example: ['auténtico', 'familiar'],
+                    },
                     author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
                     restaurant: {
                         type: 'string',
@@ -875,7 +923,10 @@ const swaggerDocument: OpenAPIV3.Document = {
                                 type: 'object',
                                 required: ['refreshToken'],
                                 properties: {
-                                    refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                                    refreshToken: {
+                                        type: 'string',
+                                        example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                                    },
                                 },
                             },
                         },
@@ -891,7 +942,10 @@ const swaggerDocument: OpenAPIV3.Document = {
                                     properties: {
                                         success: { type: 'boolean', example: true },
                                         token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
-                                        refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                                        refreshToken: {
+                                            type: 'string',
+                                            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                                        },
                                     },
                                 },
                             },
@@ -1183,7 +1237,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'You can only modify your own reviews', error: 'Forbidden' },
+                                example: {
+                                    success: false,
+                                    message: 'You can only modify your own reviews',
+                                    error: 'Forbidden',
+                                },
                             },
                         },
                     },
@@ -1210,7 +1268,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'You can only modify your own reviews', error: 'Forbidden' },
+                                example: {
+                                    success: false,
+                                    message: 'You can only modify your own reviews',
+                                    error: 'Forbidden',
+                                },
                             },
                         },
                     },
@@ -1264,7 +1326,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                 },
             },
         },
-        
+
         // Cache Management endpoints
         '/cache/stats': {
             get: {
@@ -1323,7 +1385,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                                         data: {
                                             type: 'object',
                                             properties: {
-                                                status: { type: 'string', enum: ['healthy', 'unhealthy'], example: 'healthy' },
+                                                status: {
+                                                    type: 'string',
+                                                    enum: ['healthy', 'unhealthy'],
+                                                    example: 'healthy',
+                                                },
                                                 hitRatio: { type: 'number', example: 0.75 },
                                                 totalRequests: { type: 'number', example: 1000 },
                                                 cacheSize: { type: 'number', example: 500 },
@@ -1510,20 +1576,18 @@ const swaggerDocument: OpenAPIV3.Document = {
             },
         },
 
-        // Review endpoints using helpers
-        ...createReviewEndpoints('Markets'),
-        ...createReviewEndpoints('Recipes'),
-
-        // Restaurant review endpoints (uses 'restaurantId' instead of 'id')
-        ...createReviewPostEndpoint('Restaurants', 'restaurantId'),
-        ...createReviewEndpoints('Restaurants', 'restaurantId'),
+        // Review collection endpoints for specific resources
+        ...createReviewCollectionEndpoints('Markets'),
+        ...createReviewCollectionEndpoints('Recipes'),
+        ...createReviewCollectionEndpoints('Restaurants', 'restaurantId'),
 
         // Health Check endpoints
         '/health': {
             get: {
                 tags: ['Health Checks'],
                 summary: 'Liveness probe - Check if server is alive',
-                description: 'Indicates if the server process is running. Used by orchestrators like Kubernetes for liveness probes.',
+                description:
+                    'Indicates if the server process is running. Used by orchestrators like Kubernetes for liveness probes.',
                 responses: {
                     '200': {
                         description: 'Server is alive',
@@ -1533,8 +1597,16 @@ const swaggerDocument: OpenAPIV3.Document = {
                                     type: 'object',
                                     properties: {
                                         status: { type: 'string', example: 'alive' },
-                                        timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
-                                        uptime: { type: 'number', description: 'Process uptime in seconds', example: 3600.5 },
+                                        timestamp: {
+                                            type: 'string',
+                                            format: 'date-time',
+                                            example: '2024-01-15T10:30:00Z',
+                                        },
+                                        uptime: {
+                                            type: 'number',
+                                            description: 'Process uptime in seconds',
+                                            example: 3600.5,
+                                        },
                                         environment: { type: 'string', example: 'production' },
                                     },
                                 },
@@ -1554,7 +1626,8 @@ const swaggerDocument: OpenAPIV3.Document = {
             get: {
                 tags: ['Health Checks'],
                 summary: 'Readiness probe - Check if server is ready to accept requests',
-                description: 'Indicates if the server is ready to accept traffic. Verifies MongoDB connection status. Used by orchestrators for readiness probes.',
+                description:
+                    'Indicates if the server is ready to accept traffic. Verifies MongoDB connection status. Used by orchestrators for readiness probes.',
                 responses: {
                     '200': {
                         description: 'Server is ready',
@@ -1565,7 +1638,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                                     properties: {
                                         ready: { type: 'boolean', example: true },
                                         mongodb: { type: 'boolean', example: true },
-                                        timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                                        timestamp: {
+                                            type: 'string',
+                                            format: 'date-time',
+                                            example: '2024-01-15T10:30:00Z',
+                                        },
                                         message: { type: 'string', example: 'Service is ready to accept requests' },
                                     },
                                 },
@@ -1607,7 +1684,8 @@ const swaggerDocument: OpenAPIV3.Document = {
             get: {
                 tags: ['Health Checks'],
                 summary: 'Deep health check - Comprehensive system status',
-                description: 'Provides detailed health information including database connectivity, memory usage, and uptime. Useful for monitoring and debugging.',
+                description:
+                    'Provides detailed health information including database connectivity, memory usage, and uptime. Useful for monitoring and debugging.',
                 responses: {
                     '200': {
                         description: 'System is healthy',
@@ -1617,8 +1695,16 @@ const swaggerDocument: OpenAPIV3.Document = {
                                     type: 'object',
                                     properties: {
                                         status: { type: 'string', enum: ['healthy', 'degraded'], example: 'healthy' },
-                                        timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
-                                        uptime: { type: 'string', description: 'Formatted uptime', example: '60 minutes' },
+                                        timestamp: {
+                                            type: 'string',
+                                            format: 'date-time',
+                                            example: '2024-01-15T10:30:00Z',
+                                        },
+                                        uptime: {
+                                            type: 'string',
+                                            description: 'Formatted uptime',
+                                            example: '60 minutes',
+                                        },
                                         services: {
                                             type: 'object',
                                             properties: {
@@ -1628,9 +1714,21 @@ const swaggerDocument: OpenAPIV3.Document = {
                                         memory: {
                                             type: 'object',
                                             properties: {
-                                                rss: { type: 'string', description: 'Resident Set Size', example: '128MB' },
-                                                heapUsed: { type: 'string', description: 'Heap memory used', example: '64MB' },
-                                                heapTotal: { type: 'string', description: 'Total heap memory', example: '256MB' },
+                                                rss: {
+                                                    type: 'string',
+                                                    description: 'Resident Set Size',
+                                                    example: '128MB',
+                                                },
+                                                heapUsed: {
+                                                    type: 'string',
+                                                    description: 'Heap memory used',
+                                                    example: '64MB',
+                                                },
+                                                heapTotal: {
+                                                    type: 'string',
+                                                    description: 'Total heap memory',
+                                                    example: '256MB',
+                                                },
                                             },
                                         },
                                     },
@@ -1658,7 +1756,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                                 schema: {
                                     type: 'object',
                                     properties: {
-                                        status: { type: 'string', enum: ['degraded', 'unhealthy'], example: 'degraded' },
+                                        status: {
+                                            type: 'string',
+                                            enum: ['degraded', 'unhealthy'],
+                                            example: 'degraded',
+                                        },
                                         message: { type: 'string', example: 'Health check failed' },
                                         timestamp: { type: 'string', format: 'date-time' },
                                     },
