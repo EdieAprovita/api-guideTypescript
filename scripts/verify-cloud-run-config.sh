@@ -88,16 +88,16 @@ echo ""
 echo "3. Checking Health Check Configuration..."
 echo "=========================================="
 
-if [ -f "healthcheck.js" ]; then
-    check_ok "healthcheck.js exists"
+if [ -f "healthcheck.cjs" ]; then
+    check_ok "healthcheck.cjs exists"
     
-    if grep -q "/health" healthcheck.js; then
+    if grep -q "/health" healthcheck.cjs; then
         check_ok "Health check endpoint is configured"
     else
         check_error "Health check endpoint not found"
     fi
 else
-    check_warning "healthcheck.js not found (optional)"
+    check_warning "healthcheck.cjs not found (optional)"
 fi
 
 # Check health routes

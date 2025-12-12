@@ -44,7 +44,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/swagger.yaml ./
 
 # Copy healthcheck script
-COPY healthcheck.js ./
+COPY healthcheck.cjs ./
 
 # Switch to non-root user
 USER nodejs
@@ -60,7 +60,7 @@ ENV NODE_ENV=production \
 # Health check - optimized for Cloud Run startup
 # Cloud Run ignores HEALTHCHECK, but useful for local testing
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node healthcheck.js
+  CMD node healthcheck.cjs
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
