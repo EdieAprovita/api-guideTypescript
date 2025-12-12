@@ -4,20 +4,27 @@
  * This module provides sanitization functions to prevent NoSQL injection attacks
  * by removing dangerous MongoDB operators from user input data.
  *
+ * ⚠️ IMPORTANT: These functions should ONLY be used to sanitize untrusted user input
+ * at the application boundary (controllers/route handlers), NOT for application-constructed
+ * queries or data structures within the service layer.
+ *
  * @module sanitizer
  */
 
 /**
- * List of dangerous MongoDB operators that should be removed from user input
+ * List of MongoDB operators that should be removed from untrusted user input
  * to prevent NoSQL injection attacks.
  *
- * Common attack patterns:
+ * Common attack patterns when these operators appear in user input:
  * - $where: Allows arbitrary JavaScript execution
- * - $ne: Not equal operator can bypass authentication
- * - $gt, $gte, $lt, $lte: Comparison operators can leak information
+ * - $ne: Not equal operator can bypass authentication (e.g., { password: { $ne: null } })
+ * - $gt, $gte, $lt, $lte: Comparison operators can be abused to leak information when injected via user input
  * - $regex: Can be used for timing attacks or DoS
  * - $expr: Allows aggregation expressions
  * - $jsonSchema: Can be exploited for schema inference attacks
+ *
+ * ⚠️ Note: These operators are essential for legitimate queries (e.g., date ranges, numeric filters).
+ * Only remove them from untrusted user input, not from application-constructed queries.
  */
 const MONGODB_OPERATORS = [
     '$where',
@@ -47,23 +54,27 @@ const MONGODB_OPERATORS = [
 ];
 
 /**
- * Recursively removes MongoDB operators from an object or array.
+ * Recursively removes MongoDB operators from untrusted user input.
  *
  * This function traverses nested objects and arrays, removing any keys
  * that match MongoDB operator patterns (starting with '$').
  *
- * @param data - The data to sanitize (object, array, or primitive value)
+ * ⚠️ USAGE: Apply this ONLY to untrusted user input (req.body, req.query, req.params)
+ * at the controller/route handler level BEFORE passing data to services.
+ * DO NOT use this on application-constructed queries or data.
+ *
+ * @param data - The user input data to sanitize (object, array, or primitive value)
  * @returns The sanitized data with all MongoDB operators removed
  *
  * @example
  * ```typescript
- * const maliciousInput = {
- *   username: 'admin',
- *   password: { $ne: null } // NoSQL injection attempt
- * };
- *
- * const safe = sanitizeNoSQLInput(maliciousInput);
+ * // In a controller:
+ * const userInput = req.body; // { username: 'admin', password: { $ne: null } }
+ * const safeInput = sanitizeNoSQLInput(userInput);
  * // Result: { username: 'admin' } // $ne removed
+ *
+ * // Then pass safe input to service:
+ * await userService.create(safeInput);
  * ```
  */
 export function sanitizeNoSQLInput<T>(data: T): T {
@@ -99,24 +110,29 @@ export function sanitizeNoSQLInput<T>(data: T): T {
 }
 
 /**
- * Sanitizes query parameters to prevent NoSQL injection attacks.
+ * Sanitizes query parameters from untrusted user input to prevent NoSQL injection attacks.
  *
- * This is specifically designed for query parameters that might be used
- * in MongoDB find operations. It removes dangerous operators while
- * preserving valid query structures.
+ * This is specifically designed for query parameters that come from user input
+ * (e.g., req.query). It removes dangerous operators while preserving valid field names.
  *
- * @param query - The query object to sanitize
+ * ⚠️ USAGE: Apply this ONLY to untrusted user input at the controller level
+ * BEFORE using it to construct queries. DO NOT use this on application-constructed queries.
+ *
+ * @param query - The user-provided query object to sanitize
  * @returns The sanitized query object
  *
  * @example
  * ```typescript
- * const userQuery = {
- *   status: 'active',
- *   createdAt: { $gt: new Date('2024-01-01') } // Potentially malicious
- * };
+ * // In a controller:
+ * const userQuery = req.query; // { status: 'active', createdAt: { $gt: '2024-01-01' } }
+ * const safeQuery = sanitizeQueryParams(userQuery);
+ * // Result: { status: 'active' } // $gt removed from user input
  *
- * const safe = sanitizeQueryParams(userQuery);
- * // Result: { status: 'active' } // $gt removed
+ * // Application can then safely add its own operators:
+ * const fullQuery = {
+ *   ...safeQuery,
+ *   createdAt: { $gte: new Date('2024-01-01') } // Application-controlled operator
+ * };
  * ```
  */
 export function sanitizeQueryParams<T extends Record<string, any>>(query: T): T {
@@ -161,20 +177,26 @@ function sanitizeNestedObject(value: any, parentKey: string): any {
 }
 
 /**
- * Validates that a string doesn't contain MongoDB operators.
- * Useful for validating string fields that will be used in queries.
+ * Validates that a string is not exactly a MongoDB operator.
+ *
+ * ⚠️ Note: This only checks if the entire string is an operator, not if it contains
+ * operator substrings. Strings like "user$ne" or "admin$or" are safe as string VALUES
+ * because MongoDB operators are only dangerous when they are object KEYS, not string values.
  *
  * @param value - The string value to validate
- * @returns true if the string is safe, false if it contains operators
+ * @returns true if the string is safe, false if it's exactly a MongoDB operator
  *
  * @example
  * ```typescript
  * isStringSafe('normalUsername'); // true
- * isStringSafe('$where'); // false
+ * isStringSafe('user$ne'); // true (safe as a string value)
+ * isStringSafe('$where'); // false (exact operator match)
+ * isStringSafe('$ne'); // false (exact operator match)
  * ```
  */
 export function isStringSafe(value: string): boolean {
-    return !MONGODB_OPERATORS.some(op => value.includes(op));
+    // Only flag exact operator matches, not substrings
+    return !MONGODB_OPERATORS.includes(value);
 }
 
 /**

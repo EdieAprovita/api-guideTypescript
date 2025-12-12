@@ -3,7 +3,6 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { cacheService, CacheOptions } from './CacheService';
 import logger from '../utils/logger';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
 
 /**
  * @description Base service class
@@ -45,22 +44,13 @@ class BaseService<T extends Document> {
     }
 
     async create(data: Partial<T>): Promise<T> {
-        // 🔒 Sanitize input to prevent NoSQL injection
-        const sanitizedData = sanitizeNoSQLInput(data);
-
         // Si se proporciona userId en el constructor, úsalo como author por defecto
         // Pero si data ya tiene author, respeta ese valor
-        if (this.userId && !(sanitizedData as any).author) {
-            // Sanitize userId to ensure it's also safe
-            const sanitizedUserId = sanitizeNoSQLInput({ id: this.userId }).id as string;
-            const dataWithAuthor = sanitizeNoSQLInput({
-                ...sanitizedData,
-                author: sanitizedUserId,
-            }) as Partial<T>;
-            return this.model.create(dataWithAuthor);
+        if (this.userId && !(data as any).author) {
+            data = { ...data, author: this.userId } as Partial<T>;
         }
 
-        return this.model.create(sanitizedData);
+        return this.model.create(data);
     }
 
     async updateById(id: string, data: Partial<T>): Promise<T> {
@@ -69,13 +59,10 @@ class BaseService<T extends Document> {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid ID format'));
         }
 
-        // 🔒 Sanitize input to prevent NoSQL injection
-        const sanitizedData = sanitizeNoSQLInput(data);
-
         // Convert string to ObjectId to prevent injection
         const objectId = new Types.ObjectId(id);
 
-        const item = await this.model.findByIdAndUpdate(objectId, sanitizedData, { new: true });
+        const item = await this.model.findByIdAndUpdate(objectId, data, { new: true });
         if (!item) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
         }
@@ -199,18 +186,15 @@ class BaseService<T extends Document> {
      * Buscar con cache genérico
      */
     async findWithCache<U = T>(query: object, cacheKey: string, options?: CacheOptions): Promise<U[]> {
-        // 🔒 Sanitize query to prevent NoSQL injection
-        const sanitizedQuery = sanitizeNoSQLInput(query);
-
         if (!this.cacheEnabled) {
-            return this.model.find(sanitizedQuery).exec() as Promise<U[]>;
+            return this.model.find(query).exec() as Promise<U[]>;
         }
 
         try {
             let results = await cacheService.get<U[]>(cacheKey);
 
             if (!results || results === null) {
-                results = (await this.model.find(sanitizedQuery).exec()) as U[];
+                results = (await this.model.find(query).exec()) as U[];
                 await cacheService.set(cacheKey, results, this.modelName, {
                     ttl: options?.ttl || this.cacheTTL,
                     tags: options?.tags || [this.modelName],
@@ -220,7 +204,7 @@ class BaseService<T extends Document> {
             return results || ([] as U[]);
         } catch (error) {
             logger.error(`Cache error in findWithCache for ${this.modelName}:`, error);
-            return this.model.find(sanitizedQuery).exec() as Promise<U[]>;
+            return this.model.find(query).exec() as Promise<U[]>;
         }
     }
 
@@ -273,15 +257,13 @@ class BaseService<T extends Document> {
     }
 
     protected async findWithPagination(query: FilterQuery<T>, page: number = 1, limit: number = 10): Promise<T[]> {
-        // 🔒 Sanitize query to prevent NoSQL injection
-        const sanitizedQuery = sanitizeNoSQLInput(query);
         const skip = (page - 1) * limit;
         let results: T[];
 
         if (limit > 0) {
-            results = (await this.model.find(sanitizedQuery).skip(skip).limit(limit).exec()) as T[];
+            results = (await this.model.find(query).skip(skip).limit(limit).exec()) as T[];
         } else {
-            results = (await this.model.find(sanitizedQuery).exec()) as T[];
+            results = (await this.model.find(query).exec()) as T[];
         }
 
         return results;

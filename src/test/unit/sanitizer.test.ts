@@ -127,13 +127,16 @@ describe('NoSQL Injection Prevention', () => {
             expect(result).not.toHaveProperty('$where');
         });
 
-        it('should sanitize nested operators in query values', () => {
-            const query = {
+        it('should sanitize nested operators in user-provided query values', () => {
+            // This test verifies operators are removed from USER INPUT
+            // Application-constructed queries should NOT be sanitized
+            const userQuery = {
                 age: { $gt: 18, $lt: 65 },
             };
 
-            const result = sanitizeQueryParams(query);
+            const result = sanitizeQueryParams(userQuery);
 
+            // Operators from user input are removed for security
             expect(result.age).toEqual({});
         });
 
@@ -156,14 +159,46 @@ describe('NoSQL Injection Prevention', () => {
             expect(isStringSafe('user@example.com')).toBe(true);
         });
 
-        it('should return false for strings with MongoDB operators', () => {
+        it('should return true for strings containing operators as substrings (safe as string values)', () => {
+            // These are safe because MongoDB operators are only dangerous as object keys, not as substring values
+            expect(isStringSafe('user$ne')).toBe(true);
+            expect(isStringSafe('text$regex')).toBe(true);
+            expect(isStringSafe('admin$or')).toBe(true);
+        });
+
+        it('should return false for strings that are exactly MongoDB operators', () => {
             expect(isStringSafe('$where')).toBe(false);
-            expect(isStringSafe('user$ne')).toBe(false);
-            expect(isStringSafe('text$regex')).toBe(false);
+            expect(isStringSafe('$ne')).toBe(false);
+            expect(isStringSafe('$regex')).toBe(false);
+            expect(isStringSafe('$gt')).toBe(false);
         });
     });
 
     describe('Real-world attack scenarios', () => {
+        it('should demonstrate proper usage: sanitize user input, then application adds operators', () => {
+            // User input from req.query
+            const userInput = {
+                status: 'active',
+                userId: { $ne: null }, // Malicious injection attempt
+            };
+
+            // Sanitize user input at controller level
+            const sanitizedInput = sanitizeNoSQLInput(userInput);
+
+            // Application-constructed query with legitimate operators
+            const applicationQuery = {
+                ...sanitizedInput, // Safe user data
+                createdAt: { $gte: new Date('2024-01-01') }, // Application-controlled operator
+            };
+
+            expect(sanitizedInput).toEqual({ status: 'active', userId: {} });
+            expect(applicationQuery).toEqual({
+                status: 'active',
+                userId: {},
+                createdAt: { $gte: new Date('2024-01-01') },
+            });
+        });
+
         it('should prevent authentication bypass with $ne', () => {
             // Common NoSQL injection for bypassing login
             const loginAttempt = {

@@ -3,7 +3,6 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { cacheService } from './CacheService';
 import mongoose, { Types, startSession } from 'mongoose';
 import logger from '../utils/logger';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
 
 interface ReviewFilters {
     entityType?: string;
@@ -272,23 +271,20 @@ export const reviewService = {
     },
 
     async addReview(reviewData: Partial<IReview>): Promise<IReview> {
-        // 🔒 Sanitize input to prevent NoSQL injection
-        const sanitizedReviewData = sanitizeNoSQLInput(reviewData);
-
-        if (!sanitizedReviewData.entityType || !sanitizedReviewData.entity) {
+        if (!reviewData.entityType || !reviewData.entity) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Entity type and entity ID are required');
         }
 
-        await validateEntityTypeAndId(sanitizedReviewData.entityType, sanitizedReviewData.entity.toString());
+        await validateEntityTypeAndId(reviewData.entityType, reviewData.entity.toString());
 
-        if (!sanitizedReviewData.author || !mongoose.Types.ObjectId.isValid(sanitizedReviewData.author.toString())) {
+        if (!reviewData.author || !mongoose.Types.ObjectId.isValid(reviewData.author.toString())) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Valid author ID is required');
         }
 
         // 🔒 Build query safely with validated ObjectIds to prevent NoSQL injection
-        const authorId = new Types.ObjectId(sanitizedReviewData.author.toString());
-        const entityId = new Types.ObjectId(sanitizedReviewData.entity.toString());
-        const entityTypeValue = String(sanitizedReviewData.entityType);
+        const authorId = new Types.ObjectId(reviewData.author.toString());
+        const entityId = new Types.ObjectId(reviewData.entity.toString());
+        const entityTypeValue = String(reviewData.entityType);
 
         const existingReview = await Review.findOne({
             author: authorId,
@@ -304,7 +300,7 @@ export const reviewService = {
 
         try {
             const review = await session.withTransaction(async () => {
-                const [newReview] = await Review.create([sanitizedReviewData], { session });
+                const [newReview] = await Review.create([reviewData], { session });
                 return newReview;
             });
 
@@ -349,9 +345,6 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Invalid user ID format');
         }
 
-        // 🔒 Sanitize input to prevent NoSQL injection
-        const sanitizedUpdateData = sanitizeNoSQLInput(updateData);
-
         const review = await Review.findById(reviewId);
         if (!review) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'Review not found');
@@ -367,7 +360,7 @@ export const reviewService = {
             const updatedReview = await session.withTransaction(async () => {
                 const updated = await Review.findByIdAndUpdate(
                     reviewId,
-                    { ...sanitizedUpdateData, updatedAt: new Date() },
+                    { ...updateData, updatedAt: new Date() },
                     { new: true, session }
                 ).populate('author', 'firstName lastName');
                 return updated;

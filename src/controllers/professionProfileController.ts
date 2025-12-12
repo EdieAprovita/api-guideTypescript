@@ -5,6 +5,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors';
 import { getErrorMessage } from '../types/modalTypes';
 import { professionProfileService as ProfessionProfileService } from '../services/ProfessionProfileService';
 import { reviewService as ReviewService } from '../services/ReviewService';
+import { sanitizeNoSQLInput } from '../utils/sanitizer';
 
 /**
  * @description Get all professionsProfile
@@ -77,7 +78,9 @@ export const createProfessionProfile = asyncHandler(async (req: Request, res: Re
         return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
     }
     try {
-        const profession = await ProfessionProfileService.create(req.body);
+        // 🔒 Sanitize user input to prevent NoSQL injection
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const profession = await ProfessionProfileService.create(sanitizedData);
         res.status(201).json({
             success: true,
             message: 'Profession created successfully',
@@ -112,7 +115,9 @@ export const updateProfessionProfile = asyncHandler(async (req: Request, res: Re
         if (!id) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Profession Profile ID is required'));
         }
-        const profession = await ProfessionProfileService.updateById(id, req.body);
+        // 🔒 Sanitize user input to prevent NoSQL injection
+        const sanitizedData = sanitizeNoSQLInput(req.body);
+        const profession = await ProfessionProfileService.updateById(id, sanitizedData);
         res.status(200).json({
             success: true,
             message: 'Profession updated successfully',
@@ -167,8 +172,10 @@ export const deleteProfessionProfile = asyncHandler(async (req: Request, res: Re
 
 export const addReviewToProfessionProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
+        // 🔒 Sanitize user input to prevent NoSQL injection
+        const sanitizedBody = sanitizeNoSQLInput(req.body);
         const reviewData = {
-            ...req.body,
+            ...sanitizedBody,
             entityType: 'Business', // Map ProfessionProfile to Business for now
             entity: req.params.id,
             professionProfileId: req.params.id, // Keep for backward compatibility
