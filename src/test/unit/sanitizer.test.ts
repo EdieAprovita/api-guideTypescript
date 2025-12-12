@@ -5,8 +5,13 @@
  * @group security
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeNoSQLInput, sanitizeQueryParams, isStringSafe } from '../../utils/sanitizer';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { sanitizeNoSQLInput, sanitizeQueryParams } from '../../utils/sanitizer';
+
+// Mock the logger to prevent console output during tests
+vi.mock('../../utils/logger', () => ({
+    logWarn: vi.fn(),
+}));
 
 describe('NoSQL Injection Prevention', () => {
     describe('sanitizeNoSQLInput', () => {
@@ -153,50 +158,46 @@ describe('NoSQL Injection Prevention', () => {
         });
     });
 
-    describe('isStringSafe', () => {
-        it('should return true for safe strings', () => {
-            expect(isStringSafe('normalUsername')).toBe(true);
-            expect(isStringSafe('user@example.com')).toBe(true);
-        });
-
-        it('should return true for strings containing operators as substrings (safe as string values)', () => {
-            // These are safe because MongoDB operators are only dangerous as object keys, not as substring values
-            expect(isStringSafe('user$ne')).toBe(true);
-            expect(isStringSafe('text$regex')).toBe(true);
-            expect(isStringSafe('admin$or')).toBe(true);
-        });
-
-        it('should return false for strings that are exactly MongoDB operators', () => {
-            expect(isStringSafe('$where')).toBe(false);
-            expect(isStringSafe('$ne')).toBe(false);
-            expect(isStringSafe('$regex')).toBe(false);
-            expect(isStringSafe('$gt')).toBe(false);
-        });
-    });
-
     describe('Real-world attack scenarios', () => {
         it('should demonstrate proper usage: sanitize user input, then application adds operators', () => {
-            // User input from req.query
+            // ============ CORRECT PATTERN ============
+            // This test demonstrates the CORRECT usage of sanitization:
+            // 1. Sanitize untrusted user input at controller level
+            // 2. Application adds legitimate operators at service level
+            // 3. Query has both sanitized user data AND application-controlled operators
+
+            // User input from req.query (untrusted)
             const userInput = {
                 status: 'active',
-                userId: { $ne: null }, // Malicious injection attempt
+                userId: { $ne: null }, // 🚨 Malicious injection attempt
             };
 
-            // Sanitize user input at controller level
+            // STEP 1: Controller sanitizes user input (application boundary)
             const sanitizedInput = sanitizeNoSQLInput(userInput);
 
-            // Application-constructed query with legitimate operators
+            // STEP 2: Service constructs safe query with application-controlled operators
             const applicationQuery = {
                 ...sanitizedInput, // Safe user data
-                createdAt: { $gte: new Date('2024-01-01') }, // Application-controlled operator
+                createdAt: { $gte: new Date('2024-01-01') }, // ✅ Application-controlled operator
+                isActive: true, // Application business logic
             };
 
+            // VERIFICATION: User's malicious operator is removed
             expect(sanitizedInput).toEqual({ status: 'active', userId: {} });
+
+            // VERIFICATION: Final query has:
+            // - Sanitized user data (status)
+            // - NO user-injected operators (userId.$ne removed)
+            // - Application-controlled operators (createdAt.$gte)
             expect(applicationQuery).toEqual({
                 status: 'active',
                 userId: {},
                 createdAt: { $gte: new Date('2024-01-01') },
+                isActive: true,
             });
+
+            // ⚠️ IMPORTANT: This demonstrates that MongoDB operators are SAFE
+            // when constructed by the application, DANGEROUS when from user input
         });
 
         it('should prevent authentication bypass with $ne', () => {

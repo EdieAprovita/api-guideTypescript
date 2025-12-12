@@ -11,47 +11,7 @@
  * @module sanitizer
  */
 
-/**
- * List of MongoDB operators that should be removed from untrusted user input
- * to prevent NoSQL injection attacks.
- *
- * Common attack patterns when these operators appear in user input:
- * - $where: Allows arbitrary JavaScript execution
- * - $ne: Not equal operator can bypass authentication (e.g., { password: { $ne: null } })
- * - $gt, $gte, $lt, $lte: Comparison operators can be abused to leak information when injected via user input
- * - $regex: Can be used for timing attacks or DoS
- * - $expr: Allows aggregation expressions
- * - $jsonSchema: Can be exploited for schema inference attacks
- *
- * ⚠️ Note: These operators are essential for legitimate queries (e.g., date ranges, numeric filters).
- * Only remove them from untrusted user input, not from application-constructed queries.
- */
-const MONGODB_OPERATORS = [
-    '$where',
-    '$ne',
-    '$gt',
-    '$gte',
-    '$lt',
-    '$lte',
-    '$in',
-    '$nin',
-    '$regex',
-    '$options',
-    '$expr',
-    '$jsonSchema',
-    '$text',
-    '$search',
-    '$mod',
-    '$all',
-    '$elemMatch',
-    '$size',
-    '$type',
-    '$exists',
-    '$nor',
-    '$or',
-    '$and',
-    '$not',
-];
+import { logWarn } from './logger';
 
 /**
  * Recursively removes MongoDB operators from untrusted user input.
@@ -98,7 +58,11 @@ export function sanitizeNoSQLInput<T>(data: T): T {
     for (const [key, value] of Object.entries(data)) {
         // Skip keys that are MongoDB operators
         if (key.startsWith('$')) {
-            console.warn(`⚠️  NoSQL Injection attempt blocked: Removed operator "${key}"`);
+            logWarn('NoSQL injection attempt blocked', {
+                operator: key,
+                action: 'removed_operator',
+                securityEvent: 'nosql_injection_attempt',
+            });
             continue;
         }
 
@@ -141,7 +105,11 @@ export function sanitizeQueryParams<T extends Record<string, any>>(query: T): T 
     for (const [key, value] of Object.entries(query)) {
         // Skip MongoDB operators in keys
         if (key.startsWith('$')) {
-            console.warn(`⚠️  NoSQL Injection attempt blocked: Removed query operator "${key}"`);
+            logWarn('NoSQL injection attempt blocked in query params', {
+                operator: key,
+                action: 'removed_query_operator',
+                securityEvent: 'nosql_injection_attempt',
+            });
             continue;
         }
 
@@ -165,7 +133,13 @@ function sanitizeNestedObject(value: any, parentKey: string): any {
 
     for (const [subKey, subValue] of Object.entries(value)) {
         if (subKey.startsWith('$')) {
-            console.warn(`⚠️  NoSQL Injection attempt blocked: Removed nested operator "${parentKey}.${subKey}"`);
+            logWarn('NoSQL injection attempt blocked in nested object', {
+                parentKey,
+                operator: subKey,
+                fullPath: `${parentKey}.${subKey}`,
+                action: 'removed_nested_operator',
+                securityEvent: 'nosql_injection_attempt',
+            });
         } else {
             sanitizedValue[subKey] = sanitizeNoSQLInput(subValue);
             hasValidKeys = true;
@@ -174,29 +148,6 @@ function sanitizeNestedObject(value: any, parentKey: string): any {
 
     // Only return sanitized object if it has valid keys
     return hasValidKeys ? sanitizedValue : sanitizeNoSQLInput(value);
-}
-
-/**
- * Validates that a string is not exactly a MongoDB operator.
- *
- * ⚠️ Note: This only checks if the entire string is an operator, not if it contains
- * operator substrings. Strings like "user$ne" or "admin$or" are safe as string VALUES
- * because MongoDB operators are only dangerous when they are object KEYS, not string values.
- *
- * @param value - The string value to validate
- * @returns true if the string is safe, false if it's exactly a MongoDB operator
- *
- * @example
- * ```typescript
- * isStringSafe('normalUsername'); // true
- * isStringSafe('user$ne'); // true (safe as a string value)
- * isStringSafe('$where'); // false (exact operator match)
- * isStringSafe('$ne'); // false (exact operator match)
- * ```
- */
-export function isStringSafe(value: string): boolean {
-    // Only flag exact operator matches, not substrings
-    return !MONGODB_OPERATORS.includes(value);
 }
 
 /**

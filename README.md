@@ -40,7 +40,7 @@ The Swagger documentation provides:
 
 Por seguridad, en producción el endpoint `/api-docs` está deshabilitado por defecto. Puedes habilitarlo bajo credenciales con variables de entorno en tu servicio de Cloud Run:
 
-1) Habilitar y proteger con Basic Auth
+1. Habilitar y proteger con Basic Auth
 
 ```bash
 gcloud run services update api-guidetypescript \
@@ -48,7 +48,7 @@ gcloud run services update api-guidetypescript \
   --set-env-vars ENABLE_SWAGGER_UI=true,SWAGGER_AUTH_USER=admin,SWAGGER_AUTH_PASS='cambia-esta-contraseña'
 ```
 
-2) Verificar
+2. Verificar
 
 ```bash
 # sin credenciales debe responder 401
@@ -58,7 +58,7 @@ curl -I https://api-guidetypescript-787324382752.europe-west1.run.app/api-docs
 curl -u admin:'cambia-esta-contraseña' -I https://api-guidetypescript-787324382752.europe-west1.run.app/api-docs
 ```
 
-3) Deshabilitar nuevamente en producción
+3. Deshabilitar nuevamente en producción
 
 ```bash
 gcloud run services update api-guidetypescript \
@@ -67,6 +67,7 @@ gcloud run services update api-guidetypescript \
 ```
 
 Notas:
+
 - Si solo configuras `ENABLE_SWAGGER_UI=true` sin usuario/contraseña, `/api-docs` quedará abierto. Se recomienda usar Basic Auth en producción.
 - También puedes consumir el spec directamente desde el repositorio (`swagger.yaml`) o desde el endpoint `/api-docs` cuando esté habilitado.
 
@@ -201,38 +202,38 @@ Notas:
     ```env
     NODE_ENV=development
     PORT=5001
-    
+
     # Database
     MONGODB_URI=mongodb://localhost:27017/vegan-city-guide
-    
+
     # JWT Configuration
     JWT_SECRET=your-secure-jwt-secret-at-least-64-characters-long
     JWT_REFRESH_SECRET=your-secure-refresh-secret-at-least-64-characters-long
     JWT_EXPIRE=30d
-    
+
     # Redis (Optional - for caching and rate limiting)
     REDIS_URL=redis://localhost:6379
     REDIS_HOST=localhost
     REDIS_PORT=6379
     REDIS_PASSWORD=
-    
+
     # External Services
     GOOGLE_MAPS_API_KEY=your-google-maps-api-key
     EMAIL_USER=your-email@gmail.com
     EMAIL_PASS=your-email-password
-    
+
     # Frontend Configuration
     FRONTEND_URL=http://localhost:3000
-    
+
     # Security
     BCRYPT_SALT_ROUNDS=10
     SECURE_BASE_URL=https://localhost
-    
+
     # Swagger UI Protection (Production)
     ENABLE_SWAGGER_UI=true
     SWAGGER_AUTH_USER=admin
     SWAGGER_AUTH_PASS=your-secure-password
-    
+
     # Debugging (Development Only)
     DEBUG_IP_INFO=false
     ```
@@ -242,10 +243,10 @@ Notas:
     ```bash
     # Development mode with hot reload
     npm run dev
-    
+
     # Development mode with ts-node
     npm run start:dev
-    
+
     # Production mode (requires build first)
     npm run build
     npm start
@@ -279,10 +280,10 @@ Notas:
     ```bash
     # Production mode
     docker compose --profile prod up -d
-    
+
     # Development mode
     docker compose --profile dev up
-    
+
     # Check status
     docker compose ps
     docker compose logs -f api
@@ -295,11 +296,11 @@ Notas:
     ```bash
     # Copy template
     cp .env.docker.example .env.docker
-    
+
     # Generate secure passwords
     openssl rand -base64 32  # For MongoDB/Redis
     openssl rand -hex 64     # For JWT secrets
-    
+
     # Edit .env.docker and replace ALL placeholder values
     nano .env.docker
     ```
@@ -308,7 +309,7 @@ Notas:
 
     ```bash
     docker build -t api-guide-typescript .
-    
+
     # Or optimized production build
     npm run docker:build:optimized
     ```
@@ -379,6 +380,107 @@ The API implements multiple security layers following OWASP best practices:
 - **HTTPS Enforcement** – Automatic redirect to HTTPS in production
 - **Suspicious Activity Detection** – Monitors and blocks malicious patterns
 
+### NoSQL Injection Prevention
+
+This API implements a robust NoSQL injection prevention system that follows security best practices:
+
+#### 🛡️ Architecture Pattern
+
+**Sanitization occurs ONLY at the application boundary (controllers), NOT in services or database layers.**
+
+```typescript
+// ✅ CORRECT: Controller sanitizes untrusted user input
+export const createUser = async (req: Request, res: Response) => {
+    // Sanitize user input from request
+    const sanitizedData = sanitizeNoSQLInput(req.body);
+
+    // Pass safe data to service
+    const user = await userService.create(sanitizedData);
+    res.status(201).json(user);
+};
+
+// ✅ CORRECT: Service uses application-controlled operators
+class UserService {
+    async findActive(userData: any) {
+        // Application constructs safe query with legitimate operators
+        return User.find({
+            ...userData, // Sanitized user data
+            isActive: true, // Application logic
+            createdAt: {
+                // Application-controlled operator
+                $gte: new Date('2024-01-01'),
+            },
+        });
+    }
+}
+```
+
+#### 🚨 Common Attack Vectors (All Prevented)
+
+1. **Authentication Bypass**
+
+    ```typescript
+    // Attack attempt:
+    { username: "admin", password: { $ne: null } }
+    // After sanitization:
+    { username: "admin", password: {} }
+    ```
+
+2. **Data Exfiltration**
+
+    ```typescript
+    // Attack attempt:
+    {
+        userId: {
+            $gt: 0;
+        }
+    } // Would return all users
+    // After sanitization:
+    {
+        userId: {
+        }
+    }
+    ```
+
+3. **JavaScript Injection**
+    ```typescript
+    // Attack attempt:
+    {
+        $where: 'this.password.length > 0';
+    }
+    // After sanitization:
+    {
+    } // Entire malicious query removed
+    ```
+
+#### 📚 Key Functions
+
+- **`sanitizeNoSQLInput(data)`** – Recursively removes MongoDB operators from any data structure
+- **`sanitizeQueryParams(query)`** – Specifically sanitizes URL query parameters
+- **Structured Logging** – All injection attempts are logged with context for security monitoring
+
+#### 🔍 Security Monitoring
+
+All NoSQL injection attempts are logged using Winston structured logging:
+
+```typescript
+logWarn('NoSQL injection attempt blocked', {
+    operator: '$ne',
+    action: 'removed_operator',
+    securityEvent: 'nosql_injection_attempt',
+    // Additional context automatically included
+});
+```
+
+#### ⚠️ Important Notes
+
+- **Application operators are safe**: MongoDB operators like `$gte`, `$regex`, `$near` are legitimate when constructed by the application
+- **User input is dangerous**: The same operators are security risks when they come from user input
+- **Never sanitize service queries**: Services must be able to use full MongoDB capabilities
+- **Always sanitize controller input**: All `req.body`, `req.query`, and `req.params` should be sanitized
+
+For complete implementation details and examples, see [`src/utils/sanitizer.ts`](src/utils/sanitizer.ts) and [`src/test/integration/sanitizer.e2e.test.ts`](src/test/integration/sanitizer.e2e.test.ts).
+
 ### Additional Security Features
 
 - **Docker Security**: Non-root user execution, minimal attack surface
@@ -401,6 +503,7 @@ The API implements multiple security layers following OWASP best practices:
 ## 🏗️ Technology Stack
 
 ### Core Technologies
+
 - **Runtime**: Node.js 20.x
 - **Language**: TypeScript 5.8+ (strict mode)
 - **Framework**: Express.js 4.18
@@ -408,6 +511,7 @@ The API implements multiple security layers following OWASP best practices:
 - **Caching**: Redis 5.x with ioredis
 
 ### Security & Middleware
+
 - **Helmet**: Security headers
 - **express-rate-limit**: Rate limiting (100 req/15min)
 - **express-mongo-sanitize**: NoSQL injection prevention
@@ -416,6 +520,7 @@ The API implements multiple security layers following OWASP best practices:
 - **CORS**: Configurable cross-origin resource sharing
 
 ### Testing & Quality
+
 - **Test Framework**: Vitest 3.x
 - **Coverage**: v8 provider with 40% threshold
 - **Test Count**: 44+ test files (unit, integration, services, controllers)
@@ -424,6 +529,7 @@ The API implements multiple security layers following OWASP best practices:
 - **Formatting**: Prettier 3.x
 
 ### DevOps & Deployment
+
 - **CI/CD**: GitHub Actions
 - **Containerization**: Docker with multi-stage builds
 - **Cloud**: Google Cloud Run deployment
@@ -505,6 +611,7 @@ npm run test:coverage:fast
 The project uses different coverage configurations depending on the test suite:
 
 **Default Configuration** (`vitest.config.mts`):
+
 ```
 Global Thresholds:
 - Branches: 30%
@@ -572,6 +679,7 @@ A complete Postman collection is available in the repository:
 - Organized by resource type for easy navigation
 
 **Import Instructions**:
+
 1. Open Postman
 2. Click "Import" button
 3. Select `API_Guide_TypeScript_COMPLETE.postman_collection.json`
@@ -632,38 +740,38 @@ The project includes a comprehensive GitHub Actions CI/CD pipeline:
 ### Workflow Jobs
 
 1. **Quality Checks**
-   - TypeScript type checking
-   - ESLint code linting
-   - Prettier format checking
-   - Runs on every push and PR
+    - TypeScript type checking
+    - ESLint code linting
+    - Prettier format checking
+    - Runs on every push and PR
 
 2. **Tests**
-   - Unit tests
-   - Integration tests
-   - Service and controller tests
-   - Coverage reporting
-   - Uses mongodb-memory-server and Redis service
-   - Runs on Ubuntu 22.04 for MongoDB compatibility
+    - Unit tests
+    - Integration tests
+    - Service and controller tests
+    - Coverage reporting
+    - Uses mongodb-memory-server and Redis service
+    - Runs on Ubuntu 22.04 for MongoDB compatibility
 
 ### Workflow Configuration
 
 ```yaml
 Triggers:
-- Push to main/develop branches
-- Pull requests to main/develop
-- Manual workflow dispatch
+    - Push to main/develop branches
+    - Pull requests to main/develop
+    - Manual workflow dispatch
 
 Environment:
-- Node.js 20.x
-- Ubuntu 22.04
-- Redis 7-alpine service
-- MongoDB memory server
+    - Node.js 20.x
+    - Ubuntu 22.04
+    - Redis 7-alpine service
+    - MongoDB memory server
 
 Features:
-- Concurrency control (cancels previous runs)
-- Dependency caching
-- System dependency installation for MongoDB
-- Comprehensive test coverage
+    - Concurrency control (cancels previous runs)
+    - Dependency caching
+    - System dependency installation for MongoDB
+    - Comprehensive test coverage
 ```
 
 ### Running CI/CD Locally
@@ -691,10 +799,10 @@ Contributions are welcome! Please follow these steps:
     git checkout -b feature/amazing-feature
     ```
 3. **Make your changes**
-   - Follow TypeScript best practices
-   - Add proper type definitions
-   - Write tests for new features
-   - Update Swagger documentation for new endpoints
+    - Follow TypeScript best practices
+    - Add proper type definitions
+    - Write tests for new features
+    - Update Swagger documentation for new endpoints
 4. **Run quality checks**
     ```bash
     npm run validate  # Runs type-check, lint, and tests
@@ -719,6 +827,7 @@ Contributions are welcome! Please follow these steps:
 ### Development Guidelines
 
 #### Code Style
+
 - Follow TypeScript strict mode requirements
 - Use ESLint and Prettier configurations
 - Add JSDoc comments for public functions
@@ -726,6 +835,7 @@ Contributions are welcome! Please follow these steps:
 - Use meaningful variable and function names
 
 #### Testing Requirements
+
 - Write unit tests for utilities and services
 - Write integration tests for API endpoints
 - Maintain minimum coverage thresholds (40%)
@@ -734,12 +844,14 @@ Contributions are welcome! Please follow these steps:
 - Clear mocks between tests using `beforeEach`
 
 #### Type Safety
+
 - Use TypeScript strict mode
 - Avoid `any` type (use `unknown` if needed)
 - Define proper interfaces for all data structures
 - Use type guards for runtime type checking
 
 #### Security
+
 - Never hardcode credentials or secrets
 - Validate all user inputs
 - Sanitize data before database operations
@@ -747,6 +859,7 @@ Contributions are welcome! Please follow these steps:
 - Test for security vulnerabilities
 
 #### Documentation
+
 - Update README for significant changes
 - Update Swagger/OpenAPI documentation
 - Add inline comments for complex logic
@@ -819,6 +932,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👤 Author
 
 **Edgar Chavero**
+
 - Email: edieveg316@gmail.com
 - LinkedIn: [Edgar Chavero](https://www.linkedin.com/in/edgar-chavero/)
 - GitHub: [@EdieAprovita](https://github.com/EdieAprovita)
@@ -861,11 +975,13 @@ The API is deployed on Google Cloud Run for production use:
 **Production URL**: `https://api-guidetypescript-787324382752.europe-west1.run.app`
 
 For deployment instructions, see:
+
 - [Cloud Run Deployment Guide](docs/CLOUD_RUN_DEPLOYMENT.md)
 
 ### Kubernetes Deployment
 
 Kubernetes manifests are available:
+
 - `api-configmap.yaml` - Configuration management
 - `api-deployment.yaml` - Deployment configuration
 - `api-service.yaml` - Service configuration
@@ -873,6 +989,7 @@ Kubernetes manifests are available:
 ## 🎯 Roadmap
 
 Future enhancements planned:
+
 - [ ] GraphQL API support
 - [ ] Real-time updates with WebSockets
 - [ ] Advanced search and filtering
