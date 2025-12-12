@@ -144,28 +144,8 @@ const createAddReviewEndpoint = (tag: string) => ({
                     },
                 },
             },
-            '401': {
-                description: 'Unauthorized',
-                content: {
-                    'application/json': {
-                        schema: { $ref: '#/components/schemas/ErrorResponse' },
-                        example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                    },
-                },
-            },
-            '409': {
-                description: 'Conflict',
-                content: {
-                    'application/json': {
-                        schema: { $ref: '#/components/schemas/ErrorResponse' },
-                        example: {
-                            success: false,
-                            message: `User has already reviewed this ${tag.toLowerCase().slice(0, -1)}`,
-                            error: 'Conflict',
-                        },
-                    },
-                },
-            },
+            '401': createUnauthorizedResponse(),
+            '409': createConflictResponse(`User has already reviewed this ${tag.toLowerCase().slice(0, -1)}`),
         },
     },
 });
@@ -235,6 +215,26 @@ const createNotFoundResponse = (entityType: string) => ({
     },
 });
 
+const createForbiddenResponse = (message = 'You do not have permission to perform this action') => ({
+    description: 'Forbidden',
+    content: {
+        'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorResponse' },
+            example: { success: false, message, error: 'Forbidden' },
+        },
+    },
+});
+
+const createConflictResponse = (message: string) => ({
+    description: 'Conflict',
+    content: {
+        'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorResponse' },
+            example: { success: false, message, error: 'Conflict' },
+        },
+    },
+});
+
 const createSuccessMessageResponse = (message: string) => ({
     description: message,
     content: {
@@ -282,17 +282,7 @@ const createReviewListResponse = (entityType: string) => ({
                     properties: {
                         success: { type: 'boolean' },
                         data: { type: 'array', items: { $ref: '#/components/schemas/Review' } },
-                        pagination: {
-                            type: 'object',
-                            properties: {
-                                currentPage: { type: 'integer' },
-                                totalPages: { type: 'integer' },
-                                totalItems: { type: 'integer' },
-                                itemsPerPage: { type: 'integer' },
-                                hasNext: { type: 'boolean' },
-                                hasPrevious: { type: 'boolean' },
-                            },
-                        },
+                        pagination: { $ref: '#/components/schemas/Pagination' },
                     },
                 },
             },
@@ -311,23 +301,7 @@ const createReviewStatsResponse = (entityType: string) => ({
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                totalReviews: { type: 'integer' },
-                                averageRating: { type: 'number' },
-                                ratingDistribution: {
-                                    type: 'object',
-                                    properties: {
-                                        '1': { type: 'integer' },
-                                        '2': { type: 'integer' },
-                                        '3': { type: 'integer' },
-                                        '4': { type: 'integer' },
-                                        '5': { type: 'integer' },
-                                    },
-                                },
-                            },
-                        },
+                        data: { $ref: '#/components/schemas/ReviewStatsData' },
                     },
                 },
             },
@@ -485,12 +459,107 @@ const swaggerDocument: OpenAPIV3.Document = {
                     uptime: { type: 'number', example: 3600 },
                 },
             },
+            CacheStatsResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                        type: 'object',
+                        properties: {
+                            stats: { $ref: '#/components/schemas/CacheStats' },
+                            performance: { type: 'object' },
+                            timestamp: { type: 'string', format: 'date-time' },
+                        },
+                    },
+                },
+            },
+            CacheHealthResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                        allOf: [
+                            { $ref: '#/components/schemas/CacheStats' },
+                            {
+                                type: 'object',
+                                properties: {
+                                    status: { type: 'string', enum: ['healthy', 'unhealthy'], example: 'healthy' },
+                                },
+                            },
+                        ],
+                    },
+                },
+            },
             BusinessHours: {
                 type: 'object',
                 properties: {
                     dayOfWeek: { type: 'string', example: 'Monday' },
                     openTime: { type: 'string', example: '09:00' },
                     closeTime: { type: 'string', example: '17:00' },
+                },
+            },
+            Pagination: {
+                type: 'object',
+                properties: {
+                    currentPage: { type: 'integer', example: 1 },
+                    totalPages: { type: 'integer', example: 10 },
+                    totalItems: { type: 'integer', example: 100 },
+                    itemsPerPage: { type: 'integer', example: 10 },
+                    hasNext: { type: 'boolean', example: true },
+                    hasPrevious: { type: 'boolean', example: false },
+                },
+            },
+            ReviewStatsData: {
+                type: 'object',
+                properties: {
+                    totalReviews: { type: 'integer', example: 100 },
+                    averageRating: { type: 'number', example: 4.5 },
+                    ratingDistribution: {
+                        type: 'object',
+                        properties: {
+                            '1': { type: 'integer', example: 5 },
+                            '2': { type: 'integer', example: 10 },
+                            '3': { type: 'integer', example: 15 },
+                            '4': { type: 'integer', example: 30 },
+                            '5': { type: 'integer', example: 40 },
+                        },
+                    },
+                },
+            },
+            HealthLiveness: {
+                type: 'object',
+                properties: {
+                    status: { type: 'string', example: 'alive' },
+                    timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                    uptime: { type: 'number', description: 'Process uptime in seconds', example: 3600.5 },
+                    environment: { type: 'string', example: 'production' },
+                },
+            },
+            HealthReadiness: {
+                type: 'object',
+                properties: {
+                    ready: { type: 'boolean', example: true },
+                    mongodb: { type: 'boolean', example: true },
+                    timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                    message: { type: 'string', example: 'Service is ready to accept requests' },
+                },
+            },
+            HealthDeep: {
+                type: 'object',
+                properties: {
+                    status: { type: 'string', enum: ['healthy', 'degraded', 'unhealthy'], example: 'healthy' },
+                    timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                    uptime: { type: 'string', description: 'Formatted uptime', example: '60 minutes' },
+                    message: { type: 'string', example: 'System operational' },
+                    services: { type: 'object', properties: { mongodb: { type: 'boolean', example: true } } },
+                    memory: {
+                        type: 'object',
+                        properties: {
+                            rss: { type: 'string', example: '128MB' },
+                            heapUsed: { type: 'string', example: '64MB' },
+                            heapTotal: { type: 'string', example: '256MB' },
+                        },
+                    },
                 },
             },
             Animal: {
@@ -810,6 +879,24 @@ const swaggerDocument: OpenAPIV3.Document = {
                     message: { type: 'string', example: 'Operation successful' },
                 },
             },
+            TokenResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: true },
+                    token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                    refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                },
+            },
+            UserProfileUpdate: {
+                type: 'object',
+                properties: {
+                    username: { type: 'string', example: 'updatedUsername' },
+                    email: { type: 'string', format: 'email', example: 'updated@example.com' },
+                    firstName: { type: 'string', example: 'John' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    photo: { type: 'string', example: 'profile.jpg' },
+                },
+            },
         },
         parameters: {
             IdParameter: {
@@ -956,17 +1043,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'Token refreshed successfully',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
-                                        refreshToken: {
-                                            type: 'string',
-                                            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-                                        },
-                                    },
-                                },
+                                schema: { $ref: '#/components/schemas/TokenResponse' },
                             },
                         },
                     },
@@ -1045,34 +1122,12 @@ const swaggerDocument: OpenAPIV3.Document = {
                     required: true,
                     content: {
                         'application/json': {
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    username: { type: 'string', example: 'updatedUsername' },
-                                    email: { type: 'string', format: 'email', example: 'updated@example.com' },
-                                    firstName: { type: 'string', example: 'John' },
-                                    lastName: { type: 'string', example: 'Doe' },
-                                    photo: { type: 'string', example: 'profile.jpg' },
-                                },
-                            },
+                            schema: { $ref: '#/components/schemas/UserProfileUpdate' },
                         },
                     },
                 },
                 responses: {
-                    '200': {
-                        description: 'Profile updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: { $ref: '#/components/schemas/User' },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    '200': createDataResponse('User', 'Profile updated successfully'),
                     '401': createUnauthorizedResponse(),
                     '400': createBadRequestResponse('Invalid profile data'),
                     '500': createStandardResponses()['500'],
@@ -1089,16 +1144,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     required: true,
                     content: {
                         'application/json': {
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    username: { type: 'string', example: 'Updated Name' },
-                                    email: { type: 'string', format: 'email', example: 'updated@example.com' },
-                                    firstName: { type: 'string', example: 'John' },
-                                    lastName: { type: 'string', example: 'Doe' },
-                                    photo: { type: 'string', example: 'profile.jpg' },
-                                },
-                            },
+                            schema: { $ref: '#/components/schemas/UserProfileUpdate' },
                         },
                     },
                 },
@@ -1203,28 +1249,8 @@ const swaggerDocument: OpenAPIV3.Document = {
                 },
                 responses: {
                     ...createStandardResponses('Review'),
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
-                    '403': {
-                        description: 'Forbidden',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: {
-                                    success: false,
-                                    message: 'You can only modify your own reviews',
-                                    error: 'Forbidden',
-                                },
-                            },
-                        },
-                    },
+                    '401': createUnauthorizedResponse(),
+                    '403': createForbiddenResponse('You can only modify your own reviews'),
                 },
             },
             delete: {
@@ -1234,28 +1260,8 @@ const swaggerDocument: OpenAPIV3.Document = {
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 responses: {
                     ...createStandardResponses(),
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
-                    '403': {
-                        description: 'Forbidden',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: {
-                                    success: false,
-                                    message: 'You can only modify your own reviews',
-                                    error: 'Forbidden',
-                                },
-                            },
-                        },
-                    },
+                    '401': createUnauthorizedResponse(),
+                    '403': createForbiddenResponse('You can only modify your own reviews'),
                 },
             },
         },
@@ -1267,24 +1273,8 @@ const swaggerDocument: OpenAPIV3.Document = {
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 responses: {
                     ...createStandardResponses('Review'),
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
-                    '409': {
-                        description: 'Conflict',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'User has already voted', error: 'Conflict' },
-                            },
-                        },
-                    },
+                    '401': createUnauthorizedResponse(),
+                    '409': createConflictResponse('User has already voted'),
                 },
             },
             delete: {
@@ -1294,15 +1284,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 responses: {
                     ...createStandardResponses('Review'),
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
+                    '401': createUnauthorizedResponse(),
                 },
             },
         },
@@ -1318,20 +1300,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'Cache statistics retrieved successfully',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                stats: { $ref: '#/components/schemas/CacheStats' },
-                                                performance: { type: 'object' },
-                                                timestamp: { type: 'string', format: 'date-time' },
-                                            },
-                                        },
-                                    },
-                                },
+                                schema: { $ref: '#/components/schemas/CacheStatsResponse' },
                             },
                         },
                     },
@@ -1349,27 +1318,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'Cache health status retrieved successfully',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            allOf: [
-                                                { $ref: '#/components/schemas/CacheStats' },
-                                                {
-                                                    type: 'object',
-                                                    properties: {
-                                                        status: {
-                                                            type: 'string',
-                                                            enum: ['healthy', 'unhealthy'],
-                                                            example: 'healthy',
-                                                        },
-                                                    },
-                                                },
-                                            ],
-                                        },
-                                    },
-                                },
+                                schema: { $ref: '#/components/schemas/CacheHealthResponse' },
                             },
                         },
                     },
@@ -1377,19 +1326,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'Cache health check failed',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: false },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                status: { type: 'string', example: 'unhealthy' },
-                                                error: { type: 'string' },
-                                            },
-                                        },
-                                    },
-                                },
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
                             },
                         },
                     },
@@ -1412,20 +1349,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     },
                 ],
                 responses: {
-                    '200': {
-                        description: 'Cache pattern invalidated successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Cache pattern invalidated successfully' },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    '200': createSuccessMessageResponse('Cache pattern invalidated successfully'),
                     '400': createBadRequestResponse('Pattern parameter is required'),
                     '401': createUnauthorizedResponse(),
                     '500': createStandardResponses()['500'],
@@ -1448,20 +1372,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     },
                 ],
                 responses: {
-                    '200': {
-                        description: 'Cache tag invalidated successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Cache tag invalidated successfully' },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    '200': createSuccessMessageResponse('Cache tag invalidated successfully'),
                     '400': createBadRequestResponse('Tag parameter is required'),
                     '401': createUnauthorizedResponse(),
                     '500': createStandardResponses()['500'],
@@ -1474,20 +1385,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                 summary: 'Flush all cache',
                 security: [{ bearerAuth: [] }],
                 responses: {
-                    '200': {
-                        description: 'Cache flushed successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Cache flushed successfully' },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    '200': createSuccessMessageResponse('Cache flushed successfully'),
                     '401': createUnauthorizedResponse(),
                     '500': createStandardResponses()['500'],
                 },
@@ -1526,20 +1424,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     },
                 },
                 responses: {
-                    '200': {
-                        description: 'Cache monitoring action executed successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Cache monitoring started' },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    '200': createSuccessMessageResponse('Cache monitoring started'),
                     '400': createBadRequestResponse('Invalid action. Use "start" or "stop"'),
                     '401': createUnauthorizedResponse(),
                     '500': createStandardResponses()['500'],
@@ -1564,29 +1449,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'Server is alive',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        status: { type: 'string', example: 'alive' },
-                                        timestamp: {
-                                            type: 'string',
-                                            format: 'date-time',
-                                            example: '2024-01-15T10:30:00Z',
-                                        },
-                                        uptime: {
-                                            type: 'number',
-                                            description: 'Process uptime in seconds',
-                                            example: 3600.5,
-                                        },
-                                        environment: { type: 'string', example: 'production' },
-                                    },
-                                },
-                                example: {
-                                    status: 'alive',
-                                    timestamp: '2024-01-15T10:30:00Z',
-                                    uptime: 3600.5,
-                                    environment: 'production',
-                                },
+                                schema: { $ref: '#/components/schemas/HealthLiveness' },
                             },
                         },
                     },
@@ -1604,25 +1467,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'Server is ready',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        ready: { type: 'boolean', example: true },
-                                        mongodb: { type: 'boolean', example: true },
-                                        timestamp: {
-                                            type: 'string',
-                                            format: 'date-time',
-                                            example: '2024-01-15T10:30:00Z',
-                                        },
-                                        message: { type: 'string', example: 'Service is ready to accept requests' },
-                                    },
-                                },
-                                example: {
-                                    ready: true,
-                                    mongodb: true,
-                                    timestamp: '2024-01-15T10:30:00Z',
-                                    message: 'Service is ready to accept requests',
-                                },
+                                schema: { $ref: '#/components/schemas/HealthReadiness' },
                             },
                         },
                     },
@@ -1630,15 +1475,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'Server is not ready',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        ready: { type: 'boolean', example: false },
-                                        mongodb: { type: 'boolean', example: false },
-                                        timestamp: { type: 'string', format: 'date-time' },
-                                        message: { type: 'string', example: 'Service is not ready' },
-                                    },
-                                },
+                                schema: { $ref: '#/components/schemas/HealthReadiness' },
                                 example: {
                                     ready: false,
                                     mongodb: false,
@@ -1662,61 +1499,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'System is healthy',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        status: { type: 'string', enum: ['healthy', 'degraded'], example: 'healthy' },
-                                        timestamp: {
-                                            type: 'string',
-                                            format: 'date-time',
-                                            example: '2024-01-15T10:30:00Z',
-                                        },
-                                        uptime: {
-                                            type: 'string',
-                                            description: 'Formatted uptime',
-                                            example: '60 minutes',
-                                        },
-                                        services: {
-                                            type: 'object',
-                                            properties: {
-                                                mongodb: { type: 'boolean', example: true },
-                                            },
-                                        },
-                                        memory: {
-                                            type: 'object',
-                                            properties: {
-                                                rss: {
-                                                    type: 'string',
-                                                    description: 'Resident Set Size',
-                                                    example: '128MB',
-                                                },
-                                                heapUsed: {
-                                                    type: 'string',
-                                                    description: 'Heap memory used',
-                                                    example: '64MB',
-                                                },
-                                                heapTotal: {
-                                                    type: 'string',
-                                                    description: 'Total heap memory',
-                                                    example: '256MB',
-                                                },
-                                            },
-                                        },
-                                    },
-                                },
-                                example: {
-                                    status: 'healthy',
-                                    timestamp: '2024-01-15T10:30:00Z',
-                                    uptime: '60 minutes',
-                                    services: {
-                                        mongodb: true,
-                                    },
-                                    memory: {
-                                        rss: '128MB',
-                                        heapUsed: '64MB',
-                                        heapTotal: '256MB',
-                                    },
-                                },
+                                schema: { $ref: '#/components/schemas/HealthDeep' },
                             },
                         },
                     },
@@ -1724,18 +1507,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                         description: 'System is unhealthy or degraded',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        status: {
-                                            type: 'string',
-                                            enum: ['degraded', 'unhealthy'],
-                                            example: 'degraded',
-                                        },
-                                        message: { type: 'string', example: 'Health check failed' },
-                                        timestamp: { type: 'string', format: 'date-time' },
-                                    },
-                                },
+                                schema: { $ref: '#/components/schemas/HealthDeep' },
                                 example: {
                                     status: 'unhealthy',
                                     message: 'Health check failed',
