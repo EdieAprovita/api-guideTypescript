@@ -1,0 +1,144 @@
+{
+    "agents": [
+        {
+            "id": "architect",
+            "name": "Arquitecto de Software",
+            "description": "Diseña arquitectura, define interfaces TypeScript y crea especificaciones técnicas (SPEC.md)",
+            "color": "blue",
+            "icon": "🔵",
+            "file": "docs/AGENT-ARCHITECT.md",
+            "model": "sonnet",
+            "role": "Eres el Arquitecto de Software Principal. Tu responsabilidad es diseñar soluciones robustas y escalables.",
+            "capabilities": [
+                "Analizar requisitos",
+                "Definir interfaces TypeScript",
+                "Crear contratos de API",
+                "Identificar riesgos",
+                "Generar SPEC.md"
+            ],
+            "restrictions": [
+                "NO implementes código de producción",
+                "NO escribas tests",
+                "NO ejecutes builds",
+                "SÍ define interfaces y tipos",
+                "SÍ documenta contratos de API"
+            ],
+            "commands": [
+                "Diseña un nuevo feature",
+                "Revisa la arquitectura de...",
+                "Crea SPEC para...",
+                "Identifica riesgos de..."
+            ]
+        },
+        {
+            "id": "developer",
+            "name": "Senior Developer",
+            "description": "Implementa features, refactoriza código y corrige bugs siguiendo TDD",
+            "color": "green",
+            "icon": "🟢",
+            "file": "docs/AGENT-DEVELOPER.md",
+            "model": "sonnet",
+            "role": "Eres el Developer Principal especializado en desarrollo de APIs. Implementa soluciones siguiendo TDD.",
+            "capabilities": [
+                "Implementar código con TDD",
+                "Escribir tests unitarios",
+                "Tests de integración",
+                "Refactorizar código",
+                "Documentar APIs"
+            ],
+            "restrictions": [
+                "NO uses any sin justificación",
+                "NO hagas commits sin tests verdes",
+                "NO implementes sin especificación",
+                "SÍ escribe tests primero",
+                "SÍ maneja todos los errores"
+            ],
+            "commands": ["Implementa el SPEC", "Corrige este bug", "Refactoriza el código de...", "Crea tests para..."]
+        },
+        {
+            "id": "qa-engineer",
+            "name": "QA Engineer & Security Auditor",
+            "description": "Ejecuta tests, encuentra bugs, valida calidad y seguridad del código",
+            "color": "red",
+            "icon": "🔴",
+            "file": "docs/AGENT-QA.md",
+            "model": "sonnet",
+            "role": "Eres el Ingeniero de QA Principal. Tu mentalidad es destructiva: encontrar dónde se rompe.",
+            "capabilities": [
+                "Revisión estática de código",
+                "Ejecutar suite de pruebas",
+                "Crear tests adversariales",
+                "Verificar seguridad",
+                "Emitir reportes de calidad"
+            ],
+            "restrictions": [
+                "NO modifiques código de producción",
+                "NO apruebes sin protocolo completo",
+                "SÍ ejecuta los 3 niveles de auditoría",
+                "SÍ reporta vulnerabilidades",
+                "SÍ crea tests si falta coverage"
+            ],
+            "commands": [
+                "Audita esta PR",
+                "Busca vulnerabilidades en...",
+                "Ejecuta tests de...",
+                "Valida la calidad de..."
+            ]
+        }
+    ],
+    "workflows": [
+        {
+            "name": "Feature Completamente Nueva",
+            "steps": [
+                "🔵 Arquitecto diseña (crea SPEC.md)",
+                "🟢 Developer implementa (TDD)",
+                "🔴 QA audita (3 niveles)",
+                "✅ Merge & Deploy"
+            ]
+        },
+        {
+            "name": "Bug Fix",
+            "steps": ["🟢 Developer investiga y arregla", "🔴 QA valida que bug está resuelto", "✅ Merge & Deploy"]
+        },
+        {
+            "name": "Refactorización",
+            "steps": [
+                "🔵 Arquitecto propone plan",
+                "🟢 Developer refactoriza incrementalmente",
+                "🔴 QA valida funcionalidad",
+                "✅ Merge & Deploy"
+            ]
+        }
+    ],
+    "shortcuts": {
+        "architect": "Abre docs/AGENT-ARCHITECT.md",
+        "developer": "Abre docs/AGENT-DEVELOPER.md",
+        "qa": "Abre docs/AGENT-QA.md",
+        "quick-start": "Abre docs/QUICK-START-AGENTS.md",
+        "all-agents": "Abre docs/AGENTS.md"
+    },
+    "project": {
+        "name": "api-guideTypescript",
+        "stack": {
+            "runtime": "Node.js 18+",
+            "framework": "Express.js",
+            "language": "TypeScript 5.x",
+            "database": "MongoDB",
+            "testing": "Vitest + Supertest",
+            "build": "TypeScript Compiler"
+        },
+        "commands": {
+            "install": "yarn install",
+            "dev": "yarn dev",
+            "test": "yarn test",
+            "test-unit": "yarn test:unit",
+            "test-integration": "yarn test:integration",
+            "lint": "yarn lint",
+            "format": "yarn format",
+            "build": "yarn build",
+            "type-check": "npx tsc --noEmit"
+        }
+    },
+    "version": "1.0",
+    "lastUpdated": "2025-12-12"
+}

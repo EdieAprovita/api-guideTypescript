@@ -1,28 +1,9 @@
-# Created by https://www.toptal.com/developers/gitignore/api/node,expressionengine
-# Edit at https://www.toptal.com/developers/gitignore?templates=node,expressionengine
+# Project-specific .gitignore for API Guide TypeScript
+# This file ensures sensitive and unnecessary files are not committed to GitHub
 
-### ExpressionEngine ###
-.DS_Store
-
-# Images
-images/avatars/
-images/captchas/
-images/smileys/
-images/member_photos/
-images/signature_attachments/
-images/pm_attachments/
-
-# For security do not publish the following files
-system/expressionengine/config/database.php
-system/expressionengine/config/config.php
-
-# Caches
-sized/
-thumbs/
-_thumbs/
-*/expressionengine/cache/*
-
-### Node ###
+################################################################################
+# DEPENDENCIES & BUILD OUTPUT
+################################################################################
 # Logs
 logs
 *.log
@@ -67,35 +48,18 @@ build/Release
 node_modules/
 jspm_packages/
 
-# Snowpack dependency directory (https://snowpack.dev/)
-web_modules/
-
 # TypeScript cache
 *.tsbuildinfo
 
-# Optional npm cache directory
+# npm & Yarn caches
 .npm
-
-# Optional eslint cache
 .eslintcache
-
-# Optional stylelint cache
 .stylelintcache
-
-# Microbundle cache
+.yarn-integrity
 .rpt2_cache/
 .rts2_cache_cjs/
 .rts2_cache_es/
 .rts2_cache_umd/
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
 
 # dotenv environment variable files
 .env
@@ -114,91 +78,92 @@ docker.env
 .docker.env
 
 # parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
+.###############################################################################
+# ENVIRONMENT & SECRETS (CRITICAL - Never commit!)
+################################################################################
 
-# Next.js build output
-.next
-out
+.env
+.env.local
+.env.*.local
+.env.backup
+.env.docker
+.env.compose
+docker.env
+.docker.env
 
-# Nuxt.js build / generate output
-.nuxt
-dist
+################################################################################
+# BUILD OUTPUT & ARTIFACTS
+################################################################################
 
-# Gatsby files
-.cache/
-# Comment in the public line in if your project uses Gatsby and not Next.js
-# https://nextjs.org/blog/next-9-1#public-directory-support
-# public
-
-# vuepress build output
-.vuepress/dist
-
-# vuepress v2.x temp and cache directory
-.temp
-
-# Docusaurus cache and generated files
-.docusaurus
-
-# Serverless directories
+dist/
+build/
+.next/
+out/
+.nuxt/
+.vuepress/dist/
+.docusaurus/
 .serverless/
-
-# FuseBox cache
 .fusebox/
 
-# DynamoDB Local files
-.dynamodb/
+################################################################################
+# TESTING & COVERAGE
+################################################################################
 
-# TernJS port file
-.tern-port
+coverage/
+test-results/
+playwright-report/
+test-results.xml
+*.lcov
+.nyc_output/
+performance-reports/
 
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
+################################################################################
+# TEMPORARY & DEBUG FILES
+################################################################################
 
-# yarn v2
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
-
-### Node Patch ###
-# Serverless Webpack directories
-.webpack/
-
-# Optional stylelint cache
-
-# SvelteKit build / generate output
-.svelte-kit
-
-# End of https://www.toptal.com/developers/gitignore/api/node,expressionengine
-
-### Project Specific ###
-# Backup files
+*.tmp
+*.temp
 *.backup
 *.bak
 *.orig
-*.tmp
-
-# Debug files
+temp/
+tmp/
 debug_*.js
 debug_*.mjs
 debug_*.ts
 *.debug.*
 
-# Test artifacts
-test-results/
-playwright-report/
-test-results.xml
+################################################################################
+# GENERATED FILES (Build Process)
+################################################################################
 
-# IDE files
+eslint-report.json
+artillery.temp.yml
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+################################################################################
+# IDE & EDITOR
+################################################################################
+
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.vscode-test/
 
-# OS generated files
+################################################################################
+# LOCAL IDE CACHES
+################################################################################
+
+.cursor/
+.sonarlint/
+.eslint-cache/
+
+################################################################################
+# OPERATING SYSTEM
+################################################################################
+
 .DS_Store
 .DS_Store?
 ._*
@@ -207,29 +172,63 @@ test-results.xml
 ehthumbs.db
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.temp
-temp/
-tmp/
+################################################################################
+# SECURITY & SENSITIVE FILES
+################################################################################
 
-# Security files
 *.pem
 *.key
 *.crt
 *.p12
 *.pfx
+*.keystore
+*.jks
 
-# Database files
+################################################################################
+# DATABASE & DATA FILES
+################################################################################
+
 *.db
 *.sqlite
 *.sqlite3
-
-# Redis dump files
 dump.rdb
 *.rdb
+mongo-dump/
+data/
 
+################################################################################
+# CACHE DIRECTORIES
+################################################################################
 
-# Performance test reports
-performance-reports/
-artillery.temp.yml
+.cache/
+.parcel-cache/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.webpack/
+
+################################################################################
+# NPM & YARN
+################################################################################
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.npm/
+.node_repl_history/
+*.tgz
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml/
+.yarn/install-state.gz/
+.pnp.*
+
+################################################################################
+# LOGS
+################################################################################
+
+logs/
+*.log
