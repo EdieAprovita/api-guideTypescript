@@ -1,7 +1,7 @@
 import express from 'express';
-import { protect, admin } from '../middleware/authMiddleware';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation';
-import { paramSchemas, reviewSchemas } from '../utils/validators';
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
+import { paramSchemas, reviewSchemas } from '../utils/validators.js';
 import {
     getMarkets,
     getMarketById,
@@ -11,7 +11,7 @@ import {
     getMarketReviews,
     getMarketReviewStats,
     deleteMarket,
-} from '../controllers/marketsControllers';
+} from '../controllers/marketsControllers.js';
 
 const router = express.Router();
 

@@ -1,8 +1,8 @@
 import mongoose, { Schema, Types, Document } from 'mongoose';
 
-import { IAnimal, IContact } from '../types/modalTypes';
-import { IGeoJSONPoint } from '../types/GeoJSON';
-import { geoJSONPointSchema } from './GeoJSON';
+import { IAnimal, IContact } from '../types/modalTypes.js';
+import { IGeoJSONPoint } from '../types/GeoJSON.js';
+import { geoJSONPointSchema } from './GeoJSON.js';
 
 export interface ISanctuary extends Document {
     _id: string;

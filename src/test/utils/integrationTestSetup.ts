@@ -12,11 +12,11 @@ import {
     createAdminUser,
     createProfessionalUser,
     generateAuthTokens,
-} from '../integration/helpers/testFixtures';
-import { User } from '../../models/User';
-import { Restaurant } from '../../models/Restaurant';
-import { Business } from '../../models/Business';
-import { Review } from '../../models/Review';
+} from '../integration/helpers/testFixtures.js';
+import { User } from '../../models/User.js';
+import { Restaurant } from '../../models/Restaurant.js';
+import { Business } from '../../models/Business.js';
+import { Review } from '../../models/Review.js';
 
 interface TestContext {
     testUser?: any;

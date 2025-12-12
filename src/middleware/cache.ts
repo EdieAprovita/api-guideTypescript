@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { cacheService } from '../services/CacheService';
-import logger from '../utils/logger';
+import { cacheService } from '../services/CacheService.js';
+import logger from '../utils/logger.js';
 import crypto from 'crypto';
 
 export interface CacheableRequest extends Request {

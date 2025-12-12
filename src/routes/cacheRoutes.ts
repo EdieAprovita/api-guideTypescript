@@ -1,8 +1,8 @@
 import express from 'express';
-import { protect, admin } from '../middleware/authMiddleware';
-import { cacheService } from '../services/CacheService';
-import { cacheMonitor } from '../scripts/cacheMonitor';
-import logger from '../utils/logger';
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { cacheService } from '../services/CacheService.js';
+import { cacheMonitor } from '../scripts/cacheMonitor.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 

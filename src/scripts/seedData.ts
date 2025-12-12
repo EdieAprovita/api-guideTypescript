@@ -1,16 +1,16 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { User } from '../models/User';
-import { Restaurant } from '../models/Restaurant';
-import { Recipe } from '../models/Recipe';
-import { Doctor } from '../models/Doctor';
-import { Market } from '../models/Market';
-import { Business } from '../models/Business';
-import { Profession } from '../models/Profession';
-import { Sanctuary } from '../models/Sanctuary';
-import { Review } from '../models/Review';
-import connectDB from '../config/db';
+import { User } from '../models/User.js';
+import { Restaurant } from '../models/Restaurant.js';
+import { Recipe } from '../models/Recipe.js';
+import { Doctor } from '../models/Doctor.js';
+import { Market } from '../models/Market.js';
+import { Business } from '../models/Business.js';
+import { Profession } from '../models/Profession.js';
+import { Sanctuary } from '../models/Sanctuary.js';
+import { Review } from '../models/Review.js';
+import connectDB from '../config/db.js';
 
 // Load environment variables
 dotenv.config();

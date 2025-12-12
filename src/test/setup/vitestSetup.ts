@@ -2,7 +2,7 @@
 import { vi, beforeEach, afterEach } from 'vitest';
 import { faker } from '@faker-js/faker';
 import { Request, Response, NextFunction } from 'express';
-import { generateTestPassword } from '../utils/passwordGenerator';
+import { generateTestPassword } from '../utils/passwordGenerator.js';
 
 // Set faker seed for consistent test results
 faker.seed(12345);
@@ -206,6 +206,16 @@ vi.mock('../../middleware/security', () => ({
 
 // Mock express-validator to always pass validation
 vi.mock('express-validator', () => ({
+    __esModule: true,
+    default: {
+        validationResult: vi.fn().mockReturnValue({
+            isEmpty: () => true,
+            array: () => [],
+        }),
+        body: vi.fn().mockReturnValue({ isLength: vi.fn().mockReturnThis(), matches: vi.fn().mockReturnThis() }),
+        param: vi.fn().mockReturnValue({ isMongoId: vi.fn().mockReturnThis() }),
+        query: vi.fn().mockReturnValue({ isOptional: vi.fn().mockReturnThis() }),
+    },
     validationResult: vi.fn().mockReturnValue({
         isEmpty: () => true,
         array: () => [],

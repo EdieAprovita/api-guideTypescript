@@ -1,5 +1,5 @@
 import { OpenAPIV3 } from 'openapi-types';
-import { commonSchemaRefs, propertyGroups, commonParameters } from './config/swaggerConstants';
+import { commonSchemaRefs, propertyGroups, commonParameters } from './config/swaggerConstants.js';
 
 const createStandardResponses = (successSchema?: string) => ({
     '200': {

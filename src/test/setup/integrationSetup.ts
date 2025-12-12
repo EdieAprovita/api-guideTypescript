@@ -1,8 +1,8 @@
 // Integration test setup for Vitest - uses real middleware and components
 import { vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { faker } from '@faker-js/faker';
-import { generateTestPassword } from '../utils/passwordGenerator';
-import { generateSecureJti, generateSecureSignature, generateSecureNonce } from '../utils/secureRandom';
+import { generateTestPassword } from '../utils/passwordGenerator.js';
+import { generateSecureJti, generateSecureSignature, generateSecureNonce } from '../utils/secureRandom.js';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 

@@ -3,11 +3,11 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 
-import { User, IUser } from '../models/User';
-import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import generateTokenAndSetCookie from '../utils/generateToken';
-import TokenService from './TokenService';
+import { User, IUser } from '../models/User.js';
+import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import generateTokenAndSetCookie from '../utils/generateToken.js';
+import TokenService from './TokenService.js';
 
 /**
  * Validates and sanitizes email input to prevent NoSQL injection attacks

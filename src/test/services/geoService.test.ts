@@ -1,7 +1,7 @@
 import { vi, describe, it, beforeEach, expect } from 'vitest';
 import { Client } from '@googlemaps/google-maps-services-js';
-import { GeoService } from '../../services/GeoService';
-import logger from '../../utils/logger';
+import { GeoService } from '../../services/GeoService.js';
+import logger from '../../utils/logger.js';
 
 vi.mock('../../utils/logger', () => ({
   __esModule: true,

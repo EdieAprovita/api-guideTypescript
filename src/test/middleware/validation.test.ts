@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import Joi from 'joi';
-import { userSchemas, paramSchemas } from '../../utils/validators';
-import testConfig from '../testConfig';
+import { userSchemas, paramSchemas } from '../../utils/validators.js';
+import testConfig from '../testConfig.js';
 
 const app = express();
 app.use(express.json());

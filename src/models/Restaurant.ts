@@ -1,8 +1,8 @@
 import mongoose, { Schema, Types, Document } from 'mongoose';
 
-import { IContact } from '../types/modalTypes';
-import { IGeoJSONPoint } from '../types/GeoJSON';
-import { geoJSONPointSchema } from './GeoJSON';
+import { IContact } from '../types/modalTypes.js';
+import { IGeoJSONPoint } from '../types/GeoJSON.js';
+import { geoJSONPointSchema } from './GeoJSON.js';
 
 export interface IRestaurant extends Document {
     _id: string;

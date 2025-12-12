@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../../../models/User';
+import { User } from '../../../models/User.js';
 import { Types } from 'mongoose';
 import { Request, Response, NextFunction } from 'express';
-import { generateTestPassword } from '../../utils/passwordGenerator';
+import { generateTestPassword } from '../../utils/passwordGenerator.js';
 import { randomBytes } from 'crypto';
 
 interface AuthenticatedRequest extends Request {

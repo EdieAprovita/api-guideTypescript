@@ -1,7 +1,7 @@
-import BaseService from './BaseService';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { IPost, Post } from '../models/Post';
+import BaseService from './BaseService.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { IPost, Post } from '../models/Post.js';
 import { Types } from 'mongoose';
 
 /**

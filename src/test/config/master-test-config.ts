@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import testConfig from '../testConfig';
+import testConfig from '../testConfig.js';
 
 // ============================================================================
 // MASTER TEST CONFIGURATION - SINGLE SOURCE OF TRUTH

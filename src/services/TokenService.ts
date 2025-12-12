@@ -1,5 +1,7 @@
 import * as jwt from 'jsonwebtoken';
-import Redis from 'ioredis';
+import RedisLib from 'ioredis';
+import type { Redis as RedisType } from 'ioredis';
+const Redis = RedisLib.default || RedisLib;
 import { randomUUID } from 'crypto';
 
 interface TokenPayload {
@@ -33,7 +35,7 @@ interface MockRedisEntry {
 let mockRedisStorage: Map<string, MockRedisEntry>;
 
 class TokenService {
-    private redis!: Redis;
+    private redis!: RedisType;
     private accessTokenSecret!: string;
     private refreshTokenSecret!: string;
     private accessTokenExpiry!: string;
@@ -99,7 +101,7 @@ class TokenService {
                 mockRedisStorage.clear();
                 return Promise.resolve('OK');
             },
-        } as unknown as Redis;
+        } as unknown as RedisType;
     }
 
     private initializeRealRedis(): void {
@@ -403,7 +405,7 @@ class TokenService {
 
     async clearAllForTesting(): Promise<void> {
         if (process.env.NODE_ENV === 'test') {
-            const redis = this.redis as Redis & { flushall?: () => Promise<string> };
+            const redis = this.redis as RedisType & { flushall?: () => Promise<string> };
             if (redis.flushall) {
                 await redis.flushall();
             }

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { HttpError } from '../types/Errors';
+import { HttpError } from '../types/Errors.js';
 
 type AsyncMiddleware = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 

@@ -1,6 +1,6 @@
 import mongoose, { Schema, Types, Document } from 'mongoose';
 
-import { IContact, ISkill, IExperience, IEducation, ISocial } from '../types/modalTypes';
+import { IContact, ISkill, IExperience, IEducation, ISocial } from '../types/modalTypes.js';
 
 export interface IProfessionProfile extends Document {
     _id: string;

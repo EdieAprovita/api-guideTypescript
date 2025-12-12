@@ -1,14 +1,14 @@
 import { vi } from 'vitest';
 
 // Centralized export of all mocks
-export * from './middleware';
-export * from './services';
-export * from './database';
+export * from './middleware.js';
+export * from './services.js';
+export * from './database.js';
 
 // Re-export for convenience
-import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks, cacheMocks } from './middleware';
-import { serviceMocks, modelMocks, externalMocks } from './services';
-import { databaseMocks, dbConfigMocks } from './database';
+import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks, cacheMocks } from './middleware.js';
+import { serviceMocks, modelMocks, externalMocks } from './services.js';
+import { databaseMocks, dbConfigMocks } from './database.js';
 
 export const allMocks = {
     middleware: {

@@ -1,5 +1,5 @@
-import BaseService from './BaseService';
-import { Market, IMarket } from '../models/Market';
+import BaseService from './BaseService.js';
+import { Market, IMarket } from '../models/Market.js';
 
 /**
  * @description Markets service class

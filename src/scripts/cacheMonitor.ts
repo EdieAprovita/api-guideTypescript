@@ -1,5 +1,5 @@
-import { cacheService } from '../services/CacheService';
-import logger from '../utils/logger';
+import { cacheService } from '../services/CacheService.js';
+import logger from '../utils/logger.js';
 
 interface CacheStats {
     hitRatio: number;

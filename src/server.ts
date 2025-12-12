@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import app from './app';
-import { colorTheme } from './types/colorTheme';
+import app from './app.js';
+import { colorTheme } from './types/colorTheme.js';
 
 // Cloud Run provides PORT via environment variable, default to 8080 for production compatibility
 const PORT = process.env.PORT ?? 8080;

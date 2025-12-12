@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import { Request, Response, NextFunction } from 'express';
-import testConfig from '../testConfig';
+import testConfig from '../testConfig.js';
 
 export const protect = vi.fn((req: Request, res: Response, next: NextFunction) => {
     const reqWithUser = req as Request & { user?: { _id: string; role: string } };

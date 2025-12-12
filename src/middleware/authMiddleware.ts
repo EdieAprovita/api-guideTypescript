@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { User } from '../models/User';
-import { errorHandler } from './errorHandler';
-import TokenService from '../services/TokenService';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { User } from '../models/User.js';
+import { errorHandler } from './errorHandler.js';
+import TokenService from '../services/TokenService.js';
 
 // Define interface for authenticated user
 interface AuthenticatedUser {

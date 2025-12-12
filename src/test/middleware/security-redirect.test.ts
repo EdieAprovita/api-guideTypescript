@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
-import { enforceHTTPS } from '../../middleware/security';
+import { enforceHTTPS } from '../../middleware/security.js';
 import {
     createMockRequest,
     createMockResponse,
     createMockNext,
     type MockRequest,
     type MockResponse,
-} from './security-test-helpers';
+} from './security-test-helpers.js';
 
 describe('Security Middleware - HTTPS Enforcement', () => {
     let mockReq: MockRequest;

@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import mongoose from 'mongoose'; // Importación default según documentación oficial
-import testConfig from '../../testConfig';
+import testConfig from '../../testConfig.js';
 
 // CRITICAL: Configurar variables de entorno antes de importar TokenService
 if (!process.env.JWT_SECRET) {
@@ -22,9 +22,9 @@ vi.doUnmock('jsonwebtoken');
 vi.doUnmock('bcryptjs');
 
 // Importaciones de tipos
-import type { IUser } from '../../../models/User';
-import type { IBusiness } from '../../../models/Business';
-import type { IRestaurant } from '../../../models/Restaurant';
+import type { IUser } from '../../../models/User.js';
+import type { IBusiness } from '../../../models/Business.js';
+import type { IRestaurant } from '../../../models/Restaurant.js';
 
 // Usar Types desde mongoose default import
 const { Types } = mongoose;

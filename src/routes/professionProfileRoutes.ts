@@ -1,12 +1,12 @@
 import express from 'express';
-import { protect, professional, admin } from '../middleware/authMiddleware';
+import { protect, professional, admin } from '../middleware/authMiddleware.js';
 import {
     getProfessionsProfile,
     getProfessionProfileById,
     createProfessionProfile,
     updateProfessionProfile,
     deleteProfessionProfile,
-} from '../controllers/professionProfileController';
+} from '../controllers/professionProfileController.js';
 
 const router = express.Router();
 

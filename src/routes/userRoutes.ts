@@ -1,8 +1,8 @@
 import express from 'express';
 import Joi from 'joi';
-import { protect, admin } from '../middleware/authMiddleware';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation';
-import { userSchemas, paramSchemas, querySchemas, commonSchemas } from '../utils/validators';
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
+import { userSchemas, paramSchemas, querySchemas, commonSchemas } from '../utils/validators.js';
 import {
     registerUser,
     loginUser,
@@ -14,7 +14,7 @@ import {
     getCurrentUserProfile,
     logout,
     deleteUserById,
-} from '../controllers/userControllers';
+} from '../controllers/userControllers.js';
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
-import BaseService from './BaseService';
-import { IDoctor, Doctor } from '../models/Doctor';
+import BaseService from './BaseService.js';
+import { IDoctor, Doctor } from '../models/Doctor.js';
 
 /**
  * @description Doctor service class

@@ -1,5 +1,5 @@
-import BaseServices from './BaseService';
-import { Profession, IProfession } from '../models/Profession';
+import BaseServices from './BaseService.js';
+import { Profession, IProfession } from '../models/Profession.js';
 
 /**
  * @description Profession service class

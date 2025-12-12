@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import asyncHandler from '../middleware/asyncHandler';
-import { validationResult } from 'express-validator';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { doctorService as DoctorService } from '../services/DoctorService';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
-import { reviewService as ReviewService } from '../services/ReviewService';
-import geocodeAndAssignLocation from '../utils/geocodeLocation';
+import asyncHandler from '../middleware/asyncHandler.js';
+import pkg from 'express-validator';
+const { validationResult } = pkg;
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { doctorService as DoctorService } from '../services/DoctorService.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import { reviewService as ReviewService } from '../services/ReviewService.js';
+import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
 
 /**
  * @description Get all doctors

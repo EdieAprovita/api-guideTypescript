@@ -1,11 +1,15 @@
-import { Client } from '@googlemaps/google-maps-services-js';
-import logger from '../utils/logger';
+import pkg from '@googlemaps/google-maps-services-js';
+const { Client } = pkg;
+import logger from '../utils/logger.js';
 
 export class GeoService {
-    readonly client: Client;
+    readonly client: typeof Client.prototype;
     readonly apiKey: string;
 
-    constructor(client: Client = new Client({}), apiKey: string = process.env.GOOGLE_MAPS_API_KEY as string) {
+    constructor(
+        client: typeof Client.prototype = new Client({}),
+        apiKey: string = process.env.GOOGLE_MAPS_API_KEY as string
+    ) {
         this.client = client;
         this.apiKey = apiKey;
     }

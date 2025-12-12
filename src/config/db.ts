@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { colorTheme } from '../types/colorTheme';
-import { DataBaseError } from '../types/Errors';
+import { colorTheme } from '../types/colorTheme.js';
+import { DataBaseError } from '../types/Errors.js';
 
 /**
  * @description Connect to MongoDB database with proper configuration

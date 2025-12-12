@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import asyncHandler from '../middleware/asyncHandler';
-import { validationResult } from 'express-validator';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { sanctuaryService as SanctuaryService } from '../services/SanctuaryService';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
-import { reviewService as ReviewService } from '../services/ReviewService';
-import geocodeAndAssignLocation from '../utils/geocodeLocation';
+import asyncHandler from '../middleware/asyncHandler.js';
+import pkg from 'express-validator';
+const { validationResult } = pkg;
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { sanctuaryService as SanctuaryService } from '../services/SanctuaryService.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import { reviewService as ReviewService } from '../services/ReviewService.js';
+import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
 
 /**
  * @description Get all sanctuaries

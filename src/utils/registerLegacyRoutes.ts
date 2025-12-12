@@ -1,5 +1,5 @@
 import { Router, RequestHandler } from 'express';
-import { protect, admin } from '../middleware/authMiddleware';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
 /**
  * Register deprecated action routes on the given router.

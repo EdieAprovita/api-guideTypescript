@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import asyncHandler from '../middleware/asyncHandler';
-import { validationResult } from 'express-validator';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { postService as PostService } from '../services/PostService';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
+import asyncHandler from '../middleware/asyncHandler.js';
+import pkg from 'express-validator';
+const { validationResult } = pkg;
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { postService as PostService } from '../services/PostService.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 
 /**
  * @description Get all posts

@@ -2,7 +2,7 @@
 // Tests the model validation logic without requiring actual Mongoose constructor
 
 import { faker } from '@faker-js/faker';
-import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator';
+import { generateTestPassword, generateWeakPassword } from '../utils/passwordGenerator.js';
 
 // Generate a throwaway password for testing instead of using a hard-coded one
 const DUMMY_PASSWORD = generateTestPassword();

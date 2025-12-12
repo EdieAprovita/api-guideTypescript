@@ -1,8 +1,8 @@
-import { Review, IReview } from '../models/Review';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { cacheService } from './CacheService';
+import { Review, IReview } from '../models/Review.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { cacheService } from './CacheService.js';
 import mongoose, { Types, startSession } from 'mongoose';
-import logger from '../utils/logger';
+import logger from '../utils/logger.js';
 
 interface ReviewFilters {
     entityType?: string;
@@ -52,22 +52,22 @@ const validateEntityTypeAndId = async (entityType: string, entityId: string): Pr
     let EntityModel: any;
     switch (entityType as ValidEntityType) {
         case 'Restaurant':
-            EntityModel = (await import('../models/Restaurant')).Restaurant;
+            EntityModel = (await import('../models/Restaurant.js')).Restaurant;
             break;
         case 'Recipe':
-            EntityModel = (await import('../models/Recipe')).Recipe;
+            EntityModel = (await import('../models/Recipe.js')).Recipe;
             break;
         case 'Market':
-            EntityModel = (await import('../models/Market')).Market;
+            EntityModel = (await import('../models/Market.js')).Market;
             break;
         case 'Business':
-            EntityModel = (await import('../models/Business')).Business;
+            EntityModel = (await import('../models/Business.js')).Business;
             break;
         case 'Doctor':
-            EntityModel = (await import('../models/Doctor')).Doctor;
+            EntityModel = (await import('../models/Doctor.js')).Doctor;
             break;
         case 'Sanctuary':
-            EntityModel = (await import('../models/Sanctuary')).Sanctuary;
+            EntityModel = (await import('../models/Sanctuary.js')).Sanctuary;
             break;
         default:
             throw new HttpError(HttpStatusCode.BAD_REQUEST, `Invalid entity type: ${entityType}`);

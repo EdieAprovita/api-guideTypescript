@@ -16,7 +16,7 @@ beforeAll(() => {
     process.env.JWT_SECRET = 'test_secret_12345';
     process.env.JWT_REFRESH_SECRET = 'test_refresh_12345';
     process.env.BCRYPT_SALT_ROUNDS = '4';
-    
+
     // Prevent external connections
     process.env.REDIS_HOST = 'mock-redis';
     process.env.REDIS_PORT = '9999';
@@ -31,7 +31,7 @@ beforeAll(() => {
 beforeEach(() => {
     // Clear all mocks before each test
     vi.clearAllMocks();
-    
+
     // Mock mongoose completely to avoid schema issues
     vi.mock('mongoose', () => ({
         default: {
@@ -55,7 +55,7 @@ beforeEach(() => {
             ObjectId: vi.fn().mockReturnValue('mock-object-id'),
         },
     }));
-    
+
     // Mock external dependencies that cause real connections
     vi.mock('ioredis', () => ({
         default: vi.fn().mockImplementation(() => ({
@@ -70,7 +70,7 @@ beforeEach(() => {
             off: vi.fn(),
         })),
     }));
-    
+
     // Mock logger to avoid console noise
     vi.mock('../../utils/logger', () => ({
         default: {
@@ -80,21 +80,21 @@ beforeEach(() => {
             debug: vi.fn(),
         },
     }));
-    
+
     // Mock bcryptjs for consistent hashing
     vi.mock('bcryptjs', () => ({
         hash: vi.fn().mockResolvedValue('hashed_password'),
         compare: vi.fn().mockResolvedValue(true),
         genSalt: vi.fn().mockResolvedValue('salt'),
     }));
-    
+
     // Mock jsonwebtoken for consistent tokens
     vi.mock('jsonwebtoken', () => ({
         sign: vi.fn().mockReturnValue('mock.jwt.token'),
         verify: vi.fn().mockReturnValue({ userId: 'test-user-id' }),
         decode: vi.fn().mockReturnValue({ userId: 'test-user-id' }),
     }));
-    
+
     // Mock nodemailer to avoid real email sending
     vi.mock('nodemailer', () => ({
         createTransport: vi.fn().mockReturnValue({
@@ -102,67 +102,85 @@ beforeEach(() => {
             verify: vi.fn().mockResolvedValue(true),
         }),
     }));
-    
+
     // Mock Google Maps API
     vi.mock('@googlemaps/google-maps-services-js', () => ({
+        __esModule: true,
+        default: {
+            Client: vi.fn().mockImplementation(() => ({
+                geocode: vi.fn().mockResolvedValue({
+                    data: {
+                        results: [
+                            {
+                                geometry: {
+                                    location: { lat: 40.7128, lng: -74.006 },
+                                },
+                            },
+                        ],
+                    },
+                }),
+            })),
+        },
         Client: vi.fn().mockImplementation(() => ({
             geocode: vi.fn().mockResolvedValue({
                 data: {
-                    results: [{
-                        geometry: {
-                            location: { lat: 40.7128, lng: -74.0060 }
-                        }
-                    }]
-                }
+                    results: [
+                        {
+                            geometry: {
+                                location: { lat: 40.7128, lng: -74.006 },
+                            },
+                        },
+                    ],
+                },
             }),
         })),
     }));
-    
+
     // Mock all models to avoid Mongoose schema issues
     vi.mock('../../models/User', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Business', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Review', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Post', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Recipe', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Restaurant', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Doctor', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Market', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Sanctuary', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/Profession', () => ({
         default: vi.fn(),
     }));
-    
+
     vi.mock('../../models/ProfessionProfile', () => ({
         default: vi.fn(),
     }));
-    
+
     // Mock services that cause issues
     vi.mock('../../services/CacheService', () => ({
         default: vi.fn().mockImplementation(() => ({
@@ -174,7 +192,7 @@ beforeEach(() => {
             expire: vi.fn().mockResolvedValue(1),
         })),
     }));
-    
+
     vi.mock('../../services/BaseService', () => ({
         default: vi.fn().mockImplementation(() => ({
             findAll: vi.fn().mockResolvedValue([]),
@@ -338,7 +356,7 @@ export const createMockReview = (overrides: Partial<MockReview> = {}): MockRevie
 export class MockHttpError extends Error {
     statusCode: number;
     errors?: Array<{ message: string }>;
-    
+
     constructor(message: string, statusCode: number = 500, errors?: Array<{ message: string }>) {
         super(message);
         this.name = 'HttpError';
@@ -347,5 +365,5 @@ export class MockHttpError extends Error {
     }
 }
 
-export const createMockError = (message: string, statusCode: number = 500): MockHttpError => 
+export const createMockError = (message: string, statusCode: number = 500): MockHttpError =>
     new MockHttpError(message, statusCode);

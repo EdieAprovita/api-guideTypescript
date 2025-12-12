@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import { Request, Response, NextFunction } from 'express';
 import { RateLimitRequestHandler } from 'express-rate-limit';
-import testConfig from '../testConfig';
+import testConfig from '../testConfig.js';
 
 export interface TestUser {
     _id: string;

@@ -1,8 +1,8 @@
 import { vi, describe, it, beforeAll, afterAll, beforeEach, expect } from 'vitest';
 import { faker } from '@faker-js/faker';
 import jwt from 'jsonwebtoken';
-import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers';
-import { TEST_JWT_CONFIG, TEST_REDIS_CONFIG, setupTestEnvironment, cleanupTestEnvironment } from '../testConfig';
+import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers.js';
+import { TEST_JWT_CONFIG, TEST_REDIS_CONFIG, setupTestEnvironment, cleanupTestEnvironment } from '../testConfig.js';
 
 // Mock jwt module completely with default export support (Vitest ESM mocks)
 vi.mock('jsonwebtoken', () => ({

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, MockedFunction } from 'vitest';
-import { reviewService } from '../../services/ReviewService';
-import { Review } from '../../models/Review';
-import { HttpError, HttpStatusCode } from '../../types/Errors';
+import { reviewService } from '../../services/ReviewService.js';
+import { Review } from '../../models/Review.js';
+import { HttpError, HttpStatusCode } from '../../types/Errors.js';
 
 // Define proper types for mocked functions without using 'any'
 interface MockedReviewModel {

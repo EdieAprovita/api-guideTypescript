@@ -5,7 +5,7 @@
  */
 
 import { faker } from '@faker-js/faker';
-import { VALIDATION_MESSAGE_TEMPLATES } from '../constants/validationMessages';
+import { VALIDATION_MESSAGE_TEMPLATES } from '../constants/validationMessages.js';
 
 /**
  * Generates a cryptographically secure password for testing purposes

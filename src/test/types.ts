@@ -10,7 +10,7 @@ import {
     MockBusinessService,
     MockMarketService,
     MockSanctuaryService,
-} from './types/baseTypes';
+} from './types/baseTypes.js';
 
 // Tipos específicos para testing
 export interface TestUser {

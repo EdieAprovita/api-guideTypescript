@@ -7,7 +7,7 @@
 import request from 'supertest';
 import { describe, it, expect } from 'vitest';
 import type { Response } from 'supertest';
-import app from '../../app';
+import app from '../../app.js';
 
 interface ApiEndpoint {
   readonly name: string;

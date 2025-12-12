@@ -11,7 +11,7 @@
  * @module sanitizer
  */
 
-import { logWarn } from './logger';
+import { logWarn } from './logger.js';
 
 /**
  * Recursively removes MongoDB operators from untrusted user input.

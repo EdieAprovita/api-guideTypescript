@@ -2,13 +2,13 @@ import dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import requestLogger from './middleware/requestLogger';
-import { xssSanitizer } from './middleware/xssSanitizer';
+import requestLogger from './middleware/requestLogger.js';
+import { xssSanitizer } from './middleware/xssSanitizer.js';
 import fs from 'node:fs';
 
-import connectDB from './config/db';
-import { errorHandler, notFound } from './middleware/errorHandler';
-import corsMiddleware from './middleware/corsOptions';
+import connectDB from './config/db.js';
+import { errorHandler, notFound } from './middleware/errorHandler.js';
+import corsMiddleware from './middleware/corsOptions.js';
 import {
     configureHelmet,
     enforceHTTPS,
@@ -16,25 +16,25 @@ import {
     limitRequestSize,
     validateUserAgent,
     requireAPIVersion,
-} from './middleware/security';
+} from './middleware/security.js';
 
-import userRoutes from './routes/userRoutes';
-import businessRoutes from './routes/businessRoutes';
-import recipesRoutes from './routes/recipesRoutes';
-import marketsRoutes from './routes/marketsRoutes';
-import restaurantRoutes from './routes/restaurantRoutes';
-import doctorsRoutes from './routes/doctorsRoutes';
-import professionProfileRoutes from './routes/professionProfileRoutes';
-import professionRoutes from './routes/professionRoutes';
-import postRoutes from './routes/postRoutes';
-import sanctuaryRoutes from './routes/sanctuaryRoutes';
-import authRoutes from './routes/authRoutes';
-import cacheRoutes from './routes/cacheRoutes';
-import reviewRoutes from './routes/reviewRoutes';
-import healthRoutes from './routes/healthRoutes';
+import userRoutes from './routes/userRoutes.js';
+import businessRoutes from './routes/businessRoutes.js';
+import recipesRoutes from './routes/recipesRoutes.js';
+import marketsRoutes from './routes/marketsRoutes.js';
+import restaurantRoutes from './routes/restaurantRoutes.js';
+import doctorsRoutes from './routes/doctorsRoutes.js';
+import professionProfileRoutes from './routes/professionProfileRoutes.js';
+import professionRoutes from './routes/professionRoutes.js';
+import postRoutes from './routes/postRoutes.js';
+import sanctuaryRoutes from './routes/sanctuaryRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import cacheRoutes from './routes/cacheRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import healthRoutes from './routes/healthRoutes.js';
 import swaggerUi, { JsonObject } from 'swagger-ui-express';
 import yaml from 'js-yaml';
-import basicAuth from './middleware/basicAuth';
+import basicAuth from './middleware/basicAuth.js';
 
 dotenv.config();
 

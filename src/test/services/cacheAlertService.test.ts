@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mockRequest, mockResponse, mockNext } from '../setup/unit-setup';
+import { mockRequest, mockResponse, mockNext } from '../setup/unit-setup.js';
 
 // Mock the service
 vi.mock('../../services/CacheAlertService', () => ({

@@ -2,11 +2,11 @@ import { vi, describe, it, beforeEach, expect } from 'vitest';
 import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import express from 'express';
-import { errorHandler } from '../../middleware/errorHandler';
-import { HttpError, HttpStatusCode } from '../../types/Errors';
-import logger from '../../utils/logger';
-import testConfig from '../testConfig';
-import { expectErrorResponse, expectValidationErrorResponse, expectServerError } from '../utils/responseExpectations';
+import { errorHandler } from '../../middleware/errorHandler.js';
+import { HttpError, HttpStatusCode } from '../../types/Errors.js';
+import logger from '../../utils/logger.js';
+import testConfig from '../testConfig.js';
+import { expectErrorResponse, expectValidationErrorResponse, expectServerError } from '../utils/responseExpectations.js';
 
 // Mock logger
 vi.mock('../../utils/logger', () => ({

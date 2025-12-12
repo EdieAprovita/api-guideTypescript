@@ -2,6 +2,7 @@
     "name": "api-guidetypescript",
     "version": "2.3.0",
     "description": "Vegan City Guide API - A comprehensive TypeScript REST API",
+    "type": "module",
     "main": "dist/server.js",
     "scripts": {
         "dev": "nodemon src/server.ts",

@@ -1,1 +1,1 @@
-export * from '../integration/helpers/testFixtures';
+export * from '../integration/helpers/testFixtures.js';

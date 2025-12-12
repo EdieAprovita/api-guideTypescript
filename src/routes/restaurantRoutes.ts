@@ -1,8 +1,8 @@
 import express from 'express';
-import { protect, admin } from '../middleware/authMiddleware';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation';
-import { restaurantCacheMiddleware, browserCacheValidation, cacheInvalidationMiddleware } from '../middleware/cache';
-import { restaurantSchemas, paramSchemas, querySchemas, reviewSchemas } from '../utils/validators';
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
+import { restaurantCacheMiddleware, browserCacheValidation, cacheInvalidationMiddleware } from '../middleware/cache.js';
+import { restaurantSchemas, paramSchemas, querySchemas, reviewSchemas } from '../utils/validators.js';
 import {
     getRestaurants,
     getRestaurantById,
@@ -11,12 +11,12 @@ import {
     addReviewToRestaurant,
     deleteRestaurant,
     getTopRatedRestaurants,
-} from '../controllers/restaurantControllers';
-import { createReviewForRestaurant } from '../controllers/reviewControllers';
-import { reviewService as ReviewService } from '../services/ReviewService';
-import { restaurantService as RestaurantService } from '../services/RestaurantService';
-import asyncHandler from '../middleware/asyncHandler';
-import { HttpError, HttpStatusCode } from '../types/Errors';
+} from '../controllers/restaurantControllers.js';
+import { createReviewForRestaurant } from '../controllers/reviewControllers.js';
+import { reviewService as ReviewService } from '../services/ReviewService.js';
+import { restaurantService as RestaurantService } from '../services/RestaurantService.js';
+import asyncHandler from '../middleware/asyncHandler.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
 const router = express.Router();
 

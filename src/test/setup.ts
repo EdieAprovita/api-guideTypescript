@@ -2,10 +2,10 @@
 import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 import { Request, Response, NextFunction } from 'express';
-import { generateTestPassword } from './utils/passwordGenerator';
-import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from './__mocks__/middleware';
-import { serviceMocks, modelMocks, externalMocks } from './__mocks__/services';
-import { dbConfigMocks } from './__mocks__/database';
+import { generateTestPassword } from './utils/passwordGenerator.js';
+import { authMiddlewareMocks, validationMocks, securityMocks, userControllerMocks } from './__mocks__/middleware.js';
+import { serviceMocks, modelMocks, externalMocks } from './__mocks__/services.js';
+import { dbConfigMocks } from './__mocks__/database.js';
 
 // Mock environment variables with faker-generated values
 process.env.NODE_ENV = 'test'; // Cambiar a 'test' para mejor rendimiento
@@ -85,6 +85,20 @@ vi.mock('../models/User', () => ({
 // Mock express-validator
 vi.mock('express-validator', () => ({
     __esModule: true,
+    default: {
+        validationResult: vi.fn(() => ({
+            isEmpty: vi.fn().mockReturnValue(true),
+            array: vi.fn().mockReturnValue([]),
+        })),
+        body: vi.fn(() => ({
+            notEmpty: vi.fn().mockReturnThis(),
+            isLength: vi.fn().mockReturnThis(),
+            isEmail: vi.fn().mockReturnThis(),
+            escape: vi.fn().mockReturnThis(),
+            trim: vi.fn().mockReturnThis(),
+            normalizeEmail: vi.fn().mockReturnThis(),
+        })),
+    },
     validationResult: vi.fn(() => ({
         isEmpty: vi.fn().mockReturnValue(true),
         array: vi.fn().mockReturnValue([]),

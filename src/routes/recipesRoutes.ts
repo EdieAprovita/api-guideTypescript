@@ -1,8 +1,8 @@
 import express from 'express';
-import { protect, admin } from '../middleware/authMiddleware';
-import { browserCacheValidation, recipeCacheMiddleware } from '../middleware/cache';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation';
-import { paramSchemas, reviewSchemas } from '../utils/validators';
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { browserCacheValidation, recipeCacheMiddleware } from '../middleware/cache.js';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
+import { paramSchemas, reviewSchemas } from '../utils/validators.js';
 import {
     getRecipes,
     getRecipeById,
@@ -12,7 +12,7 @@ import {
     getRecipeReviews,
     getRecipeReviewStats,
     deleteRecipe,
-} from '../controllers/recipesControllers';
+} from '../controllers/recipesControllers.js';
 
 const router = express.Router();
 
