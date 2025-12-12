@@ -190,6 +190,20 @@ const commonAuthor = { type: 'string' as const, example: '60c72b2f9b1d8b0015b3c1
 const commonLocation = { $ref: '#/components/schemas/GeoJSONPoint' as const };
 const commonContact = { type: 'array' as const, items: { $ref: '#/components/schemas/Contact' as const } };
 
+// Reusable property groups for reducing duplication
+const reviewableEntityProperties = {
+    reviews: commonReviews,
+    rating: commonRating,
+    numReviews: commonNumReviews,
+    timestamps: commonTimestamps,
+};
+
+const baseLocationProperties = {
+    author: commonAuthor,
+    location: commonLocation,
+    contact: commonContact,
+};
+
 // Error response factories
 const createUnauthorizedResponse = (message = 'Authentication required') => ({
     description: 'Unauthorized',
@@ -217,6 +231,36 @@ const createNotFoundResponse = (entityType: string) => ({
         'application/json': {
             schema: { $ref: '#/components/schemas/ErrorResponse' },
             example: { success: false, message: `${entityType} not found`, error: 'NotFound' },
+        },
+    },
+});
+
+const createSuccessMessageResponse = (message: string) => ({
+    description: message,
+    content: {
+        'application/json': {
+            schema: {
+                type: 'object' as const,
+                properties: {
+                    success: { type: 'boolean' as const, example: true },
+                    message: { type: 'string' as const, example: message },
+                },
+            },
+        },
+    },
+});
+
+const createDataResponse = (schemaRef: string, description = 'Operation successful') => ({
+    description,
+    content: {
+        'application/json': {
+            schema: {
+                type: 'object' as const,
+                properties: {
+                    success: { type: 'boolean' as const, example: true },
+                    data: { $ref: `#/components/schemas/${schemaRef}` },
+                },
+            },
         },
     },
 });
@@ -431,6 +475,16 @@ const swaggerDocument: OpenAPIV3.Document = {
                     instagram: { type: 'string', example: 'instagram.com/example' },
                 },
             },
+            CacheStats: {
+                type: 'object',
+                properties: {
+                    hitRatio: { type: 'number', example: 0.75 },
+                    totalRequests: { type: 'number', example: 1000 },
+                    cacheSize: { type: 'number', example: 500 },
+                    memoryUsage: { type: 'string', example: '256MB' },
+                    uptime: { type: 'number', example: 3600 },
+                },
+            },
             BusinessHours: {
                 type: 'object',
                 properties: {
@@ -544,18 +598,13 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c124' },
                     namePlace: { type: 'string', example: 'Tech Solutions Inc' },
-                    author: commonAuthor,
+                    ...baseLocationProperties,
                     address: { type: 'string', example: '123 Business St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/business.jpg' },
-                    contact: commonContact,
                     budget: { type: 'number', example: 50000 },
                     typeBusiness: { type: 'string', example: 'technology' },
                     hours: { type: 'array', items: { $ref: '#/components/schemas/BusinessHours' } },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...reviewableEntityProperties,
                 },
             },
             Restaurant: {
@@ -563,18 +612,13 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c126' },
                     restaurantName: { type: 'string', example: 'El Buen Sabor' },
-                    author: commonAuthor,
+                    ...baseLocationProperties,
                     typePlace: { type: 'string', example: 'restaurant' },
                     address: { type: 'string', example: '123 Main St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/restaurant.jpg' },
                     budget: { type: 'string', enum: ['low', 'medium', 'high'], example: 'medium' },
-                    contact: commonContact,
                     cuisine: { type: 'array', items: { type: 'string' }, example: ['Mexican', 'Latin American'] },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...reviewableEntityProperties,
                 },
             },
             Doctor: {
@@ -582,16 +626,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c127' },
                     doctorName: { type: 'string', example: 'Dr. Smith' },
-                    author: commonAuthor,
+                    ...baseLocationProperties,
                     address: { type: 'string', example: '456 Medical St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/doctor.jpg' },
                     specialty: { type: 'string', example: 'Cardiology' },
-                    contact: commonContact,
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...reviewableEntityProperties,
                 },
             },
             Market: {
@@ -599,19 +638,15 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c128' },
                     marketName: { type: 'string', example: 'Central Market' },
-                    author: commonAuthor,
+                    ...baseLocationProperties,
                     address: { type: 'string', example: '789 Market St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/market.jpg' },
                     typeMarket: {
                         type: 'string',
                         enum: ['supermarket', 'convenience store', 'grocery store'],
                         example: 'supermarket',
                     },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...reviewableEntityProperties,
                 },
             },
             Recipe: {
@@ -632,10 +667,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     cookingTime: { type: 'number', example: 30 },
                     difficulty: { type: 'string', example: 'medium' },
                     budget: { type: 'string', example: 'low' },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...reviewableEntityProperties,
                 },
             },
             Post: {
@@ -657,19 +689,14 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c131' },
                     sanctuaryName: { type: 'string', example: 'Wildlife Sanctuary' },
-                    author: commonAuthor,
+                    ...baseLocationProperties,
                     address: { type: 'string', example: '321 Nature St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/sanctuary.jpg' },
                     typeofSanctuary: { type: 'string', example: 'wildlife' },
                     animals: { type: 'array', items: { $ref: '#/components/schemas/Animal' } },
                     capacity: { type: 'number', example: 100 },
                     caretakers: { type: 'array', items: { type: 'string' }, example: ['John Smith', 'Jane Doe'] },
-                    contact: commonContact,
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...reviewableEntityProperties,
                 },
             },
             Profession: {
@@ -677,15 +704,10 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c132' },
                     professionName: { type: 'string', example: 'Software Developer' },
-                    author: commonAuthor,
+                    ...baseLocationProperties,
                     address: { type: 'string', example: '654 Professional St, New York, NY' },
-                    location: commonLocation,
                     specialty: { type: 'string', example: 'Web Development' },
-                    contact: commonContact,
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...reviewableEntityProperties,
                 },
             },
             ProfessionalProfile: {
@@ -699,10 +721,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     education: { type: 'array', items: { $ref: '#/components/schemas/Education' } },
                     social: { type: 'array', items: { $ref: '#/components/schemas/Social' } },
                     date: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...reviewableEntityProperties,
                 },
             },
             Review: {
@@ -962,20 +981,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                 summary: 'Logout and blacklist current token',
                 security: [{ bearerAuth: [] }],
                 responses: {
-                    '200': {
-                        description: 'Logged out successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Logged out successfully' },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    '200': createSuccessMessageResponse('Logged out successfully'),
                     '401': createUnauthorizedResponse(),
                     '500': createStandardResponses()['500'],
                 },
@@ -987,20 +993,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                 summary: 'Revoke all user tokens (logout from all devices)',
                 security: [{ bearerAuth: [] }],
                 responses: {
-                    '200': {
-                        description: 'All tokens revoked successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'All tokens revoked successfully' },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    '200': createSuccessMessageResponse('All tokens revoked successfully'),
                     '401': createUnauthorizedResponse(),
                     '500': createStandardResponses()['500'],
                 },
@@ -1038,20 +1031,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                 summary: 'Get current authenticated user profile',
                 security: [{ bearerAuth: [] }],
                 responses: {
-                    '200': {
-                        description: 'User profile retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: { $ref: '#/components/schemas/User' },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    '200': createDataResponse('User', 'User profile retrieved successfully'),
                     '401': createUnauthorizedResponse(),
                     '404': createNotFoundResponse('User'),
                     '500': createStandardResponses()['500'],
@@ -1345,16 +1325,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                                         data: {
                                             type: 'object',
                                             properties: {
-                                                stats: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        hitRatio: { type: 'number', example: 0.75 },
-                                                        totalRequests: { type: 'number', example: 1000 },
-                                                        cacheSize: { type: 'number', example: 500 },
-                                                        memoryUsage: { type: 'string', example: '256MB' },
-                                                        uptime: { type: 'number', example: 3600 },
-                                                    },
-                                                },
+                                                stats: { $ref: '#/components/schemas/CacheStats' },
                                                 performance: { type: 'object' },
                                                 timestamp: { type: 'string', format: 'date-time' },
                                             },
@@ -1383,19 +1354,19 @@ const swaggerDocument: OpenAPIV3.Document = {
                                     properties: {
                                         success: { type: 'boolean', example: true },
                                         data: {
-                                            type: 'object',
-                                            properties: {
-                                                status: {
-                                                    type: 'string',
-                                                    enum: ['healthy', 'unhealthy'],
-                                                    example: 'healthy',
+                                            allOf: [
+                                                { $ref: '#/components/schemas/CacheStats' },
+                                                {
+                                                    type: 'object',
+                                                    properties: {
+                                                        status: {
+                                                            type: 'string',
+                                                            enum: ['healthy', 'unhealthy'],
+                                                            example: 'healthy',
+                                                        },
+                                                    },
                                                 },
-                                                hitRatio: { type: 'number', example: 0.75 },
-                                                totalRequests: { type: 'number', example: 1000 },
-                                                cacheSize: { type: 'number', example: 500 },
-                                                memoryUsage: { type: 'string', example: '256MB' },
-                                                uptime: { type: 'number', example: 3600 },
-                                            },
+                                            ],
                                         },
                                     },
                                 },
