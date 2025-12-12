@@ -111,15 +111,37 @@ if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
         echo -e "${RED}❌ MONGODB_URI is required${NC}"
         exit 1
     fi
-    if [[ "$MONGODB_URI" == *"'"* ]]; then
-        echo -e "${RED}❌ MONGODB_URI must not contain single quotes (').${NC}"
+    
+    # 🔒 Enhanced security validation for MONGODB_URI
+    # Validates MongoDB URI format and prevents injection attacks
+    if [[ "$MONGODB_URI" =~ [\'\"\`\$\\] ]]; then
+        echo -e "${RED}❌ MONGODB_URI contains dangerous characters (quotes, backticks, dollar signs, or backslashes).${NC}"
+        echo -e "${YELLOW}These characters could enable command injection attacks.${NC}"
+        exit 1
+    fi
+    
+    # Validate MongoDB URI format
+    if [[ ! "$MONGODB_URI" =~ ^mongodb(\+srv)?://[a-zA-Z0-9._-]+:[^@]+@[a-zA-Z0-9._-]+ ]]; then
+        echo -e "${RED}❌ MONGODB_URI format is invalid.${NC}"
+        echo -e "${YELLOW}Expected format: mongodb://user:password@host or mongodb+srv://user:password@host${NC}"
         exit 1
     fi
     
     echo "Setting environment variables in Cloud Run..."
-    gcloud run services update $SERVICE_NAME \
-        --region=$REGION \
-        --update-env-vars='NODE_ENV=production,MONGODB_URI='"'$MONGODB_URI'"',ENABLE_SWAGGER_UI=true'
+    # Use temporary file to avoid shell injection
+    TEMP_ENV_FILE=$(mktemp)
+    cat > "$TEMP_ENV_FILE" <<EOF
+NODE_ENV=production
+MONGODB_URI=$MONGODB_URI
+ENABLE_SWAGGER_UI=true
+EOF
+    
+    gcloud run services update "$SERVICE_NAME" \
+        --region="$REGION" \
+        --env-vars-file="$TEMP_ENV_FILE"
+    
+    # Cleanup temporary file
+    rm -f "$TEMP_ENV_FILE"
 fi
 
 echo ""
