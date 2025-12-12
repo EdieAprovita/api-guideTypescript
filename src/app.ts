@@ -86,10 +86,7 @@ let swaggerDocument: JsonObject | null = null;
 try {
     // In production (dist/), swagger.yaml is copied to the same directory by postbuild
     // In development, it's at ./swagger.yaml relative to project root
-    // Both cases work with ./swagger.yaml since dist/ contains a copy
-    const swaggerPath = './swagger.yaml';
-    
-    swaggerDocument = yaml.load(fs.readFileSync(swaggerPath, 'utf8')) as JsonObject;
+    swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as JsonObject;
     console.log('✅ Swagger loaded successfully');
 } catch (error) {
     console.warn('⚠️  Swagger disabled:', error instanceof Error ? error.message : 'Unknown error');

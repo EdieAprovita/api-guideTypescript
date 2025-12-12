@@ -9,11 +9,9 @@ const router = express.Router();
  * @route GET /health
  */
 router.get('/', (_req: Request, res: Response) => {
-    // Use console.log instead of logger for critical health check
-    // to avoid potential I/O blocking during Cloud Run startup
-    if (process.env.NODE_ENV === 'production') {
-        console.log('[Health] Liveness check');
-    } else {
+    // In production, skip logging to avoid I/O during frequent health checks
+    // In development, log for debugging purposes
+    if (process.env.NODE_ENV !== 'production') {
         logger.debug('Liveness probe requested');
     }
 
