@@ -111,11 +111,15 @@ if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
         echo -e "${RED}❌ MONGODB_URI is required${NC}"
         exit 1
     fi
+    if [[ "$MONGODB_URI" == *"'"* ]]; then
+        echo -e "${RED}❌ MONGODB_URI must not contain single quotes (').${NC}"
+        exit 1
+    fi
     
     echo "Setting environment variables in Cloud Run..."
     gcloud run services update $SERVICE_NAME \
         --region=$REGION \
-        --update-env-vars="NODE_ENV=production,MONGODB_URI=$MONGODB_URI,ENABLE_SWAGGER_UI=true"
+        --update-env-vars='NODE_ENV=production,MONGODB_URI='"'$MONGODB_URI'"',ENABLE_SWAGGER_UI=true'
 fi
 
 echo ""
