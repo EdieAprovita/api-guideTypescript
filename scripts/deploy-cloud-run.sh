@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 🚀 Fast Deploy Script for Cloud Run
-# This script safely commits and pushes changes
+# 🚀 Cloud Run Deployment Script with Pre-flight Checks
+# This script verifies configuration and deploys to Cloud Run
 
 set -e
 
@@ -10,127 +10,182 @@ echo "==============================="
 echo ""
 
 # Colors
+RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Configuration
+PROJECT_ID="vegan-vita-402514"
+REGION="europe-west1"
+SERVICE_NAME="api-guidetypescript"
+
 # Verificar que estamos en el directorio correcto
 if [ ! -f "package.json" ]; then
-    echo "❌ Error: No estás en el directorio del proyecto"
+    echo -e "${RED}❌ Error: No estás en el directorio del proyecto${NC}"
     exit 1
 fi
 
-echo -e "${BLUE}📋 Archivos modificados:${NC}"
+echo -e "${BLUE}� Running pre-flight checks...${NC}"
+echo ""
+
+# Run verification script
+if [ -f "scripts/verify-cloud-run-config.sh" ]; then
+    if ./scripts/verify-cloud-run-config.sh; then
+        echo ""
+        echo -e "${GREEN}✓ Pre-flight checks passed!${NC}"
+    else
+        echo ""
+        echo -e "${RED}✗ Pre-flight checks failed${NC}"
+        echo "Please fix the issues before deploying"
+        exit 1
+    fi
+else
+    echo -e "${YELLOW}⚠ Verification script not found, skipping pre-flight checks${NC}"
+fi
+
+echo ""
+echo -e "${BLUE}📋 Modified files:${NC}"
 git status --short
 
 echo ""
-read -p "Do you want to test locally before pushing? (recommended) [Y/n] " -n 1 -r
+read -p "Do you want to commit and push changes? [Y/n] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
     echo ""
-    echo "🧪 Ejecutando prueba local..."
-    ./scripts/test-cloud-run-local.sh
+    echo -e "${BLUE}📦 Preparing commit...${NC}"
+    
+    # Add all changed files
+    git add -A
     
     echo ""
-    read -p "¿Las pruebas pasaron exitosamente? [Y/n] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
-        echo "❌ Abortando deployment. Por favor corrige los errores."
+    read -p "Enter commit message: " COMMIT_MSG
+    
+    if [ -z "$COMMIT_MSG" ]; then
+        COMMIT_MSG="fix: Cloud Run deployment fixes - non-blocking DB and correct port binding"
+    fi
+    
+    # Commit
+    git commit -m "$COMMIT_MSG" || echo -e "${YELLOW}⚠ No changes to commit${NC}"
+    
+    # Push
+    CURRENT_BRANCH=$(git branch --show-current)
+    echo ""
+    echo -e "${BLUE}🚀 Pushing to origin/${CURRENT_BRANCH}...${NC}"
+    git push origin $CURRENT_BRANCH
+    
+    echo ""
+    echo -e "${GREEN}✅ Push successful!${NC}"
+fi
+
+echo ""
+echo -e "${BLUE}☁️  Deploying to Cloud Run...${NC}"
+echo ""
+
+# Check if gcloud is authenticated
+if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &> /dev/null; then
+    echo -e "${RED}❌ Not authenticated with gcloud${NC}"
+    echo "Run: gcloud auth login"
+    exit 1
+fi
+
+# Set project
+gcloud config set project $PROJECT_ID
+
+echo ""
+echo -e "${YELLOW}⚠️  IMPORTANT: Make sure these environment variables are set in Cloud Run:${NC}"
+echo "   - MONGODB_URI (required)"
+echo "   - NODE_ENV=production"
+echo "   - ENABLE_SWAGGER_UI=true (optional)"
+echo ""
+
+read -p "Are environment variables configured in Cloud Run? [Y/n] " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
+    echo ""
+    echo -e "${BLUE}Setting environment variables...${NC}"
+    read -p "Enter MONGODB_URI: " MONGODB_URI
+    
+    if [ -z "$MONGODB_URI" ]; then
+        echo -e "${RED}❌ MONGODB_URI is required${NC}"
         exit 1
     fi
+    
+    # 🔒 Enhanced security validation for MONGODB_URI
+    # Validates MongoDB URI format and prevents injection attacks
+    if [[ "$MONGODB_URI" =~ [\'\"\`\$\\] ]]; then
+        echo -e "${RED}❌ MONGODB_URI contains dangerous characters (quotes, backticks, dollar signs, or backslashes).${NC}"
+        echo -e "${YELLOW}These characters could enable command injection attacks.${NC}"
+        exit 1
+    fi
+    
+    # Validate MongoDB URI format
+    if [[ ! "$MONGODB_URI" =~ ^mongodb(\+srv)?://[a-zA-Z0-9._-]+:[^@]+@[a-zA-Z0-9._-]+ ]]; then
+        echo -e "${RED}❌ MONGODB_URI format is invalid.${NC}"
+        echo -e "${YELLOW}Expected format: mongodb://user:password@host or mongodb+srv://user:password@host${NC}"
+        exit 1
+    fi
+    
+    echo "Setting environment variables in Cloud Run..."
+    # Use temporary file to avoid shell injection
+    TEMP_ENV_FILE=$(mktemp)
+    cat > "$TEMP_ENV_FILE" <<EOF
+NODE_ENV=production
+MONGODB_URI=$MONGODB_URI
+ENABLE_SWAGGER_UI=true
+EOF
+    
+    gcloud run services update "$SERVICE_NAME" \
+        --region="$REGION" \
+        --env-vars-file="$TEMP_ENV_FILE"
+    
+    # Cleanup temporary file
+    rm -f "$TEMP_ENV_FILE"
 fi
 
 echo ""
-echo -e "${BLUE}📦 Preparando commit...${NC}"
-
-# Add all files
-git add Dockerfile \
-        healthcheck.js \
-        package.json \
-        src/app.ts \
-        src/server.ts \
-        CLOUD_RUN_FIX.md \
-        docs/cloud-run-fixes.md \
-        scripts/test-cloud-run-local.sh
-
-echo -e "${GREEN}✅ Archivos añadidos al stage${NC}"
-
-# Commit message
-COMMIT_MSG="fix: Cloud Run deployment - correct port binding and non-blocking DB connection
-
-🔧 Critical fixes for Cloud Run deployment:
-
-- Changed default port from 5001 to 8080 (Cloud Run requirement)
-- Server now listens on 0.0.0.0 in production (was localhost only)
-- MongoDB connection is now non-blocking (prevents startup timeout)
-- Increased health check timeouts (start-period: 15s -> 40s)
-- Updated healthcheck.js for better Cloud Run compatibility
-- Fixed docker:run script to use port 8080
-
-📋 Files changed:
-- src/server.ts: Port 8080 default, listen on 0.0.0.0 in production
-- src/app.ts: Non-blocking MongoDB connection
-- Dockerfile: Increased health check timeouts
-- healthcheck.js: Better logging and timeout handling
-- package.json: Updated docker:run script
-
-🧪 Testing:
-Run ./scripts/test-cloud-run-local.sh to verify locally
-
-📚 Documentation:
-See CLOUD_RUN_FIX.md for detailed explanation and troubleshooting
-
-Fixes #container-startup-timeout"
-
-echo ""
-echo -e "${BLUE}📝 Mensaje del commit:${NC}"
-echo "$COMMIT_MSG"
+echo -e "${BLUE}🏗️  Triggering Cloud Build...${NC}"
 echo ""
 
-read -p "¿Proceder con el commit? [Y/n] " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
-    echo "❌ Commit cancelado"
-    git reset HEAD
-    exit 1
+# Get latest commit SHA
+COMMIT_SHA=$(git rev-parse HEAD)
+
+echo "Deploying commit: $COMMIT_SHA"
+echo ""
+
+# Trigger Cloud Build (assuming there's a trigger configured)
+echo "Cloud Build will be triggered automatically by the push."
+echo ""
+
+echo "📊 Monitor the deployment:"
+echo "   Build: https://console.cloud.google.com/cloud-build?project=$PROJECT_ID"
+echo "   Service: https://console.cloud.google.com/run/detail/$REGION/$SERVICE_NAME/logs?project=$PROJECT_ID"
+echo ""
+
+# Wait a bit and try to get the service URL
+sleep 5
+
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format="value(status.url)" 2>/dev/null || echo "")
+
+if [ -n "$SERVICE_URL" ]; then
+    echo ""
+    echo -e "${GREEN}🎯 Service URL: $SERVICE_URL${NC}"
+    echo ""
+    echo "Once deployment completes, test with:"
+    echo "   curl $SERVICE_URL/health"
+    echo "   curl $SERVICE_URL/api/v1"
 fi
 
-# Commit
-git commit -m "$COMMIT_MSG"
-echo -e "${GREEN}✅ Commit realizado${NC}"
-
 echo ""
-echo -e "${YELLOW}⚠️  IMPORTANTE: Verifica que tengas estas variables configuradas en Cloud Run:${NC}"
-echo "   - MONGODB_URI"
-echo "   - NODE_ENV (debería ser 'production')"
+echo -e "${GREEN}✅ Deployment initiated!${NC}"
 echo ""
-
-read -p "¿Hacer push a development y activar Cloud Build? [Y/n] " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
-    echo "❌ Push cancelado"
-    echo "💡 Puedes hacer push manualmente con: git push origin development"
-    exit 1
-fi
-
-# Push
-CURRENT_BRANCH=$(git branch --show-current)
+echo "⏳ Wait for Cloud Build to complete (this may take 4-5 minutes)"
 echo ""
-echo -e "${BLUE}🚀 Pushing to origin/${CURRENT_BRANCH}...${NC}"
-git push origin $CURRENT_BRANCH
-
-echo ""
-echo -e "${GREEN}✅ Push exitoso!${NC}"
-echo ""
-echo "📊 Monitorea el deployment en:"
-echo "   https://console.cloud.google.com/cloud-build?project=vegan-vita-402514"
-echo ""
-echo "📋 Logs de Cloud Run:"
-echo "   https://console.cloud.google.com/run/detail/europe-west1/api-guidetypescript/logs?project=vegan-vita-402514"
-echo ""
-echo "🎯 Una vez que el deployment termine, verifica:"
-echo "   - Cloud Build debe mostrar ✅ en los 3 steps (Build, Push, Deploy)"
-echo "   - Cloud Run debe mostrar el servicio como 'Running'"
-echo "   - Prueba el endpoint: curl https://tu-url.run.app/health"
+echo "Deployment checklist:"
+echo "  □ Cloud Build shows ✅ for all steps (Build, Push, Deploy)"
+echo "  □ Cloud Run service status is 'Running'"
+echo "  □ Health check returns 200: curl \$SERVICE_URL/health"
+echo "  □ API responds: curl \$SERVICE_URL/api/v1"
+echo "  □ Check logs for MongoDB connection status"
 echo ""

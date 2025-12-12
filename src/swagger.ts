@@ -1,11 +1,14 @@
 import { OpenAPIV3 } from 'openapi-types';
+import { commonSchemaRefs, propertyGroups, commonParameters } from './config/swaggerConstants';
 
 const createStandardResponses = (successSchema?: string) => ({
     '200': {
         description: 'Operation successful',
         content: {
             'application/json': {
-                schema: successSchema ? { $ref: `#/components/schemas/${successSchema}` } : { $ref: '#/components/schemas/SuccessResponse' },
+                schema: successSchema
+                    ? { $ref: `#/components/schemas/${successSchema}` }
+                    : { $ref: '#/components/schemas/SuccessResponse' },
             },
         },
     },
@@ -142,45 +145,13 @@ const createAddReviewEndpoint = (tag: string) => ({
                     },
                 },
             },
-            '401': {
-                description: 'Unauthorized',
-                content: {
-                    'application/json': {
-                        schema: { $ref: '#/components/schemas/ErrorResponse' },
-                        example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                    },
-                },
-            },
-            '409': {
-                description: 'Conflict',
-                content: {
-                    'application/json': {
-                        schema: { $ref: '#/components/schemas/ErrorResponse' },
-                        example: { success: false, message: `User has already reviewed this ${tag.toLowerCase().slice(0, -1)}`, error: 'Conflict' },
-                    },
-                },
-            },
+            '401': createUnauthorizedResponse(),
+            '409': createConflictResponse(`User has already reviewed this ${tag.toLowerCase().slice(0, -1)}`),
         },
     },
 });
 
-// Common properties with proper typing
-const commonTimestamps = {
-    type: 'object' as const,
-    properties: {
-        createdAt: { type: 'string' as const, format: 'date-time' as const },
-        updatedAt: { type: 'string' as const, format: 'date-time' as const },
-    },
-};
-
-const commonReviews = { type: 'array' as const, items: { type: 'string' as const }, example: ['60c72b2f9b1d8b0015b3c125'] };
-const commonRating = { type: 'number' as const, minimum: 0, maximum: 5, example: 4.5 };
-const commonNumReviews = { type: 'number' as const, example: 25 };
-const commonAuthor = { type: 'string' as const, example: '60c72b2f9b1d8b0015b3c123' };
-const commonLocation = { $ref: '#/components/schemas/GeoJSONPoint' as const };
-const commonContact = { type: 'array' as const, items: { $ref: '#/components/schemas/Contact' as const } };
-
-// Error response factories
+// Error response factories - using imported constants
 const createUnauthorizedResponse = (message = 'Authentication required') => ({
     description: 'Unauthorized',
     content: {
@@ -211,9 +182,59 @@ const createNotFoundResponse = (entityType: string) => ({
     },
 });
 
+const createForbiddenResponse = (message = 'You do not have permission to perform this action') => ({
+    description: 'Forbidden',
+    content: {
+        'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorResponse' },
+            example: { success: false, message, error: 'Forbidden' },
+        },
+    },
+});
+
+const createConflictResponse = (message: string) => ({
+    description: 'Conflict',
+    content: {
+        'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorResponse' },
+            example: { success: false, message, error: 'Conflict' },
+        },
+    },
+});
+
+const createSuccessMessageResponse = (message: string) => ({
+    description: message,
+    content: {
+        'application/json': {
+            schema: {
+                type: 'object' as const,
+                properties: {
+                    success: { type: 'boolean' as const, example: true },
+                    message: { type: 'string' as const, example: message },
+                },
+            },
+        },
+    },
+});
+
+const createDataResponse = (schemaRef: string, description = 'Operation successful') => ({
+    description,
+    content: {
+        'application/json': {
+            schema: {
+                type: 'object' as const,
+                properties: {
+                    success: { type: 'boolean' as const, example: true },
+                    data: { $ref: `#/components/schemas/${schemaRef}` },
+                },
+            },
+        },
+    },
+});
+
 const createPaginationParameters = () => [
-    { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 }, example: 1 },
-    { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 }, example: 10 },
+    { ...commonParameters.pageNumber },
+    { ...commonParameters.pageSize },
     { name: 'rating', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 5 }, example: 5 },
     { name: 'sort', in: 'query', schema: { type: 'string' }, example: '-createdAt' },
 ];
@@ -228,17 +249,7 @@ const createReviewListResponse = (entityType: string) => ({
                     properties: {
                         success: { type: 'boolean' },
                         data: { type: 'array', items: { $ref: '#/components/schemas/Review' } },
-                        pagination: {
-                            type: 'object',
-                            properties: {
-                                currentPage: { type: 'integer' },
-                                totalPages: { type: 'integer' },
-                                totalItems: { type: 'integer' },
-                                itemsPerPage: { type: 'integer' },
-                                hasNext: { type: 'boolean' },
-                                hasPrevious: { type: 'boolean' },
-                            },
-                        },
+                        pagination: { $ref: '#/components/schemas/Pagination' },
                     },
                 },
             },
@@ -257,23 +268,7 @@ const createReviewStatsResponse = (entityType: string) => ({
                     type: 'object',
                     properties: {
                         success: { type: 'boolean' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                totalReviews: { type: 'integer' },
-                                averageRating: { type: 'number' },
-                                ratingDistribution: {
-                                    type: 'object',
-                                    properties: {
-                                        '1': { type: 'integer' },
-                                        '2': { type: 'integer' },
-                                        '3': { type: 'integer' },
-                                        '4': { type: 'integer' },
-                                        '5': { type: 'integer' },
-                                    },
-                                },
-                            },
-                        },
+                        data: { $ref: '#/components/schemas/ReviewStatsData' },
                     },
                 },
             },
@@ -283,38 +278,35 @@ const createReviewStatsResponse = (entityType: string) => ({
     '404': createNotFoundResponse(entityType),
 });
 
-const createReviewEndpoints = (tag: string, paramName = 'id') => ({
+const createReviewCollectionEndpoints = (tag: string, paramName = 'id') => ({
     [`/${tag.toLowerCase()}/{${paramName}}/reviews`]: {
         get: {
             tags: [tag],
             summary: `Get reviews for a ${tag.toLowerCase().slice(0, -1)}`,
             parameters: [
-                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+                {
+                    name: paramName,
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                    description: `${tag.slice(0, -1)} ID`,
+                },
                 ...createPaginationParameters(),
             ],
             responses: createReviewListResponse(tag.slice(0, -1)),
         },
-    },
-    [`/${tag.toLowerCase()}/{${paramName}}/reviews/stats`]: {
-        get: {
-            tags: [tag],
-            summary: `Get review statistics for a ${tag.toLowerCase().slice(0, -1)}`,
-            parameters: [
-                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
-            ],
-            responses: createReviewStatsResponse(tag.slice(0, -1)),
-        },
-    },
-});
-
-const createReviewPostEndpoint = (tag: string, paramName = 'id') => ({
-    [`/${tag.toLowerCase()}/{${paramName}}/reviews`]: {
         post: {
             tags: [tag],
             summary: `Create review for a ${tag.toLowerCase().slice(0, -1)}`,
             security: [{ bearerAuth: [] }],
             parameters: [
-                { name: paramName, in: 'path', required: true, schema: { type: 'string' }, description: `${tag.slice(0, -1)} ID` },
+                {
+                    name: paramName,
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                    description: `${tag.slice(0, -1)} ID`,
+                },
             ],
             requestBody: {
                 required: true,
@@ -333,6 +325,22 @@ const createReviewPostEndpoint = (tag: string, paramName = 'id') => ({
                 '400': createBadRequestResponse(),
                 '404': createNotFoundResponse(tag.slice(0, -1)),
             },
+        },
+    },
+    [`/${tag.toLowerCase()}/{${paramName}}/reviews/stats`]: {
+        get: {
+            tags: [tag],
+            summary: `Get review statistics for a ${tag.toLowerCase().slice(0, -1)}`,
+            parameters: [
+                {
+                    name: paramName,
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                    description: `${tag.slice(0, -1)} ID`,
+                },
+            ],
+            responses: createReviewStatsResponse(tag.slice(0, -1)),
         },
     },
 });
@@ -354,7 +362,8 @@ const swaggerDocument: OpenAPIV3.Document = {
     openapi: '3.0.0',
     info: {
         title: 'API Guide TypeScript',
-        description: 'Complete API collection for the Express TypeScript API with proper authentication and all endpoints',
+        description:
+            'Complete API collection for the Express TypeScript API with proper authentication and all endpoints',
         version: '1.0.0',
         contact: {
             name: 'API Support',
@@ -364,7 +373,10 @@ const swaggerDocument: OpenAPIV3.Document = {
     servers: [
         { url: 'http://localhost:5001/api/v1', description: 'Development server' },
         { url: 'https://api.apiguide.com/api/v1', description: 'Production server' },
-        { url: 'https://api-guidetypescript-787324382752.europe-west1.run.app/api/v1', description: 'Cloud Run production server' },
+        {
+            url: 'https://api-guidetypescript-787324382752.europe-west1.run.app/api/v1',
+            description: 'Cloud Run production server',
+        },
     ],
     security: [{ bearerAuth: [] }],
     components: {
@@ -404,12 +416,117 @@ const swaggerDocument: OpenAPIV3.Document = {
                     instagram: { type: 'string', example: 'instagram.com/example' },
                 },
             },
+            CacheStats: {
+                type: 'object',
+                properties: {
+                    hitRatio: { type: 'number', example: 0.75 },
+                    totalRequests: { type: 'number', example: 1000 },
+                    cacheSize: { type: 'number', example: 500 },
+                    memoryUsage: { type: 'string', example: '256MB' },
+                    uptime: { type: 'number', example: 3600 },
+                },
+            },
+            CacheStatsResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                        type: 'object',
+                        properties: {
+                            stats: { $ref: '#/components/schemas/CacheStats' },
+                            performance: { type: 'object' },
+                            timestamp: { type: 'string', format: 'date-time' },
+                        },
+                    },
+                },
+            },
+            CacheHealthResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                        allOf: [
+                            { $ref: '#/components/schemas/CacheStats' },
+                            {
+                                type: 'object',
+                                properties: {
+                                    status: { type: 'string', enum: ['healthy', 'unhealthy'], example: 'healthy' },
+                                },
+                            },
+                        ],
+                    },
+                },
+            },
             BusinessHours: {
                 type: 'object',
                 properties: {
                     dayOfWeek: { type: 'string', example: 'Monday' },
                     openTime: { type: 'string', example: '09:00' },
                     closeTime: { type: 'string', example: '17:00' },
+                },
+            },
+            Pagination: {
+                type: 'object',
+                properties: {
+                    currentPage: { type: 'integer', example: 1 },
+                    totalPages: { type: 'integer', example: 10 },
+                    totalItems: { type: 'integer', example: 100 },
+                    itemsPerPage: { type: 'integer', example: 10 },
+                    hasNext: { type: 'boolean', example: true },
+                    hasPrevious: { type: 'boolean', example: false },
+                },
+            },
+            ReviewStatsData: {
+                type: 'object',
+                properties: {
+                    totalReviews: { type: 'integer', example: 100 },
+                    averageRating: { type: 'number', example: 4.5 },
+                    ratingDistribution: {
+                        type: 'object',
+                        properties: {
+                            '1': { type: 'integer', example: 5 },
+                            '2': { type: 'integer', example: 10 },
+                            '3': { type: 'integer', example: 15 },
+                            '4': { type: 'integer', example: 30 },
+                            '5': { type: 'integer', example: 40 },
+                        },
+                    },
+                },
+            },
+            HealthLiveness: {
+                type: 'object',
+                properties: {
+                    status: { type: 'string', example: 'alive' },
+                    timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                    uptime: { type: 'number', description: 'Process uptime in seconds', example: 3600.5 },
+                    environment: { type: 'string', example: 'production' },
+                },
+            },
+            HealthReadiness: {
+                type: 'object',
+                properties: {
+                    ready: { type: 'boolean', example: true },
+                    mongodb: { type: 'boolean', example: true },
+                    timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                    message: { type: 'string', example: 'Service is ready to accept requests' },
+                },
+            },
+            HealthDeep: {
+                type: 'object',
+                properties: {
+                    status: { type: 'string', enum: ['healthy', 'degraded', 'unhealthy'], example: 'healthy' },
+                    timestamp: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
+                    uptime: { type: 'string', description: 'Formatted uptime', example: '60 minutes' },
+                    message: { type: 'string', example: 'System operational' },
+                    services: { type: 'object', properties: { mongodb: { type: 'boolean', example: true } } },
+                    memory: {
+                        type: 'object',
+                        properties: {
+                            rss: { type: 'string', example: '128MB' },
+                            heapUsed: { type: 'string', example: '64MB' },
+                            heapTotal: { type: 'string', example: '256MB' },
+                        },
+                    },
                 },
             },
             Animal: {
@@ -517,18 +634,13 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c124' },
                     namePlace: { type: 'string', example: 'Tech Solutions Inc' },
-                    author: commonAuthor,
+                    ...propertyGroups.baseLocation,
                     address: { type: 'string', example: '123 Business St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/business.jpg' },
-                    contact: commonContact,
                     budget: { type: 'number', example: 50000 },
                     typeBusiness: { type: 'string', example: 'technology' },
                     hours: { type: 'array', items: { $ref: '#/components/schemas/BusinessHours' } },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...propertyGroups.reviewableEntity,
                 },
             },
             Restaurant: {
@@ -536,18 +648,13 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c126' },
                     restaurantName: { type: 'string', example: 'El Buen Sabor' },
-                    author: commonAuthor,
+                    ...propertyGroups.baseLocation,
                     typePlace: { type: 'string', example: 'restaurant' },
                     address: { type: 'string', example: '123 Main St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/restaurant.jpg' },
                     budget: { type: 'string', enum: ['low', 'medium', 'high'], example: 'medium' },
-                    contact: commonContact,
                     cuisine: { type: 'array', items: { type: 'string' }, example: ['Mexican', 'Latin American'] },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...propertyGroups.reviewableEntity,
                 },
             },
             Doctor: {
@@ -555,16 +662,11 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c127' },
                     doctorName: { type: 'string', example: 'Dr. Smith' },
-                    author: commonAuthor,
+                    ...propertyGroups.baseLocation,
                     address: { type: 'string', example: '456 Medical St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/doctor.jpg' },
                     specialty: { type: 'string', example: 'Cardiology' },
-                    contact: commonContact,
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...propertyGroups.reviewableEntity,
                 },
             },
             Market: {
@@ -572,15 +674,15 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c128' },
                     marketName: { type: 'string', example: 'Central Market' },
-                    author: commonAuthor,
+                    ...propertyGroups.baseLocation,
                     address: { type: 'string', example: '789 Market St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/market.jpg' },
-                    typeMarket: { type: 'string', enum: ['supermarket', 'convenience store', 'grocery store'], example: 'supermarket' },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    typeMarket: {
+                        type: 'string',
+                        enum: ['supermarket', 'convenience store', 'grocery store'],
+                        example: 'supermarket',
+                    },
+                    ...propertyGroups.reviewableEntity,
                 },
             },
             Recipe: {
@@ -588,19 +690,20 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c129' },
                     title: { type: 'string', example: 'Delicious Tacos' },
-                    author: commonAuthor,
+                    author: commonSchemaRefs.author,
                     description: { type: 'string', example: 'Authentic Mexican tacos recipe' },
                     instructions: { type: 'string', example: '1. Prepare the meat... 2. Cook the tortillas...' },
-                    ingredients: { type: 'array', items: { type: 'string' }, example: ['tortillas', 'beef', 'onions', 'cilantro'] },
+                    ingredients: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        example: ['tortillas', 'beef', 'onions', 'cilantro'],
+                    },
                     typeDish: { type: 'string', example: 'main course' },
                     image: { type: 'string', format: 'uri', example: 'https://example.com/recipe.jpg' },
                     cookingTime: { type: 'number', example: 30 },
                     difficulty: { type: 'string', example: 'medium' },
                     budget: { type: 'string', example: 'low' },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...propertyGroups.reviewableEntity,
                 },
             },
             Post: {
@@ -614,7 +717,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     likes: { type: 'array', items: { $ref: '#/components/schemas/Like' } },
                     comments: { type: 'array', items: { $ref: '#/components/schemas/Comment' } },
                     date: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
-                    timestamps: commonTimestamps,
+                    ...propertyGroups.timestamped,
                 },
             },
             Sanctuary: {
@@ -622,19 +725,14 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c131' },
                     sanctuaryName: { type: 'string', example: 'Wildlife Sanctuary' },
-                    author: commonAuthor,
+                    ...propertyGroups.baseLocation,
                     address: { type: 'string', example: '321 Nature St, New York, NY' },
-                    location: commonLocation,
                     image: { type: 'string', format: 'uri', example: 'https://example.com/sanctuary.jpg' },
                     typeofSanctuary: { type: 'string', example: 'wildlife' },
                     animals: { type: 'array', items: { $ref: '#/components/schemas/Animal' } },
                     capacity: { type: 'number', example: 100 },
                     caretakers: { type: 'array', items: { type: 'string' }, example: ['John Smith', 'Jane Doe'] },
-                    contact: commonContact,
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...propertyGroups.reviewableEntity,
                 },
             },
             Profession: {
@@ -642,15 +740,10 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c132' },
                     professionName: { type: 'string', example: 'Software Developer' },
-                    author: commonAuthor,
+                    ...propertyGroups.baseLocation,
                     address: { type: 'string', example: '654 Professional St, New York, NY' },
-                    location: commonLocation,
                     specialty: { type: 'string', example: 'Web Development' },
-                    contact: commonContact,
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...propertyGroups.reviewableEntity,
                 },
             },
             ProfessionalProfile: {
@@ -658,16 +751,13 @@ const swaggerDocument: OpenAPIV3.Document = {
                 properties: {
                     _id: { type: 'string', example: '60c72b2f9b1d8b0015b3c133' },
                     user: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
-                    contact: commonContact,
+                    contact: commonSchemaRefs.contact,
                     skills: { type: 'array', items: { $ref: '#/components/schemas/Skill' } },
                     experience: { type: 'array', items: { $ref: '#/components/schemas/Experience' } },
                     education: { type: 'array', items: { $ref: '#/components/schemas/Education' } },
                     social: { type: 'array', items: { $ref: '#/components/schemas/Social' } },
                     date: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00Z' },
-                    reviews: commonReviews,
-                    rating: commonRating,
-                    numReviews: commonNumReviews,
-                    timestamps: commonTimestamps,
+                    ...propertyGroups.reviewableEntity,
                 },
             },
             Review: {
@@ -687,10 +777,23 @@ const swaggerDocument: OpenAPIV3.Document = {
                     },
                     rating: { type: 'number', minimum: 1, maximum: 5, example: 5 },
                     title: { type: 'string', minLength: 5, maxLength: 100, example: 'Excelente comida' },
-                    content: { type: 'string', minLength: 10, maxLength: 1000, example: 'La mejor comida mexicana que he probado' },
+                    content: {
+                        type: 'string',
+                        minLength: 10,
+                        maxLength: 1000,
+                        example: 'La mejor comida mexicana que he probado',
+                    },
                     visitDate: { type: 'string', format: 'date', example: '2024-01-15' },
-                    recommendedDishes: { type: 'array', items: { type: 'string', maxLength: 50 }, example: ['Tacos al pastor', 'Guacamole'] },
-                    tags: { type: 'array', items: { type: 'string', maxLength: 30 }, example: ['auténtico', 'familiar'] },
+                    recommendedDishes: {
+                        type: 'array',
+                        items: { type: 'string', maxLength: 50 },
+                        example: ['Tacos al pastor', 'Guacamole'],
+                    },
+                    tags: {
+                        type: 'array',
+                        items: { type: 'string', maxLength: 30 },
+                        example: ['auténtico', 'familiar'],
+                    },
                     author: { type: 'string', example: '60c72b2f9b1d8b0015b3c123' },
                     restaurant: {
                         type: 'string',
@@ -743,6 +846,24 @@ const swaggerDocument: OpenAPIV3.Document = {
                     message: { type: 'string', example: 'Operation successful' },
                 },
             },
+            TokenResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: true },
+                    token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                    refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                },
+            },
+            UserProfileUpdate: {
+                type: 'object',
+                properties: {
+                    username: { type: 'string', example: 'updatedUsername' },
+                    email: { type: 'string', format: 'email', example: 'updated@example.com' },
+                    firstName: { type: 'string', example: 'John' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    photo: { type: 'string', example: 'profile.jpg' },
+                },
+            },
         },
         parameters: {
             IdParameter: {
@@ -768,6 +889,7 @@ const swaggerDocument: OpenAPIV3.Document = {
         { name: 'Professional Profiles' },
         { name: 'Reviews' },
         { name: 'Cache Management' },
+        { name: 'Health Checks' },
     ],
     paths: {
         // Authentication endpoints
@@ -862,7 +984,66 @@ const swaggerDocument: OpenAPIV3.Document = {
                 responses: createStandardResponses(),
             },
         },
-        
+        '/auth/refresh-token': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Refresh an expired access token',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['refreshToken'],
+                                properties: {
+                                    refreshToken: {
+                                        type: 'string',
+                                        example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': {
+                        description: 'Token refreshed successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/TokenResponse' },
+                            },
+                        },
+                    },
+                    '400': createBadRequestResponse('Invalid or expired refresh token'),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/auth/logout': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Logout and blacklist current token',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': createSuccessMessageResponse('Logged out successfully'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/auth/revoke-all-tokens': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Revoke all user tokens (logout from all devices)',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': createSuccessMessageResponse('All tokens revoked successfully'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+
         // User management endpoints
         '/users': {
             get: {
@@ -888,26 +1069,49 @@ const swaggerDocument: OpenAPIV3.Document = {
             ...createGetByIdEndpoint('Users', 'User'),
             ...createDeleteEndpoint('Users'),
         },
+        '/users/profile': {
+            get: {
+                tags: ['Users'],
+                summary: 'Get current authenticated user profile',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': createDataResponse('User', 'User profile retrieved successfully'),
+                    '401': createUnauthorizedResponse(),
+                    '404': createNotFoundResponse('User'),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+            put: {
+                tags: ['Users'],
+                summary: 'Update current user profile',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/UserProfileUpdate' },
+                        },
+                    },
+                },
+                responses: {
+                    '200': createDataResponse('User', 'Profile updated successfully'),
+                    '401': createUnauthorizedResponse(),
+                    '400': createBadRequestResponse('Invalid profile data'),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
         '/users/profile/{id}': {
             put: {
                 tags: ['Users'],
-                summary: 'Update user profile',
+                summary: 'Update user profile by ID (admin)',
                 security: [{ bearerAuth: [] }],
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 requestBody: {
                     required: true,
                     content: {
                         'application/json': {
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    username: { type: 'string', example: 'Updated Name' },
-                                    email: { type: 'string', format: 'email', example: 'updated@example.com' },
-                                    firstName: { type: 'string', example: 'John' },
-                                    lastName: { type: 'string', example: 'Doe' },
-                                    photo: { type: 'string', example: 'profile.jpg' },
-                                },
-                            },
+                            schema: { $ref: '#/components/schemas/UserProfileUpdate' },
                         },
                     },
                 },
@@ -1012,24 +1216,8 @@ const swaggerDocument: OpenAPIV3.Document = {
                 },
                 responses: {
                     ...createStandardResponses('Review'),
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
-                    '403': {
-                        description: 'Forbidden',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'You can only modify your own reviews', error: 'Forbidden' },
-                            },
-                        },
-                    },
+                    '401': createUnauthorizedResponse(),
+                    '403': createForbiddenResponse('You can only modify your own reviews'),
                 },
             },
             delete: {
@@ -1039,24 +1227,8 @@ const swaggerDocument: OpenAPIV3.Document = {
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 responses: {
                     ...createStandardResponses(),
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
-                    '403': {
-                        description: 'Forbidden',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'You can only modify your own reviews', error: 'Forbidden' },
-                            },
-                        },
-                    },
+                    '401': createUnauthorizedResponse(),
+                    '403': createForbiddenResponse('You can only modify your own reviews'),
                 },
             },
         },
@@ -1068,24 +1240,8 @@ const swaggerDocument: OpenAPIV3.Document = {
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 responses: {
                     ...createStandardResponses('Review'),
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
-                    '409': {
-                        description: 'Conflict',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'User has already voted', error: 'Conflict' },
-                            },
-                        },
-                    },
+                    '401': createUnauthorizedResponse(),
+                    '409': createConflictResponse('User has already voted'),
                 },
             },
             delete: {
@@ -1095,38 +1251,128 @@ const swaggerDocument: OpenAPIV3.Document = {
                 parameters: [{ $ref: '#/components/parameters/IdParameter' }],
                 responses: {
                     ...createStandardResponses('Review'),
-                    '401': {
-                        description: 'Unauthorized',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                example: { success: false, message: 'Authentication required', error: 'Unauthorized' },
-                            },
-                        },
-                    },
+                    '401': createUnauthorizedResponse(),
                 },
             },
         },
-        
+
         // Cache Management endpoints
         '/cache/stats': {
             get: {
                 tags: ['Cache Management'],
                 summary: 'Get cache statistics',
-                responses: createStandardResponses(),
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': {
+                        description: 'Cache statistics retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/CacheStatsResponse' },
+                            },
+                        },
+                    },
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
             },
         },
         '/cache/health': {
             get: {
                 tags: ['Cache Management'],
                 summary: 'Get cache health status',
-                responses: createStandardResponses(),
+                responses: {
+                    '200': {
+                        description: 'Cache health status retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/CacheHealthResponse' },
+                            },
+                        },
+                    },
+                    '500': {
+                        description: 'Cache health check failed',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                            },
+                        },
+                    },
+                },
             },
         },
-        '/cache/warm': {
+        '/cache/invalidate/{pattern}': {
+            delete: {
+                tags: ['Cache Management'],
+                summary: 'Invalidate cache by pattern',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'pattern',
+                        in: 'path',
+                        required: true,
+                        schema: { type: 'string' },
+                        description: 'Cache pattern to invalidate (supports wildcards)',
+                        example: 'restaurants:*',
+                    },
+                ],
+                responses: {
+                    '200': createSuccessMessageResponse('Cache pattern invalidated successfully'),
+                    '400': createBadRequestResponse('Pattern parameter is required'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/cache/invalidate-tag/{tag}': {
+            delete: {
+                tags: ['Cache Management'],
+                summary: 'Invalidate cache by tag',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'tag',
+                        in: 'path',
+                        required: true,
+                        schema: { type: 'string' },
+                        description: 'Cache tag to invalidate',
+                        example: 'restaurants',
+                    },
+                ],
+                responses: {
+                    '200': createSuccessMessageResponse('Cache tag invalidated successfully'),
+                    '400': createBadRequestResponse('Tag parameter is required'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/cache/flush': {
+            delete: {
+                tags: ['Cache Management'],
+                summary: 'Flush all cache',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    '200': createSuccessMessageResponse('Cache flushed successfully'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
+            },
+        },
+        '/cache/monitor/{action}': {
             post: {
                 tags: ['Cache Management'],
-                summary: 'Warm cache with data',
+                summary: 'Start or stop cache monitoring',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    {
+                        name: 'action',
+                        in: 'path',
+                        required: true,
+                        schema: { type: 'string', enum: ['start', 'stop'] },
+                        description: 'Action to perform: start or stop monitoring',
+                        example: 'start',
+                    },
+                ],
                 requestBody: {
                     required: false,
                     content: {
@@ -1134,61 +1380,112 @@ const swaggerDocument: OpenAPIV3.Document = {
                             schema: {
                                 type: 'object',
                                 properties: {
-                                    dataType: {
-                                        type: 'string',
-                                        enum: ['all', 'restaurants', 'businesses', 'users', 'categories', 'geo'],
-                                        default: 'all',
-                                        description: 'Type of data to warm',
+                                    interval: {
+                                        type: 'number',
+                                        description: 'Monitoring interval in minutes (only for start action)',
+                                        example: 5,
                                     },
-                                    autoStart: { type: 'boolean', default: true },
-                                    intervalMinutes: { type: 'number', default: 30 },
                                 },
                             },
                         },
                     },
                 },
-                responses: createStandardResponses(),
+                responses: {
+                    '200': createSuccessMessageResponse('Cache monitoring started'),
+                    '400': createBadRequestResponse('Invalid action. Use "start" or "stop"'),
+                    '401': createUnauthorizedResponse(),
+                    '500': createStandardResponses()['500'],
+                },
             },
         },
-        '/cache/alerts': {
+
+        // Review collection endpoints for specific resources
+        ...createReviewCollectionEndpoints('Markets'),
+        ...createReviewCollectionEndpoints('Recipes'),
+        ...createReviewCollectionEndpoints('Restaurants', 'restaurantId'),
+
+        // Health Check endpoints
+        '/health': {
             get: {
-                tags: ['Cache Management'],
-                summary: 'Get cache alerts',
-                responses: createStandardResponses(),
-            },
-        },
-        '/cache/invalidate/{pattern}': {
-            delete: {
-                tags: ['Cache Management'],
-                summary: 'Invalidate cache by pattern',
-                parameters: [
-                    {
-                        name: 'pattern',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'Cache pattern to invalidate',
-                        example: 'restaurants:*',
+                tags: ['Health Checks'],
+                summary: 'Liveness probe - Check if server is alive',
+                description:
+                    'Indicates if the server process is running. Used by orchestrators like Kubernetes for liveness probes.',
+                responses: {
+                    '200': {
+                        description: 'Server is alive',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/HealthLiveness' },
+                            },
+                        },
                     },
-                ],
-                responses: createStandardResponses(),
+                },
             },
         },
-        '/cache/flush': {
-            delete: {
-                tags: ['Cache Management'],
-                summary: 'Flush all cache',
-                responses: createStandardResponses(),
+        '/health/ready': {
+            get: {
+                tags: ['Health Checks'],
+                summary: 'Readiness probe - Check if server is ready to accept requests',
+                description:
+                    'Indicates if the server is ready to accept traffic. Verifies MongoDB connection status. Used by orchestrators for readiness probes.',
+                responses: {
+                    '200': {
+                        description: 'Server is ready',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/HealthReadiness' },
+                            },
+                        },
+                    },
+                    '503': {
+                        description: 'Server is not ready',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/HealthReadiness' },
+                                example: {
+                                    ready: false,
+                                    mongodb: false,
+                                    timestamp: '2024-01-15T10:30:00Z',
+                                    message: 'Service is not ready',
+                                },
+                            },
+                        },
+                    },
+                },
             },
         },
-
-        // Review endpoints using helpers
-        ...createReviewEndpoints('Markets'),
-        ...createReviewEndpoints('Recipes'),
-
-        // Restaurant review endpoints (uses 'restaurantId' instead of 'id')
-        ...createReviewPostEndpoint('Restaurants', 'restaurantId'),
-        ...createReviewEndpoints('Restaurants', 'restaurantId'),
+        '/health/deep': {
+            get: {
+                tags: ['Health Checks'],
+                summary: 'Deep health check - Comprehensive system status',
+                description:
+                    'Provides detailed health information including database connectivity, memory usage, and uptime. Useful for monitoring and debugging.',
+                responses: {
+                    '200': {
+                        description: 'System is healthy',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/HealthDeep' },
+                            },
+                        },
+                    },
+                    '503': {
+                        description: 'System is unhealthy or degraded',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/HealthDeep' },
+                                example: {
+                                    status: 'unhealthy',
+                                    message: 'Health check failed',
+                                    timestamp: '2024-01-15T10:30:00Z',
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
     },
 };
 

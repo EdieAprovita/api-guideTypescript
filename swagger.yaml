@@ -916,7 +916,11 @@ tags:
 - name: Professional Profiles
 - name: Reviews
 - name: Cache Management
+- name: Health Checks
 paths:
+  # ========================================
+  # Authentication Endpoints
+  # ========================================
   /users/register:
     post:
       tags:
@@ -1026,6 +1030,111 @@ paths:
           description: Successful response
           content:
             application/json: {}
+
+  /auth/refresh-token:
+    post:
+      tags:
+      - Authentication
+      summary: Refresh Access Token
+      description: Refresh an expired access token using a refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+      - Authentication
+      summary: Logout and Blacklist Token
+      description: Logout user and blacklist the current token
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/revoke-all-tokens:
+    post:
+      tags:
+      - Authentication
+      summary: Revoke All User Tokens
+      description: Revoke all tokens and logout from all devices
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: All tokens revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "All tokens revoked successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ========================================
+  # User Management Endpoints
+  # ========================================
   /users:
     get:
       tags:
@@ -1036,25 +1145,155 @@ paths:
           description: Successful response
           content:
             application/json: {}
+  /users/profile:
+    get:
+      tags:
+      - Users
+      summary: Get Current User Profile
+      description: Get the profile of the currently authenticated user
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - Users
+      summary: Update Current User Profile
+      description: Update the profile of the currently authenticated user
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: "updatedusername"
+                email:
+                  type: string
+                  format: email
+                  example: "updated@example.com"
+                firstName:
+                  type: string
+                  example: "John"
+                lastName:
+                  type: string
+                  example: "Doe"
+                photo:
+                  type: string
+                  example: "profile.jpg"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /users/{id}:
     get:
       tags:
       - Users
       summary: Get User By ID
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID
       responses:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags:
       - Users
       summary: Delete User
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID
       responses:
         '200':
-          description: Successful response
+          description: User deleted successfully
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User deleted successfully"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /users/profile/{id}:
     put:
       tags:
@@ -1339,69 +1578,6 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /restaurants/{id}/reviews:
-    post:
-      tags:
-      - Restaurants
-      summary: Add Review to Restaurant (Standardized)
-      parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                rating:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-                comment:
-                  type: string
-                  maxLength: 1000
-                name:
-                  type: string
-              required:
-              - rating
-              - comment
-      responses:
-        '201':
-          description: Review created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Authentication error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Authorization error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '422':
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-      security:
-      - bearerAuth: []
   /restaurants/add-review/{id}:
     post:
       deprecated: true
@@ -2404,11 +2580,17 @@ paths:
           content:
             application/json: {}
 
+  # ========================================
+  # Cache Management Endpoints
+  # ========================================
   /cache/stats:
     get:
       tags:
       - Cache Management
       summary: Get cache statistics
+      description: Get cache statistics and performance metrics (admin only)
+      security:
+      - bearerAuth: []
       responses:
         '200':
           description: Cache stats retrieved successfully
@@ -2422,12 +2604,32 @@ paths:
                     example: true
                   data:
                     type: object
+                    properties:
+                      hits:
+                        type: number
+                        example: 1250
+                      misses:
+                        type: number
+                        example: 150
+                      keys:
+                        type: number
+                        example: 450
+                      hitRate:
+                        type: number
+                        example: 0.893
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /cache/health:
     get:
       tags:
       - Cache Management
       summary: Get cache health status
+      description: Get cache health status (no authentication required)
       responses:
         '200':
           description: Cache health retrieved successfully
@@ -2441,74 +2643,29 @@ paths:
                     example: true
                   data:
                     type: object
-
-  /cache/warm:
-    post:
-      tags:
-      - Cache Management
-      summary: Warm cache with data
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                dataType:
-                  type: string
-                  enum: [ all, restaurants, businesses, users, categories, geo ]
-                  default: all
-                  description: Type of data to warm
-                autoStart:
-                  type: boolean
-                  default: true
-                intervalMinutes:
-                  type: number
-                  default: 30
-      responses:
-        '200':
-          description: Cache warming started successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    type: object
-
-  /cache/alerts:
-    get:
-      tags:
-      - Cache Management
-      summary: Get cache alerts
-      responses:
-        '200':
-          description: Cache alerts retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "healthy"
+                      connected:
+                        type: boolean
+                        example: true
 
   /cache/invalidate/{pattern}:
     delete:
       tags:
       - Cache Management
       summary: Invalidate cache by pattern
+      description: Invalidate cache entries matching a pattern (supports wildcards) - admin only
+      security:
+      - bearerAuth: []
       parameters:
       - name: pattern
         in: path
         required: true
         schema:
           type: string
-        description: Cache pattern to invalidate
+        description: Cache pattern to invalidate (supports wildcards like *)
         example: "restaurants:*"
       responses:
         '200':
@@ -2524,12 +2681,70 @@ paths:
                   message:
                     type: string
                     example: "Cache invalidated successfully"
+                  data:
+                    type: object
+                    properties:
+                      deletedKeys:
+                        type: number
+                        example: 45
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cache/invalidate-tag/{tag}:
+    delete:
+      tags:
+      - Cache Management
+      summary: Invalidate cache by tag
+      description: Invalidate all cache entries with a specific tag - admin only
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: tag
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cache tag to invalidate
+        example: "restaurants"
+      responses:
+        '200':
+          description: Cache invalidated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Cache tag invalidated successfully"
+                  data:
+                    type: object
+                    properties:
+                      deletedKeys:
+                        type: number
+                        example: 23
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /cache/flush:
     delete:
       tags:
       - Cache Management
       summary: Flush all cache
+      description: Flush all cache entries - admin only (use with caution)
+      security:
+      - bearerAuth: []
       responses:
         '200':
           description: All cache flushed successfully
@@ -2544,7 +2759,253 @@ paths:
                   message:
                     type: string
                     example: "All cache flushed successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
+  /cache/monitor/{action}:
+    post:
+      tags:
+      - Cache Management
+      summary: Start or stop cache monitoring
+      description: Start or stop cache monitoring - admin only
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: action
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [start, stop]
+        description: Action to perform (start or stop monitoring)
+        example: "start"
+      responses:
+        '200':
+          description: Cache monitoring action performed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Cache monitoring started"
+                  data:
+                    type: object
+                    properties:
+                      monitoring:
+                        type: boolean
+                        example: true
+        '400':
+          description: Invalid action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ========================================
+  # Health Check Endpoints
+  # ========================================
+  /health:
+    get:
+      tags:
+      - Health Checks
+      summary: Liveness probe
+      description: Check if the server is alive and responding
+      responses:
+        '200':
+          description: Server is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00Z"
+                  uptime:
+                    type: number
+                    example: 86400
+                    description: Server uptime in seconds
+
+  /health/ready:
+    get:
+      tags:
+      - Health Checks
+      summary: Readiness probe
+      description: Check if the server is ready to accept requests (includes dependency checks)
+      responses:
+        '200':
+          description: Server is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: "ready"
+                  checks:
+                    type: object
+                    properties:
+                      mongodb:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: "connected"
+                          responseTime:
+                            type: number
+                            example: 5
+                      cache:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: "connected"
+                          responseTime:
+                            type: number
+                            example: 2
+        '503':
+          description: Server is not ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  status:
+                    type: string
+                    example: "not ready"
+                  checks:
+                    type: object
+
+  /health/deep:
+    get:
+      tags:
+      - Health Checks
+      summary: Deep health check
+      description: Comprehensive health check including MongoDB, Redis, memory metrics, and system resources
+      responses:
+        '200':
+          description: Detailed health information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    example: 86400
+                  checks:
+                    type: object
+                    properties:
+                      mongodb:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: "connected"
+                          responseTime:
+                            type: number
+                            example: 5
+                          collections:
+                            type: number
+                            example: 12
+                      cache:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: "connected"
+                          responseTime:
+                            type: number
+                            example: 2
+                          keys:
+                            type: number
+                            example: 450
+                          memory:
+                            type: string
+                            example: "12.5MB"
+                  memory:
+                    type: object
+                    properties:
+                      heapUsed:
+                        type: string
+                        example: "45.2MB"
+                      heapTotal:
+                        type: string
+                        example: "78.5MB"
+                      rss:
+                        type: string
+                        example: "125.8MB"
+                      external:
+                        type: string
+                        example: "2.1MB"
+                  system:
+                    type: object
+                    properties:
+                      platform:
+                        type: string
+                        example: "linux"
+                      nodeVersion:
+                        type: string
+                        example: "v20.11.0"
+                      cpuUsage:
+                        type: object
+        '503':
+          description: System unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  status:
+                    type: string
+                    example: "unhealthy"
+                  checks:
+                    type: object
+
+  # ========================================
+  # Review Endpoints
+  # ========================================
   /reviews/{id}:
     get:
       tags:
