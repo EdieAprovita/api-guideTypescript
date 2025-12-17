@@ -9,7 +9,11 @@ const router = express.Router();
  * @route GET /health
  */
 router.get('/', (_req: Request, res: Response) => {
-    logger.debug('Liveness probe requested');
+    // In production, skip logging to avoid I/O during frequent health checks
+    // In development, log for debugging purposes
+    if (process.env.NODE_ENV !== 'production') {
+        logger.debug('Liveness probe requested');
+    }
 
     res.status(200).json({
         status: 'alive',

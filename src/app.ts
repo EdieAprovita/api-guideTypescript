@@ -45,19 +45,22 @@ let mongoConnectionError: Error | null = null;
 // Connect to MongoDB asynchronously without blocking server startup
 // This is critical for Cloud Run to pass health checks during startup
 if (process.env.NODE_ENV !== 'test') {
-    // Start MongoDB connection in background
-    connectDB()
-        .then(() => {
-            isMongoConnected = true;
-            console.log('✅ MongoDB connected successfully');
-        })
-        .catch(err => {
-            isMongoConnected = false;
-            mongoConnectionError = err;
-            console.error('⚠️  Failed to connect to MongoDB on startup:', err.message);
-            console.log('📌 Server will continue running without database connection');
-            // Continue running - the app can still serve health checks and may reconnect later
-        });
+    if (!process.env.MONGODB_URI) {
+        console.warn('⚠️  MONGODB_URI not set - running without database');
+        mongoConnectionError = new Error('MONGODB_URI not configured');
+    } else {
+        // Start MongoDB connection in background
+        connectDB()
+            .then(() => {
+                isMongoConnected = true;
+                console.log('✅ MongoDB connected');
+            })
+            .catch(err => {
+                isMongoConnected = false;
+                mongoConnectionError = err;
+                console.warn('⚠️  MongoDB connection failed:', err.message);
+            });
+    }
 }
 
 // Export connection status for health checks
@@ -78,12 +81,15 @@ if (process.env.NODE_ENV === 'production') {
     app.set('trust proxy', true);
 }
 
-// Load Swagger documentation (with fallback for production)
+// Load Swagger documentation with correct path for production
 let swaggerDocument: JsonObject | null = null;
 try {
+    // In production (dist/), swagger.yaml is copied to the same directory by postbuild
+    // In development, it's at ./swagger.yaml relative to project root
     swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as JsonObject;
+    console.log('✅ Swagger loaded successfully');
 } catch (error) {
-    console.warn('⚠️  Unable to load swagger.yaml, Swagger UI will be disabled');
+    console.warn('⚠️  Swagger disabled:', error instanceof Error ? error.message : 'Unknown error');
 }
 
 // Add request logger early in the middleware chain
