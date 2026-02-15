@@ -28,11 +28,17 @@ vi.mock('../../models/Business.js', () => {
     return { Business: mockBusiness, IBusiness: {} };
 });
 
-describe('BusinessService — searchPaginated', () => {
-    const { businessService } = await import('../../services/BusinessService.js');
+const { businessService } = await import('../../services/BusinessService.js');
 
+describe('BusinessService — searchPaginated', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockFind.mockImplementation(() => ({
+            skip: mockSkip.mockReturnThis(),
+            limit: mockLimit.mockReturnThis(),
+            sort: mockSort.mockReturnThis(),
+            exec: mockExec,
+        }));
         mockExec.mockResolvedValue([]);
         mockCountDocuments.mockImplementation(() => ({
             exec: vi.fn().mockResolvedValue(0),
@@ -55,11 +61,6 @@ describe('BusinessService — searchPaginated', () => {
     });
 
     it('should filter by category', async () => {
-        mockExec.mockResolvedValue([]);
-        mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(0),
-        }));
-
         const result = await businessService.searchPaginated({ category: 'restaurant' });
 
         expect(result.data).toEqual([]);
@@ -67,11 +68,6 @@ describe('BusinessService — searchPaginated', () => {
     });
 
     it('should handle combined text + category search', async () => {
-        mockExec.mockResolvedValue([]);
-        mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(0),
-        }));
-
         const result = await businessService.searchPaginated({
             q: 'vegan',
             category: 'restaurant',
@@ -83,11 +79,6 @@ describe('BusinessService — searchPaginated', () => {
     });
 
     it('should normalize pagination params with defaults', async () => {
-        mockExec.mockResolvedValue([]);
-        mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(0),
-        }));
-
         const result = await businessService.searchPaginated({});
 
         expect(result.meta.page).toBe(1);
@@ -96,10 +87,14 @@ describe('BusinessService — searchPaginated', () => {
 });
 
 describe('BusinessService — findNearbyPaginated', () => {
-    const { businessService } = await import('../../services/BusinessService.js');
-
     beforeEach(() => {
         vi.clearAllMocks();
+        mockFind.mockImplementation(() => ({
+            skip: mockSkip.mockReturnThis(),
+            limit: mockLimit.mockReturnThis(),
+            sort: mockSort.mockReturnThis(),
+            exec: mockExec,
+        }));
         mockExec.mockResolvedValue([]);
         mockCountDocuments.mockImplementation(() => ({
             exec: vi.fn().mockResolvedValue(0),
@@ -126,11 +121,6 @@ describe('BusinessService — findNearbyPaginated', () => {
     });
 
     it('should use default radius of 5000 meters', async () => {
-        mockExec.mockResolvedValue([]);
-        mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(0),
-        }));
-
         const result = await businessService.findNearbyPaginated({
             latitude: 19.4326,
             longitude: -99.1332,
