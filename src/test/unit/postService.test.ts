@@ -1,18 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-vi.mock('../../models/Post.js', () => {
-    const mockPost = {
-        find: vi.fn(),
-        findById: vi.fn(),
-        create: vi.fn(),
-        deleteOne: vi.fn(),
-        countDocuments: vi.fn(),
-        modelName: 'Post',
-    };
-    return { Post: mockPost };
-});
-
-const { postService } = await import('../../services/PostService.js');
+import { postService } from '../../services/PostService.js';
 
 describe('PostService — removeComment authorization', () => {
     const createMockPost = (comments: Array<{ id: string; username: { toString: () => string }; text: string }>) => ({
@@ -24,7 +11,7 @@ describe('PostService — removeComment authorization', () => {
     });
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('should remove a comment when the author requests it', async () => {
@@ -69,7 +56,7 @@ describe('PostService — removeComment authorization', () => {
 
 describe('PostService — unlikePost', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('should remove like from post when user has liked it', async () => {
