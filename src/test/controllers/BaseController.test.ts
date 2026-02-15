@@ -20,6 +20,7 @@ describe('BaseController', () => {
     let controller: BaseController<Document>;
     let service: {
         getAll: ReturnType<typeof vi.fn>;
+        getAllPaginated: ReturnType<typeof vi.fn>;
         findById: ReturnType<typeof vi.fn>;
         create: ReturnType<typeof vi.fn>;
         updateById: ReturnType<typeof vi.fn>;
@@ -29,6 +30,10 @@ describe('BaseController', () => {
     beforeEach(() => {
         service = {
             getAll: vi.fn().mockResolvedValue([{ id: '1' }]),
+            getAllPaginated: vi.fn().mockResolvedValue({
+                data: [{ id: '1' }],
+                meta: { page: 1, limit: 10, total: 1, pages: 1 },
+            }),
             findById: vi.fn().mockResolvedValue({ id: '1' }),
             create: vi.fn().mockResolvedValue({ id: '1' }),
             updateById: vi.fn().mockResolvedValue({ id: '1' }),
@@ -275,5 +280,60 @@ describe('BaseController', () => {
 
         expect(next).toHaveBeenCalled();
         expect(service.deleteById).not.toHaveBeenCalled();
+    });
+
+    // Phase 0: Pagination tests
+    describe('getAll with pagination', () => {
+        it('should call getAllPaginated when page query param is present', async () => {
+            const req = testUtils.createMockRequest({ query: { page: '2', limit: '5' } }) as Request;
+            const res = testUtils.createMockResponse() as Response;
+            const next = testUtils.createMockNext();
+
+            await controller.getAll(req, res, next);
+
+            expect(service.getAllPaginated).toHaveBeenCalledWith('2', '5');
+            expect(service.getAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(HttpStatusCode.OK);
+
+            const jsonCall = (res.json as any).mock.calls[0][0];
+            expect(jsonCall).toHaveProperty('meta');
+            expect(jsonCall.meta).toEqual({ page: 1, limit: 10, total: 1, pages: 1 });
+        });
+
+        it('should call getAllPaginated when only limit query param is present', async () => {
+            const req = testUtils.createMockRequest({ query: { limit: '25' } }) as Request;
+            const res = testUtils.createMockResponse() as Response;
+            const next = testUtils.createMockNext();
+
+            await controller.getAll(req, res, next);
+
+            expect(service.getAllPaginated).toHaveBeenCalledWith(undefined, '25');
+            expect(service.getAll).not.toHaveBeenCalled();
+        });
+
+        it('should fall back to getAll when no pagination params', async () => {
+            const req = testUtils.createMockRequest({ query: {} }) as Request;
+            const res = testUtils.createMockResponse() as Response;
+            const next = testUtils.createMockNext();
+
+            await controller.getAll(req, res, next);
+
+            expect(service.getAll).toHaveBeenCalled();
+            expect(service.getAllPaginated).not.toHaveBeenCalled();
+
+            const jsonCall = (res.json as any).mock.calls[0][0];
+            expect(jsonCall).not.toHaveProperty('meta');
+        });
+
+        it('should forward pagination errors', async () => {
+            service.getAllPaginated.mockRejectedValueOnce(new Error('DB error'));
+            const req = testUtils.createMockRequest({ query: { page: '1' } }) as Request;
+            const res = testUtils.createMockResponse() as Response;
+            const next = testUtils.createMockNext();
+
+            await controller.getAll(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+        });
     });
 });

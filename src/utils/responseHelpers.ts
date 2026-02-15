@@ -1,10 +1,12 @@
 import { Response } from 'express';
 import { HttpStatusCode } from '../types/Errors.js';
+import { PaginationMeta } from '../types/pagination.js';
 
 export interface SuccessResponse<T> {
     success: true;
     message: string;
     data: T;
+    meta?: PaginationMeta;
 }
 
 export interface ErrorResponse {
@@ -23,6 +25,21 @@ export const sendSuccessResponse = <T>(
         success: true,
         message,
         data,
+    });
+};
+
+export const sendPaginatedResponse = <T>(
+    res: Response,
+    data: T[],
+    meta: PaginationMeta,
+    message: string = 'Resources fetched successfully',
+    statusCode: number = HttpStatusCode.OK
+): Response<SuccessResponse<T[]>> => {
+    return res.status(statusCode).json({
+        success: true,
+        message,
+        data,
+        meta,
     });
 };
 

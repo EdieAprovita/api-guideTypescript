@@ -3,6 +3,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { cacheService, CacheOptions } from './CacheService.js';
 import logger from '../utils/logger.js';
+import { PaginatedResponse, PaginationMeta, normalizePaginationParams } from '../types/pagination.js';
 
 /**
  * @description Base service class
@@ -25,6 +26,29 @@ class BaseService<T extends Document> {
 
     async getAll(): Promise<T[]> {
         return this.model.find();
+    }
+
+    async getAllPaginated(
+        page?: string | number,
+        limit?: string | number,
+        filter: FilterQuery<T> = {}
+    ): Promise<PaginatedResponse<T>> {
+        const { page: normalizedPage, limit: normalizedLimit } = normalizePaginationParams(page, limit);
+        const skip = (normalizedPage - 1) * normalizedLimit;
+
+        const [data, total] = await Promise.all([
+            this.model.find(filter).skip(skip).limit(normalizedLimit).exec(),
+            this.model.countDocuments(filter).exec(),
+        ]);
+
+        const meta: PaginationMeta = {
+            page: normalizedPage,
+            limit: normalizedLimit,
+            total,
+            pages: Math.ceil(total / normalizedLimit),
+        };
+
+        return { data: data as T[], meta };
     }
 
     async findById(id: string): Promise<T> {
@@ -148,6 +172,38 @@ class BaseService<T extends Document> {
             logger.error(`Cache error in findByIdCached for ${this.modelName}:`, error);
             // Fallback a búsqueda directa
             return this.findById(id);
+        }
+    }
+
+    async getAllPaginatedCached(
+        page?: string | number,
+        limit?: string | number,
+        filter: FilterQuery<T> = {},
+        options?: CacheOptions
+    ): Promise<PaginatedResponse<T>> {
+        if (!this.cacheEnabled) {
+            return this.getAllPaginated(page, limit, filter);
+        }
+
+        const { page: p, limit: l } = normalizePaginationParams(page, limit);
+        const filterKey = Object.keys(filter).length > 0 ? `:f:${JSON.stringify(filter)}` : '';
+        const cacheKey = `${this.modelName}:page:${p}:limit:${l}${filterKey}`;
+
+        try {
+            let result = await cacheService.get<PaginatedResponse<T>>(cacheKey);
+
+            if (!result) {
+                result = await this.getAllPaginated(page, limit, filter);
+                await cacheService.set(cacheKey, result, this.modelName, {
+                    ttl: options?.ttl || this.cacheTTL,
+                    tags: options?.tags || [this.modelName, 'listings'],
+                });
+            }
+
+            return result;
+        } catch (error) {
+            logger.error(`Cache error in getAllPaginatedCached for ${this.modelName}:`, error);
+            return this.getAllPaginated(page, limit, filter);
         }
     }
 

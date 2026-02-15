@@ -99,7 +99,7 @@ const sanctuarySchema = new Schema<ISanctuary>(
         contact: [
             {
                 phone: {
-                    type: Number,
+                    type: String,
                     required: true,
                 },
                 email: {

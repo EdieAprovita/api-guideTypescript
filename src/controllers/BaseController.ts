@@ -3,7 +3,7 @@ import pkg from 'express-validator';
 const { validationResult } = pkg;
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
-import { sendSuccessResponse, sendCreatedResponse, sendDeletedResponse } from '../utils/responseHelpers.js';
+import { sendSuccessResponse, sendPaginatedResponse, sendCreatedResponse, sendDeletedResponse } from '../utils/responseHelpers.js';
 import asyncHandler from '../middleware/asyncHandler.js';
 import BaseService from '../services/BaseService.js';
 import { Document } from 'mongoose';
@@ -50,10 +50,20 @@ export class BaseController<T extends Document> {
     }
 
     // Standard CRUD operations
-    getAll = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
+    getAll = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const resources = await this.service.getAll();
-            sendSuccessResponse(res, resources, 'Resources fetched successfully');
+            const { page, limit } = req.query;
+
+            if (page || limit) {
+                const result = await this.service.getAllPaginated(
+                    page as string,
+                    limit as string
+                );
+                sendPaginatedResponse(res, result.data, result.meta, 'Resources fetched successfully');
+            } else {
+                const resources = await this.service.getAll();
+                sendSuccessResponse(res, resources, 'Resources fetched successfully');
+            }
         } catch (error) {
             this.handleError(error, next, 'Failed to fetch resources');
         }

@@ -43,7 +43,7 @@ const professionSchema: Schema = new mongoose.Schema<IProfession>(
         contact: [
             {
                 phone: {
-                    type: Number,
+                    type: String,
                     required: true,
                 },
                 email: {
