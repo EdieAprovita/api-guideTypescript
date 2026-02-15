@@ -31,6 +31,7 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --config .prettierrc --write src/**/*.ts",
+        "format:write": "npm run format",
         "format:check": "prettier --config .prettierrc --check src/**/*.ts",
         "type-check": "tsc --noEmit",
         "validate": "npm run type-check && npm run lint && npm run test:coverage",

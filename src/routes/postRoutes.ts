@@ -8,6 +8,7 @@ import {
     likePost,
     unlikePost,
     addComment,
+    removeComment,
     deletePost,
 } from '../controllers/postControllers.js';
 
@@ -21,5 +22,11 @@ router.post('/unlike/:id', protect, unlikePost);
 router.post('/comment/:id', protect, addComment);
 router.put('/:id', protect, updatePost);
 router.delete('/:id', protect, deletePost);
+
+// Phase 1: DELETE comment route (C1)
+router.delete('/:postId/comments/:commentId', protect, removeComment);
+
+// Phase 1: DELETE method for unlike (C2) — frontend expects DELETE /posts/:id/likes
+router.delete('/:id/likes', protect, unlikePost);
 
 export default router;

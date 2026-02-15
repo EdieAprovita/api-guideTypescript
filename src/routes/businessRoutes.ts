@@ -10,12 +10,18 @@ import {
     updateBusiness,
     addReviewToBusiness,
     deleteBusiness,
+    getNearbyBusinesses,
+    searchBusinesses,
 } from '../controllers/businessControllers.js';
 
 const router = express.Router();
 
 // Apply browser cache validation to all GET routes
 router.use(browserCacheValidation());
+
+// Phase 1: Geospatial + search routes (must be before /:id to avoid param collision)
+router.get('/nearby', getNearbyBusinesses);
+router.get('/search', searchBusinesses);
 
 router.get('/', businessCacheMiddleware(), getBusinesses);
 router.get('/:id', businessCacheMiddleware(), getBusinessById);

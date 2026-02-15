@@ -7,7 +7,7 @@ import { getErrorMessage } from '../types/modalTypes.js';
 import { businessService as BusinessService } from '../services/BusinessService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
-import { sendSuccessResponse, sendCreatedResponse } from '../utils/responseHelpers.js';
+import { sendSuccessResponse, sendCreatedResponse, sendPaginatedResponse } from '../utils/responseHelpers.js';
 import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
 
 /**
@@ -216,6 +216,92 @@ export const getTopRatedBusinesses = asyncHandler(async (_req: Request, res: Res
         next(
             new HttpError(
                 HttpStatusCode.NOT_FOUND,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
+});
+
+/**
+ * @description Get nearby businesses using geospatial query
+ * @name getNearbyBusinesses
+ * @route GET /api/businesses/nearby?latitude=X&longitude=Y&radius=R&page=P&limit=L
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { latitude, longitude, radius, page, limit } = req.query;
+
+        if (!latitude || !longitude) {
+            return next(
+                new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude and longitude query parameters are required')
+            );
+        }
+
+        const lat = parseFloat(latitude as string);
+        const lng = parseFloat(longitude as string);
+
+        if (isNaN(lat) || lat < -90 || lat > 90) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude must be a number between -90 and 90'));
+        }
+        if (isNaN(lng) || lng < -180 || lng > 180) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'longitude must be a number between -180 and 180'));
+        }
+
+        const parsedRadius = radius ? parseFloat(radius as string) : 5000;
+        if (isNaN(parsedRadius) || parsedRadius < 1 || parsedRadius > 50000) {
+            return next(
+                new HttpError(HttpStatusCode.BAD_REQUEST, 'radius must be a number between 1 and 50000 meters')
+            );
+        }
+
+        const result = await BusinessService.findNearbyPaginated({
+            latitude: lat,
+            longitude: lng,
+            radius: parsedRadius,
+            page: page as string,
+            limit: limit as string,
+        });
+
+        sendPaginatedResponse(res, result.data, result.meta, 'Nearby businesses fetched successfully');
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
+});
+
+/**
+ * @description Search businesses by text query and/or category
+ * @name searchBusinesses
+ * @route GET /api/businesses/search?q=term&category=type&sortBy=name&sortOrder=asc&page=P&limit=L
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+
+export const searchBusinesses = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { q, category, sortBy, sortOrder, page, limit } = req.query;
+
+        const result = await BusinessService.searchPaginated({
+            q: q as string,
+            category: category as string,
+            sortBy: sortBy as 'name' | 'rating' | 'createdAt',
+            sortOrder: sortOrder as 'asc' | 'desc',
+            page: page as string,
+            limit: limit as string,
+        });
+
+        sendPaginatedResponse(res, result.data, result.meta, 'Business search results fetched successfully');
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
