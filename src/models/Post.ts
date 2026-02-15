@@ -17,11 +17,14 @@ export interface IPost extends Document {
     _id: string;
     username?: Types.ObjectId;
     text: string;
+    content?: string; // Virtual alias for `text` (frontend compat)
     name?: string;
     avatar?: string;
     likes: ILike[];
     comments: IComment[];
     date?: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 const postSchema = new Schema<IPost>(
@@ -73,5 +76,16 @@ const postSchema = new Schema<IPost>(
     },
     { timestamps: true }
 );
+
+// Virtual: `content` aliases `text` for frontend compatibility
+postSchema.virtual('content').get(function (this: IPost) {
+    return this.text;
+}).set(function (this: IPost, value: string) {
+    this.text = value;
+});
+
+// Expose virtuals in JSON/Object serialization
+postSchema.set('toJSON', { virtuals: true });
+postSchema.set('toObject', { virtuals: true });
 
 export const Post = (mongoose.models.Post as mongoose.Model<IPost>) || mongoose.model<IPost>('Post', postSchema);
