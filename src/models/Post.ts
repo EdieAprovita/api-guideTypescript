@@ -78,11 +78,14 @@ const postSchema = new Schema<IPost>(
 );
 
 // Virtual: `content` aliases `text` for frontend compatibility
-postSchema.virtual('content').get(function (this: IPost) {
-    return this.text;
-}).set(function (this: IPost, value: string) {
-    this.text = value;
-});
+postSchema
+    .virtual('content')
+    .get(function (this: IPost) {
+        return this.text;
+    })
+    .set(function (this: IPost, value: string) {
+        this.text = value;
+    });
 
 // Expose virtuals in JSON/Object serialization
 postSchema.set('toJSON', { virtuals: true });

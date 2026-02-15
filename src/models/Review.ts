@@ -95,11 +95,14 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
 );
 
 // Virtual: `comment` aliases `content` for frontend compatibility
-reviewSchema.virtual('comment').get(function (this: IReview) {
-    return this.content;
-}).set(function (this: IReview, value: string) {
-    this.content = value;
-});
+reviewSchema
+    .virtual('comment')
+    .get(function (this: IReview) {
+        return this.content;
+    })
+    .set(function (this: IReview, value: string) {
+        this.content = value;
+    });
 
 // Expose virtuals in JSON/Object serialization
 reviewSchema.set('toJSON', { virtuals: true });
