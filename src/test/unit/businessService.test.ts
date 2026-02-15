@@ -1,56 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const mockFind = vi.fn();
-const mockCountDocuments = vi.fn();
-const mockSkip = vi.fn();
-const mockLimit = vi.fn();
-const mockSort = vi.fn();
-const mockExec = vi.fn();
-
-vi.mock('../../models/Business.js', () => {
-    const chainableQuery = () => ({
-        skip: mockSkip.mockReturnThis(),
-        limit: mockLimit.mockReturnThis(),
-        sort: mockSort.mockReturnThis(),
-        exec: mockExec,
-    });
-
-    const mockBusiness = {
-        find: mockFind.mockImplementation(() => chainableQuery()),
-        findById: vi.fn(),
-        create: vi.fn(),
-        deleteOne: vi.fn(),
-        countDocuments: mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(0),
-        })),
-        modelName: 'Business',
-    };
-    return { Business: mockBusiness, IBusiness: {} };
+vi.mock('../../models/Business.js', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../models/Business.js')>();
+    return { ...actual };
 });
 
-const { businessService } = await import('../../services/BusinessService.js');
+import { businessService } from '../../services/BusinessService.js';
+import { Business } from '../../models/Business.js';
 
 describe('BusinessService — searchPaginated', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
-        mockFind.mockImplementation(() => ({
-            skip: mockSkip.mockReturnThis(),
-            limit: mockLimit.mockReturnThis(),
-            sort: mockSort.mockReturnThis(),
-            exec: mockExec,
-        }));
-        mockExec.mockResolvedValue([]);
-        mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(0),
-        }));
+        vi.restoreAllMocks();
     });
 
     it('should return paginated results for text search', async () => {
         const mockData = [{ namePlace: 'Green Café', _id: '1' }];
-        mockExec.mockResolvedValue(mockData);
-        mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(1),
-        }));
+        const chainable = { skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), sort: vi.fn().mockReturnThis(), exec: vi.fn().mockResolvedValue(mockData) };
+        vi.spyOn(Business, 'find').mockReturnValue(chainable as any);
+        vi.spyOn(Business, 'countDocuments').mockReturnValue({ exec: vi.fn().mockResolvedValue(1) } as any);
 
         const result = await businessService.searchPaginated({ q: 'Green', page: '1', limit: '10' });
 
@@ -58,55 +25,53 @@ describe('BusinessService — searchPaginated', () => {
         expect(result.meta.total).toBe(1);
         expect(result.meta.page).toBe(1);
         expect(result.meta.limit).toBe(10);
+        expect(result.meta.pages).toBe(1);
     });
 
-    it('should filter by category', async () => {
+    it('should filter by category only', async () => {
+        const chainable = { skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), sort: vi.fn().mockReturnThis(), exec: vi.fn().mockResolvedValue([]) };
+        vi.spyOn(Business, 'find').mockReturnValue(chainable as any);
+        vi.spyOn(Business, 'countDocuments').mockReturnValue({ exec: vi.fn().mockResolvedValue(0) } as any);
+
         const result = await businessService.searchPaginated({ category: 'restaurant' });
 
         expect(result.data).toEqual([]);
         expect(result.meta.total).toBe(0);
     });
 
-    it('should handle combined text + category search', async () => {
-        const result = await businessService.searchPaginated({
-            q: 'vegan',
-            category: 'restaurant',
-            sortBy: 'rating',
-            sortOrder: 'desc',
-        });
+    it('should use default sort and pagination params', async () => {
+        const chainable = { skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), sort: vi.fn().mockReturnThis(), exec: vi.fn().mockResolvedValue([]) };
+        vi.spyOn(Business, 'find').mockReturnValue(chainable as any);
+        vi.spyOn(Business, 'countDocuments').mockReturnValue({ exec: vi.fn().mockResolvedValue(0) } as any);
 
-        expect(result.meta.pages).toBe(0);
-    });
-
-    it('should normalize pagination params with defaults', async () => {
         const result = await businessService.searchPaginated({});
 
         expect(result.meta.page).toBe(1);
         expect(result.meta.limit).toBe(10);
     });
+
+    it('should apply desc sort order', async () => {
+        const sortSpy = vi.fn().mockReturnThis();
+        const chainable = { skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), sort: sortSpy, exec: vi.fn().mockResolvedValue([]) };
+        vi.spyOn(Business, 'find').mockReturnValue(chainable as any);
+        vi.spyOn(Business, 'countDocuments').mockReturnValue({ exec: vi.fn().mockResolvedValue(0) } as any);
+
+        await businessService.searchPaginated({ sortBy: 'rating', sortOrder: 'desc' });
+
+        expect(sortSpy).toHaveBeenCalledWith({ rating: -1 });
+    });
 });
 
 describe('BusinessService — findNearbyPaginated', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
-        mockFind.mockImplementation(() => ({
-            skip: mockSkip.mockReturnThis(),
-            limit: mockLimit.mockReturnThis(),
-            sort: mockSort.mockReturnThis(),
-            exec: mockExec,
-        }));
-        mockExec.mockResolvedValue([]);
-        mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(0),
-        }));
+        vi.restoreAllMocks();
     });
 
     it('should return paginated nearby results', async () => {
         const mockData = [{ namePlace: 'Nearby Place', _id: '1' }];
-        mockExec.mockResolvedValue(mockData);
-        mockCountDocuments.mockImplementation(() => ({
-            exec: vi.fn().mockResolvedValue(1),
-        }));
+        const chainable = { skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), exec: vi.fn().mockResolvedValue(mockData) };
+        vi.spyOn(Business, 'find').mockReturnValue(chainable as any);
+        vi.spyOn(Business, 'countDocuments').mockReturnValue({ exec: vi.fn().mockResolvedValue(1) } as any);
 
         const result = await businessService.findNearbyPaginated({
             latitude: 19.4326,
@@ -120,7 +85,11 @@ describe('BusinessService — findNearbyPaginated', () => {
         expect(result.meta.total).toBe(1);
     });
 
-    it('should use default radius of 5000 meters', async () => {
+    it('should use default radius and pagination', async () => {
+        const chainable = { skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), exec: vi.fn().mockResolvedValue([]) };
+        vi.spyOn(Business, 'find').mockReturnValue(chainable as any);
+        vi.spyOn(Business, 'countDocuments').mockReturnValue({ exec: vi.fn().mockResolvedValue(0) } as any);
+
         const result = await businessService.findNearbyPaginated({
             latitude: 19.4326,
             longitude: -99.1332,
@@ -128,5 +97,26 @@ describe('BusinessService — findNearbyPaginated', () => {
 
         expect(result.meta.page).toBe(1);
         expect(result.meta.limit).toBe(10);
+    });
+
+    it('should build correct geospatial query', async () => {
+        const findSpy = vi.fn().mockReturnValue({ skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), exec: vi.fn().mockResolvedValue([]) });
+        vi.spyOn(Business, 'find').mockImplementation(findSpy);
+        vi.spyOn(Business, 'countDocuments').mockReturnValue({ exec: vi.fn().mockResolvedValue(0) } as any);
+
+        await businessService.findNearbyPaginated({
+            latitude: 19.4326,
+            longitude: -99.1332,
+            radius: 2000,
+        });
+
+        expect(findSpy).toHaveBeenCalledWith({
+            location: {
+                $near: {
+                    $geometry: { type: 'Point', coordinates: [-99.1332, 19.4326] },
+                    $maxDistance: 2000,
+                },
+            },
+        });
     });
 });

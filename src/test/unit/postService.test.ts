@@ -1,4 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('../../models/Post.js', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../models/Post.js')>();
+    return { ...actual };
+});
+
 import { postService } from '../../services/PostService.js';
 
 describe('PostService — removeComment authorization', () => {
