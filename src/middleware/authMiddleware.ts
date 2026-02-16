@@ -271,28 +271,50 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 };
 
 /**
- * @description Refresh access token using refresh token
+ * @description Refresh access token using refresh token from body or HttpOnly cookie.
+ * Security: New refresh token is returned in HttpOnly cookie (not in JSON body)
+ * to prevent XSS attacks from stealing the refresh token.
  * @name refreshToken
  */
 export const refreshToken = async (req: Request, res: Response) => {
     try {
-        const { refreshToken } = req.body;
+        // Accept refresh token from body (for initial auth) or HttpOnly cookie (after refresh)
+        const refreshTokenValue = req.body.refreshToken || req.cookies?.refreshToken;
 
-        if (!refreshToken) {
+        if (!refreshTokenValue) {
             return res.status(400).json({
                 success: false,
                 message: 'Refresh token is required',
             });
         }
 
-        const tokens = await TokenService.refreshTokens(refreshToken);
+        const tokens = await TokenService.refreshTokens(refreshTokenValue);
 
+        // SECURITY: Send new refresh token in HttpOnly, Secure cookie (not in JSON body)
+        // This prevents XSS attacks from stealing the refresh token via document.cookie
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie('refreshToken', tokens.refreshToken, {
+            httpOnly: true, // Prevent JavaScript access (XSS protection)
+            secure: isProduction, // HTTPS only in production
+            sameSite: 'strict', // CSRF protection
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        // Return ONLY the access token in response body
+        // Refresh token is in secure cookie and NOT exposed to JavaScript
         return res.json({
             success: true,
             message: 'Tokens refreshed successfully',
-            data: tokens,
+            data: {
+                accessToken: tokens.accessToken,
+                // refreshToken is in HttpOnly cookie, deliberately omitted here
+            },
         });
     } catch (error) {
+        // Clear invalid refresh token cookie on error
+        res.clearCookie('refreshToken');
+
         return res.status(401).json({
             success: false,
             message: 'Invalid refresh token',
