@@ -5,9 +5,9 @@
     "type": "module",
     "main": "dist/server.js",
     "scripts": {
-        "dev": "nodemon --exec \"node --loader ts-node/esm\" src/server.ts",
+        "dev": "nodemon --exec \"node --import tsx/esm\" src/server.ts",
         "start": "node dist/server.js",
-        "start:dev": "node --loader ts-node/esm src/server.ts",
+        "start:dev": "node --import tsx/esm src/server.ts",
         "build": "tsc",
         "build:watch": "tsc --watch",
         "clean": "rimraf dist",

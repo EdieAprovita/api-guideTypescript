@@ -3,6 +3,7 @@ import { businessService } from './BusinessService.js';
 import { doctorService } from './DoctorService.js';
 import { marketsService } from './MarketsService.js';
 import { sanctuaryService } from './SanctuaryService.js';
+import logger from '../utils/logger.js';
 
 export interface UnifiedSearchResult {
     type: string;
@@ -16,10 +17,12 @@ export class SearchService {
     async unifiedSearch(q: string, lat?: number, lng?: number, radius?: number): Promise<UnifiedSearchResult[]> {
         const query = q || '';
         const nearbyOptions =
-            lat && lng ? { latitude: Number(lat), longitude: Number(lng), radius: Number(radius) || 5000 } : null;
+            lat !== undefined && lng !== undefined
+                ? { latitude: Number(lat), longitude: Number(lng), radius: Number(radius) || 5000 }
+                : null;
 
         const searchTasks = [
-            { type: 'restaurant', service: restaurantService, fields: ['namePlace', 'address', 'foodType'] },
+            { type: 'restaurant', service: restaurantService, fields: ['restaurantName', 'address', 'cuisine'] },
             { type: 'business', service: businessService, fields: ['namePlace', 'address', 'typeBusiness'] },
             { type: 'doctor', service: doctorService, fields: ['doctorName', 'address', 'specialty'] },
             { type: 'market', service: marketsService, fields: ['marketName', 'address', 'typeMarket'] },
@@ -49,6 +52,13 @@ export class SearchService {
             })
         );
 
+        // Log any failures for visibility
+        results.forEach((result, index) => {
+            if (result.status === 'rejected') {
+                logger.warn(`Search failed for ${searchTasks[index]?.type}:`, result.reason);
+            }
+        });
+
         return results
             .filter(r => r.status === 'fulfilled')
             .map(r => (r as PromiseFulfilledResult<UnifiedSearchResult>).value)
@@ -63,7 +73,12 @@ export class SearchService {
         results.forEach(res => {
             res.data.forEach((item: any) => {
                 const name =
-                    item.namePlace || item.marketName || item.doctorName || item.sanctuaryName || item.professionName;
+                    item.restaurantName ||
+                    item.namePlace ||
+                    item.marketName ||
+                    item.doctorName ||
+                    item.sanctuaryName ||
+                    item.professionName;
                 if (name) suggestions.add(name);
             });
         });

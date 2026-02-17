@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import { searchService } from '../services/SearchService.js';
-import { HttpStatusCode } from '../types/Errors.js';
+import { sendSuccessResponse } from '../utils/responseHelpers.js';
 
 /**
  * @description Search controller class
@@ -14,16 +14,16 @@ export class SearchController {
      * @access  Public
      */
     unifiedSearch = asyncHandler(async (req: Request, res: Response) => {
-        const { q, lat, lng, radius } = req.query;
+        const { q, lat, lng, latitude, longitude, radius } = req.query;
 
         const results = await searchService.unifiedSearch(
             q as string,
-            lat ? Number(lat) : undefined,
-            lng ? Number(lng) : undefined,
+            latitude || lat ? Number(latitude || lat) : undefined,
+            longitude || lng ? Number(longitude || lng) : undefined,
             radius ? Number(radius) : undefined
         );
 
-        res.status(HttpStatusCode.OK).json(results);
+        sendSuccessResponse(res, results, 'Search completed successfully');
     });
 
     /**
@@ -35,12 +35,12 @@ export class SearchController {
         const { q } = req.query;
 
         if (!q) {
-            res.status(HttpStatusCode.OK).json([]);
+            sendSuccessResponse(res, [], 'No suggestions available');
             return;
         }
 
         const suggestions = await searchService.getSuggestions(q as string);
-        res.status(HttpStatusCode.OK).json(suggestions);
+        sendSuccessResponse(res, suggestions, 'Suggestions fetched successfully');
     });
 }
 

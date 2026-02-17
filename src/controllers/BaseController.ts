@@ -58,14 +58,9 @@ export class BaseController<T extends Document> {
     getAll = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { page, limit } = req.query;
-
-            if (page || limit) {
-                const result = await this.service.getAllPaginated(page as string, limit as string);
-                sendPaginatedResponse(res, result.data, result.meta, 'Resources fetched successfully');
-            } else {
-                const resources = await this.service.getAll();
-                sendSuccessResponse(res, resources, 'Resources fetched successfully');
-            }
+            // Always use pagination to prevent DoS via unbounded queries
+            const result = await this.service.getAllPaginated((page as string) || '1', (limit as string) || '10');
+            sendPaginatedResponse(res, result.data, result.meta, 'Resources fetched successfully');
         } catch (error) {
             this.handleError(error, next, 'Failed to fetch resources');
         }

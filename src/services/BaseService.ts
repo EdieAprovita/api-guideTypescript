@@ -403,6 +403,15 @@ class BaseService<T extends Document> {
             searchFields = [],
             filter: extraFilter = {},
         } = options;
+
+        // Validate coordinate ranges
+        if (latitude < -90 || latitude > 90) {
+            throw new Error('Latitude must be between -90 and 90');
+        }
+        if (longitude < -180 || longitude > 180) {
+            throw new Error('Longitude must be between -180 and 180');
+        }
+
         const { page: normalizedPage, limit: normalizedLimit } = normalizePaginationParams(page, limit);
         const skip = (normalizedPage - 1) * normalizedLimit;
 
@@ -428,7 +437,16 @@ class BaseService<T extends Document> {
                 .skip(skip)
                 .limit(normalizedLimit)
                 .exec(),
-            this.model.countDocuments(combinedFilter as FilterQuery<T>).exec(),
+            this.model
+                .countDocuments({
+                    ...extraFilter,
+                    location: {
+                        $geoWithin: {
+                            $centerSphere: [[longitude, latitude], radius / 6378100],
+                        },
+                    },
+                } as FilterQuery<T>)
+                .exec(),
         ]);
 
         const meta: PaginationMeta = {
@@ -463,8 +481,23 @@ class BaseService<T extends Document> {
             filter.category = { $regex: category, $options: 'i' };
         }
 
+        // Whitelist allowed sort fields to prevent arbitrary field injection
+        const ALLOWED_SORT_FIELDS = new Set([
+            'createdAt',
+            'updatedAt',
+            'rating',
+            'name',
+            'namePlace',
+            'restaurantName',
+            'marketName',
+            'doctorName',
+            'sanctuaryName',
+            'professionName',
+        ]);
+        const safeSortBy = sortBy && ALLOWED_SORT_FIELDS.has(sortBy) ? sortBy : 'createdAt';
+
         const sortDirection = sortOrder === 'desc' ? -1 : 1;
-        const sortQuery = (sortBy ? { [sortBy]: sortDirection } : { createdAt: -1 }) as any;
+        const sortQuery = { [safeSortBy]: sortDirection } as any;
 
         const [data, total] = await Promise.all([
             this.model

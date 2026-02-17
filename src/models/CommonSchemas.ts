@@ -12,17 +12,14 @@ export const contactSchema = new Schema(
         email: {
             type: String,
             required: true,
-            unique: true,
         },
         facebook: {
             type: String,
             required: false,
-            unique: true,
         },
         instagram: {
             type: String,
             required: false,
-            unique: true,
         },
     },
     { _id: false }

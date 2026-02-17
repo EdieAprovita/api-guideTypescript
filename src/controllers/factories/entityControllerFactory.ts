@@ -29,14 +29,25 @@ export function createGetNearbyHandler<T extends Document>(
 ): RequestHandler {
     return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { lat, lng, radius, page, limit } = req.query;
-            if (!lat || !lng) {
+            const { lat, lng, latitude, longitude, radius, page, limit } = req.query;
+            const finalLat = latitude || lat;
+            const finalLng = longitude || lng;
+
+            if (!finalLat || !finalLng) {
                 return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Latitude and longitude are required'));
             }
 
+            // Parse and validate coordinates are finite numbers
+            const parsedLat = Number(finalLat);
+            const parsedLng = Number(finalLng);
+
+            if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
+                return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Latitude and longitude must be valid numbers'));
+            }
+
             const result = await service.findNearbyPaginated({
-                latitude: Number(lat),
-                longitude: Number(lng),
+                latitude: parsedLat,
+                longitude: parsedLng,
                 radius: Number(radius) || 5000,
                 page: page as string,
                 limit: limit as string,
