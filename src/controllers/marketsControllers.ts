@@ -1,9 +1,3 @@
-import { Request, Response, NextFunction } from 'express';
-import asyncHandler from '../middleware/asyncHandler.js';
-import pkg from 'express-validator';
-const { validationResult } = pkg;
-import { HttpError, HttpStatusCode } from '../types/Errors.js';
-import { getErrorMessage } from '../types/modalTypes.js';
 import { marketsService as MarketsService } from '../services/MarketsService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import {
@@ -12,6 +6,14 @@ import {
     createGetReviewStatsHandler,
 } from './factories/reviewEndpointsFactory.js';
 import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
+import {
+    createGetAllHandler,
+    createGetByIdHandler,
+    createCreateHandler,
+    createUpdateHandler,
+    createDeleteHandler,
+    createGetNearbyHandler,
+} from './factories/entityControllerFactory.js';
 
 /**
  * @description Get all markets
@@ -20,24 +22,7 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
  * @access Public
  * @returns {Promise<Response>}
  */
-
-export const getMarkets = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-        const markets = await MarketsService.getAll();
-        res.status(200).json({
-            success: true,
-            message: 'Markets fetched successfully',
-            data: markets,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const getMarkets = createGetAllHandler(MarketsService, 'Market');
 
 /**
  * @description Get a market by id
@@ -46,28 +31,12 @@ export const getMarkets = asyncHandler(async (_req: Request, res: Response, next
  * @access Public
  * @returns {Promise<Response>}
  */
+export const getMarketById = createGetByIdHandler(MarketsService, 'Market');
 
-export const getMarketById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required'));
-        }
-        const market = await MarketsService.findById(id);
-        res.status(200).json({
-            success: true,
-            message: 'Market fetched successfully',
-            data: market,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+const preProcessMarket = async (data: any) => {
+    const sanitized = sanitizeNoSQLInput(data);
+    await geocodeAndAssignLocation(sanitized);
+};
 
 /**
  * @description Create a new market
@@ -76,30 +45,8 @@ export const getMarketById = asyncHandler(async (req: Request, res: Response, ne
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const createMarket = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
-    }
-    try {
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        await geocodeAndAssignLocation(sanitizedData);
-        const market = await MarketsService.create(sanitizedData);
-        res.status(201).json({
-            success: true,
-            message: 'Market created successfully',
-            data: market,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
+export const createMarket = createCreateHandler(MarketsService, 'Market', {
+    preCreate: preProcessMarket,
 });
 
 /**
@@ -109,34 +56,8 @@ export const createMarket = asyncHandler(async (req: Request, res: Response, nex
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const updateMarket = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
-    }
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Market ID is required'));
-        }
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        await geocodeAndAssignLocation(sanitizedData);
-        const market = await MarketsService.updateById(id, sanitizedData);
-        res.status(200).json({
-            success: true,
-            message: 'Market updated successfully',
-            data: market,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
+export const updateMarket = createUpdateHandler(MarketsService, 'Market', {
+    preUpdate: preProcessMarket,
 });
 
 /**
@@ -146,25 +67,7 @@ export const updateMarket = asyncHandler(async (req: Request, res: Response, nex
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const deleteMarket = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        if (!id) throw new HttpError(HttpStatusCode.NOT_FOUND, 'Market not found');
-        await MarketsService.deleteById(id);
-        res.status(200).json({
-            success: true,
-            message: 'Market deleted successfully',
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const deleteMarket = createDeleteHandler(MarketsService, 'Market');
 
 /**
  * @description Add review to a market
@@ -173,7 +76,6 @@ export const deleteMarket = asyncHandler(async (req: Request, res: Response, nex
  * @access Private
  * @returns {Promise<Response>}
  */
-
 export const addReviewToMarket = createAddReviewHandler('Market', MarketsService, 'marketId');
 
 /**
@@ -201,28 +103,4 @@ export const getMarketReviewStats = createGetReviewStatsHandler('Market', Market
  * @access Public
  * @returns {Promise<Response>}
  */
-export const getNearbyMarkets = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { lat, lng, radius, page, limit } = req.query;
-        if (!lat || !lng) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Latitude and longitude are required'));
-        }
-
-        const result = await MarketsService.findNearbyPaginated({
-            latitude: Number(lat),
-            longitude: Number(lng),
-            radius: Number(radius) || 5000,
-            page: page as string,
-            limit: limit as string,
-        });
-
-        res.status(HttpStatusCode.OK).json({
-            success: true,
-            message: 'Nearby markets fetched successfully',
-            data: result.data,
-            meta: result.meta,
-        });
-    } catch (error: any) {
-        next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
-    }
-});
+export const getNearbyMarkets = createGetNearbyHandler(MarketsService, 'Market');

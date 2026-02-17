@@ -41,6 +41,13 @@ vi.mock('@/utils/geocodeLocation.js', () => ({
     default: vi.fn(),
 }));
 
+const setupTest = (query = {}) => {
+    const req = testUtils.createMockRequest({ query }) as Request;
+    const res = testUtils.createMockResponse() as Response;
+    const next = testUtils.createMockNext();
+    return { req, res, next };
+};
+
 describe('Phase 1 — getNearbyBusinesses controller', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -54,11 +61,7 @@ describe('Phase 1 — getNearbyBusinesses controller', () => {
         };
         mockFindNearbyPaginated.mockResolvedValue(mockResult);
 
-        const req = testUtils.createMockRequest({
-            query: { latitude: '19.4326', longitude: '-99.1332', radius: '3000' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext();
+        const { req, res, next } = setupTest({ latitude: '19.4326', longitude: '-99.1332', radius: '3000' });
 
         await getNearbyBusinesses(req, res, next);
 
@@ -77,12 +80,7 @@ describe('Phase 1 — getNearbyBusinesses controller', () => {
 
     it('should return 400 when latitude is missing', async () => {
         const { getNearbyBusinesses } = await import('@/controllers/businessControllers.js');
-
-        const req = testUtils.createMockRequest({
-            query: { longitude: '-99.1332' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext();
+        const { req, res, next } = setupTest({ longitude: '-99.1332' });
 
         await getNearbyBusinesses(req, res, next);
 
@@ -93,12 +91,7 @@ describe('Phase 1 — getNearbyBusinesses controller', () => {
 
     it('should return 400 when latitude is out of range', async () => {
         const { getNearbyBusinesses } = await import('@/controllers/businessControllers.js');
-
-        const req = testUtils.createMockRequest({
-            query: { latitude: '100', longitude: '-99.1332' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext();
+        const { req, res, next } = setupTest({ latitude: '100', longitude: '-99.1332' });
 
         await getNearbyBusinesses(req, res, next);
 
@@ -109,12 +102,7 @@ describe('Phase 1 — getNearbyBusinesses controller', () => {
 
     it('should return 400 when radius is invalid', async () => {
         const { getNearbyBusinesses } = await import('@/controllers/businessControllers.js');
-
-        const req = testUtils.createMockRequest({
-            query: { latitude: '19.43', longitude: '-99.13', radius: '99999' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext();
+        const { req, res, next } = setupTest({ latitude: '19.43', longitude: '-99.13', radius: '99999' });
 
         await getNearbyBusinesses(req, res, next);
 
@@ -128,17 +116,11 @@ describe('Phase 1 — getNearbyBusinesses controller', () => {
             meta: { page: 1, limit: 10, total: 0, pages: 0 },
         });
 
-        const req = testUtils.createMockRequest({
-            query: { latitude: '19.43', longitude: '-99.13' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext();
+        const { req, res, next } = setupTest({ latitude: '19.43', longitude: '-99.13' });
 
         await getNearbyBusinesses(req, res, next);
 
-        expect(mockFindNearbyPaginated).toHaveBeenCalledWith(
-            expect.objectContaining({ radius: 5000 })
-        );
+        expect(mockFindNearbyPaginated).toHaveBeenCalledWith(expect.objectContaining({ radius: 5000 }));
     });
 });
 
@@ -155,11 +137,7 @@ describe('Phase 1 — searchBusinesses controller', () => {
         };
         mockSearchPaginated.mockResolvedValue(mockResult);
 
-        const req = testUtils.createMockRequest({
-            query: { q: 'vegan', page: '1', limit: '10' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext();
+        const { req, res, next } = setupTest({ q: 'vegan', page: '1', limit: '10' });
 
         await searchBusinesses(req, res, next);
 
@@ -181,11 +159,7 @@ describe('Phase 1 — searchBusinesses controller', () => {
             meta: { page: 1, limit: 10, total: 0, pages: 0 },
         });
 
-        const req = testUtils.createMockRequest({
-            query: { category: 'restaurant', sortBy: 'rating', sortOrder: 'desc' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext();
+        const { req, res, next } = setupTest({ category: 'restaurant', sortBy: 'rating', sortOrder: 'desc' });
 
         await searchBusinesses(req, res, next);
 
@@ -202,11 +176,7 @@ describe('Phase 1 — searchBusinesses controller', () => {
         const { searchBusinesses } = await import('@/controllers/businessControllers.js');
         mockSearchPaginated.mockRejectedValue(new Error('DB connection failed'));
 
-        const req = testUtils.createMockRequest({
-            query: { q: 'test' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext();
+        const { req, res, next } = setupTest({ q: 'test' });
 
         await searchBusinesses(req, res, next);
 
