@@ -57,13 +57,14 @@ describe('BaseController', () => {
 
         await controller.getAll(req, res, next);
 
-        expect(service.getAll).toHaveBeenCalled();
+        // Always uses pagination now (with defaults page=1, limit=10)
+        expect(service.getAllPaginated).toHaveBeenCalledWith('1', '10');
         expect(res.status).toHaveBeenCalledWith(HttpStatusCode.OK);
         expect(next).not.toHaveBeenCalled();
     });
 
     it('getAll should forward errors', async () => {
-        service.getAll.mockRejectedValueOnce(new Error('fail'));
+        service.getAllPaginated.mockRejectedValueOnce(new Error('fail'));
         const req = testUtils.createMockRequest() as Request;
         const res = testUtils.createMockResponse() as Response;
         const next = testUtils.createMockNext();
@@ -307,22 +308,24 @@ describe('BaseController', () => {
 
             await controller.getAll(req, res, next);
 
-            expect(service.getAllPaginated).toHaveBeenCalledWith(undefined, '25');
+            // Now uses default page=1 when only limit is provided
+            expect(service.getAllPaginated).toHaveBeenCalledWith('1', '25');
             expect(service.getAll).not.toHaveBeenCalled();
         });
 
-        it('should fall back to getAll when no pagination params', async () => {
+        it('should use default pagination when no pagination params', async () => {
             const req = testUtils.createMockRequest({ query: {} }) as Request;
             const res = testUtils.createMockResponse() as Response;
             const next = testUtils.createMockNext();
 
             await controller.getAll(req, res, next);
 
-            expect(service.getAll).toHaveBeenCalled();
-            expect(service.getAllPaginated).not.toHaveBeenCalled();
+            // Always uses pagination now, even with no params (prevents DoS)
+            expect(service.getAllPaginated).toHaveBeenCalledWith('1', '10');
+            expect(service.getAll).not.toHaveBeenCalled();
 
             const jsonCall = (res.json as any).mock.calls[0][0];
-            expect(jsonCall).not.toHaveProperty('meta');
+            expect(jsonCall).toHaveProperty('meta');
         });
 
         it('should forward pagination errors', async () => {
