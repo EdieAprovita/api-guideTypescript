@@ -9,6 +9,7 @@ const router = express.Router();
  * @route GET /health
  */
 router.get('/', (_req: Request, res: Response) => {
+    // Let logger levels control output in production vs development
     logger.debug('Liveness probe requested');
 
     res.status(200).json({
