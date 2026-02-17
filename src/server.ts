@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import app from './app';
-import { colorTheme } from './types/colorTheme';
+import app from './app.js';
+import { colorTheme } from './types/colorTheme.js';
+import logger, { logWarn } from './utils/logger.js';
 
 // Cloud Run provides PORT via environment variable, default to 8080 for production compatibility
 const PORT = process.env.PORT ?? 8080;
@@ -9,26 +10,25 @@ const PORT = process.env.PORT ?? 8080;
 const HOST = '0.0.0.0';
 
 if (process.env.NODE_ENV === 'production') {
-    console.log(`🔧 Starting server in production mode`);
+    logger.info(`Starting server in production mode on ${HOST}:${PORT}`);
 } else {
-    console.log(colorTheme.info.bold(`🔧 Starting server in ${process.env.NODE_ENV ?? 'development'} mode`));
-    console.log(colorTheme.info.bold(`🔧 Binding to ${HOST}:${PORT}`));
-    console.log(colorTheme.info.bold(`🔧 Node version: ${process.version}`));
-    console.log(colorTheme.info.bold(`🔧 Memory limit: ${process.env.NODE_OPTIONS || 'default'}`));
+    logger.info(colorTheme.info.bold(`🔧 Starting server in ${process.env.NODE_ENV ?? 'development'} mode`));
+    logger.info(colorTheme.info.bold(`🔧 Binding to ${HOST}:${PORT}`));
+    logger.info(colorTheme.info.bold(`🔧 Node version: ${process.version}`));
 }
 
 const server = app.listen(Number(PORT), HOST, () => {
     if (process.env.NODE_ENV === 'production') {
-        console.log(`🚀 Server started on ${HOST}:${PORT}`);
+        logger.info(`🚀 Server is ready and accepting connections on ${HOST}:${PORT}`);
     } else {
-        console.log(
+        logger.info(
             colorTheme.secondary.bold(
                 `🚀 Server running in ${process.env.NODE_ENV ?? 'development'} mode on ${HOST}:${PORT}`
             )
         );
-        console.log(colorTheme.info.bold(`📚 API Documentation available at: http://localhost:${PORT}/api-docs`));
-        console.log(colorTheme.info.bold(`❤️  Health check available at: http://localhost:${PORT}/health`));
-        console.log(colorTheme.success.bold(`✅ Server is ready to accept connections`));
+        logger.info(colorTheme.info.bold(`📚 API Documentation available at: http://localhost:${PORT}/api-docs`));
+        logger.info(colorTheme.info.bold(`❤️  Health check available at: http://localhost:${PORT}/health`));
+        logger.info(colorTheme.success.bold(`✅ Server is ready to accept connections`));
     }
 });
 
@@ -37,7 +37,7 @@ let isShuttingDown = false;
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err: Error) => {
-    console.log(colorTheme.danger.bold(`❌ Unhandled Rejection: ${err.message}`));
+    logger.error(`Unhandled Rejection: ${err.message}`, { stack: err.stack });
     if (isShuttingDown) return;
     isShuttingDown = true;
     server.close(() => {
@@ -51,7 +51,7 @@ process.on('unhandledRejection', (err: Error) => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err: Error) => {
-    console.log(colorTheme.danger.bold(`❌ Uncaught Exception: ${err.message}`));
+    logger.error(`Uncaught Exception: ${err.message}`, { stack: err.stack });
     // Avoid infinite loops when process.exit is mocked by test runner
     if (isShuttingDown || /process\.exit unexpectedly called/i.test(err.message ?? '')) return;
     try {
@@ -63,9 +63,9 @@ process.on('uncaughtException', (err: Error) => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-    console.log(colorTheme.warning.bold('👋 SIGTERM received. Shutting down gracefully...'));
+    logWarn('SIGTERM received. Shutting down gracefully...');
     server.close(() => {
-        console.log(colorTheme.info.bold('✅ Process terminated'));
+        logger.info('Process terminated');
     });
 });
 

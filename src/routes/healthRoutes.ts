@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import logger from '../utils/logger';
+import logger from '../utils/logger.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -9,11 +9,8 @@ const router = express.Router();
  * @route GET /health
  */
 router.get('/', (_req: Request, res: Response) => {
-    // In production, skip logging to avoid I/O during frequent health checks
-    // In development, log for debugging purposes
-    if (process.env.NODE_ENV !== 'production') {
-        logger.debug('Liveness probe requested');
-    }
+    // Let logger levels control output in production vs development
+    logger.debug('Liveness probe requested');
 
     res.status(200).json({
         status: 'alive',

@@ -2,13 +2,14 @@ import dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import requestLogger from './middleware/requestLogger';
-import { xssSanitizer } from './middleware/xssSanitizer';
+import requestLogger from './middleware/requestLogger.js';
+import { xssSanitizer } from './middleware/xssSanitizer.js';
+import { logInfo, logWarn } from './utils/logger.js';
 import fs from 'node:fs';
 
-import connectDB from './config/db';
-import { errorHandler, notFound } from './middleware/errorHandler';
-import corsMiddleware from './middleware/corsOptions';
+import connectDB from './config/db.js';
+import { errorHandler, notFound } from './middleware/errorHandler.js';
+import corsMiddleware from './middleware/corsOptions.js';
 import {
     configureHelmet,
     enforceHTTPS,
@@ -16,25 +17,25 @@ import {
     limitRequestSize,
     validateUserAgent,
     requireAPIVersion,
-} from './middleware/security';
+} from './middleware/security.js';
 
-import userRoutes from './routes/userRoutes';
-import businessRoutes from './routes/businessRoutes';
-import recipesRoutes from './routes/recipesRoutes';
-import marketsRoutes from './routes/marketsRoutes';
-import restaurantRoutes from './routes/restaurantRoutes';
-import doctorsRoutes from './routes/doctorsRoutes';
-import professionProfileRoutes from './routes/professionProfileRoutes';
-import professionRoutes from './routes/professionRoutes';
-import postRoutes from './routes/postRoutes';
-import sanctuaryRoutes from './routes/sanctuaryRoutes';
-import authRoutes from './routes/authRoutes';
-import cacheRoutes from './routes/cacheRoutes';
-import reviewRoutes from './routes/reviewRoutes';
-import healthRoutes from './routes/healthRoutes';
+import userRoutes from './routes/userRoutes.js';
+import businessRoutes from './routes/businessRoutes.js';
+import recipesRoutes from './routes/recipesRoutes.js';
+import marketsRoutes from './routes/marketsRoutes.js';
+import restaurantRoutes from './routes/restaurantRoutes.js';
+import doctorsRoutes from './routes/doctorsRoutes.js';
+import professionProfileRoutes from './routes/professionProfileRoutes.js';
+import professionRoutes from './routes/professionRoutes.js';
+import postRoutes from './routes/postRoutes.js';
+import sanctuaryRoutes from './routes/sanctuaryRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import cacheRoutes from './routes/cacheRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import healthRoutes from './routes/healthRoutes.js';
 import swaggerUi, { JsonObject } from 'swagger-ui-express';
 import yaml from 'js-yaml';
-import basicAuth from './middleware/basicAuth';
+import basicAuth from './middleware/basicAuth.js';
 
 dotenv.config();
 
@@ -46,19 +47,22 @@ let mongoConnectionError: Error | null = null;
 // This is critical for Cloud Run to pass health checks during startup
 if (process.env.NODE_ENV !== 'test') {
     if (!process.env.MONGODB_URI) {
-        console.warn('⚠️  MONGODB_URI not set - running without database');
+        logWarn('MONGODB_URI not set - running without database');
         mongoConnectionError = new Error('MONGODB_URI not configured');
     } else {
         // Start MongoDB connection in background
         connectDB()
             .then(() => {
                 isMongoConnected = true;
-                console.log('✅ MongoDB connected');
+                logInfo('MongoDB connected');
             })
             .catch(err => {
                 isMongoConnected = false;
                 mongoConnectionError = err;
-                console.warn('⚠️  MongoDB connection failed:', err.message);
+                logWarn(`Failed to connect to MongoDB on startup: ${err.message}`);
+                if (process.env.NODE_ENV !== 'production') {
+                    logInfo('Server will continue running without database connection');
+                }
             });
     }
 }
@@ -87,9 +91,11 @@ try {
     // In production (dist/), swagger.yaml is copied to the same directory by postbuild
     // In development, it's at ./swagger.yaml relative to project root
     swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8')) as JsonObject;
-    console.log('✅ Swagger loaded successfully');
+    if (process.env.NODE_ENV !== 'production') {
+        logInfo('Swagger loaded successfully');
+    }
 } catch (error) {
-    console.warn('⚠️  Swagger disabled:', error instanceof Error ? error.message : 'Unknown error');
+    logWarn(`Swagger disabled: ${error instanceof Error ? error.message : 'Unknown error'}`);
 }
 
 // Add request logger early in the middleware chain
