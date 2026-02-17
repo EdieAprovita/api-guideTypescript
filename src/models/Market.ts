@@ -25,6 +25,7 @@ const marketSchema = new Schema<IMarket>(
             type: String,
             required: true,
             unique: true,
+            alias: 'name',
         },
         author: {
             type: Schema.Types.ObjectId,
@@ -44,6 +45,7 @@ const marketSchema = new Schema<IMarket>(
             type: String,
             required: true,
             enum: ['supermarket', 'convenience store', 'grocery store'],
+            alias: 'category',
         },
         reviews: [
             {

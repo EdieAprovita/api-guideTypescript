@@ -1,13 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../middleware/asyncHandler.js';
-import pkg from 'express-validator';
-const { validationResult } = pkg;
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { doctorService as DoctorService } from '../services/DoctorService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
 import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
+import {
+    createGetAllHandler,
+    createGetByIdHandler,
+    createCreateHandler,
+    createUpdateHandler,
+    createDeleteHandler,
+    createGetNearbyHandler,
+} from './factories/entityControllerFactory.js';
 
 /**
  * @description Get all doctors
@@ -16,24 +22,7 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
  * @access Public
  * @returns {Promise<Response>}
  */
-
-export const getDoctors = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-        const doctors = await DoctorService.getAll();
-        res.status(200).json({
-            success: true,
-            message: 'Doctors fetched successfully',
-            data: doctors,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const getDoctors = createGetAllHandler(DoctorService, 'Doctor');
 
 /**
  * @description Get a doctor by id
@@ -42,28 +31,12 @@ export const getDoctors = asyncHandler(async (_req: Request, res: Response, next
  * @access Public
  * @returns {Promise<Response>}
  */
+export const getDoctorById = createGetByIdHandler(DoctorService, 'Doctor');
 
-export const getDoctorById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Doctor ID is required'));
-        }
-        const doctor = await DoctorService.findById(id);
-        res.status(200).json({
-            success: true,
-            message: 'Doctor fetched successfully',
-            data: doctor,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+const preProcessDoctor = async (data: any) => {
+    const sanitized = sanitizeNoSQLInput(data);
+    await geocodeAndAssignLocation(sanitized);
+};
 
 /**
  * @description Create a new doctor
@@ -72,30 +45,8 @@ export const getDoctorById = asyncHandler(async (req: Request, res: Response, ne
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const createDoctor = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
-    }
-    try {
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        await geocodeAndAssignLocation(sanitizedData);
-        const doctor = await DoctorService.create(sanitizedData);
-        res.status(201).json({
-            success: true,
-            message: 'Doctor created successfully',
-            data: doctor,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
+export const createDoctor = createCreateHandler(DoctorService, 'Doctor', {
+    preCreate: preProcessDoctor,
 });
 
 /**
@@ -105,34 +56,8 @@ export const createDoctor = asyncHandler(async (req: Request, res: Response, nex
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const updateDoctor = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
-    }
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Doctor ID is required'));
-        }
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        await geocodeAndAssignLocation(sanitizedData);
-        const doctor = await DoctorService.updateById(id, sanitizedData);
-        res.status(200).json({
-            success: true,
-            message: 'Doctor updated successfully',
-            data: doctor,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
+export const updateDoctor = createUpdateHandler(DoctorService, 'Doctor', {
+    preUpdate: preProcessDoctor,
 });
 
 /**
@@ -142,27 +67,7 @@ export const updateDoctor = asyncHandler(async (req: Request, res: Response, nex
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const deleteDoctor = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Doctor ID is required'));
-        }
-        await DoctorService.deleteById(id);
-        res.status(200).json({
-            success: true,
-            message: 'Doctor deleted successfully',
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const deleteDoctor = createDeleteHandler(DoctorService, 'Doctor');
 
 /**
  * @description Add a review to a doctor
@@ -177,7 +82,7 @@ export const addReviewToDoctor = asyncHandler(async (req: Request, res: Response
         const sanitizedBody = sanitizeNoSQLInput(req.body);
         const reviewData = {
             ...sanitizedBody,
-            entityType: 'Doctor',
+            entityType: 'Doctor' as any,
             entity: req.params.id,
             doctorId: req.params.id, // Keep for backward compatibility
         };
@@ -222,3 +127,12 @@ export const getTopRatedDoctors = asyncHandler(async (_req: Request, res: Respon
         );
     }
 });
+
+/**
+ * @description Get nearby doctors
+ * @name getNearbyDoctors
+ * @route GET /api/v1/doctors/nearby
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getNearbyDoctors = createGetNearbyHandler(DoctorService, 'Doctor');

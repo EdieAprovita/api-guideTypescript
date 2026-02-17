@@ -33,7 +33,7 @@ const professionalProfileSchema = new Schema<IProfessionProfile>(
         contact: [
             {
                 phone: {
-                    type: Number,
+                    type: String,
                     required: true,
                 },
                 email: {

@@ -1,13 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../middleware/asyncHandler.js';
-import pkg from 'express-validator';
-const { validationResult } = pkg;
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { restaurantService as RestaurantService } from '../services/RestaurantService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
 import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
+import {
+    createGetAllHandler,
+    createGetByIdHandler,
+    createCreateHandler,
+    createUpdateHandler,
+    createDeleteHandler,
+    createGetNearbyHandler,
+} from './factories/entityControllerFactory.js';
 
 /**
  * @description Get all restaurants
@@ -16,25 +22,7 @@ import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
  * @access Public
  * @returns {Promise<Response>}
  */
-
-export const getRestaurants = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-        // Usar método con cache para mejor rendimiento
-        const restaurants = await RestaurantService.getAllCached();
-        res.status(200).json({
-            success: true,
-            message: 'Restaurants fetched successfully',
-            data: restaurants,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const getRestaurants = createGetAllHandler(RestaurantService, 'Restaurant', { useCache: true });
 
 /**
  * @description Get a restaurant by id
@@ -43,30 +31,12 @@ export const getRestaurants = asyncHandler(async (_req: Request, res: Response, 
  * @access Public
  * @returns {Promise<Response>}
  */
+export const getRestaurantById = createGetByIdHandler(RestaurantService, 'Restaurant', { useCache: true });
 
-export const getRestaurantById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
-        }
-        // Usar método con cache para mejor rendimiento
-        const restaurant = await RestaurantService.findByIdCached(id);
-
-        res.status(200).json({
-            success: true,
-            message: 'Restaurant fetched successfully',
-            data: restaurant,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.NOT_FOUND,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+const preProcessRestaurant = async (data: any) => {
+    const sanitized = sanitizeNoSQLInput(data);
+    await geocodeAndAssignLocation(sanitized);
+};
 
 /**
  * @description Create a new restaurant
@@ -75,31 +45,9 @@ export const getRestaurantById = asyncHandler(async (req: Request, res: Response
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const createRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
-    }
-    try {
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        await geocodeAndAssignLocation(sanitizedData);
-        // Usar método con invalidación automática de cache
-        const restaurant = await RestaurantService.createCached(sanitizedData);
-        res.status(201).json({
-            success: true,
-            message: 'Restaurant created successfully',
-            data: restaurant,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
+export const createRestaurant = createCreateHandler(RestaurantService, 'Restaurant', {
+    preCreate: preProcessRestaurant,
+    useCache: true,
 });
 
 /**
@@ -109,35 +57,9 @@ export const createRestaurant = asyncHandler(async (req: Request, res: Response,
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const updateRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
-    }
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
-        }
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        await geocodeAndAssignLocation(sanitizedData);
-        // Usar método con invalidación automática de cache
-        const restaurant = await RestaurantService.updateByIdCached(id, sanitizedData);
-        res.status(200).json({
-            success: true,
-            message: 'Restaurant updated successfully',
-            data: restaurant,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
+export const updateRestaurant = createUpdateHandler(RestaurantService, 'Restaurant', {
+    preUpdate: preProcessRestaurant,
+    useCache: true,
 });
 
 /**
@@ -147,27 +69,7 @@ export const updateRestaurant = asyncHandler(async (req: Request, res: Response,
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const deleteRestaurant = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required'));
-        }
-        await RestaurantService.deleteById(id);
-        res.status(200).json({
-            success: true,
-            message: 'Restaurant deleted successfully',
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const deleteRestaurant = createDeleteHandler(RestaurantService, 'Restaurant');
 
 /**
  * @description Add a review to a restaurant
@@ -182,7 +84,7 @@ export const addReviewToRestaurant = asyncHandler(async (req: Request, res: Resp
         const sanitizedBody = sanitizeNoSQLInput(req.body);
         const reviewData = {
             ...sanitizedBody,
-            entityType: 'Restaurant',
+            entityType: 'Restaurant' as any,
             entity: req.params.id,
             restaurantId: req.params.id, // Keep for backward compatibility
         };
@@ -233,3 +135,12 @@ export const getTopRatedRestaurants = asyncHandler(async (_req: Request, res: Re
         );
     }
 });
+
+/**
+ * @description Get nearby restaurants
+ * @name getNearbyRestaurants
+ * @route GET /api/v1/restaurants/nearby
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getNearbyRestaurants = createGetNearbyHandler(RestaurantService, 'Restaurant');

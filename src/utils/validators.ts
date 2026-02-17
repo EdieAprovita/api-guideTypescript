@@ -190,17 +190,19 @@ export const restaurantSchemas = {
 export const reviewSchemas = {
     create: Joi.object({
         rating: Joi.number().integer().min(1).max(5).required(),
-        title: Joi.string().trim().min(5).max(100).required(),
-        content: Joi.string().trim().min(10).max(1000).required(),
+        title: Joi.string().trim().min(5).max(100).optional(),
+        content: Joi.string().trim().min(10).max(1000).optional(),
+        comment: Joi.string().trim().min(10).max(1000).optional(), // Frontend alias for `content`
         visitDate: Joi.date().max('now').optional(),
         recommendedDishes: Joi.array().items(Joi.string().trim().max(50)).optional(),
         tags: Joi.array().items(Joi.string().trim().max(30)).optional(),
-    }),
+    }).or('content', 'comment'), // At least one of content/comment is required
 
     update: Joi.object({
         rating: Joi.number().integer().min(1).max(5).optional(),
         title: Joi.string().trim().min(5).max(100).optional(),
         content: Joi.string().trim().min(10).max(1000).optional(),
+        comment: Joi.string().trim().min(10).max(1000).optional(), // Frontend alias for `content`
         visitDate: Joi.date().max('now').optional(),
         recommendedDishes: Joi.array().items(Joi.string().trim().max(50)).optional(),
         tags: Joi.array().items(Joi.string().trim().max(30)).optional(),

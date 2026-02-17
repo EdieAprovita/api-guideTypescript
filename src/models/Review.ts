@@ -3,7 +3,7 @@ import mongoose, { Schema, Types, Document } from 'mongoose';
 export interface IReview extends Document {
     _id: string;
     rating: number;
-    title: string;
+    title?: string;
     content: string;
     visitDate: Date;
     recommendedDishes?: string[];
@@ -32,7 +32,7 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
         },
         title: {
             type: String,
-            required: true,
+            required: false,
             minlength: 5,
             maxlength: 100,
         },
@@ -93,6 +93,30 @@ const reviewSchema: Schema = new mongoose.Schema<IReview>(
     },
     { timestamps: true }
 );
+
+// Virtual: `comment` aliases `content` for frontend compatibility
+reviewSchema
+    .virtual('comment')
+    .get(function (this: IReview) {
+        return this.content;
+    })
+    .set(function (this: IReview, value: string) {
+        this.content = value;
+    });
+
+// Expose virtuals in JSON/Object serialization
+reviewSchema.set('toJSON', { virtuals: true });
+reviewSchema.set('toObject', { virtuals: true });
+
+// Auto-generate title from content when not provided
+reviewSchema.pre('save', function (next) {
+    const doc = this as unknown as IReview;
+    if (!doc.title && doc.content) {
+        const contentStr = String(doc.content);
+        doc.title = contentStr.length > 60 ? contentStr.substring(0, 57) + '...' : contentStr;
+    }
+    next();
+});
 
 // Compound index to prevent duplicate reviews from same user for same entity
 // Note: use a partial filter to avoid E11000 on legacy docs missing polymorphic fields

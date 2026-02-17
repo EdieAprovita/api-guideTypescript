@@ -36,8 +36,15 @@ export function createAddReviewHandler<T>(
                 throw new HttpError(HttpStatusCode.CONFLICT, `User has already reviewed this ${entityType.toLowerCase()}`);
             }
 
+            // Map frontend `comment` → backend `content` if needed
+            const body = { ...req.body };
+            if (body.comment && !body.content) {
+                body.content = body.comment;
+                delete body.comment;
+            }
+
             const reviewData = {
-                ...req.body,
+                ...body,
                 author: userId,
                 entityType,
                 entity: id,

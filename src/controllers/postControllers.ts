@@ -232,6 +232,42 @@ export const unlikePost = asyncHandler(async (req: Request, res: Response, next:
 });
 
 /**
+ * @description Remove a comment from a post
+ * @name removeComment
+ * @route DELETE /api/posts/:postId/comments/:commentId
+ * @access Private (comment author only)
+ * @returns {Promise<Response>}
+ */
+
+export const removeComment = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { postId, commentId } = req.params;
+        const userId = req.user?._id;
+        if (!postId || !commentId || !userId) {
+            return next(
+                new HttpError(HttpStatusCode.BAD_REQUEST, 'Post ID, Comment ID, and user authentication required')
+            );
+        }
+        const comments = await PostService.removeComment(postId, commentId, userId.toString());
+        res.status(200).json({
+            success: true,
+            message: 'Comment removed successfully',
+            data: comments,
+        });
+    } catch (error) {
+        if (error instanceof HttpError) {
+            return next(error);
+        }
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
+});
+
+/**
  * @description Delete a post by id
  * @name deletePost
  * @route DELETE /api/posts/:id

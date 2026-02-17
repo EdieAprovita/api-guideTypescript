@@ -3,6 +3,7 @@ import mongoose, { Schema, Types, Document } from 'mongoose';
 import { IContact } from '../types/modalTypes.js';
 import { IGeoJSONPoint } from '../types/GeoJSON.js';
 import { geoJSONPointSchema } from './GeoJSON.js';
+import { contactSchema } from './CommonSchemas.js';
 
 export interface IDoctor extends Document {
     _id: string;
@@ -28,6 +29,7 @@ const doctorSchema = new Schema<IDoctor>(
             type: String,
             required: true,
             unique: true,
+            alias: 'name',
         },
         author: {
             type: Schema.Types.ObjectId,
@@ -47,29 +49,7 @@ const doctorSchema = new Schema<IDoctor>(
             type: String,
             required: true,
         },
-        contact: [
-            {
-                phone: {
-                    type: String,
-                    required: true,
-                },
-                email: {
-                    type: String,
-                    required: true,
-                    unique: true,
-                },
-                facebook: {
-                    type: String,
-                    required: false,
-                    unique: true,
-                },
-                instagram: {
-                    type: String,
-                    required: false,
-                    unique: true,
-                },
-            },
-        ],
+        contact: [contactSchema],
         reviews: [
             {
                 type: Schema.Types.ObjectId,

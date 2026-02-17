@@ -25,6 +25,7 @@ const professionSchema: Schema = new mongoose.Schema<IProfession>(
         professionName: {
             type: String,
             required: true,
+            alias: 'name',
         },
         author: {
             type: Schema.Types.ObjectId,
@@ -43,7 +44,7 @@ const professionSchema: Schema = new mongoose.Schema<IProfession>(
         contact: [
             {
                 phone: {
-                    type: Number,
+                    type: String,
                     required: true,
                 },
                 email: {

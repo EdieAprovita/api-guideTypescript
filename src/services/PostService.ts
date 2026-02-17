@@ -12,8 +12,33 @@ import { Types } from 'mongoose';
  * */
 
 class PostService extends BaseService<IPost> {
+    private static readonly AUTHOR_POPULATE = { path: 'username', select: 'username photo' };
+    private static readonly COMMENT_AUTHOR_POPULATE = { path: 'comments.username', select: 'username photo' };
+
     constructor() {
         super(Post);
+    }
+
+    async getAll(): Promise<IPost[]> {
+        return Post.find()
+            .populate(PostService.AUTHOR_POPULATE)
+            .populate(PostService.COMMENT_AUTHOR_POPULATE)
+            .sort({ createdAt: -1 })
+            .exec();
+    }
+
+    async findById(id: string): Promise<IPost> {
+        if (!Types.ObjectId.isValid(id)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid ID format'));
+        }
+        const post = await Post.findById(new Types.ObjectId(id))
+            .populate(PostService.AUTHOR_POPULATE)
+            .populate(PostService.COMMENT_AUTHOR_POPULATE)
+            .exec();
+        if (!post) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
+        }
+        return post;
     }
 
     async likePost(postId: string, userId: string) {

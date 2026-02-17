@@ -11,6 +11,7 @@ import {
     addReviewToRestaurant,
     deleteRestaurant,
     getTopRatedRestaurants,
+    getNearbyRestaurants,
 } from '../controllers/restaurantControllers.js';
 import { createReviewForRestaurant } from '../controllers/reviewControllers.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
@@ -38,6 +39,14 @@ router.get(
     validate({ query: querySchemas.search }),
     restaurantCacheMiddleware(),
     getTopRatedRestaurants
+);
+
+router.get(
+    '/nearby',
+    rateLimits.search,
+    validate({ query: querySchemas.geospatial }),
+    restaurantCacheMiddleware(),
+    getNearbyRestaurants
 );
 
 router.get(
