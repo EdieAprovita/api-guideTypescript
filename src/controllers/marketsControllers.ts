@@ -193,3 +193,36 @@ export const getMarketReviews = createGetReviewsHandler('Market', MarketsService
  * @returns {Promise<Response>}
  */
 export const getMarketReviewStats = createGetReviewStatsHandler('Market', MarketsService);
+
+/**
+ * @description Get nearby markets
+ * @name getNearbyMarkets
+ * @route GET /api/v1/markets/nearby
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getNearbyMarkets = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { lat, lng, radius, page, limit } = req.query;
+        if (!lat || !lng) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Latitude and longitude are required'));
+        }
+
+        const result = await MarketsService.findNearbyPaginated({
+            latitude: Number(lat),
+            longitude: Number(lng),
+            radius: Number(radius) || 5000,
+            page: page as string,
+            limit: limit as string,
+        });
+
+        res.status(HttpStatusCode.OK).json({
+            success: true,
+            message: 'Nearby markets fetched successfully',
+            data: result.data,
+            meta: result.meta,
+        });
+    } catch (error: any) {
+        next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+    }
+});

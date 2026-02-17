@@ -6,6 +6,33 @@ import logger from '../utils/logger.js';
 import { PaginatedResponse, PaginationMeta, normalizePaginationParams } from '../types/pagination.js';
 
 /**
+ * @description Options for nearby search
+ */
+export interface NearbyOptions {
+    latitude: number;
+    longitude: number;
+    radius?: number | undefined;
+    page?: string | number | undefined;
+    limit?: string | number | undefined;
+    q?: string | undefined;
+    searchFields?: string[] | undefined;
+    filter?: Record<string, any> | undefined;
+}
+
+/**
+ * @description Options for text search
+ */
+export interface SearchOptions {
+    q?: string | undefined;
+    category?: string | undefined;
+    sortBy?: string | undefined;
+    sortOrder?: 'asc' | 'desc' | undefined;
+    page?: string | number | undefined;
+    limit?: string | number | undefined;
+    searchFields?: string[] | undefined;
+}
+
+/**
  * @description Base service class
  * @name BaseService
  * @class
@@ -360,6 +387,103 @@ class BaseService<T extends Document> {
             },
         };
         return this.model.find(query).exec() as Promise<T[]>;
+    }
+
+    /**
+     * @description Generic nearby search with pagination
+     */
+    async findNearbyPaginated(options: NearbyOptions): Promise<PaginatedResponse<T>> {
+        const {
+            latitude,
+            longitude,
+            radius = 5000,
+            page,
+            limit,
+            q,
+            searchFields = [],
+            filter: extraFilter = {},
+        } = options;
+        const { page: normalizedPage, limit: normalizedLimit } = normalizePaginationParams(page, limit);
+        const skip = (normalizedPage - 1) * normalizedLimit;
+
+        const combinedFilter: Record<string, any> = {
+            ...extraFilter,
+            location: {
+                $near: {
+                    $geometry: { type: 'Point' as const, coordinates: [longitude, latitude] },
+                    $maxDistance: radius,
+                },
+            },
+        };
+
+        if (q && searchFields.length > 0) {
+            combinedFilter.$or = searchFields.map(field => ({
+                [field]: { $regex: q, $options: 'i' },
+            }));
+        }
+
+        const [data, total] = await Promise.all([
+            this.model
+                .find(combinedFilter as FilterQuery<T>)
+                .skip(skip)
+                .limit(normalizedLimit)
+                .exec(),
+            this.model.countDocuments(combinedFilter as FilterQuery<T>).exec(),
+        ]);
+
+        const meta: PaginationMeta = {
+            page: normalizedPage,
+            limit: normalizedLimit,
+            total,
+            pages: Math.ceil(total / normalizedLimit),
+        };
+
+        return { data: data as T[], meta };
+    }
+
+    /**
+     * @description Generic text search with pagination
+     */
+    async searchPaginated(options: SearchOptions): Promise<PaginatedResponse<T>> {
+        const { q, category, sortBy, sortOrder = 'asc', page, limit, searchFields = [] } = options;
+
+        const { page: normalizedPage, limit: normalizedLimit } = normalizePaginationParams(page, limit);
+        const skip = (normalizedPage - 1) * normalizedLimit;
+
+        const filter: Record<string, any> = {};
+
+        if (q && searchFields.length > 0) {
+            filter.$or = searchFields.map(field => ({
+                [field]: { $regex: q, $options: 'i' },
+            }));
+        }
+
+        if (category) {
+            // This is a generic category filter, might need customization in child services if field name differs
+            filter.category = { $regex: category, $options: 'i' };
+        }
+
+        const sortDirection = sortOrder === 'desc' ? -1 : 1;
+        const sortQuery = (sortBy ? { [sortBy]: sortDirection } : { createdAt: -1 }) as any;
+
+        const [data, total] = await Promise.all([
+            this.model
+                .find(filter as FilterQuery<T>)
+                .sort(sortQuery)
+                .skip(skip)
+                .limit(normalizedLimit)
+                .exec(),
+            this.model.countDocuments(filter as FilterQuery<T>).exec(),
+        ]);
+
+        const meta: PaginationMeta = {
+            page: normalizedPage,
+            limit: normalizedLimit,
+            total,
+            pages: Math.ceil(total / normalizedLimit),
+        };
+
+        return { data: data as T[], meta };
     }
 }
 export default BaseService;

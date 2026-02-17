@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
-import { paramSchemas, reviewSchemas } from '../utils/validators.js';
+import { paramSchemas, reviewSchemas, querySchemas } from '../utils/validators.js';
 import {
     getProfessions,
     getProfessionById,
@@ -9,11 +9,13 @@ import {
     addReviewToProfession,
     updateProfession,
     deleteProfession,
+    getNearbyProfessions,
 } from '../controllers/professionControllers.js';
 
 const router = express.Router();
 
 router.get('/', getProfessions);
+router.get('/nearby', rateLimits.search, validate({ query: querySchemas.geospatial }), getNearbyProfessions);
 router.get('/:id', getProfessionById);
 router.post('/', protect, createProfession);
 

@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import requestLogger from './middleware/requestLogger.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
+import { responseWrapper } from './middleware/responseWrapper.js';
 import fs from 'node:fs';
 
 import connectDB from './config/db.js';
@@ -32,6 +33,7 @@ import authRoutes from './routes/authRoutes.js';
 import cacheRoutes from './routes/cacheRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
 import swaggerUi, { JsonObject } from 'swagger-ui-express';
 import yaml from 'js-yaml';
 import basicAuth from './middleware/basicAuth.js';
@@ -86,6 +88,9 @@ try {
     console.warn('⚠️  Unable to load swagger.yaml, Swagger UI will be disabled');
 }
 
+// Add standard response wrapper
+app.use(responseWrapper);
+
 // Add request logger early in the middleware chain
 app.use(requestLogger);
 
@@ -135,7 +140,7 @@ app.get('/', (_req, res) => {
 });
 
 app.get('/api/v1', (_req, res) => {
-    res.send('API is running');
+    res.json('API is running');
 });
 
 // Health check endpoints (without authentication)
@@ -154,6 +159,7 @@ app.use('/api/v1/professions', professionRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/sanctuaries', sanctuaryRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
+app.use('/api/v1/search', searchRoutes);
 
 // Cache administration routes
 app.use('/api/v1/cache', cacheRoutes);

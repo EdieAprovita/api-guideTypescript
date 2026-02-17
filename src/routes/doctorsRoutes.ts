@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
-import { paramSchemas, reviewSchemas } from '../utils/validators.js';
+import { paramSchemas, reviewSchemas, querySchemas } from '../utils/validators.js';
 import {
     getDoctors,
     getDoctorById,
@@ -9,11 +9,13 @@ import {
     updateDoctor,
     addReviewToDoctor,
     deleteDoctor,
+    getNearbyDoctors,
 } from '../controllers/doctorsControllers.js';
 
 const router = express.Router();
 
 router.get('/', getDoctors);
+router.get('/nearby', rateLimits.search, validate({ query: querySchemas.geospatial }), getNearbyDoctors);
 router.get('/:id', getDoctorById);
 
 router.post('/', protect, createDoctor);

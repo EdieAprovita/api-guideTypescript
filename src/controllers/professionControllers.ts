@@ -222,3 +222,36 @@ export const getTopRatedProfessions = asyncHandler(async (_req: Request, res: Re
         );
     }
 });
+
+/**
+ * @description Get nearby professions
+ * @name getNearbyProfessions
+ * @route GET /api/v1/professions/nearby
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getNearbyProfessions = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { lat, lng, radius, page, limit } = req.query;
+        if (!lat || !lng) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Latitude and longitude are required'));
+        }
+
+        const result = await ProfessionService.findNearbyPaginated({
+            latitude: Number(lat),
+            longitude: Number(lng),
+            radius: Number(radius) || 5000,
+            page: page as string,
+            limit: limit as string,
+        });
+
+        res.status(HttpStatusCode.OK).json({
+            success: true,
+            message: 'Nearby professions fetched successfully',
+            data: result.data,
+            meta: result.meta,
+        });
+    } catch (error: any) {
+        next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+    }
+});

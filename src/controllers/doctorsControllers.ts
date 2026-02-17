@@ -222,3 +222,36 @@ export const getTopRatedDoctors = asyncHandler(async (_req: Request, res: Respon
         );
     }
 });
+
+/**
+ * @description Get nearby doctors
+ * @name getNearbyDoctors
+ * @route GET /api/v1/doctors/nearby
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getNearbyDoctors = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { lat, lng, radius, page, limit } = req.query;
+        if (!lat || !lng) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Latitude and longitude are required'));
+        }
+
+        const result = await DoctorService.findNearbyPaginated({
+            latitude: Number(lat),
+            longitude: Number(lng),
+            radius: Number(radius) || 5000,
+            page: page as string,
+            limit: limit as string,
+        });
+
+        res.status(HttpStatusCode.OK).json({
+            success: true,
+            message: 'Nearby doctors fetched successfully',
+            data: result.data,
+            meta: result.meta,
+        });
+    } catch (error: any) {
+        next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+    }
+});

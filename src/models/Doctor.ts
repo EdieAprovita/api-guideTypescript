@@ -28,6 +28,7 @@ const doctorSchema = new Schema<IDoctor>(
             type: String,
             required: true,
             unique: true,
+            alias: 'name',
         },
         author: {
             type: Schema.Types.ObjectId,

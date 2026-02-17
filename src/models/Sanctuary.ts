@@ -31,6 +31,7 @@ const sanctuarySchema = new Schema<ISanctuary>(
             type: String,
             required: true,
             unique: true,
+            alias: 'name',
         },
         author: {
             type: Schema.Types.ObjectId,
@@ -54,10 +55,12 @@ const sanctuarySchema = new Schema<ISanctuary>(
                 animalName: {
                     type: String,
                     required: true,
+                    alias: 'name',
                 },
                 specie: {
                     type: String,
                     required: true,
+                    alias: 'species',
                 },
                 age: {
                     type: Number,

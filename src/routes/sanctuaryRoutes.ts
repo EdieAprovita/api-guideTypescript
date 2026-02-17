@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
-import { paramSchemas, reviewSchemas } from '../utils/validators.js';
+import { paramSchemas, reviewSchemas, querySchemas } from '../utils/validators.js';
 import {
     getSanctuaries,
     getSanctuaryById,
@@ -9,11 +9,13 @@ import {
     updateSanctuary,
     deleteSanctuary,
     addReviewToSanctuary,
+    getNearbySanctuaries,
 } from '../controllers/sanctuaryControllers.js';
 
 const router = express.Router();
 
 router.get('/', getSanctuaries);
+router.get('/nearby', rateLimits.search, validate({ query: querySchemas.geospatial }), getNearbySanctuaries);
 router.get('/:id', getSanctuaryById);
 router.post('/', protect, createSanctuary);
 

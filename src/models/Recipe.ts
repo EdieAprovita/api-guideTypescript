@@ -10,6 +10,8 @@ export interface IRecipe extends Document {
     typeDish: string;
     image: string;
     cookingTime: number;
+    preparationTime: number;
+    servings: number;
     difficulty: string;
     reviews: Types.ObjectId[];
     rating: number;
@@ -45,9 +47,39 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             type: String,
             required: true,
         },
+        image: {
+            type: String,
+            required: true,
+        },
+        typeDish: {
+            type: String,
+            required: true,
+        },
+        difficulty: {
+            type: String,
+            required: true,
+            enum: ['Easy', 'Medium', 'Hard'],
+            default: 'Medium',
+        },
+        servings: {
+            type: Number,
+            required: true,
+            default: 1,
+        },
         cookingTime: {
             type: Number,
             required: true,
+        },
+        preparationTime: {
+            type: Number,
+            required: true,
+            default: 0,
+        },
+        budget: {
+            type: String,
+            required: true,
+            enum: ['low', 'medium', 'high'],
+            default: 'medium',
         },
         numReviews: {
             type: Number,
