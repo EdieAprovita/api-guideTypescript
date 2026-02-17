@@ -8,6 +8,7 @@ import { responseWrapper } from './middleware/responseWrapper.js';
 import fs from 'node:fs';
 
 import connectDB from './config/db.js';
+import { logInfo, logWarn } from './utils/logger.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import corsMiddleware from './middleware/corsOptions.js';
 import {
