@@ -1,5 +1,5 @@
-import BaseService from './BaseService';
-import { Restaurant, IRestaurant } from '../models/Restaurant';
+import BaseService from './BaseService.js';
+import { Restaurant, IRestaurant } from '../models/Restaurant.js';
 
 /**
  * @description Restaurant service class

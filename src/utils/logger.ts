@@ -136,8 +136,9 @@ const logger = winston.createLogger({
         environment: process.env.NODE_ENV || 'development',
     },
     transports,
-    exceptionHandlers: createExceptionHandler(),
-    rejectionHandlers: createRejectionHandler(),
+    exceptionHandlers: [...baseTransports, ...createExceptionHandler()],
+    rejectionHandlers: [...baseTransports, ...createRejectionHandler()],
+    exitOnError: false, // Don't exit on handled exceptions - let the application decide
 });
 
 // Export as default and also individual methods

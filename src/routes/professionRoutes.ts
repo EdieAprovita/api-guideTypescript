@@ -1,7 +1,7 @@
 import express from 'express';
-import { protect, admin } from '../middleware/authMiddleware';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation';
-import { paramSchemas, reviewSchemas } from '../utils/validators';
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
+import { paramSchemas, reviewSchemas } from '../utils/validators.js';
 import {
     getProfessions,
     getProfessionById,
@@ -9,7 +9,7 @@ import {
     addReviewToProfession,
     updateProfession,
     deleteProfession,
-} from '../controllers/professionControllers';
+} from '../controllers/professionControllers.js';
 
 const router = express.Router();
 

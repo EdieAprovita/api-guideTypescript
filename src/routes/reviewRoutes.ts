@@ -1,12 +1,12 @@
 import express from 'express';
-import { protect } from '../middleware/authMiddleware';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation';
-import { reviewSchemas, paramSchemas } from '../utils/validators';
-import { getReviewById, updateReview, deleteReview } from '../controllers/reviewControllers';
-import { reviewService as ReviewService } from '../services/ReviewService';
+import { protect } from '../middleware/authMiddleware.js';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
+import { reviewSchemas, paramSchemas } from '../utils/validators.js';
+import { getReviewById, updateReview, deleteReview } from '../controllers/reviewControllers.js';
+import { reviewService as ReviewService } from '../services/ReviewService.js';
 
-import asyncHandler from '../middleware/asyncHandler';
-import { HttpError, HttpStatusCode } from '../types/Errors';
+import asyncHandler from '../middleware/asyncHandler.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
 const router = express.Router();
 

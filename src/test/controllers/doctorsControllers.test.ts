@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { TestBase } from '../helpers/testBase'
+import { TestBase } from '../helpers/testBase.js'
 
 describe('doctorsControllers', () => {
   beforeEach(() => {

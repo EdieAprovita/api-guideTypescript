@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import asyncHandler from '../middleware/asyncHandler';
-import { validationResult } from 'express-validator';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { professionProfileService as ProfessionProfileService } from '../services/ProfessionProfileService';
-import { reviewService as ReviewService } from '../services/ReviewService';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
+import asyncHandler from '../middleware/asyncHandler.js';
+import pkg from 'express-validator';
+const { validationResult } = pkg;
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { professionProfileService as ProfessionProfileService } from '../services/ProfessionProfileService.js';
+import { reviewService as ReviewService } from '../services/ReviewService.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 
 /**
  * @description Get all professionsProfile

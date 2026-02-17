@@ -7,7 +7,7 @@ import {
     createTestUser,
     createAdminUser,
     createProfessionalUser,
-} from '../config/unified-test-config';
+} from '../config/unified-test-config.js';
 
 // ============================================================================
 // TYPES

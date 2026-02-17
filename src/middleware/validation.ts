@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
 import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
 // import mongoSanitize from 'express-mongo-sanitize'; // Disabled due to version conflict
-import { ValidationSchema } from '../types/validation';
+import { ValidationSchema } from '../types/validation.js';
 
 // Working validation middleware factory
 export const validate = (schema: ValidationSchema) => {

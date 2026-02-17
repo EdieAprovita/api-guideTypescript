@@ -1,16 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
-import asyncHandler from '../middleware/asyncHandler';
-import { validationResult } from 'express-validator';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { marketsService as MarketsService } from '../services/MarketsService';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
+import asyncHandler from '../middleware/asyncHandler.js';
+import pkg from 'express-validator';
+const { validationResult } = pkg;
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { marketsService as MarketsService } from '../services/MarketsService.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import {
     createAddReviewHandler,
     createGetReviewsHandler,
     createGetReviewStatsHandler,
-} from './factories/reviewEndpointsFactory';
-import geocodeAndAssignLocation from '../utils/geocodeLocation';
+} from './factories/reviewEndpointsFactory.js';
+import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
 
 /**
  * @description Get all markets

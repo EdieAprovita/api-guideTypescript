@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { sanitizeNoSQLInput, sanitizeQueryParams } from '../../utils/sanitizer';
+import { sanitizeNoSQLInput, sanitizeQueryParams } from '../../utils/sanitizer.js';
 
 // Mock the logger to prevent console output during tests
 vi.mock('../../utils/logger', () => ({

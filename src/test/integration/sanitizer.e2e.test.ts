@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { sanitizeNoSQLInput, sanitizeQueryParams } from '../../utils/sanitizer';
+import { sanitizeNoSQLInput, sanitizeQueryParams } from '../../utils/sanitizer.js';
 
 describe('NoSQL Injection Prevention - E2E Flow', () => {
     describe('Controller → Service → Database flow', () => {

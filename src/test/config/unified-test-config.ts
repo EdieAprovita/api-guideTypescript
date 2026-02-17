@@ -10,16 +10,16 @@ import { faker } from '@faker-js/faker';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-import { mockFactory } from '../mocks/unified-mock-factory';
-import testConfig from '../testConfig';
-import type { TestContext, TestSetupOptions } from '../types/test-types';
+import { mockFactory } from '../mocks/unified-mock-factory.js';
+import testConfig from '../testConfig.js';
+import type { TestContext, TestSetupOptions } from '../types/test-types.js';
 
 // ============================================================================
 // ESSENTIALS ONLY
 // ============================================================================
 
-export { TEST_CONSTANTS } from '../types/test-types';
-export { mockFactory } from '../mocks/unified-mock-factory';
+export { TEST_CONSTANTS } from '../types/test-types.js';
+export { mockFactory } from '../mocks/unified-mock-factory.js';
 export const generateValidObjectId = () => faker.database.mongodbObjectId();
 
 faker.seed(12345);

@@ -1,5 +1,5 @@
-import { cacheService } from './CacheService';
-import logger from '../utils/logger';
+import { cacheService } from './CacheService.js';
+import logger from '../utils/logger.js';
 
 export interface AlertThresholds {
     minHitRatio: number;

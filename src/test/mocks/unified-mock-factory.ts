@@ -23,8 +23,8 @@ import type {
     TestRequest,
     TestResponse,
     MockFactoryOptions,
-} from '../types/test-types';
-import testConfig from '../testConfig';
+} from '../types/test-types.js';
+import testConfig from '../testConfig.js';
 
 // Define constants directly here to avoid circular dependency
 const TEST_CONSTANTS = {

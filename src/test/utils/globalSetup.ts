@@ -1,6 +1,6 @@
 // Global setup for Vitest - runs once before all tests
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import testConfig from '../testConfig';
+import testConfig from '../testConfig.js';
 
 let mongoServer: MongoMemoryServer | undefined;
 

@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-import asyncHandler from '../middleware/asyncHandler';
-import { validationResult } from 'express-validator';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { businessService as BusinessService } from '../services/BusinessService';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
-import { reviewService as ReviewService } from '../services/ReviewService';
-import { sendSuccessResponse, sendCreatedResponse } from '../utils/responseHelpers';
-import geocodeAndAssignLocation from '../utils/geocodeLocation';
+import asyncHandler from '../middleware/asyncHandler.js';
+import pkg from 'express-validator';
+const { validationResult } = pkg;
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { businessService as BusinessService } from '../services/BusinessService.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import { reviewService as ReviewService } from '../services/ReviewService.js';
+import { sendSuccessResponse, sendCreatedResponse } from '../utils/responseHelpers.js';
+import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
 
 /**
  * @description Get all businesses

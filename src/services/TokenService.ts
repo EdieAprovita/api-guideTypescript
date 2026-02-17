@@ -1,5 +1,7 @@
 import * as jwt from 'jsonwebtoken';
-import Redis from 'ioredis';
+import RedisLib from 'ioredis';
+import type { Redis as RedisType } from 'ioredis';
+const Redis = RedisLib.default || RedisLib;
 import { randomUUID } from 'crypto';
 
 interface TokenPayload {
@@ -33,16 +35,38 @@ interface MockRedisEntry {
 let mockRedisStorage: Map<string, MockRedisEntry>;
 
 class TokenService {
-    private redis!: Redis;
-    private accessTokenSecret!: string;
-    private refreshTokenSecret!: string;
+    private redis!: RedisType;
+    private accessTokenSecret?: string;
+    private refreshTokenSecret?: string;
     private accessTokenExpiry!: string;
     private refreshTokenExpiry!: string;
     private readonly issuer = 'vegan-guide-api';
     private readonly audience = 'vegan-guide-client';
+    private initialized = false;
+
     constructor() {
+        // Initialize Redis immediately (it's lazy-loaded anyway)
         this.initializeRedis();
-        this.initializeSecrets();
+        // Don't initialize secrets in constructor - do it lazily on first use
+    }
+
+    /**
+     * Lazy initialization of secrets - only throws when actually needed
+     */
+    private ensureInitialized(): void {
+        if (!this.initialized) {
+            try {
+                this.initializeSecrets();
+                this.initialized = true;
+            } catch (error) {
+                // In production, we want to fail fast if secrets are missing
+                // But allow the server to start for health checks
+                if (process.env.NODE_ENV !== 'test') {
+                    console.warn('⚠️ JWT secrets not configured - token operations will fail');
+                }
+                throw error;
+            }
+        }
     }
 
     private initializeRedis(): void {
@@ -99,7 +123,7 @@ class TokenService {
                 mockRedisStorage.clear();
                 return Promise.resolve('OK');
             },
-        } as unknown as Redis;
+        } as unknown as RedisType;
     }
 
     private initializeRealRedis(): void {
@@ -181,18 +205,19 @@ class TokenService {
     }
 
     async generateTokenPair(payload: TokenPayload): Promise<TokenPair> {
+        this.ensureInitialized();
         this.debugLog('generateTokenPair called with payload:', payload);
 
         const tokenPayload = this.createTokenPayload(payload);
         this.debugLog('Created token payload:', tokenPayload);
 
         this.debugLog('About to sign access token...');
-        const accessToken = this.signToken(tokenPayload, this.accessTokenSecret, this.accessTokenExpiry);
+        const accessToken = this.signToken(tokenPayload, this.accessTokenSecret!, this.accessTokenExpiry);
         this.debugLog('Access token result:', accessToken ? 'GENERATED' : 'UNDEFINED');
 
         const refreshPayload = { ...tokenPayload, type: 'refresh' as const };
         this.debugLog('About to sign refresh token...');
-        const refreshToken = this.signToken(refreshPayload, this.refreshTokenSecret, this.refreshTokenExpiry);
+        const refreshToken = this.signToken(refreshPayload, this.refreshTokenSecret!, this.refreshTokenExpiry);
         this.debugLog('Refresh token result:', refreshToken ? 'GENERATED' : 'UNDEFINED');
 
         // Store refresh token in Redis
@@ -260,8 +285,9 @@ class TokenService {
     }
 
     async verifyAccessToken(token: string): Promise<TokenPayload> {
+        this.ensureInitialized();
         try {
-            return await this.verifyToken(token, this.accessTokenSecret);
+            return await this.verifyToken(token, this.accessTokenSecret!);
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
             throw new Error(`Invalid or expired access token: ${message}`);
@@ -269,8 +295,9 @@ class TokenService {
     }
 
     async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
+        this.ensureInitialized();
         try {
-            const payload = (await this.verifyToken(token, this.refreshTokenSecret)) as RefreshTokenPayload;
+            const payload = (await this.verifyToken(token, this.refreshTokenSecret!)) as RefreshTokenPayload;
 
             if (payload.type !== 'refresh') {
                 throw new Error('Invalid token type');
@@ -403,7 +430,7 @@ class TokenService {
 
     async clearAllForTesting(): Promise<void> {
         if (process.env.NODE_ENV === 'test') {
-            const redis = this.redis as Redis & { flushall?: () => Promise<string> };
+            const redis = this.redis as RedisType & { flushall?: () => Promise<string> };
             if (redis.flushall) {
                 await redis.flushall();
             }

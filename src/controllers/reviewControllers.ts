@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import asyncHandler from '../middleware/asyncHandler';
-import { reviewService as ReviewService } from '../services/ReviewService';
-import { restaurantService as RestaurantService } from '../services/RestaurantService';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import logger from '../utils/logger';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
+import asyncHandler from '../middleware/asyncHandler.js';
+import { reviewService as ReviewService } from '../services/ReviewService.js';
+import { restaurantService as RestaurantService } from '../services/RestaurantService.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import logger from '../utils/logger.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 
 /**
  * Helper function to validate review ownership

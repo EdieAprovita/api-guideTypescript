@@ -2,6 +2,7 @@
     "name": "api-guidetypescript",
     "version": "2.3.0",
     "description": "Vegan City Guide API - A comprehensive TypeScript REST API",
+    "type": "module",
     "main": "dist/server.js",
     "scripts": {
         "dev": "nodemon src/server.ts",
@@ -35,7 +36,7 @@
         "validate": "npm run type-check && npm run lint && npm run test:coverage",
         "sonar:scan": "sonar-scanner",
         "sonar:prepare": "npm run test:coverage && npm run lint:report && npm run test:execution-report",
-        "test:execution-report": "node src/scripts/generateTestReport.js",
+        "test:execution-report": "node src/scripts/generateTestReport.cjs",
         "lint:report": "eslint . --format json --output-file eslint-report.json || true",
         "docker:build": "docker build -t api-guidetypescript .",
         "docker:run": "docker run -p 8080:8080 -e PORT=8080 api-guidetypescript",

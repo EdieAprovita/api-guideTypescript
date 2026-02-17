@@ -1,5 +1,5 @@
-import BaseService from './BaseService';
-import { IBusiness, Business } from '../models/Business';
+import BaseService from './BaseService.js';
+import { IBusiness, Business } from '../models/Business.js';
 
 /**
  * @description Business service class

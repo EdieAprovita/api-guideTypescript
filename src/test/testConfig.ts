@@ -5,8 +5,8 @@
  */
 
 import { faker } from '@faker-js/faker';
-import { generateTestPassword, generateWeakPassword } from './utils/passwordGenerator';
-import { ERROR_MESSAGES } from './constants/validationMessages';
+import { generateTestPassword, generateWeakPassword } from './utils/passwordGenerator.js';
+import { ERROR_MESSAGES } from './constants/validationMessages.js';
 
 // Generate unique test session ID to avoid conflicts
 const TEST_SESSION_ID = faker.string.alphanumeric(8);

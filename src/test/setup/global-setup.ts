@@ -4,7 +4,7 @@
  */
 
 import { beforeAll, afterAll, beforeEach } from 'vitest';
-import { setupTest } from '../config/unified-test-config';
+import { setupTest } from '../config/unified-test-config.js';
 
 // ============================================================================
 // GLOBAL SETUP - MINIMAL AND CLEAN

@@ -1,6 +1,6 @@
 import mongoose, { Schema, Types, Document } from 'mongoose';
-import { IGeoJSONPoint } from '../types/GeoJSON';
-import { geoJSONPointSchema } from './GeoJSON';
+import { IGeoJSONPoint } from '../types/GeoJSON.js';
+import { geoJSONPointSchema } from './GeoJSON.js';
 
 export interface IMarket extends Document {
     _id: string;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 // import request from 'supertest'
-// import app from '../../app'
+// import app from '../../app.js'
 // import type { Request, Response, NextFunction } from 'express'
 
 // TODO: Uncomment and configure these imports when implementing real tests

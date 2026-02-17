@@ -1,11 +1,11 @@
 import { vi, type MockedFunction, expect, type Mock, type Mocked, beforeEach } from 'vitest';
 import request from 'supertest';
 import { Application, Request, Response, NextFunction } from 'express';
-import { TestUser, MockRestaurant, MockBusiness, MockMarket, MockSanctuary } from '../types';
+import { TestUser, MockRestaurant, MockBusiness, MockMarket, MockSanctuary } from '../types.js';
 import { faker } from '@faker-js/faker';
 import { Response as SupertestResponse } from 'supertest';
 import jwt from 'jsonwebtoken';
-import testConfig from '../testConfig';
+import testConfig from '../testConfig.js';
 
 /**
  * Create a test user with default values - NO hardcoded data
@@ -453,7 +453,7 @@ import {
     generateWeakPassword as generateCentralizedWeakPassword,
     generateUniquePassword,
     generateDeterministicPassword,
-} from './passwordGenerator';
+} from './passwordGenerator.js';
 
 // Controller test helpers are now defined inline to avoid circular dependencies
 

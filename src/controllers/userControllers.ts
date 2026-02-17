@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import asyncHandler from '../middleware/asyncHandler';
-import UserServices from '../services/UserService';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
+import asyncHandler from '../middleware/asyncHandler.js';
+import UserServices from '../services/UserService.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 
 /**
  * @description Authenticate user and get token

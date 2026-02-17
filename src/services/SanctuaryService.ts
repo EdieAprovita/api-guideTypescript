@@ -1,5 +1,5 @@
-import BaseService from './BaseService';
-import { ISanctuary, Sanctuary } from '../models/Sanctuary';
+import BaseService from './BaseService.js';
+import { ISanctuary, Sanctuary } from '../models/Sanctuary.js';
 
 /**
  * @description sanctuary service class

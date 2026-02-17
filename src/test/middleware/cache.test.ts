@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
-import { mockRequest, mockResponse, mockNext } from '../setup/unit-setup';
+import { mockRequest, mockResponse, mockNext } from '../setup/unit-setup.js';
 
 // Mock the cache middleware
 vi.mock('../../middleware/cache', () => ({

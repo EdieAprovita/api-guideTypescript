@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import logger from '../../utils/logger';
+import logger from '../../utils/logger.js';
 
 // Test only the logging structure and consistency
 describe('ReviewService - Phase 8 Logging Structure', () => {

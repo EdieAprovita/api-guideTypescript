@@ -1,8 +1,8 @@
 import express from 'express';
-import { protect, admin } from '../middleware/authMiddleware';
-import { browserCacheValidation, businessCacheMiddleware } from '../middleware/cache';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation';
-import { paramSchemas, reviewSchemas } from '../utils/validators';
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { browserCacheValidation, businessCacheMiddleware } from '../middleware/cache.js';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
+import { paramSchemas, reviewSchemas } from '../utils/validators.js';
 import {
     getBusinesses,
     getBusinessById,
@@ -10,7 +10,7 @@ import {
     updateBusiness,
     addReviewToBusiness,
     deleteBusiness,
-} from '../controllers/businessControllers';
+} from '../controllers/businessControllers.js';
 
 const router = express.Router();
 

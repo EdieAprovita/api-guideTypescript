@@ -5,8 +5,8 @@ import {
     makeMasterRequest,
     expectMasterResponse,
     type MasterTestContext,
-} from '../config/master-test-config';
-import { integrationLog, testError } from '../utils/testLogger';
+} from '../config/master-test-config.js';
+import { integrationLog, testError } from '../utils/testLogger.js';
 
 // CRITICAL: Deshabilitar mocks para BusinessService y BaseService
 vi.doUnmock('../../services/BusinessService');

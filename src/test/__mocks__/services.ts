@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { faker } from '@faker-js/faker';
 // Factory para crear mocks básicos de servicios
-import testConfig from '../testConfig';
+import testConfig from '../testConfig.js';
 
 export const createBasicServiceMock = (serviceName: string) => ({
     getAll: vi.fn().mockResolvedValue([]),

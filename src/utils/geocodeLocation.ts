@@ -1,6 +1,6 @@
-import geoService from '../services/GeoService';
-import { IGeoJSONPoint } from '../types/GeoJSON';
-import logger from './logger';
+import geoService from '../services/GeoService.js';
+import { IGeoJSONPoint } from '../types/GeoJSON.js';
+import logger from './logger.js';
 
 export interface IGeocodeBody {
     address?: string;

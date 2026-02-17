@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/authMiddleware';
+import { protect } from '../middleware/authMiddleware.js';
 import {
     getPosts,
     getPostById,
@@ -9,7 +9,7 @@ import {
     unlikePost,
     addComment,
     deletePost,
-} from '../controllers/postControllers';
+} from '../controllers/postControllers.js';
 
 const router = express.Router();
 

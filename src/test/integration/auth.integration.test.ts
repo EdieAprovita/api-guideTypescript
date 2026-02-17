@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { faker } from '@faker-js/faker';
 import request from 'supertest';
-import app from '../../app';
+import app from '../../app.js';
 
 // Interfaces for type safety
 interface ApiResponse {

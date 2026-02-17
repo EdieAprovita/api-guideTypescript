@@ -1,5 +1,5 @@
-import BaseService from './BaseService';
-import { Recipe, IRecipe } from '../models/Recipe';
+import BaseService from './BaseService.js';
+import { Recipe, IRecipe } from '../models/Recipe.js';
 
 /**
  * @description Recipe service class

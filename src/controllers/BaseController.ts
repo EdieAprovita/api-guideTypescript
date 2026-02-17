@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import { sendSuccessResponse, sendCreatedResponse, sendDeletedResponse } from '../utils/responseHelpers';
-import asyncHandler from '../middleware/asyncHandler';
-import BaseService from '../services/BaseService';
+import pkg from 'express-validator';
+const { validationResult } = pkg;
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import { sendSuccessResponse, sendCreatedResponse, sendDeletedResponse } from '../utils/responseHelpers.js';
+import asyncHandler from '../middleware/asyncHandler.js';
+import BaseService from '../services/BaseService.js';
 import { Document } from 'mongoose';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 
 export class BaseController<T extends Document> {
     protected service: BaseService<T>;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import logger from '../../utils/logger';
+import logger from '../../utils/logger.js';
 
 describe('Logger Module Tests', () => {
     beforeAll(() => {

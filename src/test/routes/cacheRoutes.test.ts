@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
 import express from 'express'
 import type { Request, Response, NextFunction } from 'express'
-import cacheRoutes from '../../routes/cacheRoutes'
+import cacheRoutes from '../../routes/cacheRoutes.js'
 
 // Create test app
 const app = express()

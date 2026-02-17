@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import request from 'supertest';
-import app from '../../app';
+import app from '../../app.js';
 import { faker } from '@faker-js/faker';
 
 // ===== MOCK CONFIGURATION =====
@@ -44,8 +44,8 @@ vi.mock('../../services/ReviewService', () => ({
 }));
 
 // Import services after mocking
-import { yourEntityService } from '../../services/YourEntityService';
-import { reviewService } from '../../services/ReviewService';
+import { yourEntityService } from '../../services/YourEntityService.js';
+import { reviewService } from '../../services/ReviewService.js';
 
 // ===== TEST DATA HELPERS =====
 const createMockEntity = (overrides = {}) => ({

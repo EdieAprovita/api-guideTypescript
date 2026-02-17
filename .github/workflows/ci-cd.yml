@@ -198,7 +198,7 @@ jobs:
                   " || echo "Pre-download failed, continuing..."
 
             - name: Test MongoDB Memory Server setup
-              run: node scripts/test-mongodb-setup.js
+              run: node scripts/test-mongodb-setup.cjs
               env:
                   MONGODB_MEMORY_SERVER_VERSION: '6.0.4'
                   MONGODB_MEMORY_SERVER_DOWNLOAD_DIR: ~/.cache/mongodb-binaries

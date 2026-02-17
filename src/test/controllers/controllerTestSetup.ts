@@ -10,7 +10,7 @@ vi.mock('../../config/db', () => ({
 }));
 
 // Mock services
-import geoService from '../../services/GeoService';
+import geoService from '../../services/GeoService.js';
 
 vi.mock('../../services/GeoService', () => ({
     __esModule: true,

@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { HttpStatusCode } from '../types/Errors';
+import { HttpStatusCode } from '../types/Errors.js';
 
 export interface SuccessResponse<T> {
     success: true;

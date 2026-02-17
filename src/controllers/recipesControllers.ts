@@ -1,15 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import { getErrorMessage } from '../types/modalTypes';
-import asyncHandler from '../middleware/asyncHandler';
-import { recipeService as RecipeService } from '../services/RecipesService';
-import { sanitizeNoSQLInput } from '../utils/sanitizer';
+import pkg from 'express-validator';
+const { validationResult } = pkg;
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { getErrorMessage } from '../types/modalTypes.js';
+import asyncHandler from '../middleware/asyncHandler.js';
+import { recipeService as RecipeService } from '../services/RecipesService.js';
+import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import {
     createAddReviewHandler,
     createGetReviewsHandler,
     createGetReviewStatsHandler,
-} from './factories/reviewEndpointsFactory';
+} from './factories/reviewEndpointsFactory.js';
 
 /**
  * @description Get all recipes

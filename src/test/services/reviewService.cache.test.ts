@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, MockedFunction } from 'vitest';
-import { reviewService } from '../../services/ReviewService';
-import { cacheService } from '../../services/CacheService';
-import { Review } from '../../models/Review';
+import { reviewService } from '../../services/ReviewService.js';
+import { cacheService } from '../../services/CacheService.js';
+import { Review } from '../../models/Review.js';
 
 // Define proper types for mocked functions
 interface MockedCacheService {

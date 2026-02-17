@@ -1,7 +1,7 @@
-import { cacheService } from './CacheService';
-import { restaurantService } from './RestaurantService';
-import { businessService } from './BusinessService';
-import logger from '../utils/logger';
+import { cacheService } from './CacheService.js';
+import { restaurantService } from './RestaurantService.js';
+import { businessService } from './BusinessService.js';
+import logger from '../utils/logger.js';
 
 /**
  * CacheWarmingService - Servicio para precalentar cache con datos críticos

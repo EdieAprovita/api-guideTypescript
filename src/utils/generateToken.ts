@@ -1,8 +1,8 @@
 import { CookieOptions, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import logger from './logger';
+import logger from './logger.js';
 
-import { UserIdRequiredError, TokenGenerationError } from '../types/Errors';
+import { UserIdRequiredError, TokenGenerationError } from '../types/Errors.js';
 
 interface DefaultCookieOptions {
     httpOnly: boolean;

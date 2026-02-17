@@ -8,13 +8,13 @@ vi.doUnmock('express-validator');
 
 import { faker } from '@faker-js/faker';
 import mongoose from 'mongoose';
-import { User, IUser } from '../../../models/User';
-import { Restaurant, IRestaurant } from '../../../models/Restaurant';
-import { Business } from '../../../models/Business';
-import { logTestError } from './errorLogger';
-import { generateTestPassword } from '../../utils/passwordGenerator';
-import { generateSecureUniqueId } from '../../utils/secureRandom';
-import testConfig from '../../testConfig';
+import { User, IUser } from '../../../models/User.js';
+import { Restaurant, IRestaurant } from '../../../models/Restaurant.js';
+import { Business } from '../../../models/Business.js';
+import { logTestError } from './errorLogger.js';
+import { generateTestPassword } from '../../utils/passwordGenerator.js';
+import { generateSecureUniqueId } from '../../utils/secureRandom.js';
+import testConfig from '../../testConfig.js';
 
 // Import real bcrypt for integration tests
 const bcrypt = require('bcryptjs');

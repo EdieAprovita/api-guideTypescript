@@ -1,5 +1,7 @@
-import Redis from 'ioredis';
-import logger from '../utils/logger';
+import RedisLib from 'ioredis';
+import type { Redis as RedisType } from 'ioredis';
+const Redis = RedisLib.default || RedisLib;
+import logger from '../utils/logger.js';
 
 export interface CacheStats {
     hitRatio: number;
@@ -24,7 +26,7 @@ export interface CacheOptions {
  * - Conexión resiliente a Redis
  */
 export class CacheService {
-    private redis!: Redis;
+    private redis!: RedisType;
     private hits = 0;
     private misses = 0;
     private readonly tagMap: Map<string, Set<string>> = new Map();
@@ -90,7 +92,7 @@ export class CacheService {
             logger.info('🚀 Redis ready to accept commands');
         });
 
-        this.redis.on('error', error => {
+        this.redis.on('error', (error: Error) => {
             logger.error('❌ Redis connection error:', error);
         });
 

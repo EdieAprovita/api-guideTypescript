@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import asyncHandler from '../../middleware/asyncHandler';
-import { HttpError, HttpStatusCode } from '../../types/Errors';
-import { reviewService as ReviewService } from '../../services/ReviewService';
+import asyncHandler from '../../middleware/asyncHandler.js';
+import { HttpError, HttpStatusCode } from '../../types/Errors.js';
+import { reviewService as ReviewService } from '../../services/ReviewService.js';
 
 type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
 

@@ -1,6 +1,6 @@
 import express from 'express';
-import { refreshToken, revokeAllTokens, logout, protect } from '../middleware/authMiddleware';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation';
+import { refreshToken, revokeAllTokens, logout, protect } from '../middleware/authMiddleware.js';
+import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
 import Joi from 'joi';
 
 const router = express.Router();

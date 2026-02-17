@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { HttpError, HttpStatusCode } from '../types/Errors';
-import logger from '../utils/logger';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import logger from '../utils/logger.js';
 
 type UnknownError = {
     name?: string;
