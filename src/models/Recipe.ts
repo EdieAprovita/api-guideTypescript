@@ -58,8 +58,8 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
         difficulty: {
             type: String,
             required: true,
-            enum: ['Easy', 'Medium', 'Hard'],
-            default: 'Medium',
+            enum: ['easy', 'medium', 'hard'],
+            default: 'medium',
         },
         servings: {
             type: Number,

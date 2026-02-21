@@ -88,8 +88,10 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response, n
 export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        const { token, newPassword } = sanitizedData;
-        const response = await UserServices.resetPassword(token, newPassword);
+        const { token, newPassword, password } = sanitizedData;
+        // Accept both 'newPassword' (legacy) and 'password' (frontend field name)
+        const resolvedPassword = newPassword ?? password;
+        const response = await UserServices.resetPassword(token, resolvedPassword);
         res.status(200).json(response);
     } catch (error) {
         next(

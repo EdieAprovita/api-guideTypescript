@@ -79,11 +79,11 @@ const createPasswordSchema = () =>
     Joi.string()
         .min(8)
         .max(128)
-        .pattern(/^(?=[^\n]{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).*$/)
+        .pattern(/^(?=[^\n]{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/)
         .required()
         .messages({
             'string.pattern.base':
-                'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
+                'Password must contain at least one uppercase letter, one lowercase letter, and one number',
         });
 
 const createNameSchema = (required = true) => {

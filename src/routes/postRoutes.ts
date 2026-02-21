@@ -26,7 +26,10 @@ router.delete('/:id', protect, deletePost);
 // Phase 1: DELETE comment route (C1)
 router.delete('/:postId/comments/:commentId', protect, removeComment);
 
-// Phase 1: DELETE method for unlike (C2) — frontend expects DELETE /posts/:id/likes
+// BUG-2: DELETE /unlike/:id — frontend calls DELETE /posts/unlike/:id
+router.delete('/unlike/:id', protect, unlikePost);
+
+// Phase 1: DELETE method for unlike (C2) — frontend also supports DELETE /posts/:id/likes
 router.delete('/:id/likes', protect, unlikePost);
 
 export default router;
