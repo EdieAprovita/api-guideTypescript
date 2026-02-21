@@ -228,11 +228,13 @@ export const querySchemas = {
         page: commonSchemas.pagination.page,
         limit: commonSchemas.pagination.limit,
     })
-        // Fix (Copilot): enforce coordinate pairs — latitude+longitude must appear together
+        // Require coordinates to be provided as matching pairs within each naming convention
         .and('latitude', 'longitude')
-        // Fix (Copilot): enforce coordinate pairs — lat+lng must appear together
         .and('lat', 'lng')
-        // At least one complete coordinate pair must be present
+        // Do not allow mixing the two coordinate conventions in the same request
+        .xor('latitude', 'lat')
+        .xor('longitude', 'lng')
+        // Require at least one complete coordinate pair to be present
         .or('latitude', 'lat'),
 
     search: Joi.object({
