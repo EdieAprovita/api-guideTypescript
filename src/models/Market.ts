@@ -47,9 +47,20 @@ const marketSchema = new Schema<IMarket>(
         },
         typeMarket: {
             type: String,
-            enum: ['supermarket', 'convenience store', 'grocery store'],
+            // Accept legacy capitalized values to avoid breaking existing records on re-save.
+            // NOTE: Similar to Recipe difficulty, the `set` transformer only runs on save/update,
+            // not on queries. Legacy records may need a manual data migration to lowercase.
+            enum: [
+                'supermarket',
+                'convenience store',
+                'grocery store',
+                'Supermarket',
+                'Convenience Store',
+                'Grocery Store',
+            ],
             default: 'supermarket',
             alias: 'category',
+            set: (value: string) => (typeof value === 'string' ? value.toLowerCase() : value),
         },
         contact: [contactSchema],
         products: {

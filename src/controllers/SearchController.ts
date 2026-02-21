@@ -123,7 +123,7 @@ export class SearchController {
         }
 
         searchService.logSearchQuery(safeQuery, resourceType);
-        sendSuccessResponse(res, null, 'Search query recorded');
+        sendSuccessResponse(res, null, 'Search query logged');
     });
 
     /**

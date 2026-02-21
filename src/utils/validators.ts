@@ -81,10 +81,11 @@ const createBusinessBaseSchema = (isRequired = true) => {
 // This tradeoff is documented here for future reviewers.
 const createPasswordSchema = () =>
     Joi.string()
-        .min(8)
+        .min(12)
         .max(128)
         // Requires: at least one uppercase, one lowercase, one digit. No special char required.
-        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/)
+        // Min length increased to 12 to compensate for removing special character requirement.
+        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,128}$/)
         .required()
         .messages({
             'string.pattern.base':
@@ -231,11 +232,9 @@ export const querySchemas = {
         // Require coordinates to be provided as matching pairs within each naming convention
         .and('latitude', 'longitude')
         .and('lat', 'lng')
-        // Do not allow mixing the two coordinate conventions in the same request
-        .xor('latitude', 'lat')
-        .xor('longitude', 'lng')
-        // Require at least one complete coordinate pair to be present
-        .or('latitude', 'lat'),
+        // Do not allow mixing the two coordinate conventions in the same request (but allow omitting entirely)
+        .oxor('latitude', 'lat')
+        .oxor('longitude', 'lng'),
 
     search: Joi.object({
         q: Joi.string().trim().min(1).max(100).optional(),

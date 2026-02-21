@@ -15,6 +15,7 @@ export interface IRestaurant extends Document {
     // typePlace kept as optional — used in seedData, test fixtures, swagger, and mocks.
     // Intentionally not in the Mongoose schema (not persisted), but preserved here
     // to avoid TS errors across the codebase until a full cleanup PR is done.
+    /** @deprecated This field is no longer persisted in the database. DO NOT USE. */
     typePlace?: string;
     contact: IContact[];
     cuisine: string[];
