@@ -37,25 +37,52 @@ interface NearbyPaginatedOpts {
 }
 
 /**
+ * Runtime validator: ensures a service conforms to SearchableService at module initialization.
+ * Catches misconfigured services immediately (at startup) rather than during a live request.
+ */
+function assertSearchableService(name: string, svc: unknown): SearchableService {
+    const s = svc as Record<string, unknown>;
+    const hasSearch = typeof s?.['searchPaginated'] === 'function';
+    const hasNearby = typeof s?.['findNearbyPaginated'] === 'function';
+    if (!hasSearch || !hasNearby) {
+        throw new Error(
+            `Service "${name}" is misconfigured: ` +
+                `searchPaginated=${hasSearch ? 'OK' : 'MISSING'}, ` +
+                `findNearbyPaginated=${hasNearby ? 'OK' : 'MISSING'}`
+        );
+    }
+    return svc as SearchableService;
+}
+
+/**
  * Module-level entity registry — single source of truth for all searchable entities.
  * Eliminates duplicate { service, fields } mappings across methods (#7).
+ * Services are validated at module load time via assertSearchableService (#8).
  */
 const ENTITY_REGISTRY: Array<{ type: string; service: SearchableService; fields: string[] }> = [
     {
         type: 'restaurant',
-        service: restaurantService as SearchableService,
+        service: assertSearchableService('restaurantService', restaurantService),
         fields: ['restaurantName', 'address', 'cuisine'],
     },
     {
         type: 'business',
-        service: businessService as SearchableService,
+        service: assertSearchableService('businessService', businessService),
         fields: ['namePlace', 'address', 'typeBusiness'],
     },
-    { type: 'doctor', service: doctorService as SearchableService, fields: ['doctorName', 'address', 'specialty'] },
-    { type: 'market', service: marketsService as SearchableService, fields: ['marketName', 'address', 'typeMarket'] },
+    {
+        type: 'doctor',
+        service: assertSearchableService('doctorService', doctorService),
+        fields: ['doctorName', 'address', 'specialty'],
+    },
+    {
+        type: 'market',
+        service: assertSearchableService('marketsService', marketsService),
+        fields: ['marketName', 'address', 'typeMarket'],
+    },
     {
         type: 'sanctuary',
-        service: sanctuaryService as SearchableService,
+        service: assertSearchableService('sanctuaryService', sanctuaryService),
         fields: ['sanctuaryName', 'address', 'typeofSanctuary'],
     },
 ];
@@ -219,7 +246,13 @@ export class SearchService {
         // the inner try/catch in the previous version was redundant (#9).
         await Promise.allSettled(
             ENTITY_REGISTRY.map(async task => {
-                const result = await task.service.searchPaginated({ q: '', searchFields: [], limit: 1 });
+                // Use task.fields and limit:0 — only meta.total is needed,
+                // requesting 0 documents avoids fetching unnecessary data.
+                const result = await task.service.searchPaginated({
+                    q: '',
+                    searchFields: task.fields,
+                    limit: 0,
+                });
                 counts[`${task.type}s`] = result.meta?.total ?? 0;
             })
         );

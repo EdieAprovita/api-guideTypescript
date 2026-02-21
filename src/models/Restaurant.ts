@@ -12,6 +12,10 @@ export interface IRestaurant extends Document {
     location?: IGeoJSONPoint;
     image?: string;
     budget?: string;
+    // typePlace kept as optional — used in seedData, test fixtures, swagger, and mocks.
+    // Intentionally not in the Mongoose schema (not persisted), but preserved here
+    // to avoid TS errors across the codebase until a full cleanup PR is done.
+    typePlace?: string;
     contact: IContact[];
     cuisine: string[];
     reviews: Types.ObjectId[];
@@ -80,8 +84,9 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
     { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-// Virtual `name` getter/setter for restaurantName — works on document instances.
-// NOTE: use { restaurantName: 'x' } for Model.find() queries, not { name: 'x' }.
+// Virtual `name` provides a document-level getter/setter for restaurantName.
+// IMPORTANT: Like Mongoose alias, virtuals are NOT available in queries.
+// Always use { restaurantName: 'x' } with Model.find() — never { name: 'x' }.
 restaurantSchema
     .virtual('name')
     .get(function (this: IRestaurant) {
