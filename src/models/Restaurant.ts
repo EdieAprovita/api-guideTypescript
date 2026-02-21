@@ -8,13 +8,12 @@ export interface IRestaurant extends Document {
     _id: string;
     restaurantName: string;
     author: Types.ObjectId;
-    typePlace: string;
     address: string;
     location?: IGeoJSONPoint;
-    image: string;
-    budget: string;
+    image?: string;
+    budget?: string;
     contact: IContact[];
-    cuisine: [string];
+    cuisine: string[];
     reviews: Types.ObjectId[];
     rating: number;
     numReviews: number;
@@ -26,10 +25,12 @@ export interface IRestaurant extends Document {
 
 const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
     {
+        // BUG-11: alias 'name' added to match Doctor/Market pattern — frontend uses .name
         restaurantName: {
             type: String,
             required: true,
             unique: true,
+            alias: 'name',
         },
         address: {
             type: String,
@@ -51,6 +52,12 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
         cuisine: {
             type: [String],
             required: true,
+        },
+        image: {
+            type: String,
+        },
+        budget: {
+            type: String,
         },
         rating: {
             type: Number,

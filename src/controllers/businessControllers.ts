@@ -232,16 +232,19 @@ export const getTopRatedBusinesses = asyncHandler(async (_req: Request, res: Res
 
 export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { latitude, longitude, radius, page, limit } = req.query;
+        // BUG-13: accept both 'latitude'/'longitude' and 'lat'/'lng' (frontend uses the latter for businesses)
+        const { latitude, longitude, lat: latShort, lng: lngShort, radius, page, limit } = req.query;
+        const rawLat = latitude ?? latShort;
+        const rawLng = longitude ?? lngShort;
 
-        if (!latitude || !longitude) {
+        if (!rawLat || !rawLng) {
             return next(
                 new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude and longitude query parameters are required')
             );
         }
 
-        const lat = parseFloat(latitude as string);
-        const lng = parseFloat(longitude as string);
+        const lat = parseFloat(rawLat as string);
+        const lng = parseFloat(rawLng as string);
 
         if (isNaN(lat) || lat < -90 || lat > 90) {
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude must be a number between -90 and 90'));

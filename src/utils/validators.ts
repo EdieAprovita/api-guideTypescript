@@ -211,13 +211,18 @@ export const reviewSchemas = {
 
 // Query parameter schemas
 export const querySchemas = {
+    // BUG-13: accept both 'latitude'/'longitude' (most endpoints) and 'lat'/'lng' (businesses/search)
     geospatial: Joi.object({
         latitude: Joi.number().min(-90).max(90).optional(),
         longitude: Joi.number().min(-180).max(180).optional(),
+        lat: Joi.number().min(-90).max(90).optional(),
+        lng: Joi.number().min(-180).max(180).optional(),
         radius: Joi.number().min(1).max(50000).default(5000),
         page: commonSchemas.pagination.page,
         limit: commonSchemas.pagination.limit,
-    }).and('latitude', 'longitude'), // Both latitude and longitude must be present together
+    })
+        .or('latitude', 'lat') // At least one lat form required
+        .or('longitude', 'lng'), // At least one lng form required
 
     search: Joi.object({
         q: Joi.string().trim().min(1).max(100).optional(),
