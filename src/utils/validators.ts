@@ -213,16 +213,22 @@ export const reviewSchemas = {
 export const querySchemas = {
     // BUG-13: accept both 'latitude'/'longitude' (most endpoints) and 'lat'/'lng' (businesses/search)
     geospatial: Joi.object({
+        // New-style coordinate fields
         latitude: Joi.number().min(-90).max(90).optional(),
         longitude: Joi.number().min(-180).max(180).optional(),
+        // Legacy/shorthand coordinate fields (frontend alias)
         lat: Joi.number().min(-90).max(90).optional(),
         lng: Joi.number().min(-180).max(180).optional(),
         radius: Joi.number().min(1).max(50000).default(5000),
         page: commonSchemas.pagination.page,
         limit: commonSchemas.pagination.limit,
     })
-        .or('latitude', 'lat') // At least one lat form required
-        .or('longitude', 'lng'), // At least one lng form required
+        // Fix (Copilot): enforce coordinate pairs — latitude+longitude must appear together
+        .and('latitude', 'longitude')
+        // Fix (Copilot): enforce coordinate pairs — lat+lng must appear together
+        .and('lat', 'lng')
+        // At least one complete coordinate pair must be present
+        .or('latitude', 'lat'),
 
     search: Joi.object({
         q: Joi.string().trim().min(1).max(100).optional(),

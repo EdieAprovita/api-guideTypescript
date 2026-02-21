@@ -59,8 +59,12 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
         difficulty: {
             type: String,
             required: true,
-            enum: ['easy', 'medium', 'hard'],
+            // Fix (Copilot): accept legacy capitalized values to avoid breaking existing records.
+            // The set transformer normalizes everything to lowercase on save — DB converges
+            // to lowercase without a manual data migration.
+            enum: ['easy', 'medium', 'hard', 'Easy', 'Medium', 'Hard'],
             default: 'medium',
+            set: (value: string) => (typeof value === 'string' ? value.toLowerCase() : value),
         },
         servings: {
             type: Number,

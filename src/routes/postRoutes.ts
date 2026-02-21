@@ -21,15 +21,14 @@ router.post('/like/:id', protect, likePost);
 router.post('/unlike/:id', protect, unlikePost);
 router.post('/comment/:id', protect, addComment);
 router.put('/:id', protect, updatePost);
-router.delete('/:id', protect, deletePost);
 
-// Phase 1: DELETE comment route (C1)
+// Specific DELETE routes MUST be defined before the wildcard /:id
+// Fix (Copilot): moved /unlike/:id above /:id so Express won't treat "unlike" as a post ID
+router.delete('/unlike/:id', protect, unlikePost);
+router.delete('/:id/likes', protect, unlikePost);
 router.delete('/:postId/comments/:commentId', protect, removeComment);
 
-// BUG-2: DELETE /unlike/:id — frontend calls DELETE /posts/unlike/:id
-router.delete('/unlike/:id', protect, unlikePost);
-
-// Phase 1: DELETE method for unlike (C2) — frontend also supports DELETE /posts/:id/likes
-router.delete('/:id/likes', protect, unlikePost);
+// Generic wildcard — must remain last among DELETE routes
+router.delete('/:id', protect, deletePost);
 
 export default router;

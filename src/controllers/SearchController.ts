@@ -80,7 +80,7 @@ export class SearchController {
      * @access  Public
      */
     searchByResourceType = asyncHandler(async (req: Request, res: Response) => {
-        const { resourceType } = req.params;
+        const resourceType = req.params['resourceType'] ?? '';
         const { q, lat, lng, latitude, longitude, radius } = req.query;
 
         const result = await searchService.searchByResourceType(
