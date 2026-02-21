@@ -25,12 +25,13 @@ export interface IRestaurant extends Document {
 
 const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
     {
-        // BUG-11: alias 'name' added to match Doctor/Market pattern — frontend uses .name
+        // PR review fix: removed Mongoose `alias` — alias only works on in-memory instances,
+        // not for Model.find({ name: 'x' }) queries. Virtual field below provides the same
+        // in-memory getter/setter without misleading consumers into thinking queries work.
         restaurantName: {
             type: String,
             required: true,
             unique: true,
-            alias: 'name',
         },
         address: {
             type: String,
@@ -76,8 +77,20 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
             default: 0,
         },
     },
-    { timestamps: true }
+    { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+
+// Virtual `name` getter/setter for restaurantName — works on document instances.
+// NOTE: use { restaurantName: 'x' } for Model.find() queries, not { name: 'x' }.
+restaurantSchema
+    .virtual('name')
+    .get(function (this: IRestaurant) {
+        return this.restaurantName;
+    })
+    .set(function (this: IRestaurant, value: string) {
+        this.restaurantName = value;
+    });
+
 restaurantSchema.index({ location: '2dsphere' });
 
 export const Restaurant =

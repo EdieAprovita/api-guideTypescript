@@ -75,11 +75,16 @@ const createBusinessBaseSchema = (isRequired = true) => {
 };
 
 // User validation schemas
+// Security note (#5 PR review): The special character requirement was deliberately removed
+// to improve usability for mobile users while maintaining a minimum entropy level.
+// OWASP recommends minimum length (enforced at 8 chars) over character-class mandates.
+// This tradeoff is documented here for future reviewers.
 const createPasswordSchema = () =>
     Joi.string()
         .min(8)
         .max(128)
-        .pattern(/^(?=[^\n]{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/)
+        // Requires: at least one uppercase, one lowercase, one digit. No special char required.
+        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/)
         .required()
         .messages({
             'string.pattern.base':

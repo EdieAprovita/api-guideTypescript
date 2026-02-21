@@ -4,6 +4,37 @@ import { searchService } from '../services/SearchService.js';
 import { sendSuccessResponse } from '../utils/responseHelpers.js';
 
 /**
+ * Safely parse a query string value to a finite number.
+ * Returns undefined if the value is missing or results in NaN/Infinity,
+ * preventing non-numeric inputs (e.g. lat=abc) from reaching MongoDB geo queries.
+ */
+const parseFiniteNumber = (value: unknown): number | undefined => {
+    if (value === undefined || value === null || value === '') return undefined;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+};
+
+/**
+ * Resolve coordinate pair from query params that support two naming conventions:
+ * `latitude`/`longitude` (standard) and `lat`/`lng` (legacy/shorthand).
+ * Returns [lat, lng] as finite numbers or [undefined, undefined] if invalid/missing.
+ * Both values must be valid finite numbers to form a usable coordinate pair.
+ */
+const resolveCoords = (
+    latitude: unknown,
+    longitude: unknown,
+    lat: unknown,
+    lng: unknown
+): [number | undefined, number | undefined] => {
+    const resolvedLat = parseFiniteNumber(latitude ?? lat);
+    const resolvedLng = parseFiniteNumber(longitude ?? lng);
+    if (resolvedLat !== undefined && resolvedLng !== undefined) {
+        return [resolvedLat, resolvedLng];
+    }
+    return [undefined, undefined];
+};
+
+/**
  * @description Search controller class
  * @name SearchController
  */
@@ -15,12 +46,14 @@ export class SearchController {
      */
     unifiedSearch = asyncHandler(async (req: Request, res: Response) => {
         const { q, lat, lng, latitude, longitude, radius } = req.query;
+        // Fix (Copilot): validate coords with Number.isFinite to reject non-numeric inputs
+        const [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
 
         const results = await searchService.unifiedSearch(
             q as string,
-            latitude || lat ? Number(latitude || lat) : undefined,
-            longitude || lng ? Number(longitude || lng) : undefined,
-            radius ? Number(radius) : undefined
+            resolvedLat,
+            resolvedLng,
+            parseFiniteNumber(radius)
         );
 
         sendSuccessResponse(res, results, 'Search completed successfully');
@@ -70,7 +103,8 @@ export class SearchController {
      */
     saveSearchQuery = asyncHandler(async (req: Request, res: Response) => {
         const { query, resourceType } = req.body as { query?: string; resourceType?: string };
-        searchService.saveSearchAnalytics(query ?? '', resourceType);
+        // Renamed: saveSearchAnalytics → logSearchQuery (persistence not yet implemented)
+        searchService.logSearchQuery(query ?? '', resourceType);
         sendSuccessResponse(res, null, 'Search query recorded');
     });
 
@@ -82,13 +116,15 @@ export class SearchController {
     searchByResourceType = asyncHandler(async (req: Request, res: Response) => {
         const resourceType = req.params['resourceType'] ?? '';
         const { q, lat, lng, latitude, longitude, radius } = req.query;
+        // Fix (Copilot): validate coords with Number.isFinite to reject non-numeric inputs
+        const [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
 
         const result = await searchService.searchByResourceType(
             resourceType,
             q as string,
-            latitude || lat ? Number(latitude || lat) : undefined,
-            longitude || lng ? Number(longitude || lng) : undefined,
-            radius ? Number(radius) : undefined
+            resolvedLat,
+            resolvedLng,
+            parseFiniteNumber(radius)
         );
 
         sendSuccessResponse(res, result, `${resourceType} search completed`);

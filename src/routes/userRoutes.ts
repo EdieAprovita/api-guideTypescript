@@ -71,12 +71,28 @@ router.put(
     validate({
         body: Joi.object({
             token: Joi.string().required(),
+            // Fix (Copilot): accept both 'password' (frontend) and 'newPassword' (legacy).
+            // Without both here, stripUnknown discards whichever field the client sends,
+            // causing "Password is required" even when a valid password was provided.
             password: Joi.string()
                 .min(8)
                 .max(128)
-                .pattern(/^(?=[^\n]{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).*$/)
-                .required(),
-        }),
+                // Relaxed pattern: uppercase + lowercase + digit (no special char required)
+                .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/)
+                .optional(),
+            newPassword: Joi.string()
+                .min(8)
+                .max(128)
+                .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/)
+                .optional(),
+        })
+            // At least one of the two password fields must be present
+            .or('password', 'newPassword')
+            .messages({
+                'object.missing': 'Either password or newPassword is required',
+                'string.pattern.base':
+                    'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+            }),
     }),
     resetPassword
 );

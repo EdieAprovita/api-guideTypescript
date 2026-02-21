@@ -89,20 +89,25 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
         const { token, newPassword, password } = sanitizedData;
+
+        // Bug fix (PR review): validate token before using it
+        if (!token || typeof token !== 'string' || token.trim() === '') {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Reset token is required');
+        }
+
         // Accept both 'newPassword' (legacy) and 'password' (frontend field name)
         const resolvedPassword = newPassword ?? password;
-        if (typeof resolvedPassword === 'undefined') {
-            throw new HttpError(
-                HttpStatusCode.BAD_REQUEST,
-                'Password is required'
-            );
+        // Reject undefined OR empty strings
+        if (!resolvedPassword || typeof resolvedPassword !== 'string' || resolvedPassword.trim() === '') {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Password is required');
         }
+
         const response = await UserServices.resetPassword(token, resolvedPassword);
         res.status(200).json(response);
     } catch (error) {
         next(
             new HttpError(
-                HttpStatusCode.BAD_REQUEST,
+                error instanceof HttpError ? error.statusCode : HttpStatusCode.BAD_REQUEST,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );

@@ -1,5 +1,6 @@
 import express from 'express';
 import { searchController } from '../controllers/SearchController.js';
+import { rateLimits, validateInputLength } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -32,8 +33,9 @@ router.get('/aggregations', searchController.getSearchAggregations);
 /**
  * @route   POST /api/v1/search/analytics
  * @desc    Log a search query for analytics
+ * Security: rate-limited and input-capped to prevent abuse/log injection vectors (#4)
  */
-router.post('/analytics', searchController.saveSearchQuery);
+router.post('/analytics', rateLimits.api, validateInputLength(512), searchController.saveSearchQuery);
 
 /**
  * @route   GET /api/v1/search/:resourceType

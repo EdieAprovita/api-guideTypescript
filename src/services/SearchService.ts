@@ -10,6 +10,78 @@ export interface UnifiedSearchResult {
     data: any[];
 }
 
+/**
+ * Minimal interface that all searchable entity services must implement.
+ * Replaces `service: any` to provide compile-time safety (#8).
+ */
+interface SearchableService {
+    searchPaginated(opts: SearchPaginatedOpts): Promise<{ data: any[]; meta?: { total?: number } }>;
+    findNearbyPaginated(opts: NearbyPaginatedOpts): Promise<{ data: any[] }>;
+}
+
+interface SearchPaginatedOpts {
+    q: string;
+    searchFields: string[];
+    limit: number;
+    sortBy?: string;
+    sortOrder?: string;
+}
+
+interface NearbyPaginatedOpts {
+    latitude: number;
+    longitude: number;
+    radius: number;
+    q: string;
+    searchFields: string[];
+    limit: number;
+}
+
+/**
+ * Module-level entity registry — single source of truth for all searchable entities.
+ * Eliminates duplicate { service, fields } mappings across methods (#7).
+ */
+const ENTITY_REGISTRY: Array<{ type: string; service: SearchableService; fields: string[] }> = [
+    {
+        type: 'restaurant',
+        service: restaurantService as SearchableService,
+        fields: ['restaurantName', 'address', 'cuisine'],
+    },
+    {
+        type: 'business',
+        service: businessService as SearchableService,
+        fields: ['namePlace', 'address', 'typeBusiness'],
+    },
+    { type: 'doctor', service: doctorService as SearchableService, fields: ['doctorName', 'address', 'specialty'] },
+    { type: 'market', service: marketsService as SearchableService, fields: ['marketName', 'address', 'typeMarket'] },
+    {
+        type: 'sanctuary',
+        service: sanctuaryService as SearchableService,
+        fields: ['sanctuaryName', 'address', 'typeofSanctuary'],
+    },
+];
+
+/**
+ * Build a lookup map that includes both singular and plural forms.
+ * e.g. 'restaurant' and 'restaurants' both resolve to the same entry.
+ */
+const buildResourceMap = (): Record<string, { service: SearchableService; fields: string[] }> => {
+    const map: Record<string, { service: SearchableService; fields: string[] }> = {};
+    for (const entry of ENTITY_REGISTRY) {
+        map[entry.type] = { service: entry.service, fields: entry.fields };
+        map[`${entry.type}s`] = { service: entry.service, fields: entry.fields };
+    }
+    return map;
+};
+
+const RESOURCE_MAP = buildResourceMap();
+
+/**
+ * Strip newlines and control characters from a string to prevent log injection.
+ */
+const sanitizeForLog = (value: string): string =>
+    // Strip ASCII control characters (U+0000-U+001F) and DEL (U+007F) to prevent log injection.
+    value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim();
+
 export class SearchService {
     /**
      * @description Unified search across all main entities
@@ -17,29 +89,17 @@ export class SearchService {
     async unifiedSearch(q: string, lat?: number, lng?: number, radius?: number): Promise<UnifiedSearchResult[]> {
         const query = q || '';
         const nearbyOptions =
-            lat !== undefined && lng !== undefined
-                ? { latitude: Number(lat), longitude: Number(lng), radius: Number(radius) || 5000 }
-                : null;
-
-        const searchTasks = [
-            { type: 'restaurant', service: restaurantService, fields: ['restaurantName', 'address', 'cuisine'] },
-            { type: 'business', service: businessService, fields: ['namePlace', 'address', 'typeBusiness'] },
-            { type: 'doctor', service: doctorService, fields: ['doctorName', 'address', 'specialty'] },
-            { type: 'market', service: marketsService, fields: ['marketName', 'address', 'typeMarket'] },
-            { type: 'sanctuary', service: sanctuaryService, fields: ['sanctuaryName', 'address', 'typeofSanctuary'] },
-        ];
+            lat !== undefined && lng !== undefined ? { latitude: lat, longitude: lng, radius: radius ?? 5000 } : null;
 
         const results = await Promise.allSettled(
-            searchTasks.map(async task => {
+            ENTITY_REGISTRY.map(async task => {
                 if (nearbyOptions) {
-                    // Combine search and nearby
                     const result = await task.service.findNearbyPaginated({
                         ...nearbyOptions,
                         q: query,
                         searchFields: task.fields,
                         limit: 5,
                     });
-
                     return { type: task.type, data: result.data };
                 } else {
                     const result = await task.service.searchPaginated({
@@ -55,7 +115,7 @@ export class SearchService {
         // Log any failures for visibility
         results.forEach((result, index) => {
             if (result.status === 'rejected') {
-                logger.warn(`Search failed for ${searchTasks[index]?.type}:`, result.reason);
+                logger.warn(`Search failed for ${ENTITY_REGISTRY[index]?.type}:`, result.reason);
             }
         });
 
@@ -66,7 +126,6 @@ export class SearchService {
     }
 
     async getSuggestions(q: string): Promise<string[]> {
-        // Simple suggestion logic: searching across name fields
         const results = await this.unifiedSearch(q);
         const suggestions = new Set<string>();
 
@@ -96,20 +155,7 @@ export class SearchService {
         lng?: number,
         radius?: number
     ): Promise<UnifiedSearchResult> {
-        const resourceMap: Record<string, { service: any; fields: string[] }> = {
-            restaurant: { service: restaurantService, fields: ['restaurantName', 'address', 'cuisine'] },
-            restaurants: { service: restaurantService, fields: ['restaurantName', 'address', 'cuisine'] },
-            business: { service: businessService, fields: ['namePlace', 'address', 'typeBusiness'] },
-            businesses: { service: businessService, fields: ['namePlace', 'address', 'typeBusiness'] },
-            doctor: { service: doctorService, fields: ['doctorName', 'address', 'specialty'] },
-            doctors: { service: doctorService, fields: ['doctorName', 'address', 'specialty'] },
-            market: { service: marketsService, fields: ['marketName', 'address', 'typeMarket'] },
-            markets: { service: marketsService, fields: ['marketName', 'address', 'typeMarket'] },
-            sanctuary: { service: sanctuaryService, fields: ['sanctuaryName', 'address', 'typeofSanctuary'] },
-            sanctuaries: { service: sanctuaryService, fields: ['sanctuaryName', 'address', 'typeofSanctuary'] },
-        };
-
-        const target = resourceMap[resourceType.toLowerCase()];
+        const target = RESOURCE_MAP[resourceType.toLowerCase()];
         if (!target) {
             return { type: resourceType, data: [] };
         }
@@ -118,7 +164,7 @@ export class SearchService {
             const result = await target.service.findNearbyPaginated({
                 latitude: lat,
                 longitude: lng,
-                radius: radius || 5000,
+                radius: radius ?? 5000,
                 q: q || '',
                 searchFields: target.fields,
                 limit: 20,
@@ -138,11 +184,9 @@ export class SearchService {
      * Return popular searches — top-rated items from each main entity type
      */
     async getPopularSearches(): Promise<UnifiedSearchResult[]> {
-        const tasks = [
-            { type: 'restaurant', service: restaurantService, fields: ['restaurantName', 'address', 'cuisine'] },
-            { type: 'doctor', service: doctorService, fields: ['doctorName', 'address', 'specialty'] },
-            { type: 'market', service: marketsService, fields: ['marketName', 'address', 'typeMarket'] },
-        ];
+        // Use a subset of the registry (restaurants, doctors, markets)
+        const popularTypes = new Set(['restaurant', 'doctor', 'market']);
+        const tasks = ENTITY_REGISTRY.filter(e => popularTypes.has(e.type));
 
         const results = await Promise.allSettled(
             tasks.map(async task => {
@@ -167,24 +211,14 @@ export class SearchService {
      * Return counts of each entity type for aggregation UI
      */
     async getAggregations(): Promise<Record<string, number>> {
-        const tasks = [
-            { type: 'restaurants', service: restaurantService },
-            { type: 'businesses', service: businessService },
-            { type: 'doctors', service: doctorService },
-            { type: 'markets', service: marketsService },
-            { type: 'sanctuaries', service: sanctuaryService },
-        ];
-
         const counts: Record<string, number> = {};
 
+        // Promise.allSettled already prevents rejection propagation;
+        // the inner try/catch in the previous version was redundant (#9).
         await Promise.allSettled(
-            tasks.map(async task => {
-                try {
-                    const result = await task.service.searchPaginated({ q: '', searchFields: [], limit: 1 });
-                    counts[task.type] = result.meta?.total ?? 0;
-                } catch {
-                    counts[task.type] = 0;
-                }
+            ENTITY_REGISTRY.map(async task => {
+                const result = await task.service.searchPaginated({ q: '', searchFields: [], limit: 1 });
+                counts[`${task.type}s`] = result.meta?.total ?? 0;
             })
         );
 
@@ -192,10 +226,15 @@ export class SearchService {
     }
 
     /**
-     * Log/acknowledge a search analytics event
+     * Log a search analytics event.
+     * NOTE: persistence is not yet implemented — this only writes to the application log (#10).
+     *
+     * Security: query and resourceType are sanitized before logging to prevent log injection (#3).
      */
-    saveSearchAnalytics(query: string, resourceType?: string): void {
-        logger.info(`[search-analytics] query="${query}" resourceType="${resourceType ?? 'all'}"`);
+    logSearchQuery(query: string, resourceType?: string): void {
+        const safeQuery = sanitizeForLog(query);
+        const safeResource = sanitizeForLog(resourceType ?? 'all');
+        logger.info(`[search-analytics] query="${safeQuery}" resourceType="${safeResource}"`);
     }
 }
 
