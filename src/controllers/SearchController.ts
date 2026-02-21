@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import { searchService } from '../services/SearchService.js';
 import { sendSuccessResponse } from '../utils/responseHelpers.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
 /**
  * Safely parse a query string value to a finite number.
@@ -28,9 +29,21 @@ const resolveCoords = (
 ): [number | undefined, number | undefined] => {
     const resolvedLat = parseFiniteNumber(latitude ?? lat);
     const resolvedLng = parseFiniteNumber(longitude ?? lng);
-    if (resolvedLat !== undefined && resolvedLng !== undefined) {
+
+    const hasLat = resolvedLat !== undefined;
+    const hasLng = resolvedLng !== undefined;
+
+    if (hasLat && hasLng) {
         return [resolvedLat, resolvedLng];
     }
+
+    if (hasLat !== hasLng) {
+        throw new HttpError(
+            HttpStatusCode.BAD_REQUEST,
+            'Both latitude and longitude are required when filtering by coordinates'
+        );
+    }
+
     return [undefined, undefined];
 };
 
@@ -103,7 +116,13 @@ export class SearchController {
      */
     saveSearchQuery = asyncHandler(async (req: Request, res: Response) => {
         const { query, resourceType } = req.body as { query?: string; resourceType?: string };
-        searchService.logSearchQuery(query ?? '', resourceType);
+        const safeQuery = query?.trim() ?? '';
+
+        if (!safeQuery) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Search query cannot be empty');
+        }
+
+        searchService.logSearchQuery(safeQuery, resourceType);
         sendSuccessResponse(res, null, 'Search query recorded');
     });
 

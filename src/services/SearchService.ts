@@ -8,7 +8,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
 export interface UnifiedSearchResult {
     type: string;
-    data: any[];
+    data: Record<string, unknown>[];
 }
 
 /**
@@ -16,8 +16,8 @@ export interface UnifiedSearchResult {
  * Replaces `service: any` to provide compile-time safety (#8).
  */
 interface SearchableService {
-    searchPaginated(opts: SearchPaginatedOpts): Promise<{ data: any[]; meta?: { total?: number } }>;
-    findNearbyPaginated(opts: NearbyPaginatedOpts): Promise<{ data: any[] }>;
+    searchPaginated(opts: SearchPaginatedOpts): Promise<{ data: Record<string, unknown>[]; meta?: { total?: number } }>;
+    findNearbyPaginated(opts: NearbyPaginatedOpts): Promise<{ data: Record<string, unknown>[] }>;
 }
 
 interface SearchPaginatedOpts {
@@ -96,7 +96,9 @@ const buildResourceMap = (): Record<string, { service: SearchableService; fields
     const map: Record<string, { service: SearchableService; fields: string[] }> = {};
     for (const entry of ENTITY_REGISTRY) {
         map[entry.type] = { service: entry.service, fields: entry.fields };
-        map[`${entry.type}s`] = { service: entry.service, fields: entry.fields };
+        // Handle irregular plurals (like sanctuary -> sanctuaries)
+        const plural = entry.type === 'sanctuary' ? 'sanctuaries' : `${entry.type}s`;
+        map[plural] = { service: entry.service, fields: entry.fields };
     }
     return map;
 };

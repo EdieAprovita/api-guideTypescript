@@ -109,9 +109,10 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
         const response = await UserServices.resetPassword(token, resolvedPassword);
         res.status(200).json(response);
     } catch (error) {
+        if (error instanceof HttpError) return next(error);
         next(
             new HttpError(
-                error instanceof HttpError ? error.statusCode : HttpStatusCode.BAD_REQUEST,
+                HttpStatusCode.BAD_REQUEST,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
