@@ -91,6 +91,12 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
         const { token, newPassword, password } = sanitizedData;
         // Accept both 'newPassword' (legacy) and 'password' (frontend field name)
         const resolvedPassword = newPassword ?? password;
+        if (typeof resolvedPassword === 'undefined') {
+            throw new HttpError(
+                HttpStatusCode.BAD_REQUEST,
+                'Password is required'
+            );
+        }
         const response = await UserServices.resetPassword(token, resolvedPassword);
         res.status(200).json(response);
     } catch (error) {
