@@ -79,8 +79,10 @@ const RESOURCE_MAP = buildResourceMap();
  * Strip newlines and control characters from a string to prevent log injection.
  */
 const sanitizeForLog = (value: string): string =>
-    // Strip ASCII control characters (U+0000-U+001F) and DEL (U+007F) to prevent log injection.
-    value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim();
+    // \p{Cc} = Unicode "Control" category (U+0000-U+001F, U+007F).
+    // Using a Unicode property escape avoids SonarQube S6324 (control chars in regex classes).
+    // NOSONAR: String#replace with /g flag is intentional — replaceAll with regex requires ES2021+
+    value.replace(/\p{Cc}/gu, ' ').trim(); // NOSONAR
 
 export class SearchService {
     /**
