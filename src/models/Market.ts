@@ -1,6 +1,8 @@
 import mongoose, { Schema, Types, Document } from 'mongoose';
+import { IContact } from '../types/modalTypes.js';
 import { IGeoJSONPoint } from '../types/GeoJSON.js';
 import { geoJSONPointSchema } from './GeoJSON.js';
+import { contactSchema } from './CommonSchemas.js';
 
 export interface IMarket extends Document {
     _id: string;
@@ -8,8 +10,11 @@ export interface IMarket extends Document {
     author: Types.ObjectId;
     address: string;
     location?: IGeoJSONPoint;
-    image: string;
-    typeMarket: string;
+    image?: string;
+    typeMarket?: string;
+    contact: IContact[];
+    products: string[];
+    hours: Array<{ day: string; open: string; close: string }>;
     reviews: Types.ObjectId[];
     rating: number;
     numReviews: number;
@@ -39,13 +44,27 @@ const marketSchema = new Schema<IMarket>(
         location: geoJSONPointSchema,
         image: {
             type: String,
-            required: true,
         },
         typeMarket: {
             type: String,
-            required: true,
             enum: ['supermarket', 'convenience store', 'grocery store'],
+            default: 'supermarket',
             alias: 'category',
+        },
+        contact: [contactSchema],
+        products: {
+            type: [String],
+            default: [],
+        },
+        hours: {
+            type: [
+                {
+                    day: { type: String },
+                    open: { type: String },
+                    close: { type: String },
+                },
+            ],
+            default: [],
         },
         reviews: [
             {

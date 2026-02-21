@@ -5,9 +5,9 @@ export interface IRecipe extends Document {
     title: string;
     author: Types.ObjectId;
     description: string;
-    instructions: string;
+    instructions: string[];
     ingredients: Array<string>;
-    typeDish: string;
+    typeDish?: string;
     image: string;
     cookingTime: number;
     preparationTime: number;
@@ -43,17 +43,18 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             ref: 'User',
             required: true,
         },
+        // BUG-7: [String] array — frontend sends instructions as an array
         instructions: {
-            type: String,
+            type: [String],
             required: true,
         },
         image: {
             type: String,
             required: true,
         },
+        // BUG-5: optional — frontend sends 'categories[]' not 'typeDish'
         typeDish: {
             type: String,
-            required: true,
         },
         difficulty: {
             type: String,

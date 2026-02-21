@@ -135,7 +135,10 @@ abstract class BaseService {
 }
 
 class UserService extends BaseService {
-    async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, res: Response) {
+    async registerUser(
+        userData: Pick<IUser, 'username' | 'email' | 'password'> & { role?: IUser['role'] },
+        res: Response
+    ) {
         try {
             // Debug logging - only visible in development or when DEBUG_TESTS is set
             if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {

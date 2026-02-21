@@ -65,30 +65,47 @@ const sanctuarySchema = new Schema<ISanctuary>(
                 },
                 age: {
                     type: Number,
-                    required: true,
                 },
                 gender: {
                     type: String,
-                    required: true,
                 },
                 habitat: {
                     type: String,
-                    required: true,
                 },
                 diet: {
                     type: [String],
-                    required: true,
+                    default: [],
                 },
                 image: {
                     type: String,
-                    required: true,
                 },
                 vaccines: {
                     type: [String],
-                    required: true,
+                    default: [],
                 },
                 lastVaccine: {
                     type: Date,
+                },
+                // BUG-8: additional fields sent by frontend
+                breed: {
+                    type: String,
+                },
+                description: {
+                    type: String,
+                },
+                rescued: {
+                    type: Boolean,
+                    default: false,
+                },
+                rescueDate: {
+                    type: Date,
+                },
+                healthStatus: {
+                    type: String,
+                },
+                specialNeeds: {
+                    type: [String],
+                    default: [],
                 },
             },
         ],

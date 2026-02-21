@@ -11,8 +11,11 @@ export interface IDoctor extends Document {
     author: Types.ObjectId;
     address: string;
     location?: IGeoJSONPoint;
-    image: string;
+    image?: string;
     specialty: string;
+    education: string[];
+    experience?: string;
+    languages: string[];
     contact: IContact[];
     reviews: Types.ObjectId[];
     rating: number;
@@ -43,11 +46,21 @@ const doctorSchema = new Schema<IDoctor>(
         location: geoJSONPointSchema,
         image: {
             type: String,
-            required: true,
         },
         specialty: {
             type: String,
             required: true,
+        },
+        education: {
+            type: [String],
+            default: [],
+        },
+        experience: {
+            type: String,
+        },
+        languages: {
+            type: [String],
+            default: [],
         },
         contact: [contactSchema],
         reviews: [
