@@ -46,7 +46,7 @@ export class SearchController {
      */
     unifiedSearch = asyncHandler(async (req: Request, res: Response) => {
         const { q, lat, lng, latitude, longitude, radius } = req.query;
-        // Fix (Copilot): validate coords with Number.isFinite to reject non-numeric inputs
+        // Validate coords with Number.isFinite to reject non-numeric inputs
         const [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
 
         const results = await searchService.unifiedSearch(
@@ -103,7 +103,6 @@ export class SearchController {
      */
     saveSearchQuery = asyncHandler(async (req: Request, res: Response) => {
         const { query, resourceType } = req.body as { query?: string; resourceType?: string };
-        // Renamed: saveSearchAnalytics → logSearchQuery (persistence not yet implemented)
         searchService.logSearchQuery(query ?? '', resourceType);
         sendSuccessResponse(res, null, 'Search query recorded');
     });
@@ -116,7 +115,7 @@ export class SearchController {
     searchByResourceType = asyncHandler(async (req: Request, res: Response) => {
         const resourceType = req.params['resourceType'] ?? '';
         const { q, lat, lng, latitude, longitude, radius } = req.query;
-        // Fix (Copilot): validate coords with Number.isFinite to reject non-numeric inputs
+        // Validate coords with Number.isFinite to reject non-numeric inputs
         const [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
 
         const result = await searchService.searchByResourceType(

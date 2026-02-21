@@ -216,7 +216,7 @@ export const reviewSchemas = {
 
 // Query parameter schemas
 export const querySchemas = {
-    // BUG-13: accept both 'latitude'/'longitude' (most endpoints) and 'lat'/'lng' (businesses/search)
+    // Accept both 'latitude'/'longitude' (most endpoints) and 'lat'/'lng' (businesses/search)
     geospatial: Joi.object({
         // New-style coordinate fields
         latitude: Joi.number().min(-90).max(90).optional(),

@@ -86,7 +86,7 @@ const sanctuarySchema = new Schema<ISanctuary>(
                 lastVaccine: {
                     type: Date,
                 },
-                // BUG-8: additional fields sent by frontend
+                // Additional fields sent by frontend
                 breed: {
                     type: String,
                 },

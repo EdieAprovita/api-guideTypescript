@@ -232,7 +232,7 @@ export const getTopRatedBusinesses = asyncHandler(async (_req: Request, res: Res
 
 export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // BUG-13: accept both 'latitude'/'longitude' and 'lat'/'lng' (frontend uses the latter for businesses)
+        // Accept both 'latitude'/'longitude' and 'lat'/'lng' (frontend uses the latter for businesses)
         const { latitude, longitude, lat: latShort, lng: lngShort, radius, page, limit } = req.query;
         const rawLat = latitude ?? latShort;
         const rawLng = longitude ?? lngShort;
@@ -243,20 +243,25 @@ export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Respon
             );
         }
 
-        const lat = parseFloat(rawLat as string);
-        const lng = parseFloat(rawLng as string);
+        const lat = Number(rawLat);
+        const lng = Number(rawLng);
 
-        if (isNaN(lat) || lat < -90 || lat > 90) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude must be a number between -90 and 90'));
-        }
-        if (isNaN(lng) || lng < -180 || lng > 180) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'longitude must be a number between -180 and 180'));
-        }
-
-        const parsedRadius = radius ? parseFloat(radius as string) : 5000;
-        if (isNaN(parsedRadius) || parsedRadius < 1 || parsedRadius > 50000) {
+        // Use Number.isFinite to reject NaN AND Infinity (isNaN alone misses Infinity)
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
             return next(
-                new HttpError(HttpStatusCode.BAD_REQUEST, 'radius must be a number between 1 and 50000 meters')
+                new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude must be a finite number between -90 and 90')
+            );
+        }
+        if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+            return next(
+                new HttpError(HttpStatusCode.BAD_REQUEST, 'longitude must be a finite number between -180 and 180')
+            );
+        }
+
+        const parsedRadius = radius ? Number(radius) : 5000;
+        if (!Number.isFinite(parsedRadius) || parsedRadius < 1 || parsedRadius > 50000) {
+            return next(
+                new HttpError(HttpStatusCode.BAD_REQUEST, 'radius must be a finite number between 1 and 50000 meters')
             );
         }
 

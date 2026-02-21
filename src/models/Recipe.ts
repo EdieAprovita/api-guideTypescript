@@ -43,23 +43,26 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             ref: 'User',
             required: true,
         },
-        // BUG-7: [String] array — frontend sends instructions as an array
+        // Schema uses [String] — frontend sends instructions as an array.
+        // Legacy documents may store instructions as a plain string; the getter below
+        // coerces them into an array so reads are safe without a data migration.
         instructions: {
             type: [String],
             required: true,
+            get: (v: string | string[]): string[] => (typeof v === 'string' ? [v] : v),
         },
         image: {
             type: String,
             required: true,
         },
-        // BUG-5: optional — frontend sends 'categories[]' not 'typeDish'
+        // Optional — frontend sends 'categories[]' not 'typeDish'
         typeDish: {
             type: String,
         },
         difficulty: {
             type: String,
             required: true,
-            // Fix (Copilot): accept legacy capitalized values to avoid breaking existing records.
+            // Accept legacy capitalized values to avoid breaking existing records.
             // NOTE: The `set` transformer only runs on save/update, not on queries.
             //       This means Recipe.find({ difficulty: 'easy' }) will NOT match legacy records
             //       stored as 'Easy'/'Medium'/'Hard' until those documents are re-saved or migrated.
@@ -106,7 +109,7 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             },
         ],
     },
-    { timestamps: true }
+    { timestamps: true, toJSON: { getters: true }, toObject: { getters: true } }
 );
 
 export const Recipe =

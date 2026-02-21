@@ -71,7 +71,7 @@ router.put(
     validate({
         body: Joi.object({
             token: Joi.string().required(),
-            // Fix (Copilot): accept both 'password' (frontend) and 'newPassword' (legacy).
+            // Accept both 'password' (frontend) and 'newPassword' (legacy).
             // Without both here, stripUnknown discards whichever field the client sends,
             // causing "Password is required" even when a valid password was provided.
             password: Joi.string()

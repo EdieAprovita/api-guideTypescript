@@ -67,7 +67,7 @@ export interface IAnimal {
     image?: string;
     vaccines?: string[];
     lastVaccine?: Date;
-    // BUG-8: frontend fields
+    // Additional frontend fields
     breed?: string;
     description?: string;
     rescued?: boolean;

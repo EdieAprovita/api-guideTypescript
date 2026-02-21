@@ -4,6 +4,7 @@ import { doctorService } from './DoctorService.js';
 import { marketsService } from './MarketsService.js';
 import { sanctuaryService } from './SanctuaryService.js';
 import logger from '../utils/logger.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
 export interface UnifiedSearchResult {
     type: string;
@@ -186,7 +187,11 @@ export class SearchService {
     ): Promise<UnifiedSearchResult> {
         const target = RESOURCE_MAP[resourceType.toLowerCase()];
         if (!target) {
-            return { type: resourceType, data: [] };
+            const validTypes = [...new Set(ENTITY_REGISTRY.map(e => e.type))];
+            throw new HttpError(
+                HttpStatusCode.BAD_REQUEST,
+                `Unknown resource type "${resourceType}". Valid types: ${validTypes.join(', ')}`
+            );
         }
 
         if (lat !== undefined && lng !== undefined) {

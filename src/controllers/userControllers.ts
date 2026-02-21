@@ -15,7 +15,10 @@ import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        const result = await UserServices.registerUser(sanitizedData, res);
+        // Security: strip role from user input to prevent privilege escalation.
+        // Role should only be set server-side (defaults to 'user' in the User model).
+        const { role: _stripRole, ...safeData } = sanitizedData;
+        const result = await UserServices.registerUser(safeData, res);
         res.status(201).json(result);
     } catch (error) {
         // Log error details in test environment for debugging
@@ -90,15 +93,16 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
         const sanitizedData = sanitizeNoSQLInput(req.body);
         const { token, newPassword, password } = sanitizedData;
 
-        // Bug fix (PR review): validate token before using it
-        if (!token || typeof token !== 'string' || token.trim() === '') {
+        // Validate token before using it
+        if (!token || typeof token !== 'string') {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Reset token is required');
         }
 
         // Accept both 'newPassword' (legacy) and 'password' (frontend field name)
         const resolvedPassword = newPassword ?? password;
-        // Reject undefined OR empty strings
-        if (!resolvedPassword || typeof resolvedPassword !== 'string' || resolvedPassword.trim() === '') {
+        // Reject undefined or non-string values.
+        // NOTE: no .trim() — passwords are space-sensitive credentials.
+        if (!resolvedPassword || typeof resolvedPassword !== 'string') {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Password is required');
         }
 
