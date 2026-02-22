@@ -21,14 +21,19 @@ const createUserData = (overrides: Partial<UserTestData> = {}): UserTestData => 
         username: `testuser_${timestamp}`,
         email: `test_${timestamp}@example.com`,
         password: 'TestPassword123!',
+        ...overrides,
     };
 };
 
 const generateMockToken = (role: 'user' | 'admin' | 'business' = 'user'): string => {
     return jwt.sign(
         { userId: '507f1f77bcf86cd799439011', email: 'test@example.com', role },
-        process.env.JWT_SECRET || 'test-secret',
-        { expiresIn: '1h' }
+        process.env.JWT_SECRET || 'test-jwt-secret-key-12345',
+        {
+            expiresIn: '1h',
+            issuer: 'vegan-guide-api',
+            audience: 'vegan-guide-client',
+        }
     );
 };
 
@@ -49,6 +54,10 @@ describe('User API Integration Tests', () => {
             const userData = createUserData({ email: 'invalid-email' });
 
             const response: Response = await request(app).post('/api/v1/users/register').send(userData);
+
+            if (response.status !== 400) {
+                console.log('INVALID EMAIL REGISTRATION BODY:', JSON.stringify(response.body, null, 2));
+            }
 
             expect(response.status).toBe(400);
         });
