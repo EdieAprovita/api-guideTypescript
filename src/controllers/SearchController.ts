@@ -17,7 +17,9 @@ export class SearchController {
      * @access  Public
      */
     unifiedSearch = asyncHandler(async (req: Request, res: Response) => {
-        const { q, lat, lng, latitude, longitude, radius } = req.query;
+        const rawQ = req.query.q;
+        const q = Array.isArray(rawQ) ? String(rawQ[0]) : String(rawQ || '');
+        const { lat, lng, latitude, longitude, radius } = req.query;
         let resolvedLat: number | undefined;
         let resolvedLng: number | undefined;
         try {
@@ -105,7 +107,9 @@ export class SearchController {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Unknown resource type requested');
         }
 
-        const { q, lat, lng, latitude, longitude, radius } = req.query;
+        const rawQ = req.query.q;
+        const q = Array.isArray(rawQ) ? String(rawQ[0]) : String(rawQ || '');
+        const { lat, lng, latitude, longitude, radius } = req.query;
         let resolvedLat: number | undefined;
         let resolvedLng: number | undefined;
         try {

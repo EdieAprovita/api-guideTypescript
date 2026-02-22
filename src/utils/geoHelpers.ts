@@ -32,6 +32,13 @@ export const resolveCoords = (
     lat: unknown,
     lng: unknown
 ): [number | undefined, number | undefined] => {
+    const hasFull = latitude !== undefined || longitude !== undefined;
+    const hasShort = lat !== undefined || lng !== undefined;
+
+    if (hasFull && hasShort) {
+        throw new Error('Cannot mix latitude/longitude with lat/lng naming conventions');
+    }
+
     const primaryLat = parseFiniteNumber(latitude);
     const resolvedLat = primaryLat !== undefined ? primaryLat : parseFiniteNumber(lat);
 

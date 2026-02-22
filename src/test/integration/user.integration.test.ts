@@ -114,6 +114,15 @@ describe('User API Integration Tests', () => {
             expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
         });
 
+        it('should handle PATCH /api/v1/users/profile/:id/role with valid admin token', async () => {
+            const response: Response = await request(app)
+                .patch('/api/v1/users/profile/notanid/role') // id format bypass handled via validate/mock
+                .set('Authorization', 'Bearer mock-token') // Assumes mock-token acts as admin per test suite structure
+                .send({ role: 'business' });
+
+            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+        });
+
         it('should handle DELETE /api/v1/users/:id without auth', async () => {
             const response: Response = await request(app).delete('/api/v1/users/507f1f77bcf86cd799439011');
 

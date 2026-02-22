@@ -43,10 +43,11 @@ describe('Geo Helpers Unit Tests', () => {
             expect(lng).toBe(20.5);
         });
 
-        it('should prioritize full word coordinates if both are present', () => {
-            const [lat, lng] = resolveCoords('8', '9', '1', '2');
-            expect(lat).toBe(8);
-            expect(lng).toBe(9);
+        it('should throw an error if naming conventions are mixed (latitude/longitude with lat/lng)', () => {
+            const expectError = 'Cannot mix latitude/longitude with lat/lng naming conventions';
+            expect(() => resolveCoords('8', '9', '1', '2')).toThrow(expectError);
+            expect(() => resolveCoords('8', undefined, undefined, '2')).toThrow(expectError);
+            expect(() => resolveCoords(undefined, '9', '1', undefined)).toThrow(expectError);
         });
 
         it('should throw an error if only one coordinate from a pair is provided', () => {

@@ -30,7 +30,6 @@ const marketSchema = new Schema<IMarket>(
             type: String,
             required: true,
             unique: true,
-            alias: 'name',
         },
         author: {
             type: Schema.Types.ObjectId,
@@ -60,7 +59,6 @@ const marketSchema = new Schema<IMarket>(
                 'Grocery Store',
             ],
             default: 'supermarket',
-            alias: 'category',
             set: (value: string) => (typeof value === 'string' ? value.toLowerCase() : value),
         },
         contact: [contactSchema],

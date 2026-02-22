@@ -91,14 +91,10 @@ describe('Auth Integration Tests - Simplified', () => {
             const userData = createUserData({ role: 'admin' });
             const response = await makeRequest('post', '/api/v1/users/register', userData);
 
-            // Assuming successful registration or validation catch, it shouldn't fail due to role,
-            // but the returned user role should be 'user' (if successful) or at minimum, the endpoint accepts it without making them admin.
-            // Adjusting based on `auth.integration.test.ts` mocking limitations.
-            // Depending heavily on how the DB integration is mocked here.
-            expect(response.status).toBeLessThan(500);
-            if (response.status === 201 && response.body.data) {
-                expect((response.body.data as any).role).toBe('user');
-            }
+            // Unconditional assertions to guarantee stripping behavior
+            expect(response.status).toBe(201);
+            expect(response.body.data).toBeDefined();
+            expect((response.body.data as any).role).toBe('user');
         });
     });
 

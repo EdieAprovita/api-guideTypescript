@@ -296,11 +296,17 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response) =
     const { id } = req.params;
     const role = req.body?.role;
 
+    if (!id) {
+        throw new HttpError(HttpStatusCode.BAD_REQUEST, 'User ID is required');
+    }
+
     if (!role) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Role is required');
     }
 
-    const updatedUser = await UserServices.updateUserById(id as string, { role });
+    const sanitizedUpdate = sanitizeNoSQLInput({ role });
+
+    const updatedUser = await UserServices.updateUserById(id as string, sanitizedUpdate);
     res.json(updatedUser);
 });
 

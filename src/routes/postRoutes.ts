@@ -18,7 +18,6 @@ router.get('/', getPosts);
 router.get('/:id', getPostById);
 router.post('/', protect, createPost);
 router.post('/like/:id', protect, likePost);
-router.post('/unlike/:id', protect, unlikePost);
 router.post('/comment/:id', protect, addComment);
 router.put('/:id', protect, updatePost);
 

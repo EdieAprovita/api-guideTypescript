@@ -209,14 +209,14 @@ export class SearchService {
 
         results.forEach(res => {
             if (res.status === 'fulfilled') {
-                res.value.data.forEach((item: any) => {
+                res.value.data.forEach((item: Record<string, unknown>) => {
                     const name =
-                        item.restaurantName ||
-                        item.namePlace ||
-                        item.marketName ||
-                        item.doctorName ||
-                        item.sanctuaryName ||
-                        item.professionName;
+                        (item['restaurantName'] as string) ||
+                        (item['namePlace'] as string) ||
+                        (item['marketName'] as string) ||
+                        (item['doctorName'] as string) ||
+                        (item['sanctuaryName'] as string) ||
+                        (item['professionName'] as string);
                     if (name) suggestions.add(name);
                 });
             }
@@ -268,6 +268,7 @@ export class SearchService {
         const cached = await cacheService.get<UnifiedSearchResult[]>(cacheKey);
         if (cached) return cached;
 
+        // TODO(#124): add in-flight deduplication
         // Filter based on the 'popular' flag in the entity registry
         const tasks = ENTITY_REGISTRY.filter(e => e.popular);
 
@@ -292,9 +293,8 @@ export class SearchService {
             .filter(r => r.status === 'fulfilled')
             .map(r => (r as PromiseFulfilledResult<UnifiedSearchResult>).value);
 
-        if (finalResults.length > 0) {
-            await cacheService.set(cacheKey, finalResults, 'search');
-        }
+        // Cache even empty results to prevent DB spam on empty state
+        await cacheService.set(cacheKey, finalResults, 'search');
 
         return finalResults;
     }
@@ -318,6 +318,7 @@ export class SearchService {
         );
 
         let allFailed = true;
+        let anyFailed = false;
 
         for (const [index, result] of results.entries()) {
             const entityType = ENTITY_REGISTRY[index]?.type ?? 'unknown';
@@ -327,6 +328,7 @@ export class SearchService {
                 allFailed = false;
                 counts[pluralType] = result.value.count;
             } else {
+                anyFailed = true;
                 logger.error(`Aggregation failed for resource type: ${entityType}`, result.reason);
                 counts[pluralType] = 0;
             }
@@ -339,7 +341,9 @@ export class SearchService {
             );
         }
 
-        await cacheService.set(cacheKey, counts, 'search');
+        if (!anyFailed) {
+            await cacheService.set(cacheKey, counts, 'search');
+        }
 
         return counts;
     }
@@ -352,9 +356,13 @@ export class SearchService {
      * Security: query and resourceType are sanitized before logging to prevent log injection (#3).
      */
     logSearchQuery(query: string, resourceType?: string): void {
-        const safeQuery = sanitizeForLog(query);
-        const safeResource = sanitizeForLog(resourceType ?? 'all');
-        logger.info(`[search-analytics] query="${safeQuery}" resourceType="${safeResource}"`);
+        try {
+            const safeQuery = sanitizeForLog(query);
+            const safeResource = sanitizeForLog(resourceType ?? 'all');
+            logger.info(`[search-analytics] query="${safeQuery}" resourceType="${safeResource}"`);
+        } catch (error) {
+            logger.error('Failed to log search query analytics', error);
+        }
     }
 }
 

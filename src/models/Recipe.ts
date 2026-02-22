@@ -5,7 +5,7 @@ export interface IRecipe extends Document {
     title: string;
     author: Types.ObjectId;
     description: string;
-    instructions: string | string[];
+    instructions: string[];
     ingredients: Array<string>;
     typeDish?: string;
     image: string;
@@ -111,6 +111,10 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
     }
 );
 
+// Document hook runs after retrieving from MongoDB but before passing to application logic.
+// Necessary because legacy DB records stored instructions as a single primitive string, whereas
+// the schema enforcing Array<string> will cause Mongoose to silently array-wrap them at read-time
+// natively in recent versions. The manual coercion guarantees array types strictly at the hydration boundary.
 recipeSchema.post('init', function (doc) {
     if (doc.instructions && typeof doc.instructions === 'string') {
         doc.instructions = [doc.instructions as unknown as string];
