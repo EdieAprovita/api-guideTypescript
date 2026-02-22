@@ -62,7 +62,7 @@ describe('User API Integration Tests', () => {
                 password: 'TestPassword123!',
             });
 
-            expect([200, 404]).toContain(response.status);
+            expect(response.status).toBe(401);
         });
 
         it('should handle invalid credentials', async () => {
