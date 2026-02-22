@@ -4,7 +4,6 @@ import { searchService } from '../services/SearchService.js';
 import { sendSuccessResponse } from '../utils/responseHelpers.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { resolveCoords, parseFiniteNumber } from '../utils/geoHelpers.js';
-import logger from '../utils/logger.js';
 
 /**
  * @description Search controller class
@@ -28,12 +27,7 @@ export class SearchController {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, (error as Error).message);
         }
 
-        const results = await searchService.unifiedSearch(
-            q as string,
-            resolvedLat,
-            resolvedLng,
-            parseFiniteNumber(radius)
-        );
+        const results = await searchService.unifiedSearch(q, resolvedLat, resolvedLng, parseFiniteNumber(radius));
 
         sendSuccessResponse(res, results, 'Search completed successfully');
     });
@@ -88,7 +82,8 @@ export class SearchController {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Search query cannot be empty');
         }
 
-        searchService.logSearchQuery(safeQuery, resourceType);
+        // logSearchQuery is a fire-and-forget async call
+        void searchService.logSearchQuery(safeQuery, resourceType);
         sendSuccessResponse(res, null, 'Search query logged', 202);
     });
 
@@ -99,13 +94,6 @@ export class SearchController {
      */
     searchByResourceType = asyncHandler(async (req: Request, res: Response) => {
         const resourceType = req.params['resourceType'] ?? '';
-
-        // Ensure the internal routing/resourceType isn't blindly bounced back to the user
-        const target = searchService.isValidResourceType(resourceType);
-        if (!target) {
-            logger.warn(`Invalid searchByResourceType request for unknown resource type: ${resourceType}`);
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Unknown resource type requested');
-        }
 
         const rawQ = req.query.q;
         const q = Array.isArray(rawQ) ? String(rawQ[0]) : String(rawQ || '');
@@ -120,7 +108,7 @@ export class SearchController {
 
         const result = await searchService.searchByResourceType(
             resourceType,
-            q as string,
+            q,
             resolvedLat,
             resolvedLng,
             parseFiniteNumber(radius)

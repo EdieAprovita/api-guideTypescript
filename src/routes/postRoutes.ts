@@ -22,7 +22,6 @@ router.post('/comment/:id', protect, addComment);
 router.put('/:id', protect, updatePost);
 
 // Specific DELETE routes must be defined before the wildcard /:id
-router.delete('/unlike/:id', protect, unlikePost);
 router.delete('/:id/likes', protect, unlikePost);
 router.delete('/:postId/comments/:commentId', protect, removeComment);
 

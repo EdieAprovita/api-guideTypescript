@@ -57,6 +57,15 @@ describe('Search & Discovery Integration Tests (Phase 4)', () => {
         });
     });
 
+    describe('Search By Resource Type', () => {
+        it('should handle out-of-range and invalid coordinates gracefully', async () => {
+            const res = await request(app).get('/api/v1/search/restaurants?latitude=abc&longitude=-73.935242');
+            expect(res.status).toBe(400);
+            expect(res.body.success).toBe(false);
+            expect(res.body.message).toMatch(/valid finite number/);
+        });
+    });
+
     describe('Nearby Endpoints', () => {
         it('should return nearby restaurants', async () => {
             const res = await request(app).get('/api/v1/restaurants/nearby?latitude=40.73061&longitude=-73.935242');

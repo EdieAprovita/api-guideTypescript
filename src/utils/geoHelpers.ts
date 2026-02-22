@@ -39,11 +39,28 @@ export const resolveCoords = (
         throw new Error('Cannot mix latitude/longitude with lat/lng naming conventions');
     }
 
-    const primaryLat = parseFiniteNumber(latitude);
-    const resolvedLat = primaryLat !== undefined ? primaryLat : parseFiniteNumber(lat);
+    const hasExplicitLatitude = latitude !== undefined && latitude !== null && latitude !== '';
+    const hasExplicitLat = lat !== undefined && lat !== null && lat !== '';
+    let resolvedLat: number | undefined;
+    if (hasExplicitLatitude) {
+        resolvedLat = parseFiniteNumber(latitude);
+        if (resolvedLat === undefined) throw new Error('latitude must be a valid finite number');
+    } else if (hasExplicitLat) {
+        resolvedLat = parseFiniteNumber(lat);
+        if (resolvedLat === undefined) throw new Error('lat must be a valid finite number');
+    }
 
-    const primaryLng = parseFiniteNumber(longitude);
-    const resolvedLng = primaryLng !== undefined ? primaryLng : parseFiniteNumber(lng);
+    const hasExplicitLongitude = longitude !== undefined && longitude !== null && longitude !== '';
+    const hasExplicitLng = lng !== undefined && lng !== null && lng !== '';
+    let resolvedLng: number | undefined;
+    if (hasExplicitLongitude) {
+        resolvedLng = parseFiniteNumber(longitude);
+        if (resolvedLng === undefined) throw new Error('longitude must be a valid finite number');
+    } else if (hasExplicitLng) {
+        resolvedLng = parseFiniteNumber(lng);
+        if (resolvedLng === undefined) throw new Error('lng must be a valid finite number');
+    }
+
     const hasLat = resolvedLat !== undefined;
     const hasLng = resolvedLng !== undefined;
 

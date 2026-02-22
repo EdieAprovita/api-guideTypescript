@@ -49,6 +49,8 @@ const marketSchema = new Schema<IMarket>(
             // Accept legacy capitalized values to avoid breaking existing records on re-save.
             // NOTE: Similar to Recipe difficulty, the `set` transformer only runs on save/update,
             // not on queries. Legacy records may need a manual data migration to lowercase.
+            // WARNING: Mongoose setters (like this one) are bypassed when using `findOneAndUpdate()`
+            //       with `$set`. Route updates through `.save()` or handle normalization manually.
             // TODO(#123): remove capitalized values from typeMarket after database migration
             enum: [
                 'supermarket',
@@ -58,6 +60,8 @@ const marketSchema = new Schema<IMarket>(
                 'Convenience Store',
                 'Grocery Store',
             ],
+            // NOTE: The `default: 'supermarket'` is intentional to ensure a fallback category
+            //       even though the field is not marked as `required: true`.
             default: 'supermarket',
             set: (value: string) => (typeof value === 'string' ? value.toLowerCase() : value),
         },

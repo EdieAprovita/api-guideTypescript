@@ -45,7 +45,7 @@ const createUserData = (overrides: UserData = {}): UserData => ({
     ...overrides,
 });
 
-const makeRequest = (method: 'get' | 'post', path: string, data?: unknown) => {
+const makeRequest = (method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, data?: unknown) => {
     const req = request(app)[method](path).set('User-Agent', 'test-agent').set('API-Version', 'v1');
 
     if (data) {
@@ -65,6 +65,18 @@ describe('Auth Integration Tests - Simplified', () => {
         it('should respond to API info endpoint', async () => {
             const response = await makeRequest('get', '/api/v1');
             expectSuccessResponse(response, 200);
+        });
+    });
+
+    describe('Password Reset Validation', () => {
+        it('should accept legacy newPassword field and reach controller (bypassing Joi 422)', async () => {
+            const payload = { token: 'dummy-token', newPassword: 'ValidPassword123!' };
+            const response = await makeRequest('put', '/api/v1/users/reset-password', payload);
+
+            // If Joi validation failed, it would return 422.
+            // Since the token is invalid, the controller or service will throw 400 (or 404).
+            expect(response.status).not.toBe(422);
+            expect([400, 404]).toContain(response.status);
         });
     });
 

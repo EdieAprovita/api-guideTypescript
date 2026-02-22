@@ -65,6 +65,8 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             //       stored as 'Easy'/'Medium'/'Hard' until those documents are re-saved or migrated.
             //       Run a one-time migration to normalize existing values, then remove
             //       'Easy'/'Medium'/'Hard' from the enum once all records are converted.
+            // WARNING: Mongoose setters (like this one) are bypassed when using `findOneAndUpdate()`
+            //       with `$set`. Route updates through `.save()` or handle normalisation manually.
             enum: ['easy', 'medium', 'hard', 'Easy', 'Medium', 'Hard'],
             default: 'medium',
             set: (value: string) => (typeof value === 'string' ? value.toLowerCase() : value),

@@ -294,6 +294,7 @@ export class SearchService {
             .map(r => (r as PromiseFulfilledResult<UnifiedSearchResult>).value);
 
         // Cache even empty results to prevent DB spam on empty state
+        // The 'search' namespace delegates to config/redis with a standard TTL (~1 hour usually)
         await cacheService.set(cacheKey, finalResults, 'search');
 
         return finalResults;
@@ -341,7 +342,10 @@ export class SearchService {
             );
         }
 
-        if (!anyFailed) {
+        if (anyFailed) {
+            logger.warn('Aggregations returned partial data due to service failures');
+        } else {
+            // Document cache TTL: 'search' mapping delegates TTL logic (e.g. 1 hour)
             await cacheService.set(cacheKey, counts, 'search');
         }
 
@@ -355,7 +359,7 @@ export class SearchService {
      *
      * Security: query and resourceType are sanitized before logging to prevent log injection (#3).
      */
-    logSearchQuery(query: string, resourceType?: string): void {
+    async logSearchQuery(query: string, resourceType?: string): Promise<void> {
         try {
             const safeQuery = sanitizeForLog(query);
             const safeResource = sanitizeForLog(resourceType ?? 'all');

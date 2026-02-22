@@ -80,21 +80,19 @@ describe('User API Integration Tests', () => {
         it('should handle GET /api/v1/users without auth', async () => {
             const response: Response = await request(app).get('/api/v1/users');
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(401);
         });
 
         it('should handle GET /api/v1/users/profile without auth', async () => {
             const response: Response = await request(app).get('/api/v1/users/profile');
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(401);
         });
 
-        it('should handle PUT /api/v1/users/:id without auth', async () => {
-            const response: Response = await request(app)
-                .put('/api/v1/users/507f1f77bcf86cd799439011')
-                .send({ username: 'updated' });
+        it('should handle PUT /api/v1/users/profile without auth', async () => {
+            const response: Response = await request(app).put('/api/v1/users/profile').send({ username: 'updated' });
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(401);
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role without auth', async () => {
@@ -102,7 +100,7 @@ describe('User API Integration Tests', () => {
                 .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
                 .send({ role: 'admin' });
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(401);
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role invalid role validation', async () => {
@@ -126,7 +124,7 @@ describe('User API Integration Tests', () => {
         it('should handle DELETE /api/v1/users/:id without auth', async () => {
             const response: Response = await request(app).delete('/api/v1/users/507f1f77bcf86cd799439011');
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(401);
         });
     });
 });

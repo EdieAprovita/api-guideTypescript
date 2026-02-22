@@ -58,10 +58,13 @@ describe('Geo Helpers Unit Tests', () => {
             expect(() => resolveCoords(undefined, undefined, undefined, '10')).toThrow(expectError);
         });
 
-        it('should throw an error for invalid numeric coordinates', () => {
-            const expectError = 'Both latitude and longitude are required when filtering by coordinates';
-            expect(() => resolveCoords('abc', '20.5', undefined, undefined)).toThrow(expectError);
-            expect(() => resolveCoords('10.5', 'abc', undefined, undefined)).toThrow(expectError);
+        it('should throw specific errors for invalid numeric coordinates', () => {
+            expect(() => resolveCoords('abc', '20.5', undefined, undefined)).toThrow(
+                'latitude must be a valid finite number'
+            );
+            expect(() => resolveCoords('10.5', 'abc', undefined, undefined)).toThrow(
+                'longitude must be a valid finite number'
+            );
         });
 
         it('should return [undefined, undefined] if no coordinates are provided', () => {
