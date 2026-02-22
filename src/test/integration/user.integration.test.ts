@@ -34,8 +34,7 @@ describe('User API Integration Tests', () => {
 
             const response: Response = await request(app).post('/api/v1/users/register').send(userData);
 
-            // Accept any valid HTTP response code
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(201);
             expect(typeof response.status).toBe('number');
         });
 
@@ -44,7 +43,7 @@ describe('User API Integration Tests', () => {
 
             const response: Response = await request(app).post('/api/v1/users/register').send(userData);
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(400);
         });
 
         it('should handle weak password', async () => {
@@ -52,7 +51,7 @@ describe('User API Integration Tests', () => {
 
             const response: Response = await request(app).post('/api/v1/users/register').send(userData);
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(400);
         });
     });
 
@@ -63,7 +62,7 @@ describe('User API Integration Tests', () => {
                 password: 'TestPassword123!',
             });
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect([200, 404]).toContain(response.status);
         });
 
         it('should handle invalid credentials', async () => {
@@ -72,7 +71,7 @@ describe('User API Integration Tests', () => {
                 password: 'wrongpassword',
             });
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            expect(response.status).toBe(401);
         });
     });
 

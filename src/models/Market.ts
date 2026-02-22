@@ -46,6 +46,7 @@ const marketSchema = new Schema<IMarket>(
         },
         typeMarket: {
             type: String,
+            required: true,
             // Accept legacy capitalized values to avoid breaking existing records on re-save.
             // NOTE: Similar to Recipe difficulty, the `set` transformer only runs on save/update,
             // not on queries. Legacy records may need a manual data migration to lowercase.
@@ -73,9 +74,21 @@ const marketSchema = new Schema<IMarket>(
         hours: {
             type: [
                 {
-                    day: { type: String },
-                    open: { type: String },
-                    close: { type: String },
+                    day: {
+                        type: String,
+                        enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+                        required: true,
+                    },
+                    open: {
+                        type: String,
+                        match: /^([01]\d|2[0-3]):?([0-5]\d)$/,
+                        required: true,
+                    },
+                    close: {
+                        type: String,
+                        match: /^([01]\d|2[0-3]):?([0-5]\d)$/,
+                        required: true,
+                    },
                 },
             ],
             default: [],

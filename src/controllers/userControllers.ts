@@ -4,6 +4,7 @@ import UserServices from '../services/UserService.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import logger from '../utils/logger.js';
 
 /**
  * @description Authenticate user and get token
@@ -303,6 +304,15 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response) =
     const sanitizedUpdate = sanitizeNoSQLInput({ role });
 
     const updatedUser = await UserServices.updateUserById(id as string, sanitizedUpdate);
+
+    // High-value security event logging
+    logger.info('User role updated', {
+        adminId: req.user?._id,
+        targetId: id,
+        newRole: role,
+        action: 'role_escalation',
+    });
+
     res.json(updatedUser);
 });
 

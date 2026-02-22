@@ -75,21 +75,20 @@ const createBusinessBaseSchema = (isRequired = true) => {
 };
 
 // User validation schemas
-// Security note (#5 PR review): The special character requirement was deliberately removed
-// to improve usability for mobile users while maintaining a minimum entropy level.
-// OWASP recommends minimum length (enforced at 8 chars) over character-class mandates.
-// This tradeoff is documented here for future reviewers.
+// Security note (#5 PR review): The special character requirement was restored to ensure
+// higher entropy. OWASP ASVS L2+ recommends checking against breach databases (e.g., HIBP)
+// rather than dropping complexity logic altogether.
+// TODO: Implement Have-I-Been-Pwned (HIBP) checks to formally satisfy OWASP L2+.
 export const createPasswordSchema = () =>
     Joi.string()
         .min(8)
         .max(128)
-        // Requires: at least one uppercase, one lowercase, one digit. No special char required.
-        // Min length enforced at 8 as per OWASP recommendation.
-        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/)
+        // Requires: at least one uppercase, one lowercase, one digit, and one special char
+        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/)
         .required()
         .messages({
             'string.pattern.base':
-                'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+                'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
         });
 
 const createNameSchema = (required = true) => {

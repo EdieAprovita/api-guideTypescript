@@ -106,7 +106,7 @@ describe('Auth Integration Tests - Simplified', () => {
             // Unconditional assertions to guarantee stripping behavior
             expect(response.status).toBe(201);
             expect(response.body.data).toBeDefined();
-            expect((response.body.data as any).role).toBe('user');
+            expect((response.body.data as { role: string }).role).toBe('user');
         });
     });
 
