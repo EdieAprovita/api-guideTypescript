@@ -5,9 +5,9 @@ export interface IRecipe extends Document {
     title: string;
     author: Types.ObjectId;
     description: string;
-    instructions: string;
+    instructions: string[];
     ingredients: Array<string>;
-    typeDish: string;
+    typeDish?: string;
     image: string;
     cookingTime: number;
     preparationTime: number;
@@ -43,23 +43,33 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             ref: 'User',
             required: true,
         },
+        // Schema uses [String] — frontend sends instructions as an array.
         instructions: {
-            type: String,
+            type: [String],
             required: true,
         },
         image: {
             type: String,
             required: true,
         },
+        // Optional — frontend sends 'categories[]' not 'typeDish'
         typeDish: {
             type: String,
-            required: true,
         },
         difficulty: {
             type: String,
             required: true,
-            enum: ['Easy', 'Medium', 'Hard'],
-            default: 'Medium',
+            // Accept legacy capitalized values to avoid breaking existing records.
+            // NOTE: The `set` transformer only runs on save/update, not on queries.
+            //       This means Recipe.find({ difficulty: 'easy' }) will NOT match legacy records
+            //       stored as 'Easy'/'Medium'/'Hard' until those documents are re-saved or migrated.
+            //       Run a one-time migration to normalize existing values, then remove
+            //       'Easy'/'Medium'/'Hard' from the enum once all records are converted.
+            // WARNING: Mongoose setters (like this one) are bypassed when using `findOneAndUpdate()`
+            //       with `$set`. Route updates through `.save()` or handle normalisation manually.
+            enum: ['easy', 'medium', 'hard', 'Easy', 'Medium', 'Hard'],
+            default: 'medium',
+            set: (value: string) => (typeof value === 'string' ? value.toLowerCase() : value),
         },
         servings: {
             type: Number,
@@ -98,8 +108,30 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             },
         ],
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+    }
 );
+
+// Document hook runs after retrieving from MongoDB but before passing to application logic.
+// Necessary because legacy DB records stored instructions as a single primitive string, whereas
+// the schema enforcing Array<string> will cause Mongoose to silently array-wrap them at read-time
+// natively in recent versions. The manual coercion guarantees array types strictly at the hydration boundary.
+recipeSchema.post('init', function (doc) {
+    if (doc.instructions) {
+        const raw: unknown = doc.instructions;
+        if (typeof raw === 'string') {
+            doc.instructions = [raw];
+        }
+    }
+});
+
+recipeSchema.pre('save', function (next) {
+    if (this.instructions && !Array.isArray(this.instructions)) {
+        this.instructions = [this.instructions as unknown as string];
+    }
+    next();
+});
 
 export const Recipe =
     (mongoose.models.Recipe as mongoose.Model<IRecipe>) || mongoose.model<IRecipe>('Recipe', recipeSchema);

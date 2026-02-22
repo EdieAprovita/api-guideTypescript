@@ -2,7 +2,7 @@ import express from 'express';
 import Joi from 'joi';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
-import { userSchemas, paramSchemas, querySchemas, commonSchemas } from '../utils/validators.js';
+import { userSchemas, paramSchemas, querySchemas, commonSchemas, createPasswordSchema } from '../utils/validators.js';
 import {
     registerUser,
     loginUser,
@@ -11,6 +11,7 @@ import {
     getUsers,
     getUserById,
     updateUserProfile,
+    updateUserRole,
     getCurrentUserProfile,
     logout,
     deleteUserById,
@@ -71,12 +72,19 @@ router.put(
     validate({
         body: Joi.object({
             token: Joi.string().required(),
-            password: Joi.string()
-                .min(8)
-                .max(128)
-                .pattern(/^(?=[^\n]{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).*$/)
-                .required(),
-        }),
+            // Accept both 'password' (frontend) and 'newPassword' (legacy).
+            // Without both here, stripUnknown discards whichever field the client sends,
+            // causing "Password is required" even when a valid password was provided.
+            password: createPasswordSchema().optional(),
+            newPassword: createPasswordSchema().optional(),
+        })
+            // At least one of the two password fields must be present
+            .or('password', 'newPassword')
+            .messages({
+                'object.missing': 'Password is required',
+                'string.pattern.base':
+                    'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+            }),
     }),
     resetPassword
 );
@@ -91,6 +99,20 @@ router.put(
         body: userSchemas.updateProfile,
     }),
     updateUserProfile
+);
+
+router.patch(
+    '/profile/:id/role',
+    rateLimits.api,
+    protect,
+    admin,
+    validate({
+        params: paramSchemas.id,
+        body: Joi.object({
+            role: Joi.string().valid('user', 'admin', 'business').required(),
+        }),
+    }),
+    updateUserRole
 );
 
 router.get('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), getUserById);

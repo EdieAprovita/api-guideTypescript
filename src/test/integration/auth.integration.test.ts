@@ -45,10 +45,8 @@ const createUserData = (overrides: UserData = {}): UserData => ({
     ...overrides,
 });
 
-const makeRequest = (method: 'get' | 'post', path: string, data?: unknown) => {
-    const req = request(app)[method](path)
-        .set('User-Agent', 'test-agent')
-        .set('API-Version', 'v1');
+const makeRequest = (method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, data?: unknown) => {
+    const req = request(app)[method](path).set('User-Agent', 'test-agent').set('API-Version', 'v1');
 
     if (data) {
         req.send(data);
@@ -70,6 +68,18 @@ describe('Auth Integration Tests - Simplified', () => {
         });
     });
 
+    describe('Password Reset Validation', () => {
+        it('should accept legacy newPassword field and reach controller (bypassing Joi 422)', async () => {
+            const payload = { token: 'dummy-token', newPassword: 'ValidPassword123!' };
+            const response = await makeRequest('put', '/api/v1/users/reset-password', payload);
+
+            // If Joi validation failed, it would return 422.
+            // Since the token is invalid, the controller or service will throw 400 (or 404).
+            expect(response.status).not.toBe(422);
+            expect([400, 404]).toContain(response.status);
+        });
+    });
+
     describe('User Registration - Basic Validation', () => {
         it('should reject registration with invalid email format', async () => {
             const userData = createUserData({ email: 'invalid-email' });
@@ -88,6 +98,16 @@ describe('Auth Integration Tests - Simplified', () => {
             const response = await makeRequest('post', '/api/v1/users/register', userData);
             expectBadRequestResponse(response);
         });
+
+        it('should strip role property from registration payload', async () => {
+            const userData = createUserData({ role: 'admin' });
+            const response = await makeRequest('post', '/api/v1/users/register', userData);
+
+            // Unconditional assertions to guarantee stripping behavior
+            expect(response.status, `Registration failed unexpectedly: ${JSON.stringify(response.body)}`).toBe(201);
+            expect(response.body.data).toBeDefined();
+            expect((response.body.data as { role: string }).role).toBe('user');
+        });
     });
 
     describe('User Login - Basic Validation', () => {
@@ -99,7 +119,7 @@ describe('Auth Integration Tests - Simplified', () => {
         it('should reject login with invalid email format', async () => {
             const response = await makeRequest('post', '/api/v1/users/login', {
                 email: 'invalid-email',
-                password: 'password123'
+                password: 'password123',
             });
             expectBadRequestResponse(response);
         });
@@ -112,14 +132,15 @@ describe('Auth Integration Tests - Simplified', () => {
         });
 
         it('should reject access to protected route with invalid token format', async () => {
-            const response = await makeRequest('get', '/api/v1/users/profile')
-                .set('Authorization', 'Bearer invalid-token');
+            const response = await makeRequest('get', '/api/v1/users/profile').set(
+                'Authorization',
+                'Bearer invalid-token'
+            );
             expectUnauthorizedResponse(response);
         });
 
         it('should reject access to admin route without proper authentication', async () => {
-            const response = await makeRequest('get', '/api/v1/users')
-                .set('Authorization', 'Bearer mock-token');
+            const response = await makeRequest('get', '/api/v1/users').set('Authorization', 'Bearer mock-token');
             expectUnauthorizedResponse(response);
         });
     });
@@ -127,7 +148,7 @@ describe('Auth Integration Tests - Simplified', () => {
     describe('API Structure Validation', () => {
         it('should have proper error response structure', async () => {
             const response = await makeRequest('get', '/api/v1/users/profile');
-            
+
             expect(response.status).toBe(401);
             expect(response.body).toHaveProperty('success');
             expect(response.body).toHaveProperty('message');
@@ -137,9 +158,9 @@ describe('Auth Integration Tests - Simplified', () => {
 
         it('should have proper validation error structure', async () => {
             const response = await makeRequest('post', '/api/v1/users/register', {
-                email: 'invalid-email'
+                email: 'invalid-email',
             });
-            
+
             expect(response.status).toBe(400);
             expect(response.body).toHaveProperty('success');
             expect(response.body).toHaveProperty('message');
@@ -151,7 +172,7 @@ describe('Auth Integration Tests - Simplified', () => {
     describe('Rate Limiting and Security', () => {
         it('should include security headers', async () => {
             const response = await makeRequest('get', '/');
-            
+
             expect(response.headers).toHaveProperty('x-content-type-options');
             expect(response.headers).toHaveProperty('x-frame-options');
         });

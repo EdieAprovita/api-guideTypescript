@@ -4,6 +4,8 @@ import UserServices from '../services/UserService.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import logger from '../utils/logger.js';
+import { User } from '../models/User.js';
 
 /**
  * @description Authenticate user and get token
@@ -15,7 +17,10 @@ import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        const result = await UserServices.registerUser(sanitizedData, res);
+        // Security: strip role from user input to prevent privilege escalation.
+        // Role should only be set server-side (defaults to 'user' in the User model).
+        const { role: _stripRole, ...safeData } = sanitizedData;
+        const result = await UserServices.registerUser(safeData, res);
         res.status(201).json(result);
     } catch (error) {
         // Log error details in test environment for debugging
@@ -88,10 +93,25 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response, n
 export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        const { token, newPassword } = sanitizedData;
-        const response = await UserServices.resetPassword(token, newPassword);
+        const { token, newPassword, password } = sanitizedData;
+
+        // Validate token before using it
+        if (!token || typeof token !== 'string') {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Reset token is required');
+        }
+
+        // Accept both 'newPassword' (legacy) and 'password' (frontend field name)
+        const resolvedPassword = newPassword ?? password;
+        // Reject undefined or non-string values.
+        // NOTE: no .trim() — passwords are space-sensitive credentials.
+        if (!resolvedPassword || typeof resolvedPassword !== 'string') {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Password is required');
+        }
+
+        const response = await UserServices.resetPassword(token, resolvedPassword);
         res.status(200).json(response);
     } catch (error) {
+        if (error instanceof HttpError) return next(error);
         next(
             new HttpError(
                 HttpStatusCode.BAD_REQUEST,
@@ -239,34 +259,76 @@ export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Resp
  * @returns {Promise<Response>}
  */
 
-export const updateUserProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const currentUserId = req.user?._id?.toString();
+    const currentUserRole = req.user?.role;
+
+    if (!currentUserId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+    }
+
+    // Use the ID from params if provided, otherwise use current user ID
+    const targetUserId = id || currentUserId;
+
+    // Check authorization: users can only update their own profile, admins can update any profile
+    if (targetUserId !== currentUserId && currentUserRole !== 'admin') {
+        throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own profile');
+    }
+
+    const sanitizedData = sanitizeNoSQLInput(req.body);
+
+    // Security: strip role from user input to prevent privilege escalation via profile updates.
+    // Even if an admin is updating a profile, role changes should ideally happen via a dedicated endpoint,
+    // but stripping it here guarantees users cannot self-promote.
+    const { role: _stripRole, ...safeData } = sanitizedData;
+
+    const updatedUser = await UserServices.updateUserById(targetUserId, safeData);
+    res.json(updatedUser);
+});
+
+/**
+ * @description Update user role
+ * @name updateUserRole
+ * @route PATCH /api/users/profile/:id/role
+ * @access Private/Admin
+ * @returns {Promise<Response>}
+ */
+export const updateUserRole = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const role = req.body?.role;
+
+    if (!role) {
+        throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Role is required');
+    }
+
     try {
-        const { id } = req.params;
-        const currentUserId = req.user?._id?.toString();
-        const currentUserRole = req.user?.role;
+        const sanitizedUpdate = sanitizeNoSQLInput({ role });
 
-        if (!currentUserId) {
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+        // PR Review 6: Fetch previous role to complete the audit trail sequence
+        const previousUser = await User.findById(id);
+        if (!previousUser) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
         }
 
-        // Use the ID from params if provided, otherwise use current user ID
-        const targetUserId = id || currentUserId;
+        const previousRole = previousUser.role;
+        const updatedUser = await UserServices.updateUserById(id as string, sanitizedUpdate);
 
-        // Check authorization: users can only update their own profile, admins can update any profile
-        if (targetUserId !== currentUserId && currentUserRole !== 'admin') {
-            throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own profile');
-        }
+        // High-value security event logging
+        logger.info('User role updated', {
+            adminId: req.user?._id,
+            targetId: id,
+            previousRole,
+            newRole: role,
+            action: 'role_escalation',
+        });
 
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        const updatedUser = await UserServices.updateUserById(targetUserId, sanitizedData);
         res.json(updatedUser);
     } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+        if (error instanceof HttpError) {
+            return next(error);
+        }
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Invalid user ID or update data'));
     }
 });
 

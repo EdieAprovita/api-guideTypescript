@@ -8,13 +8,12 @@ export interface IRestaurant extends Document {
     _id: string;
     restaurantName: string;
     author: Types.ObjectId;
-    typePlace: string;
     address: string;
     location?: IGeoJSONPoint;
-    image: string;
-    budget: string;
+    image?: string;
+    budget?: string;
     contact: IContact[];
-    cuisine: [string];
+    cuisine: string[];
     reviews: Types.ObjectId[];
     rating: number;
     numReviews: number;
@@ -26,6 +25,9 @@ export interface IRestaurant extends Document {
 
 const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
     {
+        // PR review fix: removed Mongoose `alias` — alias only works on in-memory instances,
+        // not for Model.find({ name: 'x' }) queries. Virtual field below provides the same
+        // in-memory getter/setter without misleading consumers into thinking queries work.
         restaurantName: {
             type: String,
             required: true,
@@ -52,6 +54,12 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
             type: [String],
             required: true,
         },
+        image: {
+            type: String,
+        },
+        budget: {
+            type: String,
+        },
         rating: {
             type: Number,
             required: true,
@@ -69,8 +77,21 @@ const restaurantSchema: Schema = new mongoose.Schema<IRestaurant>(
             default: 0,
         },
     },
-    { timestamps: true }
+    { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+
+// Virtual `name` provides a document-level getter/setter for restaurantName.
+// IMPORTANT: Like Mongoose alias, virtuals are NOT available in queries.
+// Always use { restaurantName: 'x' } with Model.find() — never { name: 'x' }.
+restaurantSchema
+    .virtual('name')
+    .get(function (this: IRestaurant) {
+        return this.restaurantName;
+    })
+    .set(function (this: IRestaurant, value: string) {
+        this.restaurantName = value;
+    });
+
 restaurantSchema.index({ location: '2dsphere' });
 
 export const Restaurant =

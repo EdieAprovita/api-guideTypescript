@@ -75,15 +75,20 @@ const createBusinessBaseSchema = (isRequired = true) => {
 };
 
 // User validation schemas
-const createPasswordSchema = () =>
+// Security note (#5 PR review): The special character requirement was restored to ensure
+// higher entropy. OWASP ASVS L2+ recommends checking against breach databases (e.g., HIBP)
+// rather than dropping complexity logic altogether.
+// TODO: Implement Have-I-Been-Pwned (HIBP) checks to formally satisfy OWASP L2+.
+export const createPasswordSchema = () =>
     Joi.string()
         .min(8)
         .max(128)
-        .pattern(/^(?=[^\n]{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).*$/)
+        // Requires: at least one uppercase, one lowercase, one digit, and one special char
+        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/)
         .required()
         .messages({
             'string.pattern.base':
-                'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
+                'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
         });
 
 const createNameSchema = (required = true) => {
@@ -211,13 +216,24 @@ export const reviewSchemas = {
 
 // Query parameter schemas
 export const querySchemas = {
+    // Accept both 'latitude'/'longitude' (most endpoints) and 'lat'/'lng' (businesses/search)
     geospatial: Joi.object({
+        // New-style coordinate fields
         latitude: Joi.number().min(-90).max(90).optional(),
         longitude: Joi.number().min(-180).max(180).optional(),
+        // Legacy/shorthand coordinate fields (frontend alias)
+        lat: Joi.number().min(-90).max(90).optional(),
+        lng: Joi.number().min(-180).max(180).optional(),
         radius: Joi.number().min(1).max(50000).default(5000),
         page: commonSchemas.pagination.page,
         limit: commonSchemas.pagination.limit,
-    }).and('latitude', 'longitude'), // Both latitude and longitude must be present together
+    })
+        // Require coordinates to be provided as matching pairs within each naming convention
+        .and('latitude', 'longitude')
+        .and('lat', 'lng')
+        // Do not allow mixing the two coordinate conventions in the same request (but allow omitting entirely)
+        .oxor('latitude', 'lat')
+        .oxor('longitude', 'lng'),
 
     search: Joi.object({
         q: Joi.string().trim().min(1).max(100).optional(),

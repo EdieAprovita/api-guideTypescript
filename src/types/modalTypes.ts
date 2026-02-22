@@ -60,11 +60,18 @@ export interface IAnimal {
     _id?: string;
     animalName: string;
     specie: string;
-    age: number;
-    gender: string;
-    habitat: string;
-    diet: string[];
-    image: string;
-    vaccines: string[];
+    age?: number;
+    gender?: string;
+    habitat?: string;
+    diet?: string[];
+    image?: string;
+    vaccines?: string[];
     lastVaccine?: Date;
+    // Additional frontend fields
+    breed?: string;
+    description?: string;
+    rescued?: boolean;
+    rescueDate?: Date;
+    healthStatus?: string;
+    specialNeeds?: string[];
 }

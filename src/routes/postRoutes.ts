@@ -18,15 +18,14 @@ router.get('/', getPosts);
 router.get('/:id', getPostById);
 router.post('/', protect, createPost);
 router.post('/like/:id', protect, likePost);
-router.post('/unlike/:id', protect, unlikePost);
 router.post('/comment/:id', protect, addComment);
 router.put('/:id', protect, updatePost);
-router.delete('/:id', protect, deletePost);
 
-// Phase 1: DELETE comment route (C1)
+// Specific DELETE routes must be defined before the wildcard /:id
+router.delete('/:id/likes', protect, unlikePost);
 router.delete('/:postId/comments/:commentId', protect, removeComment);
 
-// Phase 1: DELETE method for unlike (C2) — frontend expects DELETE /posts/:id/likes
-router.delete('/:id/likes', protect, unlikePost);
+// Generic wildcard — must remain last among DELETE routes
+router.delete('/:id', protect, deletePost);
 
 export default router;
