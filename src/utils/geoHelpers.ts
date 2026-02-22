@@ -5,7 +5,17 @@
  */
 export const parseFiniteNumber = (value: unknown): number | undefined => {
     if (value === undefined || value === null || value === '' || Array.isArray(value)) return undefined;
-    const n = Number(value);
+
+    let toConvert: unknown = value;
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed === '') {
+            return undefined;
+        }
+        toConvert = trimmed;
+    }
+
+    const n = Number(toConvert);
     return Number.isFinite(n) ? n : undefined;
 };
 
