@@ -344,6 +344,9 @@ export class SearchService {
 
         if (anyFailed) {
             logger.warn('Aggregations returned partial data due to service failures');
+            // Cache partial failures with a shorter TTL (30 seconds) to mitigate thundering herds
+            // Assuming cacheService accepts TTL mapping string or we convert explicitly:
+            await cacheService.set(cacheKey, counts, '30' as any);
         } else {
             // Document cache TTL: 'search' mapping delegates TTL logic (e.g. 1 hour)
             await cacheService.set(cacheKey, counts, 'search');

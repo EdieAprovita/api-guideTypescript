@@ -118,8 +118,11 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
 // the schema enforcing Array<string> will cause Mongoose to silently array-wrap them at read-time
 // natively in recent versions. The manual coercion guarantees array types strictly at the hydration boundary.
 recipeSchema.post('init', function (doc) {
-    if (doc.instructions && typeof doc.instructions === 'string') {
-        doc.instructions = [doc.instructions as unknown as string];
+    if (doc.instructions) {
+        const raw: unknown = doc.instructions;
+        if (typeof raw === 'string') {
+            doc.instructions = [raw];
+        }
     }
 });
 

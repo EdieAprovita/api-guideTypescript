@@ -104,7 +104,7 @@ describe('Auth Integration Tests - Simplified', () => {
             const response = await makeRequest('post', '/api/v1/users/register', userData);
 
             // Unconditional assertions to guarantee stripping behavior
-            expect(response.status).toBe(201);
+            expect(response.status, `Registration failed unexpectedly: ${JSON.stringify(response.body)}`).toBe(201);
             expect(response.body.data).toBeDefined();
             expect((response.body.data as { role: string }).role).toBe('user');
         });

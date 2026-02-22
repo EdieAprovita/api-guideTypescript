@@ -11,7 +11,7 @@ export interface IMarket extends Document {
     address: string;
     location?: IGeoJSONPoint;
     image?: string;
-    typeMarket?: string;
+    typeMarket: string;
     contact: IContact[];
     products: string[];
     hours: Array<{ day: string; open: string; close: string }>;

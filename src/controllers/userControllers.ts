@@ -5,6 +5,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import logger from '../utils/logger.js';
+import { User } from '../models/User.js';
 
 /**
  * @description Authenticate user and get token
@@ -293,7 +294,7 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
  * @access Private/Admin
  * @returns {Promise<Response>}
  */
-export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+export const updateUserRole = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     const role = req.body?.role;
 
@@ -301,19 +302,34 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response) =
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Role is required');
     }
 
-    const sanitizedUpdate = sanitizeNoSQLInput({ role });
+    try {
+        const sanitizedUpdate = sanitizeNoSQLInput({ role });
 
-    const updatedUser = await UserServices.updateUserById(id as string, sanitizedUpdate);
+        // PR Review 6: Fetch previous role to complete the audit trail sequence
+        const previousUser = await User.findById(id);
+        if (!previousUser) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        }
 
-    // High-value security event logging
-    logger.info('User role updated', {
-        adminId: req.user?._id,
-        targetId: id,
-        newRole: role,
-        action: 'role_escalation',
-    });
+        const previousRole = previousUser.role;
+        const updatedUser = await UserServices.updateUserById(id as string, sanitizedUpdate);
 
-    res.json(updatedUser);
+        // High-value security event logging
+        logger.info('User role updated', {
+            adminId: req.user?._id,
+            targetId: id,
+            previousRole,
+            newRole: role,
+            action: 'role_escalation',
+        });
+
+        res.json(updatedUser);
+    } catch (error) {
+        if (error instanceof HttpError) {
+            return next(error);
+        }
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Invalid user ID or update data'));
+    }
 });
 
 /**

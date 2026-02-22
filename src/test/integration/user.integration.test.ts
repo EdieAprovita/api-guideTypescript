@@ -24,8 +24,7 @@ const createUserData = (overrides: Partial<UserTestData> = {}): UserTestData => 
     };
 };
 
-const VALID_RESPONSE_CODES = [200, 201, 400, 401, 403, 404, 422, 429, 500] as const;
-type ValidResponseCode = (typeof VALID_RESPONSE_CODES)[number];
+// Unused VALID_RESPONSE_CODES array removed for exact assertions.
 
 describe('User API Integration Tests', () => {
     describe('POST /api/v1/users/register', () => {
@@ -104,20 +103,32 @@ describe('User API Integration Tests', () => {
 
         it('should handle PATCH /api/v1/users/profile/:id/role invalid role validation', async () => {
             const response: Response = await request(app)
-                .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
+                .patch('/api/v1/users/profile/notanid/role')
                 .set('Authorization', 'Bearer mock-token')
                 .send({ role: 'invalid_role' });
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            // Expect a 400 Bad Request due to validation on role ('admin', 'user', 'business')
+            expect(response.status).toBe(400);
+        });
+
+        it('should handle PATCH /api/v1/users/profile/:id/role when role is missing', async () => {
+            const response: Response = await request(app)
+                .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
+                .set('Authorization', 'Bearer mock-token')
+                .send({});
+
+            expect(response.status).toBe(400);
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role with valid admin token', async () => {
             const response: Response = await request(app)
-                .patch('/api/v1/users/profile/notanid/role') // id format bypass handled via validate/mock
+                .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role') // id format bypass handled via validate/mock
                 .set('Authorization', 'Bearer mock-token') // Assumes mock-token acts as admin per test suite structure
                 .send({ role: 'business' });
 
-            expect(VALID_RESPONSE_CODES).toContain(response.status as ValidResponseCode);
+            // Depending on the native mock setup, this will either be a 404 (user not found for valid update) or 200
+            // Here we test simply that it cleared auth guards and valid Joi formatting
+            expect([200, 404]).toContain(response.status);
         });
 
         it('should handle DELETE /api/v1/users/:id without auth', async () => {
