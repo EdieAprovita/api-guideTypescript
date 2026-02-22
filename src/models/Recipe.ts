@@ -44,12 +44,9 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             required: true,
         },
         // Schema uses [String] — frontend sends instructions as an array.
-        // Legacy documents may store instructions as a plain string; the getter below
-        // coerces them into an array so reads are safe without a data migration.
         instructions: {
             type: [String],
             required: true,
-            get: (v: string | string[]): string[] => (typeof v === 'string' ? [v] : v),
         },
         image: {
             type: String,
@@ -111,13 +108,15 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
     },
     {
         timestamps: true,
-        // NOTE: getters: true is load-bearing!
-        // Without this, .toJSON() / .toObject() bypasses the `instructions` getter (defined above),
-        // preventing legacy strings from being correctly coerced to arrays when serialized to responses.
-        toJSON: { getters: true },
-        toObject: { getters: true },
     }
 );
+
+recipeSchema.pre('save', function (next) {
+    if (this.instructions && !Array.isArray(this.instructions)) {
+        this.instructions = [this.instructions as unknown as string];
+    }
+    next();
+});
 
 export const Recipe =
     (mongoose.models.Recipe as mongoose.Model<IRecipe>) || mongoose.model<IRecipe>('Recipe', recipeSchema);

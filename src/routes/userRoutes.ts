@@ -11,6 +11,7 @@ import {
     getUsers,
     getUserById,
     updateUserProfile,
+    updateUserRole,
     getCurrentUserProfile,
     logout,
     deleteUserById,
@@ -80,7 +81,7 @@ router.put(
             // At least one of the two password fields must be present
             .or('password', 'newPassword')
             .messages({
-                'object.missing': 'Either password or newPassword is required',
+                'object.missing': 'Password is required',
                 'string.pattern.base':
                     'Password must contain at least one uppercase letter, one lowercase letter, and one number',
             }),
@@ -98,6 +99,20 @@ router.put(
         body: userSchemas.updateProfile,
     }),
     updateUserProfile
+);
+
+router.patch(
+    '/profile/:id/role',
+    rateLimits.api,
+    protect,
+    admin,
+    validate({
+        params: paramSchemas.id,
+        body: Joi.object({
+            role: Joi.string().valid('user', 'admin', 'business').required(),
+        }),
+    }),
+    updateUserRole
 );
 
 router.get('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), getUserById);

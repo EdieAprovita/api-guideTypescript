@@ -21,6 +21,7 @@ export interface UnifiedSearchResult {
 interface SearchableService {
     searchPaginated(opts: SearchPaginatedOpts): Promise<{ data: Record<string, unknown>[]; meta?: { total?: number } }>;
     findNearbyPaginated(opts: NearbyPaginatedOpts): Promise<{ data: Record<string, unknown>[] }>;
+    countAll(): Promise<number>;
 }
 
 interface SearchPaginatedOpts {
@@ -63,46 +64,47 @@ function assertSearchableService(name: string, svc: unknown): SearchableService 
  * Eliminates duplicate { service, fields } mappings across methods (#7).
  * Services are validated at module load time via assertSearchableService (#8).
  */
-let ENTITY_REGISTRY: Array<{ type: string; service: SearchableService; fields: string[]; popular: boolean }> = [];
-
-try {
-    ENTITY_REGISTRY = [
-        {
-            type: 'restaurant',
-            service: assertSearchableService('restaurantService', restaurantService),
-            fields: ['restaurantName', 'address', 'cuisine'],
-            popular: true,
-        },
-        {
-            type: 'business',
-            service: assertSearchableService('businessService', businessService),
-            fields: ['namePlace', 'address', 'typeBusiness'],
-            popular: false,
-        },
-        {
-            type: 'doctor',
-            service: assertSearchableService('doctorService', doctorService),
-            fields: ['doctorName', 'address', 'specialty'],
-            popular: true,
-        },
-        {
-            type: 'market',
-            service: assertSearchableService('marketsService', marketsService),
-            fields: ['marketName', 'address', 'typeMarket'],
-            popular: true,
-        },
-        {
-            type: 'sanctuary',
-            service: assertSearchableService('sanctuaryService', sanctuaryService),
-            fields: ['sanctuaryName', 'address', 'typeofSanctuary'],
-            popular: false,
-        },
-    ];
-} catch (error) {
-    logger.error('Failed to initialize search ENTITY_REGISTRY. Services may be improperly configured.', error);
-    // Rethrow to fail fast on application start
-    throw error;
-}
+const ENTITY_REGISTRY: Array<{ type: string; service: SearchableService; fields: string[]; popular: boolean }> =
+    (() => {
+        try {
+            return [
+                {
+                    type: 'restaurant',
+                    service: assertSearchableService('restaurantService', restaurantService),
+                    fields: ['restaurantName', 'address', 'cuisine'],
+                    popular: true,
+                },
+                {
+                    type: 'business',
+                    service: assertSearchableService('businessService', businessService),
+                    fields: ['namePlace', 'address', 'typeBusiness'],
+                    popular: false,
+                },
+                {
+                    type: 'doctor',
+                    service: assertSearchableService('doctorService', doctorService),
+                    fields: ['doctorName', 'address', 'specialty'],
+                    popular: true,
+                },
+                {
+                    type: 'market',
+                    service: assertSearchableService('marketsService', marketsService),
+                    fields: ['marketName', 'address', 'typeMarket'],
+                    popular: true,
+                },
+                {
+                    type: 'sanctuary',
+                    service: assertSearchableService('sanctuaryService', sanctuaryService),
+                    fields: ['sanctuaryName', 'address', 'typeofSanctuary'],
+                    popular: false,
+                },
+            ];
+        } catch (error) {
+            logger.error('Failed to initialize search ENTITY_REGISTRY. Services may be improperly configured.', error);
+            // Rethrow to fail fast on application start
+            throw error;
+        }
+    })();
 
 /**
  * Helper to handle irregular plurals
@@ -256,6 +258,10 @@ export class SearchService {
             })
         );
 
+        if (results.length > 0 && results.every(r => r.status === 'rejected')) {
+            logger.warn('All popular search tasks failed to fetch data');
+        }
+
         return results
             .filter(r => r.status === 'fulfilled')
             .map(r => (r as PromiseFulfilledResult<UnifiedSearchResult>).value)
@@ -271,14 +277,8 @@ export class SearchService {
         // Promise.allSettled avoids short-circuiting on single service failure.
         const results = await Promise.allSettled(
             ENTITY_REGISTRY.map(async task => {
-                // Use task.fields and limit:0 — only meta.total is needed,
-                // requesting 0 documents avoids fetching unnecessary data.
-                const result = await task.service.searchPaginated({
-                    q: '',
-                    searchFields: task.fields,
-                    limit: 0,
-                });
-                return { type: task.type, count: result.meta?.total ?? 0 };
+                const count = await task.service.countAll();
+                return { type: task.type, count };
             })
         );
 

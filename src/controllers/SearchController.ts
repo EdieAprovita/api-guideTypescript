@@ -86,11 +86,7 @@ export class SearchController {
         }
 
         searchService.logSearchQuery(safeQuery, resourceType);
-        res.status(202).json({
-            success: true,
-            message: 'Search query logged',
-            data: null,
-        });
+        sendSuccessResponse(res, null, 'Search query logged', 202);
     });
 
     /**

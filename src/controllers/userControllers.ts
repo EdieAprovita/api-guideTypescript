@@ -295,6 +295,42 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
 });
 
 /**
+ * @description Update user role
+ * @name updateUserRole
+ * @route PATCH /api/users/profile/:id/role
+ * @access Private/Admin
+ * @returns {Promise<Response>}
+ */
+export const updateUserRole = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+
+        if (!id) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'User ID is required');
+        }
+        if (!role) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Role is required');
+        }
+
+        const validRoles = ['user', 'admin', 'business'];
+        if (!validRoles.includes(role)) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Invalid role provided');
+        }
+
+        const updatedUser = await UserServices.updateUserById(id, { role });
+        res.json(updatedUser);
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
+});
+
+/**
  * @description Delete user
  * @name deleteUser
  * @route DELETE /api/users/:id

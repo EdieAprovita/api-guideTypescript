@@ -81,11 +81,11 @@ const createBusinessBaseSchema = (isRequired = true) => {
 // This tradeoff is documented here for future reviewers.
 export const createPasswordSchema = () =>
     Joi.string()
-        .min(12)
+        .min(8)
         .max(128)
         // Requires: at least one uppercase, one lowercase, one digit. No special char required.
-        // Min length increased to 12 to compensate for removing special character requirement.
-        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,128}$/)
+        // Min length enforced at 8 as per OWASP recommendation.
+        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/)
         .required()
         .messages({
             'string.pattern.base':

@@ -4,7 +4,7 @@
  * preventing non-numeric inputs (e.g. lat=abc) from reaching MongoDB geo queries.
  */
 export const parseFiniteNumber = (value: unknown): number | undefined => {
-    if (value === undefined || value === null || value === '') return undefined;
+    if (value === undefined || value === null || value === '' || Array.isArray(value)) return undefined;
     const n = Number(value);
     return Number.isFinite(n) ? n : undefined;
 };

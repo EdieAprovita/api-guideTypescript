@@ -70,4 +70,48 @@ describe('Search & Discovery Integration Tests (Phase 4)', () => {
             expect(res.body.data).toContain('Vegan Delight'); // Updated to full restaurantName
         });
     });
+
+    describe('New Search Endpoints', () => {
+        it('should return popular searches', async () => {
+            const res = await request(app).get('/api/v1/search/popular');
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(Array.isArray(res.body.data)).toBe(true);
+        });
+
+        it('should return aggregations', async () => {
+            const res = await request(app).get('/api/v1/search/aggregations');
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data).toHaveProperty('restaurants');
+            expect(res.body.data.restaurants).toBeDefined();
+        });
+
+        it('should log analytics query', async () => {
+            const res = await request(app)
+                .post('/api/v1/search/analytics')
+                .send({ query: 'test query', resourceType: 'restaurant' });
+            expect(res.status).toBe(202);
+            expect(res.body.success).toBe(true);
+            expect(res.body.message).toBe('Search query logged');
+        });
+
+        it('should return 400 for empty analytics query', async () => {
+            const res = await request(app).post('/api/v1/search/analytics').send({ query: '   ' });
+            expect(res.status).toBe(400);
+        });
+
+        it('should search by specific resource type', async () => {
+            const res = await request(app).get('/api/v1/search/restaurant?q=Vegan');
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data.type).toBe('restaurant');
+        });
+
+        it('should return 400 for unknown resource type', async () => {
+            const res = await request(app).get('/api/v1/search/unknown');
+            expect(res.status).toBe(400);
+            expect(res.body.success).toBe(false);
+        });
+    });
 });

@@ -14,7 +14,7 @@ export interface IRestaurant extends Document {
     budget?: string;
     // Intentionally kept but deprecated as this field is no longer persisted in the schema.
     /** @deprecated This field is no longer persisted in the database. DO NOT USE. */
-    typePlace?: string;
+    typePlace?: never;
     contact: IContact[];
     cuisine: string[];
     reviews: Types.ObjectId[];
