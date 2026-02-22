@@ -3,6 +3,7 @@ import { businessService } from './BusinessService.js';
 import { doctorService } from './DoctorService.js';
 import { marketsService } from './MarketsService.js';
 import { sanctuaryService } from './SanctuaryService.js';
+import { cacheService } from './CacheService.js';
 import logger from '../utils/logger.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
@@ -49,11 +50,13 @@ function assertSearchableService(name: string, svc: unknown): SearchableService 
     const s = svc as Record<string, unknown>;
     const hasSearch = typeof s?.['searchPaginated'] === 'function';
     const hasNearby = typeof s?.['findNearbyPaginated'] === 'function';
-    if (!hasSearch || !hasNearby) {
+    const hasCount = typeof s?.['countAll'] === 'function';
+    if (!hasSearch || !hasNearby || !hasCount) {
         throw new Error(
             `Service "${name}" is misconfigured: ` +
                 `searchPaginated=${hasSearch ? 'OK' : 'MISSING'}, ` +
-                `findNearbyPaginated=${hasNearby ? 'OK' : 'MISSING'}`
+                `findNearbyPaginated=${hasNearby ? 'OK' : 'MISSING'}, ` +
+                `countAll=${hasCount ? 'OK' : 'MISSING'}`
         );
     }
     return svc as SearchableService;
@@ -138,6 +141,13 @@ const sanitizeForLog = (value: string): string =>
 
 export class SearchService {
     /**
+     * Check if a requested resource type is valid and registered
+     */
+    isValidResourceType(type: string): boolean {
+        return !!RESOURCE_MAP[type.toLowerCase()];
+    }
+
+    /**
      * @description Unified search across all main entities
      */
     async unifiedSearch(q: string, lat?: number, lng?: number, radius?: number): Promise<UnifiedSearchResult[]> {
@@ -180,20 +190,36 @@ export class SearchService {
     }
 
     async getSuggestions(q: string): Promise<string[]> {
-        const results = await this.unifiedSearch(q);
+        const query = q || '';
+        if (!query) return [];
+
+        // Optimize: Use targeted searchPaginated instead of unifiedSearch with strict limits
+        const results = await Promise.allSettled(
+            ENTITY_REGISTRY.map(async task => {
+                const result = await task.service.searchPaginated({
+                    q: query,
+                    searchFields: task.fields,
+                    limit: 2,
+                });
+                return { type: task.type, data: result.data };
+            })
+        );
+
         const suggestions = new Set<string>();
 
         results.forEach(res => {
-            res.data.forEach((item: any) => {
-                const name =
-                    item.restaurantName ||
-                    item.namePlace ||
-                    item.marketName ||
-                    item.doctorName ||
-                    item.sanctuaryName ||
-                    item.professionName;
-                if (name) suggestions.add(name);
-            });
+            if (res.status === 'fulfilled') {
+                res.value.data.forEach((item: any) => {
+                    const name =
+                        item.restaurantName ||
+                        item.namePlace ||
+                        item.marketName ||
+                        item.doctorName ||
+                        item.sanctuaryName ||
+                        item.professionName;
+                    if (name) suggestions.add(name);
+                });
+            }
         });
 
         return Array.from(suggestions).slice(0, 10);
@@ -211,11 +237,7 @@ export class SearchService {
     ): Promise<UnifiedSearchResult> {
         const target = RESOURCE_MAP[resourceType.toLowerCase()];
         if (!target) {
-            const validTypes = [...new Set(ENTITY_REGISTRY.map(e => e.type))];
-            throw new HttpError(
-                HttpStatusCode.BAD_REQUEST,
-                `Unknown resource type "${resourceType}". Valid types: ${validTypes.join(', ')}`
-            );
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Unknown resource type requested');
         }
 
         if (lat !== undefined && lng !== undefined) {
@@ -242,6 +264,10 @@ export class SearchService {
      * Return popular searches — top-rated items from each main entity type
      */
     async getPopularSearches(): Promise<UnifiedSearchResult[]> {
+        const cacheKey = 'search:popular';
+        const cached = await cacheService.get<UnifiedSearchResult[]>(cacheKey);
+        if (cached) return cached;
+
         // Filter based on the 'popular' flag in the entity registry
         const tasks = ENTITY_REGISTRY.filter(e => e.popular);
 
@@ -262,16 +288,25 @@ export class SearchService {
             logger.warn('All popular search tasks failed to fetch data');
         }
 
-        return results
+        const finalResults = results
             .filter(r => r.status === 'fulfilled')
-            .map(r => (r as PromiseFulfilledResult<UnifiedSearchResult>).value)
-            .filter(r => r.data.length > 0);
+            .map(r => (r as PromiseFulfilledResult<UnifiedSearchResult>).value);
+
+        if (finalResults.length > 0) {
+            await cacheService.set(cacheKey, finalResults, 'search');
+        }
+
+        return finalResults;
     }
 
     /**
      * Return counts of each entity type for aggregation UI
      */
     async getAggregations(): Promise<Record<string, number>> {
+        const cacheKey = 'search:aggregations';
+        const cached = await cacheService.get<Record<string, number>>(cacheKey);
+        if (cached) return cached;
+
         const counts: Record<string, number> = {};
 
         // Promise.allSettled avoids short-circuiting on single service failure.
@@ -303,6 +338,8 @@ export class SearchService {
                 'Unable to fetch aggregations across all services'
             );
         }
+
+        await cacheService.set(cacheKey, counts, 'search');
 
         return counts;
     }

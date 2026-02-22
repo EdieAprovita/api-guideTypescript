@@ -50,7 +50,7 @@ const marketSchema = new Schema<IMarket>(
             // Accept legacy capitalized values to avoid breaking existing records on re-save.
             // NOTE: Similar to Recipe difficulty, the `set` transformer only runs on save/update,
             // not on queries. Legacy records may need a manual data migration to lowercase.
-            // TODO: remove capitalized values from typeMarket after database migration
+            // TODO(#123): remove capitalized values from typeMarket after database migration
             enum: [
                 'supermarket',
                 'convenience store',

@@ -306,19 +306,11 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response, n
         const { id } = req.params;
         const { role } = req.body;
 
-        if (!id) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'User ID is required');
-        }
         if (!role) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Role is required');
         }
 
-        const validRoles = ['user', 'admin', 'business'];
-        if (!validRoles.includes(role)) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Invalid role provided');
-        }
-
-        const updatedUser = await UserServices.updateUserById(id, { role });
+        const updatedUser = await UserServices.updateUserById(id as string, { role });
         res.json(updatedUser);
     } catch (error) {
         next(

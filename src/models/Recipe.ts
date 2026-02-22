@@ -111,6 +111,12 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
     }
 );
 
+recipeSchema.post('init', function (doc) {
+    if (doc.instructions && typeof doc.instructions === 'string') {
+        doc.instructions = [doc.instructions as unknown as string];
+    }
+});
+
 recipeSchema.pre('save', function (next) {
     if (this.instructions && !Array.isArray(this.instructions)) {
         this.instructions = [this.instructions as unknown as string];
