@@ -96,7 +96,7 @@ describe('Phase 3: Entity Field Standardization - Aliases and Schema Extensions'
             ingredients: ['Lettuce', 'Tomato'],
             image: 'salad.jpg',
             typeDish: 'Salad',
-            difficulty: 'Easy',
+            difficulty: 'easy',
             servings: 2,
             cookingTime: 10,
             preparationTime: 5,
@@ -104,7 +104,7 @@ describe('Phase 3: Entity Field Standardization - Aliases and Schema Extensions'
         });
 
         expect(recipe.typeDish).toBe('Salad');
-        expect(recipe.difficulty).toBe('Easy');
+        expect(recipe.difficulty).toBe('easy');
         expect(recipe.servings).toBe(2);
         expect(recipe.preparationTime).toBe(5);
         expect(recipe.budget).toBe('low');

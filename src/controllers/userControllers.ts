@@ -15,7 +15,10 @@ import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        const result = await UserServices.registerUser(sanitizedData, res);
+        // Security: strip role from user input to prevent privilege escalation.
+        // Role should only be set server-side (defaults to 'user' in the User model).
+        const { role: _stripRole, ...safeData } = sanitizedData;
+        const result = await UserServices.registerUser(safeData, res);
         res.status(201).json(result);
     } catch (error) {
         // Log error details in test environment for debugging
@@ -88,10 +91,25 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response, n
 export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        const { token, newPassword } = sanitizedData;
-        const response = await UserServices.resetPassword(token, newPassword);
+        const { token, newPassword, password } = sanitizedData;
+
+        // Validate token before using it
+        if (!token || typeof token !== 'string') {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Reset token is required');
+        }
+
+        // Accept both 'newPassword' (legacy) and 'password' (frontend field name)
+        const resolvedPassword = newPassword ?? password;
+        // Reject undefined or non-string values.
+        // NOTE: no .trim() — passwords are space-sensitive credentials.
+        if (!resolvedPassword || typeof resolvedPassword !== 'string') {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Password is required');
+        }
+
+        const response = await UserServices.resetPassword(token, resolvedPassword);
         res.status(200).json(response);
     } catch (error) {
+        if (error instanceof HttpError) return next(error);
         next(
             new HttpError(
                 HttpStatusCode.BAD_REQUEST,
@@ -258,7 +276,41 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
         }
 
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        const updatedUser = await UserServices.updateUserById(targetUserId, sanitizedData);
+
+        // Security: strip role from user input to prevent privilege escalation via profile updates.
+        // Even if an admin is updating a profile, role changes should ideally happen via a dedicated endpoint,
+        // but stripping it here guarantees users cannot self-promote.
+        const { role: _stripRole, ...safeData } = sanitizedData;
+
+        const updatedUser = await UserServices.updateUserById(targetUserId, safeData);
+        res.json(updatedUser);
+    } catch (error) {
+        next(
+            new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
+            )
+        );
+    }
+});
+
+/**
+ * @description Update user role
+ * @name updateUserRole
+ * @route PATCH /api/users/profile/:id/role
+ * @access Private/Admin
+ * @returns {Promise<Response>}
+ */
+export const updateUserRole = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+
+        if (!role) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Role is required');
+        }
+
+        const updatedUser = await UserServices.updateUserById(id as string, { role });
         res.json(updatedUser);
     } catch (error) {
         next(

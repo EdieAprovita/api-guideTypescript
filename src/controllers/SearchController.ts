@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import { searchService } from '../services/SearchService.js';
 import { sendSuccessResponse } from '../utils/responseHelpers.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { resolveCoords, parseFiniteNumber } from '../utils/geoHelpers.js';
+import logger from '../utils/logger.js';
 
 /**
  * @description Search controller class
@@ -15,12 +18,19 @@ export class SearchController {
      */
     unifiedSearch = asyncHandler(async (req: Request, res: Response) => {
         const { q, lat, lng, latitude, longitude, radius } = req.query;
+        let resolvedLat: number | undefined;
+        let resolvedLng: number | undefined;
+        try {
+            [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
+        } catch (error) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, (error as Error).message);
+        }
 
         const results = await searchService.unifiedSearch(
             q as string,
-            latitude || lat ? Number(latitude || lat) : undefined,
-            longitude || lng ? Number(longitude || lng) : undefined,
-            radius ? Number(radius) : undefined
+            resolvedLat,
+            resolvedLng,
+            parseFiniteNumber(radius)
         );
 
         sendSuccessResponse(res, results, 'Search completed successfully');
@@ -41,6 +51,78 @@ export class SearchController {
 
         const suggestions = await searchService.getSuggestions(q as string);
         sendSuccessResponse(res, suggestions, 'Suggestions fetched successfully');
+    });
+
+    /**
+     * @route   GET /api/v1/search/popular
+     * @desc    Get popular searches (top-rated items per entity type)
+     * @access  Public
+     */
+    getPopularSearches = asyncHandler(async (_req: Request, res: Response) => {
+        const results = await searchService.getPopularSearches();
+        sendSuccessResponse(res, results, 'Popular searches fetched successfully');
+    });
+
+    /**
+     * @route   GET /api/v1/search/aggregations
+     * @desc    Get entity counts for search UI aggregations
+     * @access  Public
+     */
+    getSearchAggregations = asyncHandler(async (_req: Request, res: Response) => {
+        const aggregations = await searchService.getAggregations();
+        sendSuccessResponse(res, aggregations, 'Aggregations fetched successfully');
+    });
+
+    /**
+     * @route   POST /api/v1/search/analytics
+     * @desc    Log a search query for analytics
+     * @access  Public
+     */
+    saveSearchQuery = asyncHandler(async (req: Request, res: Response) => {
+        const { query, resourceType } = req.body as { query?: string; resourceType?: string };
+        const safeQuery = query?.trim() ?? '';
+
+        if (!safeQuery) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Search query cannot be empty');
+        }
+
+        searchService.logSearchQuery(safeQuery, resourceType);
+        sendSuccessResponse(res, null, 'Search query logged', 202);
+    });
+
+    /**
+     * @route   GET /api/v1/search/:resourceType
+     * @desc    Search within a specific resource type
+     * @access  Public
+     */
+    searchByResourceType = asyncHandler(async (req: Request, res: Response) => {
+        const resourceType = req.params['resourceType'] ?? '';
+
+        // Ensure the internal routing/resourceType isn't blindly bounced back to the user
+        const target = searchService.isValidResourceType(resourceType);
+        if (!target) {
+            logger.warn(`Invalid searchByResourceType request for unknown resource type: ${resourceType}`);
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Unknown resource type requested');
+        }
+
+        const { q, lat, lng, latitude, longitude, radius } = req.query;
+        let resolvedLat: number | undefined;
+        let resolvedLng: number | undefined;
+        try {
+            [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
+        } catch (error) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, (error as Error).message);
+        }
+
+        const result = await searchService.searchByResourceType(
+            resourceType,
+            q as string,
+            resolvedLat,
+            resolvedLng,
+            parseFiniteNumber(radius)
+        );
+
+        sendSuccessResponse(res, result, `${resourceType} search completed`);
     });
 }
 

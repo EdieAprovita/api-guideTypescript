@@ -370,7 +370,7 @@ export const createMockRecipe = (overrides = {}) => ({
     ingredients: [faker.lorem.word(), faker.lorem.word()],
     instructions: [faker.lorem.sentence()],
     cookingTime: faker.number.int({ min: 10, max: 120 }),
-    difficulty: faker.helpers.arrayElement(['Easy', 'Medium', 'Hard']),
+    difficulty: faker.helpers.arrayElement(['easy', 'medium', 'hard']),
     ...overrides,
 });
 export const createMockPost = createMockData.post;

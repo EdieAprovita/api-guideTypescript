@@ -55,6 +55,10 @@ class BaseService<T extends Document> {
         return this.model.find();
     }
 
+    async countAll(): Promise<number> {
+        return this.model.countDocuments().exec();
+    }
+
     async getAllPaginated(
         page?: string | number,
         limit?: string | number,
