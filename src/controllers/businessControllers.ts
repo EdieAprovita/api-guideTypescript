@@ -247,7 +247,10 @@ export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Respon
 
         if (lat === undefined || lng === undefined) {
             return next(
-                new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude and longitude query parameters are required')
+                new HttpError(
+                    HttpStatusCode.BAD_REQUEST,
+                    'latitude and longitude (or lat and lng) query parameters are required'
+                )
             );
         }
 
