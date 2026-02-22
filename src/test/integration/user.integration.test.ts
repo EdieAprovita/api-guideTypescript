@@ -6,6 +6,7 @@
 import request from 'supertest';
 import { describe, it, expect } from 'vitest';
 import type { Response } from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../../app.js';
 
 interface UserTestData {
@@ -20,8 +21,15 @@ const createUserData = (overrides: Partial<UserTestData> = {}): UserTestData => 
         username: `testuser_${timestamp}`,
         email: `test_${timestamp}@example.com`,
         password: 'TestPassword123!',
-        ...overrides,
     };
+};
+
+const generateMockToken = (role: 'user' | 'admin' | 'business' = 'user'): string => {
+    return jwt.sign(
+        { userId: '507f1f77bcf86cd799439011', email: 'test@example.com', role },
+        process.env.JWT_SECRET || 'test-secret',
+        { expiresIn: '1h' }
+    );
 };
 
 // Unused VALID_RESPONSE_CODES array removed for exact assertions.
@@ -102,9 +110,10 @@ describe('User API Integration Tests', () => {
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role invalid role validation', async () => {
+            const adminToken = generateMockToken('admin');
             const response: Response = await request(app)
                 .patch('/api/v1/users/profile/notanid/role')
-                .set('Authorization', 'Bearer mock-token')
+                .set('Authorization', `Bearer ${adminToken}`)
                 .send({ role: 'invalid_role' });
 
             // Expect a 400 Bad Request due to validation on role ('admin', 'user', 'business')
@@ -112,18 +121,20 @@ describe('User API Integration Tests', () => {
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role when role is missing', async () => {
+            const adminToken = generateMockToken('admin');
             const response: Response = await request(app)
                 .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
-                .set('Authorization', 'Bearer mock-token')
+                .set('Authorization', `Bearer ${adminToken}`)
                 .send({});
 
             expect(response.status).toBe(400);
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role with valid admin token', async () => {
+            const adminToken = generateMockToken('admin');
             const response: Response = await request(app)
                 .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role') // id format bypass handled via validate/mock
-                .set('Authorization', 'Bearer mock-token') // Assumes mock-token acts as admin per test suite structure
+                .set('Authorization', `Bearer ${adminToken}`)
                 .send({ role: 'business' });
 
             // Depending on the native mock setup, this will either be a 404 (user not found for valid update) or 200
