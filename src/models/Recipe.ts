@@ -5,7 +5,7 @@ export interface IRecipe extends Document {
     title: string;
     author: Types.ObjectId;
     description: string;
-    instructions: string[];
+    instructions: string | string[];
     ingredients: Array<string>;
     typeDish?: string;
     image: string;
