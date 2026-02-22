@@ -12,6 +12,9 @@ export interface IRestaurant extends Document {
     location?: IGeoJSONPoint;
     image?: string;
     budget?: string;
+    // Intentionally kept but deprecated as this field is no longer persisted in the schema.
+    /** @deprecated This field is no longer persisted in the database. DO NOT USE. */
+    typePlace?: string;
     contact: IContact[];
     cuisine: string[];
     reviews: Types.ObjectId[];

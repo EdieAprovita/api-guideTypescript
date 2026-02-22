@@ -105,6 +105,11 @@ try {
 }
 
 /**
+ * Helper to handle irregular plurals
+ */
+const pluralize = (type: string) => (type === 'sanctuary' ? 'sanctuaries' : `${type}s`);
+
+/**
  * Build a lookup map that includes both singular and plural forms.
  * e.g. 'restaurant' and 'restaurants' both resolve to the same entry.
  */
@@ -112,9 +117,7 @@ const buildResourceMap = (): Record<string, { service: SearchableService; fields
     const map: Record<string, { service: SearchableService; fields: string[] }> = {};
     for (const entry of ENTITY_REGISTRY) {
         map[entry.type] = { service: entry.service, fields: entry.fields };
-        // Handle irregular plurals (like sanctuary -> sanctuaries)
-        const plural = entry.type === 'sanctuary' ? 'sanctuaries' : `${entry.type}s`;
-        map[plural] = { service: entry.service, fields: entry.fields };
+        map[pluralize(entry.type)] = { service: entry.service, fields: entry.fields };
     }
     return map;
 };
@@ -283,16 +286,18 @@ export class SearchService {
 
         for (const [index, result] of results.entries()) {
             const entityType = ENTITY_REGISTRY[index]?.type ?? 'unknown';
+            const pluralType = pluralize(entityType);
+
             if (result.status === 'fulfilled') {
                 allFailed = false;
-                counts[`${result.value.type}s`] = result.value.count;
+                counts[pluralType] = result.value.count;
             } else {
                 logger.error(`Aggregation failed for resource type: ${entityType}`, result.reason);
-                counts[`${entityType}s`] = 0;
+                counts[pluralType] = 0;
             }
         }
 
-        if (allFailed && Object.keys(counts).length > 0) {
+        if (allFailed) {
             throw new HttpError(
                 HttpStatusCode.INTERNAL_SERVER_ERROR,
                 'Unable to fetch aggregations across all services'
@@ -305,6 +310,7 @@ export class SearchService {
     /**
      * Log a search analytics event.
      * NOTE: persistence is not yet implemented — this only writes to the application log (#10).
+     * This is currently a fire-and-forget synchronous operation, but will become async when DB persistence is added.
      *
      * Security: query and resourceType are sanitized before logging to prevent log injection (#3).
      */

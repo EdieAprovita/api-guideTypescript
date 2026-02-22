@@ -5,8 +5,6 @@ import { sendSuccessResponse } from '../utils/responseHelpers.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { resolveCoords, parseFiniteNumber } from '../utils/geoHelpers.js';
 
-// Coordinate helpers imported from ../utils/geoHelpers.js
-
 /**
  * @description Search controller class
  * @name SearchController
@@ -19,8 +17,13 @@ export class SearchController {
      */
     unifiedSearch = asyncHandler(async (req: Request, res: Response) => {
         const { q, lat, lng, latitude, longitude, radius } = req.query;
-        // Validate coords with Number.isFinite to reject non-numeric inputs
-        const [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
+        let resolvedLat: number | undefined;
+        let resolvedLng: number | undefined;
+        try {
+            [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
+        } catch (error) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, (error as Error).message);
+        }
 
         const results = await searchService.unifiedSearch(
             q as string,
@@ -83,7 +86,11 @@ export class SearchController {
         }
 
         searchService.logSearchQuery(safeQuery, resourceType);
-        sendSuccessResponse(res, null, 'Search query logged');
+        res.status(202).json({
+            success: true,
+            message: 'Search query logged',
+            data: null,
+        });
     });
 
     /**
@@ -94,8 +101,13 @@ export class SearchController {
     searchByResourceType = asyncHandler(async (req: Request, res: Response) => {
         const resourceType = req.params['resourceType'] ?? '';
         const { q, lat, lng, latitude, longitude, radius } = req.query;
-        // Validate coords with Number.isFinite to reject non-numeric inputs
-        const [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
+        let resolvedLat: number | undefined;
+        let resolvedLng: number | undefined;
+        try {
+            [resolvedLat, resolvedLng] = resolveCoords(latitude, longitude, lat, lng);
+        } catch (error) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, (error as Error).message);
+        }
 
         const result = await searchService.searchByResourceType(
             resourceType,
