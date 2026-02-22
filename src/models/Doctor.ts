@@ -80,7 +80,7 @@ const doctorSchema = new Schema<IDoctor>(
             default: 0,
         },
     },
-    { timestamps: true }
+    { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 doctorSchema.index({ location: '2dsphere' });
 export const Doctor =

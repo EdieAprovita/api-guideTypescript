@@ -135,7 +135,7 @@ const sanctuarySchema = new Schema<ISanctuary>(
             default: 0,
         },
     },
-    { timestamps: true }
+    { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 sanctuarySchema.index({ location: '2dsphere' });
 export const Sanctuary =
