@@ -93,8 +93,27 @@ const marketSchema = new Schema<IMarket>(
             default: 0,
         },
     },
-    { timestamps: true }
+    { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+
+marketSchema
+    .virtual('name')
+    .get(function (this: IMarket) {
+        return this.marketName;
+    })
+    .set(function (this: IMarket, value: string) {
+        this.marketName = value;
+    });
+
+marketSchema
+    .virtual('category')
+    .get(function (this: IMarket) {
+        return this.typeMarket;
+    })
+    .set(function (this: IMarket, value: string) {
+        this.typeMarket = value;
+    });
+
 marketSchema.index({ location: '2dsphere' });
 
 export const Market =
