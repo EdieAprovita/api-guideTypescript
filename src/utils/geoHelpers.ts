@@ -22,9 +22,11 @@ export const resolveCoords = (
     lat: unknown,
     lng: unknown
 ): [number | undefined, number | undefined] => {
-    const resolvedLat = parseFiniteNumber(latitude ?? lat);
-    const resolvedLng = parseFiniteNumber(longitude ?? lng);
+    const primaryLat = parseFiniteNumber(latitude);
+    const resolvedLat = primaryLat !== undefined ? primaryLat : parseFiniteNumber(lat);
 
+    const primaryLng = parseFiniteNumber(longitude);
+    const resolvedLng = primaryLng !== undefined ? primaryLng : parseFiniteNumber(lng);
     const hasLat = resolvedLat !== undefined;
     const hasLng = resolvedLng !== undefined;
 
