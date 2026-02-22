@@ -1,9 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import app from '../../app.js';
 import mongoose from 'mongoose';
 import { Restaurant } from '../../models/Restaurant.js';
 import { Business } from '../../models/Business.js';
+
+vi.mock('../../services/CacheService.js', () => {
+    return {
+        cacheService: {
+            get: vi.fn().mockResolvedValue(null),
+            set: vi.fn().mockResolvedValue(undefined),
+            invalidate: vi.fn().mockResolvedValue(undefined),
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            exists: vi.fn().mockResolvedValue(false),
+            flush: vi.fn().mockResolvedValue(undefined),
+        },
+    };
+});
 
 describe('Search & Discovery Integration Tests (Phase 4)', () => {
     beforeEach(async () => {

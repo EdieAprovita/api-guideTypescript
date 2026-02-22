@@ -257,41 +257,32 @@ export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Resp
  * @returns {Promise<Response>}
  */
 
-export const updateUserProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        const currentUserId = req.user?._id?.toString();
-        const currentUserRole = req.user?.role;
+export const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const currentUserId = req.user?._id?.toString();
+    const currentUserRole = req.user?.role;
 
-        if (!currentUserId) {
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
-        }
-
-        // Use the ID from params if provided, otherwise use current user ID
-        const targetUserId = id || currentUserId;
-
-        // Check authorization: users can only update their own profile, admins can update any profile
-        if (targetUserId !== currentUserId && currentUserRole !== 'admin') {
-            throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own profile');
-        }
-
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-
-        // Security: strip role from user input to prevent privilege escalation via profile updates.
-        // Even if an admin is updating a profile, role changes should ideally happen via a dedicated endpoint,
-        // but stripping it here guarantees users cannot self-promote.
-        const { role: _stripRole, ...safeData } = sanitizedData;
-
-        const updatedUser = await UserServices.updateUserById(targetUserId, safeData);
-        res.json(updatedUser);
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+    if (!currentUserId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
     }
+
+    // Use the ID from params if provided, otherwise use current user ID
+    const targetUserId = id || currentUserId;
+
+    // Check authorization: users can only update their own profile, admins can update any profile
+    if (targetUserId !== currentUserId && currentUserRole !== 'admin') {
+        throw new HttpError(HttpStatusCode.FORBIDDEN, 'You can only update your own profile');
+    }
+
+    const sanitizedData = sanitizeNoSQLInput(req.body);
+
+    // Security: strip role from user input to prevent privilege escalation via profile updates.
+    // Even if an admin is updating a profile, role changes should ideally happen via a dedicated endpoint,
+    // but stripping it here guarantees users cannot self-promote.
+    const { role: _stripRole, ...safeData } = sanitizedData;
+
+    const updatedUser = await UserServices.updateUserById(targetUserId, safeData);
+    res.json(updatedUser);
 });
 
 /**
@@ -301,25 +292,16 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
  * @access Private/Admin
  * @returns {Promise<Response>}
  */
-export const updateUserRole = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        const { role } = req.body;
+export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const role = req.body?.role;
 
-        if (!role) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Role is required');
-        }
-
-        const updatedUser = await UserServices.updateUserById(id as string, { role });
-        res.json(updatedUser);
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
+    if (!role) {
+        throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Role is required');
     }
+
+    const updatedUser = await UserServices.updateUserById(id as string, { role });
+    res.json(updatedUser);
 });
 
 /**
