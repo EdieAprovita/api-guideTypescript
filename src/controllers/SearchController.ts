@@ -3,49 +3,9 @@ import asyncHandler from 'express-async-handler';
 import { searchService } from '../services/SearchService.js';
 import { sendSuccessResponse } from '../utils/responseHelpers.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { resolveCoords, parseFiniteNumber } from '../utils/geoHelpers.js';
 
-/**
- * Safely parse a query string value to a finite number.
- * Returns undefined if the value is missing or results in NaN/Infinity,
- * preventing non-numeric inputs (e.g. lat=abc) from reaching MongoDB geo queries.
- */
-const parseFiniteNumber = (value: unknown): number | undefined => {
-    if (value === undefined || value === null || value === '') return undefined;
-    const n = Number(value);
-    return Number.isFinite(n) ? n : undefined;
-};
-
-/**
- * Resolve coordinate pair from query params that support two naming conventions:
- * `latitude`/`longitude` (standard) and `lat`/`lng` (legacy/shorthand).
- * Returns [lat, lng] as finite numbers or [undefined, undefined] if invalid/missing.
- * Both values must be valid finite numbers to form a usable coordinate pair.
- */
-const resolveCoords = (
-    latitude: unknown,
-    longitude: unknown,
-    lat: unknown,
-    lng: unknown
-): [number | undefined, number | undefined] => {
-    const resolvedLat = parseFiniteNumber(latitude ?? lat);
-    const resolvedLng = parseFiniteNumber(longitude ?? lng);
-
-    const hasLat = resolvedLat !== undefined;
-    const hasLng = resolvedLng !== undefined;
-
-    if (hasLat && hasLng) {
-        return [resolvedLat, resolvedLng];
-    }
-
-    if (hasLat !== hasLng) {
-        throw new HttpError(
-            HttpStatusCode.BAD_REQUEST,
-            'Both latitude and longitude are required when filtering by coordinates'
-        );
-    }
-
-    return [undefined, undefined];
-};
+// Coordinate helpers imported from ../utils/geoHelpers.js
 
 /**
  * @description Search controller class

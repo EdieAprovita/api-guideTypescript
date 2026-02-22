@@ -9,6 +9,7 @@ import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
 import { sendSuccessResponse, sendCreatedResponse, sendPaginatedResponse } from '../utils/responseHelpers.js';
 import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
+import { resolveCoords, parseFiniteNumber } from '../utils/geoHelpers.js';
 
 /**
  * @description Get all businesses
@@ -232,34 +233,37 @@ export const getTopRatedBusinesses = asyncHandler(async (_req: Request, res: Res
 
 export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Accept both 'latitude'/'longitude' and 'lat'/'lng' (frontend uses the latter for businesses)
+        // Use shared geoHelper to reliably resolve coordinate pairs (either lat/lng or latitude/longitude)
+        // This also handles finite number enforcement.
         const { latitude, longitude, lat: latShort, lng: lngShort, radius, page, limit } = req.query;
-        const rawLat = latitude ?? latShort;
-        const rawLng = longitude ?? lngShort;
+        let lat: number | undefined;
+        let lng: number | undefined;
 
-        if (!rawLat || !rawLng) {
+        try {
+            [lat, lng] = resolveCoords(latitude, longitude, latShort, lngShort);
+        } catch (e) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, (e as Error).message));
+        }
+
+        if (lat === undefined || lng === undefined) {
             return next(
                 new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude and longitude query parameters are required')
             );
         }
 
-        const lat = Number(rawLat);
-        const lng = Number(rawLng);
-
-        // Use Number.isFinite to reject NaN AND Infinity (isNaN alone misses Infinity)
-        if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+        if (lat < -90 || lat > 90) {
             return next(
                 new HttpError(HttpStatusCode.BAD_REQUEST, 'latitude must be a finite number between -90 and 90')
             );
         }
-        if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+        if (lng < -180 || lng > 180) {
             return next(
                 new HttpError(HttpStatusCode.BAD_REQUEST, 'longitude must be a finite number between -180 and 180')
             );
         }
 
-        const parsedRadius = radius ? Number(radius) : 5000;
-        if (!Number.isFinite(parsedRadius) || parsedRadius < 1 || parsedRadius > 50000) {
+        const parsedRadius = parseFiniteNumber(radius) ?? 5000;
+        if (parsedRadius < 1 || parsedRadius > 50000) {
             return next(
                 new HttpError(HttpStatusCode.BAD_REQUEST, 'radius must be a finite number between 1 and 50000 meters')
             );

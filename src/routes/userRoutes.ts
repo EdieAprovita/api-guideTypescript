@@ -2,7 +2,7 @@ import express from 'express';
 import Joi from 'joi';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
-import { userSchemas, paramSchemas, querySchemas, commonSchemas } from '../utils/validators.js';
+import { userSchemas, paramSchemas, querySchemas, commonSchemas, createPasswordSchema } from '../utils/validators.js';
 import {
     registerUser,
     loginUser,
@@ -74,17 +74,8 @@ router.put(
             // Accept both 'password' (frontend) and 'newPassword' (legacy).
             // Without both here, stripUnknown discards whichever field the client sends,
             // causing "Password is required" even when a valid password was provided.
-            password: Joi.string()
-                .min(8)
-                .max(128)
-                // Relaxed pattern: uppercase + lowercase + digit (no special char required)
-                .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/)
-                .optional(),
-            newPassword: Joi.string()
-                .min(8)
-                .max(128)
-                .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/)
-                .optional(),
+            password: createPasswordSchema().optional(),
+            newPassword: createPasswordSchema().optional(),
         })
             // At least one of the two password fields must be present
             .or('password', 'newPassword')

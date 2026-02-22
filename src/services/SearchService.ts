@@ -14,6 +14,9 @@ export interface UnifiedSearchResult {
 /**
  * Minimal interface that all searchable entity services must implement.
  * Replaces `service: any` to provide compile-time safety (#8).
+ *
+ * Contract note: Services must support `limit: 0` in `searchPaginated` by returning
+ * metadata (e.g. `meta.total`) immediately without fetching documents from the DB.
  */
 interface SearchableService {
     searchPaginated(opts: SearchPaginatedOpts): Promise<{ data: Record<string, unknown>[]; meta?: { total?: number } }>;
@@ -60,33 +63,46 @@ function assertSearchableService(name: string, svc: unknown): SearchableService 
  * Eliminates duplicate { service, fields } mappings across methods (#7).
  * Services are validated at module load time via assertSearchableService (#8).
  */
-const ENTITY_REGISTRY: Array<{ type: string; service: SearchableService; fields: string[] }> = [
-    {
-        type: 'restaurant',
-        service: assertSearchableService('restaurantService', restaurantService),
-        fields: ['restaurantName', 'address', 'cuisine'],
-    },
-    {
-        type: 'business',
-        service: assertSearchableService('businessService', businessService),
-        fields: ['namePlace', 'address', 'typeBusiness'],
-    },
-    {
-        type: 'doctor',
-        service: assertSearchableService('doctorService', doctorService),
-        fields: ['doctorName', 'address', 'specialty'],
-    },
-    {
-        type: 'market',
-        service: assertSearchableService('marketsService', marketsService),
-        fields: ['marketName', 'address', 'typeMarket'],
-    },
-    {
-        type: 'sanctuary',
-        service: assertSearchableService('sanctuaryService', sanctuaryService),
-        fields: ['sanctuaryName', 'address', 'typeofSanctuary'],
-    },
-];
+let ENTITY_REGISTRY: Array<{ type: string; service: SearchableService; fields: string[]; popular: boolean }> = [];
+
+try {
+    ENTITY_REGISTRY = [
+        {
+            type: 'restaurant',
+            service: assertSearchableService('restaurantService', restaurantService),
+            fields: ['restaurantName', 'address', 'cuisine'],
+            popular: true,
+        },
+        {
+            type: 'business',
+            service: assertSearchableService('businessService', businessService),
+            fields: ['namePlace', 'address', 'typeBusiness'],
+            popular: false,
+        },
+        {
+            type: 'doctor',
+            service: assertSearchableService('doctorService', doctorService),
+            fields: ['doctorName', 'address', 'specialty'],
+            popular: true,
+        },
+        {
+            type: 'market',
+            service: assertSearchableService('marketsService', marketsService),
+            fields: ['marketName', 'address', 'typeMarket'],
+            popular: true,
+        },
+        {
+            type: 'sanctuary',
+            service: assertSearchableService('sanctuaryService', sanctuaryService),
+            fields: ['sanctuaryName', 'address', 'typeofSanctuary'],
+            popular: false,
+        },
+    ];
+} catch (error) {
+    logger.error('Failed to initialize search ENTITY_REGISTRY. Services may be improperly configured.', error);
+    // Rethrow to fail fast on application start
+    throw error;
+}
 
 /**
  * Build a lookup map that includes both singular and plural forms.
@@ -112,6 +128,7 @@ const sanitizeForLog = (value: string): string =>
     // \p{Cc} = Unicode "Control" category (U+0000-U+001F, U+007F).
     // Using a Unicode property escape avoids SonarQube S6324 (control chars in regex classes).
     // NOSONAR: String#replace with /g flag is intentional — replaceAll with regex requires ES2021+
+    // and this module needs to maintain ES2020 compatibility.
     value.replace(/\p{Cc}/gu, ' ').trim(); // NOSONAR
 
 export class SearchService {
@@ -220,9 +237,8 @@ export class SearchService {
      * Return popular searches — top-rated items from each main entity type
      */
     async getPopularSearches(): Promise<UnifiedSearchResult[]> {
-        // Use a subset of the registry (restaurants, doctors, markets)
-        const popularTypes = new Set(['restaurant', 'doctor', 'market']);
-        const tasks = ENTITY_REGISTRY.filter(e => popularTypes.has(e.type));
+        // Filter based on the 'popular' flag in the entity registry
+        const tasks = ENTITY_REGISTRY.filter(e => e.popular);
 
         const results = await Promise.allSettled(
             tasks.map(async task => {
@@ -249,9 +265,8 @@ export class SearchService {
     async getAggregations(): Promise<Record<string, number>> {
         const counts: Record<string, number> = {};
 
-        // Promise.allSettled already prevents rejection propagation;
-        // the inner try/catch in the previous version was redundant (#9).
-        await Promise.allSettled(
+        // Promise.allSettled avoids short-circuiting on single service failure.
+        const results = await Promise.allSettled(
             ENTITY_REGISTRY.map(async task => {
                 // Use task.fields and limit:0 — only meta.total is needed,
                 // requesting 0 documents avoids fetching unnecessary data.
@@ -260,9 +275,29 @@ export class SearchService {
                     searchFields: task.fields,
                     limit: 0,
                 });
-                counts[`${task.type}s`] = result.meta?.total ?? 0;
+                return { type: task.type, count: result.meta?.total ?? 0 };
             })
         );
+
+        let allFailed = true;
+
+        for (const [index, result] of results.entries()) {
+            const entityType = ENTITY_REGISTRY[index]?.type ?? 'unknown';
+            if (result.status === 'fulfilled') {
+                allFailed = false;
+                counts[`${result.value.type}s`] = result.value.count;
+            } else {
+                logger.error(`Aggregation failed for resource type: ${entityType}`, result.reason);
+                counts[`${entityType}s`] = 0;
+            }
+        }
+
+        if (allFailed && Object.keys(counts).length > 0) {
+            throw new HttpError(
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
+                'Unable to fetch aggregations across all services'
+            );
+        }
 
         return counts;
     }

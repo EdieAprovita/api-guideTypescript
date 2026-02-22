@@ -109,7 +109,14 @@ const recipeSchema: Schema = new mongoose.Schema<IRecipe>(
             },
         ],
     },
-    { timestamps: true, toJSON: { getters: true }, toObject: { getters: true } }
+    {
+        timestamps: true,
+        // NOTE: getters: true is load-bearing!
+        // Without this, .toJSON() / .toObject() bypasses the `instructions` getter (defined above),
+        // preventing legacy strings from being correctly coerced to arrays when serialized to responses.
+        toJSON: { getters: true },
+        toObject: { getters: true },
+    }
 );
 
 export const Recipe =

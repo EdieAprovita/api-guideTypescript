@@ -276,7 +276,13 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
         }
 
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        const updatedUser = await UserServices.updateUserById(targetUserId, sanitizedData);
+
+        // Security: strip role from user input to prevent privilege escalation via profile updates.
+        // Even if an admin is updating a profile, role changes should ideally happen via a dedicated endpoint,
+        // but stripping it here guarantees users cannot self-promote.
+        const { role: _stripRole, ...safeData } = sanitizedData;
+
+        const updatedUser = await UserServices.updateUserById(targetUserId, safeData);
         res.json(updatedUser);
     } catch (error) {
         next(

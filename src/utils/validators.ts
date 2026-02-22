@@ -79,7 +79,7 @@ const createBusinessBaseSchema = (isRequired = true) => {
 // to improve usability for mobile users while maintaining a minimum entropy level.
 // OWASP recommends minimum length (enforced at 8 chars) over character-class mandates.
 // This tradeoff is documented here for future reviewers.
-const createPasswordSchema = () =>
+export const createPasswordSchema = () =>
     Joi.string()
         .min(12)
         .max(128)
