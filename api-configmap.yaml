@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: api-guidetypescript-config
-  labels:
-    app: api-guidetypescript
-data:
-  PORT: "5001"
