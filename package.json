@@ -13,7 +13,7 @@
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
         "postbuild": "cp swagger.yaml dist/ && (cp -r public dist/ 2>/dev/null || true)",
-        "setup:env": "node scripts/setup-env.js",
+        "setup:env": "node scripts/setup-env.cjs",
         "test": "vitest",
         "test:run": "vitest run",
         "test:coverage": "vitest run --coverage",
