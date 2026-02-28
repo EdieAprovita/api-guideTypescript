@@ -21,11 +21,14 @@ if (!process.env.MONGODB_URI) {
     console.warn('⚠️  MONGODB_URI not set – using default: mongodb://localhost:27017/veganguide');
 }
 
-const DEFAULT_PASSWORD = 'VeganSeed2024!';
-const seedPassword = process.env.SEED_USER_PASSWORD ?? DEFAULT_PASSWORD;
+// Seed-only password: generated once per run if not provided via env.
+// This is intentionally random and dev-only – never used in production.
+const seedPassword = process.env.SEED_USER_PASSWORD ?? generateSeedPassword();
 
-if (!process.env.SEED_USER_PASSWORD) {
-    console.warn(`⚠️  SEED_USER_PASSWORD not set – using default: ${DEFAULT_PASSWORD}`);
+function generateSeedPassword(): string {
+    const pwd = `seed-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    console.warn(`⚠️  SEED_USER_PASSWORD not set – generated one-time password: ${pwd}`);
+    return pwd;
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -662,9 +665,7 @@ export const seedDatabase = async () => {
 
     // Businesses
     console.log('Creating businesses...');
-    const createdBusinesses = await Business.insertMany(
-        sampleBusinesses.map(b => ({ ...b, author: adminUser._id }))
-    );
+    const createdBusinesses = await Business.insertMany(sampleBusinesses.map(b => ({ ...b, author: adminUser._id })));
     console.log(`  Created ${createdBusinesses.length} businesses`);
 
     // Professions
@@ -684,9 +685,7 @@ export const seedDatabase = async () => {
     // Posts
     console.log('Creating posts...');
     const postAuthors = [mariaUser, chefUser, doctorUser, adminUser, doctorUser];
-    const createdPosts = await Post.insertMany(
-        samplePosts.map((p, i) => ({ ...p, username: postAuthors[i]!._id }))
-    );
+    const createdPosts = await Post.insertMany(samplePosts.map((p, i) => ({ ...p, username: postAuthors[i]!._id })));
     console.log(`  Created ${createdPosts.length} posts`);
 
     // Reviews – FIX: entityType + entity are required (polymorphic ref)
