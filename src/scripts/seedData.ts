@@ -685,7 +685,7 @@ export const seedDatabase = async () => {
     console.log('Creating posts...');
     const postAuthors = [mariaUser, chefUser, doctorUser, adminUser, doctorUser];
     const createdPosts = await Post.insertMany(
-        samplePosts.map((p, i) => ({ ...p, username: postAuthors[i]._id }))
+        samplePosts.map((p, i) => ({ ...p, username: postAuthors[i]!._id }))
     );
     console.log(`  Created ${createdPosts.length} posts`);
 
@@ -700,7 +700,7 @@ export const seedDatabase = async () => {
             rating: 5,
             author: chefUser._id,
             entityType: 'Restaurant' as const,
-            entity: createdRestaurants[0]._id,
+            entity: createdRestaurants[0]!._id,
             recommendedDishes: ['Cashew Alfredo', 'Raw Tacos'],
             tags: ['vegan', 'cozy', 'must-try'],
             visitDate: new Date('2024-11-15'),
@@ -712,7 +712,7 @@ export const seedDatabase = async () => {
             rating: 4,
             author: adminUser._id,
             entityType: 'Restaurant' as const,
-            entity: createdRestaurants[1]._id,
+            entity: createdRestaurants[1]!._id,
             recommendedDishes: ['Beyond Burger', 'Loaded Fries'],
             tags: ['fast-food', 'affordable', 'vegan-burgers'],
             visitDate: new Date('2024-12-01'),
@@ -724,7 +724,7 @@ export const seedDatabase = async () => {
             rating: 5,
             author: ownerUser._id,
             entityType: 'Restaurant' as const,
-            entity: createdRestaurants[2]._id,
+            entity: createdRestaurants[2]!._id,
             recommendedDishes: ['Truffle Risotto', 'Beet Carpaccio', 'Dark Chocolate Tart'],
             tags: ['fine-dining', 'romantic', 'tasting-menu'],
             visitDate: new Date('2025-01-20'),
@@ -736,7 +736,7 @@ export const seedDatabase = async () => {
             rating: 5,
             author: mariaUser._id,
             entityType: 'Restaurant' as const,
-            entity: createdRestaurants[3]._id,
+            entity: createdRestaurants[3]!._id,
             recommendedDishes: ['Rainbow Bowl', 'Green Smoothie'],
             tags: ['healthy', 'fresh', 'local-fav'],
             visitDate: new Date('2025-02-10'),
@@ -749,7 +749,7 @@ export const seedDatabase = async () => {
             rating: 5,
             author: mariaUser._id,
             entityType: 'Recipe' as const,
-            entity: createdRecipes[0]._id,
+            entity: createdRecipes[0]!._id,
             tags: ['easy-win', 'crowd-pleaser', 'comfort-food'],
             visitDate: new Date('2025-01-05'),
         },
@@ -760,7 +760,7 @@ export const seedDatabase = async () => {
             rating: 5,
             author: chefUser._id,
             entityType: 'Recipe' as const,
-            entity: createdRecipes[1]._id,
+            entity: createdRecipes[1]!._id,
             tags: ['meal-prep', 'healthy', 'colorful'],
             visitDate: new Date('2025-02-01'),
         },
@@ -772,7 +772,7 @@ export const seedDatabase = async () => {
             rating: 5,
             author: mariaUser._id,
             entityType: 'Doctor' as const,
-            entity: createdDoctors[0]._id,
+            entity: createdDoctors[0]!._id,
             tags: ['professional', 'helpful', 'evidence-based'],
             visitDate: new Date('2025-01-15'),
         },
@@ -784,7 +784,7 @@ export const seedDatabase = async () => {
             rating: 5,
             author: adminUser._id,
             entityType: 'Market' as const,
-            entity: createdMarkets[0]._id,
+            entity: createdMarkets[0]!._id,
             tags: ['fresh', 'organic', 'zero-waste'],
             visitDate: new Date('2025-02-05'),
         },
@@ -796,7 +796,7 @@ export const seedDatabase = async () => {
             rating: 5,
             author: chefUser._id,
             entityType: 'Sanctuary' as const,
-            entity: createdSanctuaries[0]._id,
+            entity: createdSanctuaries[0]!._id,
             tags: ['inspiring', 'education', 'animals'],
             visitDate: new Date('2025-01-25'),
         },
