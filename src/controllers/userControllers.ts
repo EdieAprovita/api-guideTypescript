@@ -166,7 +166,7 @@ export const getUsers = asyncHandler(async (_req: Request, res: Response, next: 
     } catch (error) {
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
@@ -190,9 +190,12 @@ export const getUserById = asyncHandler(async (req: Request, res: Response, next
         const user = await UserServices.findUserById(id);
         res.status(200).json(user);
     } catch (error) {
+        if (error instanceof HttpError) {
+            return next(error);
+        }
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );

@@ -123,7 +123,10 @@ export function createGetByIdHandler<T extends Document>(
                 data: resource,
             });
         } catch (error: any) {
-            next(new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage(error)));
+            if (error instanceof HttpError) {
+                return next(error);
+            }
+            next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
         }
     });
 }

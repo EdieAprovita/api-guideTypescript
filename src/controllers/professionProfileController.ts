@@ -27,7 +27,7 @@ export const getProfessionsProfile = asyncHandler(async (_req: Request, res: Res
     } catch (error) {
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
@@ -55,9 +55,12 @@ export const getProfessionProfileById = asyncHandler(async (req: Request, res: R
             data: profession,
         });
     } catch (error) {
+        if (error instanceof HttpError) {
+            return next(error);
+        }
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
@@ -216,7 +219,7 @@ export const getTopRatedProfessionsProfile = asyncHandler(async (_req: Request, 
     } catch (error) {
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );

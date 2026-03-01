@@ -117,7 +117,7 @@ export const getTopRatedProfessions = asyncHandler(async (_req: Request, res: Re
     } catch (error) {
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
