@@ -27,7 +27,7 @@ export const getBusinesses = asyncHandler(async (_req: Request, res: Response, n
     } catch (error) {
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
@@ -52,9 +52,15 @@ export const getBusinessById = asyncHandler(async (req: Request, res: Response, 
         const business = await BusinessService.findByIdCached(id);
         sendSuccessResponse(res, business, 'Business fetched successfully');
     } catch (error) {
+        // If the service already threw an HttpError (e.g. 404 not found), re-throw it.
+        // Otherwise treat unknown errors as internal server errors so DB failures
+        // don't masquerade as 404 responses.
+        if (error instanceof HttpError) {
+            return next(error);
+        }
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
@@ -216,7 +222,7 @@ export const getTopRatedBusinesses = asyncHandler(async (_req: Request, res: Res
     } catch (error) {
         next(
             new HttpError(
-                HttpStatusCode.NOT_FOUND,
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );
