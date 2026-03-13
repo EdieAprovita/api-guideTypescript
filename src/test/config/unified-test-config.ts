@@ -86,8 +86,7 @@ function setupCoreMocks(): void {
     // Never mock TokenService - always use real implementation
     // vi.mock('../../services/TokenService', () => mockFactory.createTokenServiceMockModule());
 
-    // Utilities
-    vi.mock('../../utils/generateToken', () => mockFactory.createGenerateTokenMock());
+    // generateToken utility removed — all token generation via TokenService
 }
 
 // ============================================================================

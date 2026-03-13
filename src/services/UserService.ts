@@ -1,12 +1,10 @@
 import { Response } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
-import bcrypt from 'bcryptjs';
 
 import { User, IUser } from '../models/User.js';
 import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
-import generateTokenAndSetCookie from '../utils/generateToken.js';
 import TokenService from './TokenService.js';
 
 /**
@@ -118,24 +116,15 @@ abstract class BaseService {
     }
 
     protected async updateUserPassword(user: IUser, newPassword: string) {
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
+        // Assign plain password — the Mongoose pre('save') hook handles hashing
+        user.password = newPassword;
         await user.save();
     }
 
-    protected generateJWTToken(userId: string): string {
-        const secret = process.env.JWT_SECRET;
-        if (!secret) {
-            throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'JWT secret not configured');
-        }
-        return jwt.sign({ userId }, secret, {
-            expiresIn: '30d',
-        });
-    }
 }
 
 class UserService extends BaseService {
-    async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, res: Response) {
+    async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, _res: Response) {
         try {
             // Debug logging - only visible in development or when DEBUG_TESTS is set
             if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
@@ -155,8 +144,6 @@ class UserService extends BaseService {
             if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
                 console.log('Tokens generated:', !!tokens.accessToken);
             }
-
-            generateTokenAndSetCookie(res, user._id);
 
             const result = {
                 ...this.getUserResponse(user),
@@ -178,12 +165,11 @@ class UserService extends BaseService {
         }
     }
 
-    async loginUser(email: string, password: string, res: Response) {
+    async loginUser(email: string, password: string, _res: Response) {
         const sanitizedEmail = validateAndSanitizeEmail(email);
         const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
         await this.validateUserCredentials(user, password);
         const tokens = await TokenService.generateTokens(user!._id.toString(), user!.email, user!.role);
-        generateTokenAndSetCookie(res, user!._id);
         const userResponse = this.getUserResponse(user!);
         return {
             token: tokens.accessToken,
