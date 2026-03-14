@@ -115,6 +115,14 @@ describe('Auth Integration Tests - Simplified', () => {
             expect(response.body.data).toBeDefined();
             expect((response.body.data as { role: string }).role).toBe('professional');
         });
+
+        it('should default to role user when role is omitted from body', async () => {
+            const { role: _omit, ...userData } = createUserData();
+            const response = await makeRequest('post', '/api/v1/users/register', userData);
+
+            expect(response.status, `Registration failed unexpectedly: ${JSON.stringify(response.body)}`).toBe(201);
+            expect((response.body.data as { role: string }).role).toBe('user');
+        });
     });
 
     describe('User Login - Basic Validation', () => {

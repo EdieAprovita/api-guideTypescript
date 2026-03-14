@@ -24,7 +24,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
         const { role: requestedRole, ...restData } = sanitizedData;
-        const safeData = REGISTER_ALLOWED_ROLES.includes(requestedRole)
+        const safeData = REGISTER_ALLOWED_ROLES.includes(requestedRole as (typeof REGISTER_ALLOWED_ROLES)[number])
             ? { ...restData, role: requestedRole }
             : restData; // defaults to 'user' via User model
         const result = await UserServices.registerUser(safeData);
