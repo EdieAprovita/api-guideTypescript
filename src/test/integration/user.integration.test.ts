@@ -25,7 +25,7 @@ const createUserData = (overrides: Partial<UserTestData> = {}): UserTestData => 
     };
 };
 
-const generateMockToken = (role: 'user' | 'admin' | 'business' = 'user'): string => {
+const generateMockToken = (role: 'user' | 'admin' | 'professional' = 'user'): string => {
     return jwt.sign(
         { userId: '507f1f77bcf86cd799439011', email: 'test@example.com', role },
         process.env.JWT_SECRET || 'test-jwt-secret-key-12345',
