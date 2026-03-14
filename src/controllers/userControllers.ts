@@ -281,14 +281,20 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response, n
     try {
         const sanitizedUpdate = sanitizeNoSQLInput({ role });
 
-        // PR Review 6: Fetch previous role to complete the audit trail sequence
+        // Fetch previous role for audit trail.
+        // Known limitation: there is a TOCTOU window between findById and updateUserById —
+        // a concurrent role-change request could alter the role between these two calls,
+        // making previousRole inaccurate in the audit log. The write itself is still correct.
+        // An atomic fix (findOneAndUpdate with returnDocument:'before') would bypass Mongoose
+        // middleware (see User.ts note), so the current two-step approach is intentional.
         const previousUser = await User.findById(id);
         if (!previousUser) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
         }
 
         const previousRole = previousUser.role;
-        const updatedUser = await UserServices.updateUserById(id as string, sanitizedUpdate);
+        // id! — non-null assertion: req.params.id is guaranteed by the router pattern /:id
+        const updatedUser = await UserServices.updateUserById(id!, sanitizedUpdate);
 
         // High-value security event logging.
         // ROLE_RANK lives in src/constants/roles.ts — evaluated once at module load, not per-request.
