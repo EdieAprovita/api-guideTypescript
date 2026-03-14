@@ -8,8 +8,6 @@ import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
 import { REGISTER_ALLOWED_ROLES } from '../constants/roles.js';
 
-export { REGISTER_ALLOWED_ROLES };
-
 /**
  * @description Authenticate user and get token
  * @name authUser

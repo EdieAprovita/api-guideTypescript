@@ -252,7 +252,10 @@ export const checkOwnership = () => {
 };
 
 /**
- * @description Logout and blacklist current token
+ * @description Logout and blacklist current token.
+ * Session model: JWTs are stateless but backed by a Redis blacklist for server-side revocation.
+ * This is the single logout path — POST /auth/logout (requires protect middleware).
+ * The legacy POST /users/logout was removed as it was a redundant alias without auth guard.
  * @name logout
  */
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
