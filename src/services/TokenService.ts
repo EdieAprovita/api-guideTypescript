@@ -341,6 +341,8 @@ class TokenService {
     }
 
     async blacklistToken(token: string): Promise<void> {
+        // Use jti as the Redis key (short, opaque) — falls back to full token for
+        // legacy/malformed tokens that pre-date the jti claim.
         let blacklistKey = `blacklist:${token}`; // fallback: full token
         let ttl = 3600;
 
@@ -348,17 +350,19 @@ class TokenService {
             const decoded = jwt.decode(token) as { exp?: number; jti?: string } | null;
             if (decoded?.jti) {
                 blacklistKey = `blacklist:${decoded.jti}`;
-            } else if (!decoded?.jti) {
+            } else {
                 console.warn('blacklistToken: token missing jti — falling back to full-token key');
             }
             if (decoded?.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
-                ttl = Math.max(expirationTime, 3600); // Minimum 1 hour
+                ttl = Math.max(expirationTime, 3600);
             }
         } catch {
             // jwt.decode failed — use default key and TTL
         }
 
+        // Fail-closed: if Redis is unavailable this will throw. The logout controller
+        // handles this with a best-effort catch so the client session still ends.
         await this.redis.setex(blacklistKey, ttl, 'revoked');
     }
 
