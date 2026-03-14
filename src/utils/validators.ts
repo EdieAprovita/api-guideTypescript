@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { REGISTER_ALLOWED_ROLES } from '../controllers/userControllers.js';
+import { REGISTER_ALLOWED_ROLES } from '../constants/roles.js';
 
 // Common validation patterns
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;

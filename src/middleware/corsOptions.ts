@@ -24,10 +24,14 @@ const getAllowedOrigins = (): string[] => {
 // getAllowedOrigins() is evaluated once at module load time.
 // This is intentional: FRONTEND_URL is a static deploy-time env var.
 // If dynamic CORS updates are ever needed, change origin to a function: (origin, cb) => ...
+// Test-time note: tests run with NODE_ENV !== 'production', so the localhost
+// branch is always taken — setting FRONTEND_URL in a test beforeAll has no effect.
+// To simulate production CORS in a test, temporarily set NODE_ENV=production
+// and FRONTEND_URL before the module is first imported (vi.stubEnv or env in vitest.config).
 const corsOptions = {
     credentials: true,
     origin: getAllowedOrigins(),
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 };
 

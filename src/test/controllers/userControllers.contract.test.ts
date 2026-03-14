@@ -16,22 +16,28 @@ import { testUtils } from '@test/helpers/testBase';
 
 type ControllerFn = (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 
-// Mock UserService so we can control what loginUser/registerUser return
+// Mock UserService so we can control what loginUser/registerUser/updateUserById return
 const mockLoginUser = vi.fn();
 const mockRegisterUser = vi.fn();
+const mockUpdateUserById = vi.fn();
 
 vi.mock('@/services/UserService.js', () => ({
     default: {
         loginUser: mockLoginUser,
         registerUser: mockRegisterUser,
-        logoutUser: vi.fn(),
         findAllUsers: vi.fn(),
         findUserById: vi.fn(),
-        updateUserById: vi.fn(),
+        updateUserById: mockUpdateUserById,
         deleteUserById: vi.fn(),
         forgotPassword: vi.fn(),
         resetPassword: vi.fn(),
     },
+}));
+
+// Mock User model for updateUserRole (needs findById to get previousRole)
+const mockUserFindById = vi.fn();
+vi.mock('@/models/User.js', () => ({
+    User: { findById: mockUserFindById },
 }));
 
 vi.mock('@/utils/sanitizer.js', () => ({
@@ -60,6 +66,26 @@ const BASE_LOGIN_BODY = { email: 'test@example.com', password: 'TestPass123!' };
 const BASE_REGISTER_BODY = { username: 'newuser', email: 'new@example.com', password: 'TestPass123!' };
 
 // ---------------------------------------------------------------------------
+// Shared test utilities
+// ---------------------------------------------------------------------------
+
+/** Returns the first argument passed to res.json() — works for any mock response.
+ *  Throws a descriptive error if res.json was never called, so test failures are actionable. */
+const getJsonResponse = (res: Response) => {
+    const calls = (res.json as ReturnType<typeof vi.fn>).mock.calls;
+    if (!calls || calls.length === 0) {
+        throw new Error('res.json was never called — controller did not send a response');
+    }
+    return calls[0][0];
+};
+
+/** Creates fresh mock res + next for each test. */
+const createMocks = () => ({
+    res: testUtils.createMockResponse() as Response,
+    next: testUtils.createMockNext() as NextFunction,
+});
+
+// ---------------------------------------------------------------------------
 // loginUser — contract test
 // ---------------------------------------------------------------------------
 
@@ -68,8 +94,6 @@ describe('loginUser controller — response contract', () => {
     let res: Response;
     let next: NextFunction;
 
-    const getJsonResponse = () => (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
     beforeAll(async () => {
         ({ loginUser } = await import('@/controllers/userControllers.js'));
     });
@@ -77,8 +101,7 @@ describe('loginUser controller — response contract', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockLoginUser.mockResolvedValue(mockLoginResult);
-        res = testUtils.createMockResponse() as Response;
-        next = testUtils.createMockNext() as NextFunction;
+        ({ res, next } = createMocks());
     });
 
     it('wraps response in { success, message, data } envelope', async () => {
@@ -86,7 +109,7 @@ describe('loginUser controller — response contract', () => {
         await loginUser(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(200);
-        const jsonCall = getJsonResponse();
+        const jsonCall = getJsonResponse(res);
         // Verify the { success, message, data } wrapper — required by FE parser
         expect(jsonCall).toHaveProperty('success', true);
         expect(jsonCall).toHaveProperty('message', 'Login successful');
@@ -97,7 +120,7 @@ describe('loginUser controller — response contract', () => {
         const req = testUtils.createMockRequest({ body: BASE_LOGIN_BODY }) as Request;
         await loginUser(req, res, next);
 
-        const { data } = getJsonResponse();
+        const { data } = getJsonResponse(res);
         // FE auth.ts reads: response.data._id, response.data.username, etc.
         expect(data).toHaveProperty('_id', mockLoginResult._id);
         expect(data).toHaveProperty('username', mockLoginResult.username);
@@ -125,8 +148,6 @@ describe('registerUser controller — response contract', () => {
     let res: Response;
     let next: NextFunction;
 
-    const getJsonResponse = () => (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
     beforeAll(async () => {
         ({ registerUser } = await import('@/controllers/userControllers.js'));
     });
@@ -134,8 +155,7 @@ describe('registerUser controller — response contract', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockRegisterUser.mockResolvedValue(mockLoginResult);
-        res = testUtils.createMockResponse() as Response;
-        next = testUtils.createMockNext() as NextFunction;
+        ({ res, next } = createMocks());
     });
 
     it('wraps response in { success, message, data } envelope', async () => {
@@ -143,7 +163,7 @@ describe('registerUser controller — response contract', () => {
         await registerUser(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(201);
-        const jsonCall = getJsonResponse();
+        const jsonCall = getJsonResponse(res);
         expect(jsonCall).toHaveProperty('success', true);
         expect(jsonCall).toHaveProperty('message', 'User registered successfully');
         expect(jsonCall).toHaveProperty('data');
@@ -153,7 +173,7 @@ describe('registerUser controller — response contract', () => {
         const req = testUtils.createMockRequest({ body: BASE_REGISTER_BODY }) as Request;
         await registerUser(req, res, next);
 
-        const { data } = getJsonResponse();
+        const { data } = getJsonResponse(res);
         expect(data).toHaveProperty('_id');
         expect(data).toHaveProperty('username');
         expect(data).toHaveProperty('email');
@@ -169,32 +189,98 @@ describe('registerUser controller — response contract', () => {
         await registerUser(req, res, next);
 
         // Controller strips role before passing to service
-        // Verify service was not called with role: 'admin'
-        const serviceCallArg = mockRegisterUser.mock.calls[0]?.[0];
-        if (serviceCallArg) {
-            expect(serviceCallArg.role).toBeUndefined();
-        }
+        // Hard assertion: service must have been called exactly once —
+        // if it wasn't, the security boundary was never exercised and the test must fail.
+        expect(mockRegisterUser).toHaveBeenCalledTimes(1);
+        const serviceCallArg = mockRegisterUser.mock.calls[0][0];
+        expect(serviceCallArg.role).toBeUndefined();
     });
 
     // Defense-in-depth: these tests call the controller directly (Joi bypassed)
     // to verify REGISTER_ALLOWED_ROLES works independently of the validation layer.
 
-    it('passes role: professional to service (whitelisted role, controller-level check)', async () => {
-        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role: 'professional' });
-        const req = testUtils.createMockRequest({
-            body: { username: 'pro', email: 'pro@example.com', password: 'TestPass123!', role: 'professional' },
-        }) as Request;
-        await registerUser(req, res, next);
+    it.each([
+        { role: 'professional', username: 'pro', email: 'pro@example.com' },
+        { role: 'user', username: 'usr', email: 'usr@example.com' },
+    ])(
+        'passes role: $role to service (whitelisted role, controller-level check)',
+        async ({ role, username, email }) => {
+            mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role });
+            const req = testUtils.createMockRequest({
+                body: { username, email, password: 'TestPass123!', role },
+            }) as Request;
+            await registerUser(req, res, next);
 
-        expect(mockRegisterUser.mock.calls[0]?.[0]?.role).toBe('professional');
-    });
+            expect(mockRegisterUser).toHaveBeenCalledTimes(1);
+            expect(mockRegisterUser.mock.calls[0][0].role).toBe(role);
+        }
+    );
 
     it('omits role from service call when role is absent from body (model default applies)', async () => {
         const req = testUtils.createMockRequest({ body: BASE_REGISTER_BODY }) as Request;
         await registerUser(req, res, next);
 
-        expect(mockRegisterUser.mock.calls[0]?.[0]?.role).toBeUndefined();
+        expect(mockRegisterUser).toHaveBeenCalledTimes(1);
+        expect(mockRegisterUser.mock.calls[0][0].role).toBeUndefined();
     });
+});
+
+// ---------------------------------------------------------------------------
+// updateUserRole — audit log action field contract test
+// ---------------------------------------------------------------------------
+
+describe('updateUserRole controller — audit log action field', () => {
+    let updateUserRole: ControllerFn;
+    let mockLogger: { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn> };
+    let res: Response;
+    let next: NextFunction;
+
+    beforeAll(async () => {
+        [{ updateUserRole }, { default: mockLogger }] = await Promise.all([
+            import('@/controllers/userControllers.js'),
+            import('@/utils/logger.js'),
+        ]);
+    });
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        ({ res, next } = createMocks());
+    });
+
+    it.each([
+        { previousRole: 'user', newRole: 'admin', expectedAction: 'role_escalation' },
+        { previousRole: 'user', newRole: 'professional', expectedAction: 'role_escalation' },
+        { previousRole: 'professional', newRole: 'admin', expectedAction: 'role_escalation' },
+        { previousRole: 'admin', newRole: 'user', expectedAction: 'role_demotion' },
+        { previousRole: 'admin', newRole: 'professional', expectedAction: 'role_demotion' },
+        { previousRole: 'professional', newRole: 'user', expectedAction: 'role_demotion' },
+        { previousRole: 'user', newRole: 'user', expectedAction: 'role_unchanged' },
+        { previousRole: 'professional', newRole: 'professional', expectedAction: 'role_unchanged' },
+        { previousRole: 'admin', newRole: 'admin', expectedAction: 'role_unchanged' },
+    ])(
+        'logs action: $expectedAction when role changes $previousRole → $newRole',
+        async ({ previousRole, newRole, expectedAction }) => {
+            mockUserFindById.mockResolvedValue({ _id: 'target123', role: previousRole });
+            mockUpdateUserById.mockResolvedValue({ _id: 'target123', role: newRole });
+
+            const req = testUtils.createMockRequest({
+                params: { id: 'target123' },
+                body: { role: newRole },
+                user: { _id: 'admin1', role: 'admin', email: 'admin@test.com', isActive: true },
+            }) as Request;
+
+            await updateUserRole(req, res, next);
+
+            const infoCalls = mockLogger.info.mock.calls;
+            const roleUpdateCall = infoCalls.find(([, meta]) => meta?.previousRole !== undefined);
+            expect(roleUpdateCall).toBeDefined();
+            expect(roleUpdateCall![1]).toMatchObject({
+                previousRole,
+                newRole,
+                action: expectedAction,
+            });
+        }
+    );
 });
 
 // ---------------------------------------------------------------------------
@@ -260,8 +346,10 @@ describe('addComment controller — payload contract ({ text } not { content })'
 
         // Patch the service's addComment for this test
         const PostServiceModule = await import('@/services/PostService.js');
-        (PostServiceModule.postService.addComment as ReturnType<typeof vi.fn>)
-            .mockResolvedValue({ text: 'A comment', _id: 'c1' });
+        (PostServiceModule.postService.addComment as ReturnType<typeof vi.fn>).mockResolvedValue({
+            text: 'A comment',
+            _id: 'c1',
+        });
 
         const req = testUtils.createMockRequest({
             params: { id: 'post123' },

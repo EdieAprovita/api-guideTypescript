@@ -820,7 +820,7 @@ const swaggerDocument: OpenAPIV3.Document = {
                     username: { type: 'string', example: 'testUser' },
                     email: { type: 'string', format: 'email', example: 'test@example.com' },
                     password: { type: 'string', example: 'SecurePassword123!' },
-                    role: { type: 'string', enum: ['user', 'professional', 'admin'], default: 'user' },
+                    role: { type: 'string', enum: ['user', 'professional'], default: 'user' },
                 },
             },
             LoginRequest: {
