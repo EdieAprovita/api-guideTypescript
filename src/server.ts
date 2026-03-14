@@ -25,6 +25,10 @@ if (!process.env.JWT_RESET_SECRET) {
     );
 }
 
+if (process.env.BYPASS_AUTH_FOR_TESTING === 'true' && process.env.NODE_ENV !== 'test') {
+    logger.warn('⚠️  BYPASS_AUTH_FOR_TESTING is enabled in a non-test environment — this is a critical security risk!');
+}
+
 const server = app.listen(Number(PORT), HOST, () => {
     if (process.env.NODE_ENV === 'production') {
         logger.info(`🚀 Server is ready and accepting connections on ${HOST}:${PORT}`);

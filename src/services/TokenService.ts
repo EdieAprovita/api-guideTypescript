@@ -4,6 +4,7 @@ import type { Redis as RedisType } from 'ioredis';
 const Redis = RedisLib.default || RedisLib;
 import { randomUUID } from 'crypto';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
+import logger from '../utils/logger.js';
 
 interface TokenPayload {
     userId: string;
@@ -341,27 +342,43 @@ class TokenService {
     }
 
     async blacklistToken(token: string): Promise<void> {
-        const blacklistKey = `blacklist:${token}`;
-        let ttl = 3600; // Default: 1 hour
+        // Use jti as the Redis key (short, opaque) — falls back to full token for
+        // legacy/malformed tokens that pre-date the jti claim.
+        let blacklistKey = `blacklist:${token}`; // fallback: full token
+        let ttl = 3600;
 
         try {
-            const decoded = jwt.decode(token) as { exp?: number } | null;
+            const decoded = jwt.decode(token) as { exp?: number; jti?: string } | null;
+            if (decoded?.jti) {
+                blacklistKey = `blacklist:${decoded.jti}`;
+            } else {
+                logger.warn('blacklistToken: token missing jti — falling back to full-token key');
+            }
             if (decoded?.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
                 ttl = Math.max(expirationTime, 3600);
             }
         } catch {
-            // jwt.decode failed (malformed token) — proceed with default TTL
+            // jwt.decode failed — use default key and TTL
         }
 
-        // Perform the blacklist write. If Redis is unavailable this will throw,
-        // which is the correct fail-closed behaviour: the caller (logout) should
-        // know the blacklist write failed rather than silently succeeding.
+        // Fail-closed: if Redis is unavailable this will throw. The logout controller
+        // handles this with a best-effort catch so the client session still ends.
         await this.redis.setex(blacklistKey, ttl, 'revoked');
     }
 
     async isTokenBlacklisted(token: string): Promise<boolean> {
-        const blacklistKey = `blacklist:${token}`;
+        let blacklistKey = `blacklist:${token}`; // fallback: full token
+
+        try {
+            const decoded = jwt.decode(token) as { jti?: string } | null;
+            if (decoded?.jti) {
+                blacklistKey = `blacklist:${decoded.jti}`;
+            }
+        } catch {
+            // jwt.decode failed — use default key
+        }
+
         const result = await this.redis.get(blacklistKey);
         return result !== null;
     }
