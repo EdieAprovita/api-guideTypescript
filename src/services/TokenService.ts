@@ -2,7 +2,7 @@ import * as jwt from 'jsonwebtoken';
 import RedisLib from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
 const Redis = RedisLib.default || RedisLib;
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
 import logger from '../utils/logger.js';
 
@@ -46,9 +46,18 @@ class TokenService {
     private readonly audience = 'vegan-guide-client';
     private initialized = false;
 
-    constructor() {
-        // Initialize Redis immediately (it's lazy-loaded anyway)
-        this.initializeRedis();
+    /**
+     * @param redisClient Optional Redis client to inject (used in tests to avoid
+     *   real connections). When omitted the service selects mock or real Redis
+     *   based on NODE_ENV, preserving production behaviour.
+     */
+    constructor(redisClient?: RedisType) {
+        if (redisClient) {
+            this.redis = redisClient;
+        } else {
+            // Initialize Redis immediately (it's lazy-loaded anyway)
+            this.initializeRedis();
+        }
         // Don't initialize secrets in constructor - do it lazily on first use
     }
 
@@ -342,24 +351,26 @@ class TokenService {
     }
 
     async blacklistToken(token: string): Promise<void> {
-        // Use jti as the Redis key (short, opaque) — falls back to full token for
-        // legacy/malformed tokens that pre-date the jti claim.
-        let blacklistKey = `blacklist:${token}`; // fallback: full token
-        let ttl = 3600;
+        let blacklistKey: string;
+        let ttl = 3600; // Default: 1 hour
 
         try {
             const decoded = jwt.decode(token) as { exp?: number; jti?: string } | null;
             if (decoded?.jti) {
                 blacklistKey = `blacklist:${decoded.jti}`;
             } else {
-                logger.warn('blacklistToken: token missing jti — falling back to full-token key');
+                const tokenHash = createHash('sha256').update(token).digest('hex');
+                blacklistKey = `blacklist:hash:${tokenHash}`;
+                logger.warn('blacklistToken: token missing jti — using SHA-256 hash as fallback key');
             }
             if (decoded?.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
                 ttl = Math.max(expirationTime, 3600);
             }
         } catch {
-            // jwt.decode failed — use default key and TTL
+            // jwt.decode failed (malformed token) — fall back to SHA-256 hash
+            const tokenHash = createHash('sha256').update(token).digest('hex');
+            blacklistKey = `blacklist:hash:${tokenHash}`;
         }
 
         // Fail-closed: if Redis is unavailable this will throw. The logout controller
@@ -368,18 +379,17 @@ class TokenService {
     }
 
     async isTokenBlacklisted(token: string): Promise<boolean> {
-        let blacklistKey = `blacklist:${token}`; // fallback: full token
-
         try {
             const decoded = jwt.decode(token) as { jti?: string } | null;
             if (decoded?.jti) {
-                blacklistKey = `blacklist:${decoded.jti}`;
+                const result = await this.redis.get(`blacklist:${decoded.jti}`);
+                return result !== null;
             }
         } catch {
-            // jwt.decode failed — use default key
+            // jwt.decode failed — fall through to hash check
         }
-
-        const result = await this.redis.get(blacklistKey);
+        const tokenHash = createHash('sha256').update(token).digest('hex');
+        const result = await this.redis.get(`blacklist:hash:${tokenHash}`);
         return result !== null;
     }
 
@@ -429,6 +439,25 @@ class TokenService {
         }
     }
 
+    /**
+     * Removes blacklist entries that have no TTL set (should not normally
+     * happen, but provides a safety net for manual admin operations).
+     * Redis auto-expires entries with a TTL, so this only targets the edge
+     * case where setex was bypassed.
+     */
+    async cleanup(): Promise<void> {
+        const pattern = 'blacklist:*';
+        const keys = await this.redis.keys(pattern);
+
+        for (const key of keys) {
+            const ttl = await this.redis.ttl(key);
+            if (ttl === -1) {
+                // Key exists but has no TTL — remove it
+                await this.redis.del(key);
+            }
+        }
+    }
+
     async disconnect(): Promise<void> {
         this.redis.disconnect();
     }
@@ -443,4 +472,5 @@ class TokenService {
     }
 }
 
+export { TokenService };
 export default new TokenService();

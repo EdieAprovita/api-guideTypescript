@@ -25,8 +25,14 @@ if (!process.env.JWT_RESET_SECRET) {
     );
 }
 
+// Security: hard-stop if the auth bypass flag is active outside of the test environment.
+// A warn-only check is insufficient — a misconfigured non-test deploy must never start.
 if (process.env.BYPASS_AUTH_FOR_TESTING === 'true' && process.env.NODE_ENV !== 'test') {
-    logger.warn('⚠️  BYPASS_AUTH_FOR_TESTING is enabled in a non-test environment — this is a critical security risk!');
+    logger.error(
+        '🛑 BYPASS_AUTH_FOR_TESTING is set in a non-test environment. ' +
+        'This is a critical security misconfiguration — refusing to start.'
+    );
+    process.exit(1);
 }
 
 const server = app.listen(Number(PORT), HOST, () => {
