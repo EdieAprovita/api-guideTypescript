@@ -99,14 +99,21 @@ describe('Auth Integration Tests - Simplified', () => {
             expectBadRequestResponse(response);
         });
 
-        it('should strip role property from registration payload', async () => {
+        it('should reject registration with a disallowed role (admin)', async () => {
             const userData = createUserData({ role: 'admin' });
             const response = await makeRequest('post', '/api/v1/users/register', userData);
 
-            // Unconditional assertions to guarantee stripping behavior
+            // Joi now rejects 'admin' (not in whitelist) with 400 before it reaches the controller
+            expectBadRequestResponse(response);
+        });
+
+        it('should accept registration with role: professional', async () => {
+            const userData = createUserData({ role: 'professional' });
+            const response = await makeRequest('post', '/api/v1/users/register', userData);
+
             expect(response.status, `Registration failed unexpectedly: ${JSON.stringify(response.body)}`).toBe(201);
             expect(response.body.data).toBeDefined();
-            expect((response.body.data as { role: string }).role).toBe('user');
+            expect((response.body.data as { role: string }).role).toBe('professional');
         });
     });
 
