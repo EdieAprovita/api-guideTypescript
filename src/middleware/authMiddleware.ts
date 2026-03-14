@@ -22,7 +22,9 @@ declare global {
     }
 }
 
-// Helper function to extract token from request
+// Helper function to extract token from request.
+// cookie-parser is mounted globally (app.ts) so req.cookies is always populated —
+// raw req.headers.cookie parsing is not needed and would have a base64 padding bug.
 const extractToken = (req: Request): string | undefined => {
     if (req.cookies?.jwt) {
         return req.cookies.jwt;
@@ -30,21 +32,6 @@ const extractToken = (req: Request): string | undefined => {
 
     if (req.headers.authorization?.startsWith('Bearer')) {
         return req.headers.authorization.split(' ')[1];
-    }
-
-    if (req.headers.cookie) {
-        const cookies = req.headers.cookie.split(';').reduce(
-            (acc, cookie) => {
-                const [key, value] = cookie.trim().split('=');
-                if (key && value) {
-                    acc[key] = value;
-                }
-                return acc;
-            },
-            {} as Record<string, string>
-        );
-
-        return cookies.jwt;
     }
 
     return undefined;
@@ -262,29 +249,21 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
     try {
         let token: string | undefined;
 
-        // Extract token using same logic as extractToken (protect middleware).
-        // All three branches must stay in sync with extractToken to ensure every
-        // token delivery path is blacklisted on logout.
+        // cookie-parser is mounted globally — req.cookies is always populated.
+        // Raw req.headers.cookie parsing is intentionally absent: it is dead code
+        // when cookie-parser is active and would introduce a base64-padding bug.
         if (req.cookies?.jwt) {
             token = req.cookies.jwt;
         } else if (req.headers.authorization?.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
-        } else if (req.headers.cookie) {
-            const cookies = req.headers.cookie.split(';').reduce(
-                (acc, cookie) => {
-                    const [key, value] = cookie.trim().split('=');
-                    if (key && value) acc[key] = value;
-                    return acc;
-                },
-                {} as Record<string, string>
-            );
-            token = cookies.jwt;
         }
 
         if (token) {
-            // Blacklist the token
+            // Blacklist the token so it cannot be reused until natural expiry.
             await TokenService.blacklistToken(token);
         }
+        // If no token is present (client already cleared its cookie), skip blacklisting —
+        // there is nothing to revoke. The cookie is still cleared below.
 
         // Clear cookie if it exists
         res.clearCookie('jwt', {

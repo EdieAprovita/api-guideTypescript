@@ -1,3 +1,5 @@
+import type { UserRole } from '../models/User.js';
+
 /**
  * Roles that a user may self-assign during registration.
  * 'admin' is intentionally excluded — it must be granted by an existing admin.
@@ -13,5 +15,4 @@ export type RegisterAllowedRole = (typeof REGISTER_ALLOWED_ROLES)[number];
  * Typed as Record<UserRole, number> so TypeScript catches drift if a new role is added
  * to the User model without updating this map.
  */
-import type { UserRole } from '../models/User.js';
 export const ROLE_RANK: Record<UserRole, number> = { user: 0, professional: 1, admin: 2 };
