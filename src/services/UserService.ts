@@ -222,10 +222,10 @@ class UserService extends BaseService {
                 (user as unknown as Record<string, unknown>)[key] = value;
             }
         }
-        // Password is handled separately — it triggers the pre-save bcrypt hook
-        if (updateData.password) {
-            user.password = updateData.password;
-        }
+        // Password changes MUST go through updateUserPassword (which requires
+        // current-password verification via resetPassword or a dedicated endpoint).
+        // Allowing password in updateUserFields would let any authenticated user
+        // change their password without proving they know the current one.
     }
 }
 
