@@ -7,6 +7,7 @@ export enum HttpStatusCode {
     NOT_FOUND = 404,
     CONFLICT = 409,
     INTERNAL_SERVER_ERROR = 500,
+    SERVICE_UNAVAILABLE = 503,
 }
 
 export class HttpError extends Error {
@@ -43,5 +44,13 @@ export class DataBaseError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'DataBaseError';
+    }
+}
+
+export class TokenRevokedError extends Error {
+    constructor() {
+        super('Token has been revoked');
+        this.name = 'TokenRevokedError';
+        Object.setPrototypeOf(this, new.target.prototype);
     }
 }

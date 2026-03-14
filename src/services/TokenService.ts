@@ -3,6 +3,7 @@ import RedisLib from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
 const Redis = RedisLib.default || RedisLib;
 import { randomUUID } from 'crypto';
+import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
 
 interface TokenPayload {
     userId: string;
@@ -258,17 +259,20 @@ class TokenService {
             try {
                 const isBlacklisted = await this.isTokenBlacklisted(token);
                 if (isBlacklisted) {
-                    throw new Error('Token has been revoked');
+                    throw new TokenRevokedError();
                 }
             } catch (redisError) {
-                // Re-throw revocation errors (these are intentional rejections, not Redis failures)
-                if (redisError instanceof Error && redisError.message === 'Token has been revoked') {
+                // Re-throw intentional revocations (not Redis infrastructure failures)
+                if (redisError instanceof TokenRevokedError) {
                     throw redisError;
                 }
-                // Fail-closed: if Redis is unavailable, reject the token for safety
-                // A revoked token must never be accepted due to infrastructure failure
+                // Fail-closed: if Redis is unavailable, reject the token for safety.
+                // A revoked token must never be accepted due to infrastructure failure.
                 console.error('Redis blacklist check unavailable — rejecting token for safety:', redisError);
-                throw new Error('Token verification unavailable — please try again later');
+                throw new HttpError(
+                    HttpStatusCode.SERVICE_UNAVAILABLE,
+                    'Token verification unavailable — please try again later'
+                );
             }
 
             return decoded;

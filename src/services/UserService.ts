@@ -123,7 +123,7 @@ abstract class BaseService {
 }
 
 class UserService extends BaseService {
-    async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>, _res: Response) {
+    async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>) {
         try {
             // Debug logging - only visible in development or when DEBUG_TESTS is set
             if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
@@ -164,7 +164,7 @@ class UserService extends BaseService {
         }
     }
 
-    async loginUser(email: string, password: string, _res: Response) {
+    async loginUser(email: string, password: string) {
         const sanitizedEmail = validateAndSanitizeEmail(email);
         const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
         await this.validateUserCredentials(user, password);
