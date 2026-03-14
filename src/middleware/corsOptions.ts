@@ -13,6 +13,7 @@ const getAllowedOrigins = (): string[] => {
     }
 
     try {
+        // .origin strips any trailing path/query — intentional: CORS must match origin only
         return [new URL(frontendUrl).origin];
     } catch {
         logger.warn(`FRONTEND_URL is not a valid URL ("${frontendUrl}") — CORS will reject all cross-origin requests`);

@@ -18,6 +18,7 @@ import { User } from '../models/User.js';
 // Only 'user' and 'professional' are accepted; anything else (e.g. 'admin')
 // is silently dropped so the User model default ('user') applies instead.
 // Note: Joi in validators.ts already rejects invalid values — this is defense-in-depth.
+// Keep in sync with the Joi .valid() list in validators.ts (register schema).
 const REGISTER_ALLOWED_ROLES = ['user', 'professional'] as const;
 
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {

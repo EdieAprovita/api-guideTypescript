@@ -107,7 +107,7 @@ export const userSchemas = {
         dateOfBirth: Joi.date().max('now').optional(),
         phoneNumber: commonSchemas.phone.optional(),
         location: createLocationSchema(false),
-        role: Joi.string().valid('user', 'professional').optional(),
+        role: Joi.string().valid('user', 'professional').optional(), // keep in sync with REGISTER_ALLOWED_ROLES in userControllers.ts
     }),
 
     login: Joi.object({

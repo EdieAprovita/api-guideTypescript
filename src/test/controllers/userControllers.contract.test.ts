@@ -212,6 +212,51 @@ describe('registerUser controller — response contract', () => {
             expect(serviceCallArg.role).toBeUndefined();
         }
     });
+
+    // Defense-in-depth: these tests call the controller directly (Joi bypassed)
+    // to verify REGISTER_ALLOWED_ROLES works independently of the validation layer.
+
+    it('passes role: professional to service (whitelisted role, controller-level check)', async () => {
+        const { registerUser } = await import('@/controllers/userControllers.js');
+        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role: 'professional' });
+
+        const req = testUtils.createMockRequest({
+            body: {
+                username: 'pro',
+                email: 'pro@example.com',
+                password: 'TestPass123!',
+                role: 'professional',
+            },
+        }) as Request;
+        const res = testUtils.createMockResponse() as Response;
+        const next = testUtils.createMockNext() as NextFunction;
+
+        await registerUser(req, res, next);
+
+        const serviceCallArg = mockRegisterUser.mock.calls[0]?.[0];
+        expect(serviceCallArg?.role).toBe('professional');
+    });
+
+    it('omits role from service call when role is absent from body (model default applies)', async () => {
+        const { registerUser } = await import('@/controllers/userControllers.js');
+        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role: 'user' });
+
+        const req = testUtils.createMockRequest({
+            body: {
+                username: 'newuser',
+                email: 'new@example.com',
+                password: 'TestPass123!',
+                // no role field
+            },
+        }) as Request;
+        const res = testUtils.createMockResponse() as Response;
+        const next = testUtils.createMockNext() as NextFunction;
+
+        await registerUser(req, res, next);
+
+        const serviceCallArg = mockRegisterUser.mock.calls[0]?.[0];
+        expect(serviceCallArg?.role).toBeUndefined();
+    });
 });
 
 // ---------------------------------------------------------------------------
