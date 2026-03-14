@@ -6,6 +6,7 @@ import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
+import type { UserRole } from '../models/User.js';
 import { REGISTER_ALLOWED_ROLES, ROLE_RANK } from '../constants/roles.js';
 
 /**
@@ -304,8 +305,9 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response, n
                 targetId: id,
             });
         }
-        const prevRank = ROLE_RANK[previousRole] ?? 0;
-        const newRank = ROLE_RANK[role] ?? 0;
+        // role is validated by Joi as UserRole before reaching this point — cast is safe.
+        const prevRank = ROLE_RANK[previousRole as UserRole] ?? 0;
+        const newRank = ROLE_RANK[role as UserRole] ?? 0;
         const action = newRank > prevRank ? 'role_escalation' : newRank < prevRank ? 'role_demotion' : 'role_unchanged';
         logger.info('User role updated', {
             adminId: req.user?._id,
