@@ -17,6 +17,14 @@ if (process.env.NODE_ENV === 'production') {
     logger.info(colorTheme.info.bold(`🔧 Node version: ${process.version}`));
 }
 
+// Security: warn if JWT_RESET_SECRET is not configured — reset tokens will
+// share the same signing key as access tokens, reducing defense-in-depth.
+if (!process.env.JWT_RESET_SECRET) {
+    logWarn(
+        '⚠️  JWT_RESET_SECRET is not set — password-reset tokens will use JWT_SECRET. Set JWT_RESET_SECRET for defense-in-depth.'
+    );
+}
+
 const server = app.listen(Number(PORT), HOST, () => {
     if (process.env.NODE_ENV === 'production') {
         logger.info(`🚀 Server is ready and accepting connections on ${HOST}:${PORT}`);

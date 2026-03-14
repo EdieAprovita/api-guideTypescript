@@ -3,6 +3,7 @@ import RedisLib from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
 const Redis = RedisLib.default || RedisLib;
 import { randomUUID } from 'crypto';
+import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
 
 interface TokenPayload {
     userId: string;
@@ -228,7 +229,10 @@ class TokenService {
             await this.redis.setex(refreshTokenKey, 7 * 24 * 60 * 60, refreshToken);
             this.debugLog('Successfully stored in Redis');
         } catch (redisError) {
-            this.debugError('Redis error:', redisError);
+            this.debugError('Redis error storing refresh token:', redisError);
+            // Fail-closed: if we can't persist the refresh token, the user won't be
+            // able to refresh later. Better to fail now than issue an unusable pair.
+            throw new Error('Unable to complete token generation — please try again later');
         }
 
         const result = { accessToken, refreshToken };
@@ -254,20 +258,24 @@ class TokenService {
                 audience: this.audience,
             }) as TokenPayload;
 
-            // Then check if token is blacklisted (but don't fail if Redis is unavailable)
+            // Check if token is blacklisted — fail-closed: reject token if Redis is unavailable
             try {
                 const isBlacklisted = await this.isTokenBlacklisted(token);
                 if (isBlacklisted) {
-                    throw new Error('Token has been revoked');
+                    throw new TokenRevokedError();
                 }
             } catch (redisError) {
-                // In test environment, log but don't fail if Redis check fails
-                if (process.env.NODE_ENV === 'test') {
-                    console.warn('Redis blacklist check failed, continuing with token verification:', redisError);
-                } else {
-                    // In production, we might want to be more strict
-                    console.error('Redis blacklist check failed:', redisError);
+                // Re-throw intentional revocations (not Redis infrastructure failures)
+                if (redisError instanceof TokenRevokedError) {
+                    throw redisError;
                 }
+                // Fail-closed: if Redis is unavailable, reject the token for safety.
+                // A revoked token must never be accepted due to infrastructure failure.
+                console.error('Redis blacklist check unavailable — rejecting token for safety:', redisError);
+                throw new HttpError(
+                    HttpStatusCode.SERVICE_UNAVAILABLE,
+                    'Token verification unavailable — please try again later'
+                );
             }
 
             return decoded;
@@ -353,19 +361,9 @@ class TokenService {
     }
 
     async isTokenBlacklisted(token: string): Promise<boolean> {
-        try {
-            const blacklistKey = `blacklist:${token}`;
-            const result = await this.redis.get(blacklistKey);
-            return result !== null;
-        } catch (error) {
-            // In test environment, if Redis fails, assume token is not blacklisted
-            if (process.env.NODE_ENV === 'test') {
-                console.warn('Redis blacklist check failed, assuming token is not blacklisted:', error);
-                return false;
-            }
-            // In production, re-throw the error
-            throw error;
-        }
+        const blacklistKey = `blacklist:${token}`;
+        const result = await this.redis.get(blacklistKey);
+        return result !== null;
     }
 
     async revokeRefreshToken(userId: string): Promise<void> {
@@ -382,19 +380,9 @@ class TokenService {
     }
 
     async isUserTokensRevoked(userId: string): Promise<boolean> {
-        try {
-            const userTokenKey = `user_tokens:${userId}`;
-            const result = await this.redis.get(userTokenKey);
-            return result === 'revoked';
-        } catch (error) {
-            // In test environment, if Redis fails, assume tokens are not revoked
-            if (process.env.NODE_ENV === 'test') {
-                console.warn('Redis user tokens check failed, assuming tokens are not revoked:', error);
-                return false;
-            }
-            // In production, re-throw the error
-            throw error;
-        }
+        const userTokenKey = `user_tokens:${userId}`;
+        const result = await this.redis.get(userTokenKey);
+        return result === 'revoked';
     }
 
     async getTokenInfo(token: string): Promise<TokenInfo> {

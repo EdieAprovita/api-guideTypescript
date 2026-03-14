@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../middleware/asyncHandler.js';
 import UserServices from '../services/UserService.js';
+import TokenService from '../services/TokenService.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
@@ -20,7 +21,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
         // Security: strip role from user input to prevent privilege escalation.
         // Role should only be set server-side (defaults to 'user' in the User model).
         const { role: _stripRole, ...safeData } = sanitizedData;
-        const result = await UserServices.registerUser(safeData, res);
+        const result = await UserServices.registerUser(safeData);
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
@@ -49,7 +50,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
         const { email, password } = sanitizedData;
-        const result = await UserServices.loginUser(email, password, res);
+        const result = await UserServices.loginUser(email, password);
         res.status(200).json({
             success: true,
             message: 'Login successful',
@@ -137,9 +138,31 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
  * @returns {Promise<Response>}
  */
 
-export const logout = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
+export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const response = await UserServices.logoutUser(res);
+        // Blacklist the current access token so it cannot be reused after logout.
+        // Without this, a stolen token remains valid until expiry.
+        let token: string | undefined;
+
+        if (req.cookies?.jwt) {
+            token = req.cookies.jwt;
+        } else if (req.headers.authorization?.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        if (token) {
+            await TokenService.blacklistToken(token);
+        }
+
+        // Cookie clearing belongs in the controller (HTTP concern, not business logic)
+        res.clearCookie('jwt', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+        });
+
+        const response = await UserServices.logoutUser();
         res.status(200).json(response);
     } catch (error) {
         next(
