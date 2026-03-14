@@ -18,9 +18,14 @@ import { User } from '../models/User.js';
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        // Security: strip role from user input to prevent privilege escalation.
-        // Role should only be set server-side (defaults to 'user' in the User model).
-        const { role: _stripRole, ...safeData } = sanitizedData;
+        // Security: whitelist the roles a user may self-assign on registration.
+        // Only 'user' and 'professional' are accepted; anything else (e.g. 'admin')
+        // is silently dropped so the User model default ('user') applies instead.
+        const REGISTER_ALLOWED_ROLES = ['user', 'professional'] as const;
+        const { role: requestedRole, ...restData } = sanitizedData;
+        const safeData = REGISTER_ALLOWED_ROLES.includes(requestedRole)
+            ? { ...restData, role: requestedRole }
+            : restData; // defaults to 'user' via User model
         const result = await UserServices.registerUser(safeData);
         res.status(201).json({
             success: true,
@@ -124,63 +129,6 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
         next(
             new HttpError(
                 HttpStatusCode.BAD_REQUEST,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
-
-/**
- * @description Logout user
- * @name logout
- * @route POST /api/users/logout
- * @access Private
- * @returns {Promise<Response>}
- */
-
-export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        // Blacklist the current access token so it cannot be reused after logout.
-        // Without this, a stolen token remains valid until expiry.
-        let token: string | undefined;
-
-        if (req.cookies?.jwt) {
-            token = req.cookies.jwt;
-        } else if (req.headers.authorization?.startsWith('Bearer')) {
-            token = req.headers.authorization.split(' ')[1];
-        }
-
-        if (token) {
-            try {
-                await TokenService.blacklistToken(token);
-            } catch (blacklistError) {
-                // Best-effort blacklist: if Redis is unavailable, log and proceed.
-                // The cookie is still cleared so the client session ends. The token
-                // will expire naturally; this is an acceptable trade-off vs. blocking
-                // the user from logging out entirely.
-                logger.error('Failed to blacklist token on logout — Redis may be unavailable', {
-                    error: blacklistError instanceof Error ? blacklistError.message : blacklistError,
-                });
-            }
-        }
-
-        // Belt-and-suspenders: clear the jwt cookie if the client set one directly.
-        // In the standard flow the frontend (NextAuth) manages its own encrypted
-        // httpOnly session cookie — the backend does not set 'jwt' on login/register.
-        // The protect middleware still accepts req.cookies.jwt for direct API clients.
-        res.clearCookie('jwt', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            path: '/',
-        });
-
-        const response = await UserServices.logoutUser();
-        res.status(200).json(response);
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
             )
         );

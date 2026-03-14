@@ -107,6 +107,7 @@ export const userSchemas = {
         dateOfBirth: Joi.date().max('now').optional(),
         phoneNumber: commonSchemas.phone.optional(),
         location: createLocationSchema(false),
+        role: Joi.string().valid('user', 'professional').optional(),
     }),
 
     login: Joi.object({

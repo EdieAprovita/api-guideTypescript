@@ -13,7 +13,6 @@ import {
     updateUserProfile,
     updateUserRole,
     getCurrentUserProfile,
-    logout,
     deleteUserById,
 } from '../controllers/userControllers.js';
 
@@ -62,8 +61,6 @@ router.post(
     }),
     forgotPassword
 );
-
-router.post('/logout', rateLimits.api, logout);
 
 router.put(
     '/reset-password',

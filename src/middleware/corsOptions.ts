@@ -1,11 +1,23 @@
 import cors from 'cors';
+import logger from '../utils/logger.js';
+
+const getAllowedOrigins = (): string[] => {
+    if (process.env.NODE_ENV !== 'production') {
+        return ['http://localhost:3000', 'http://127.0.0.1:3000'];
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+        logger.warn('FRONTEND_URL is not set in production — CORS will reject all cross-origin requests');
+        return [];
+    }
+
+    return [frontendUrl];
+};
 
 const corsOptions = {
     credentials: true,
-    origin:
-        process.env.NODE_ENV === 'production'
-            ? [process.env.FRONTEND_URL || 'https://api-guidetypescript-ew.a.run.app']
-            : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: getAllowedOrigins(),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 };
