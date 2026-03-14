@@ -60,6 +60,19 @@ const BASE_LOGIN_BODY = { email: 'test@example.com', password: 'TestPass123!' };
 const BASE_REGISTER_BODY = { username: 'newuser', email: 'new@example.com', password: 'TestPass123!' };
 
 // ---------------------------------------------------------------------------
+// Shared test utilities
+// ---------------------------------------------------------------------------
+
+/** Returns the first argument passed to res.json() — works for any mock response. */
+const getJsonResponse = (res: Response) => (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+
+/** Creates fresh mock res + next for each test. */
+const createMocks = () => ({
+    res: testUtils.createMockResponse() as Response,
+    next: testUtils.createMockNext() as NextFunction,
+});
+
+// ---------------------------------------------------------------------------
 // loginUser — contract test
 // ---------------------------------------------------------------------------
 
@@ -68,8 +81,6 @@ describe('loginUser controller — response contract', () => {
     let res: Response;
     let next: NextFunction;
 
-    const getJsonResponse = () => (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
     beforeAll(async () => {
         ({ loginUser } = await import('@/controllers/userControllers.js'));
     });
@@ -77,8 +88,7 @@ describe('loginUser controller — response contract', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockLoginUser.mockResolvedValue(mockLoginResult);
-        res = testUtils.createMockResponse() as Response;
-        next = testUtils.createMockNext() as NextFunction;
+        ({ res, next } = createMocks());
     });
 
     it('wraps response in { success, message, data } envelope', async () => {
@@ -86,7 +96,7 @@ describe('loginUser controller — response contract', () => {
         await loginUser(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(200);
-        const jsonCall = getJsonResponse();
+        const jsonCall = getJsonResponse(res);
         // Verify the { success, message, data } wrapper — required by FE parser
         expect(jsonCall).toHaveProperty('success', true);
         expect(jsonCall).toHaveProperty('message', 'Login successful');
@@ -97,7 +107,7 @@ describe('loginUser controller — response contract', () => {
         const req = testUtils.createMockRequest({ body: BASE_LOGIN_BODY }) as Request;
         await loginUser(req, res, next);
 
-        const { data } = getJsonResponse();
+        const { data } = getJsonResponse(res);
         // FE auth.ts reads: response.data._id, response.data.username, etc.
         expect(data).toHaveProperty('_id', mockLoginResult._id);
         expect(data).toHaveProperty('username', mockLoginResult.username);
@@ -125,8 +135,6 @@ describe('registerUser controller — response contract', () => {
     let res: Response;
     let next: NextFunction;
 
-    const getJsonResponse = () => (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
     beforeAll(async () => {
         ({ registerUser } = await import('@/controllers/userControllers.js'));
     });
@@ -134,8 +142,7 @@ describe('registerUser controller — response contract', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockRegisterUser.mockResolvedValue(mockLoginResult);
-        res = testUtils.createMockResponse() as Response;
-        next = testUtils.createMockNext() as NextFunction;
+        ({ res, next } = createMocks());
     });
 
     it('wraps response in { success, message, data } envelope', async () => {
@@ -143,7 +150,7 @@ describe('registerUser controller — response contract', () => {
         await registerUser(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(201);
-        const jsonCall = getJsonResponse();
+        const jsonCall = getJsonResponse(res);
         expect(jsonCall).toHaveProperty('success', true);
         expect(jsonCall).toHaveProperty('message', 'User registered successfully');
         expect(jsonCall).toHaveProperty('data');
@@ -153,7 +160,7 @@ describe('registerUser controller — response contract', () => {
         const req = testUtils.createMockRequest({ body: BASE_REGISTER_BODY }) as Request;
         await registerUser(req, res, next);
 
-        const { data } = getJsonResponse();
+        const { data } = getJsonResponse(res);
         expect(data).toHaveProperty('_id');
         expect(data).toHaveProperty('username');
         expect(data).toHaveProperty('email');
