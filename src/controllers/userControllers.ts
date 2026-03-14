@@ -151,10 +151,23 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
         }
 
         if (token) {
-            await TokenService.blacklistToken(token);
+            try {
+                await TokenService.blacklistToken(token);
+            } catch (blacklistError) {
+                // Best-effort blacklist: if Redis is unavailable, log and proceed.
+                // The cookie is still cleared so the client session ends. The token
+                // will expire naturally; this is an acceptable trade-off vs. blocking
+                // the user from logging out entirely.
+                logger.error('Failed to blacklist token on logout — Redis may be unavailable', {
+                    error: blacklistError instanceof Error ? blacklistError.message : blacklistError,
+                });
+            }
         }
 
-        // Cookie clearing belongs in the controller (HTTP concern, not business logic)
+        // Belt-and-suspenders: clear the jwt cookie if the client set one directly.
+        // In the standard flow the frontend (NextAuth) manages its own encrypted
+        // httpOnly session cookie — the backend does not set 'jwt' on login/register.
+        // The protect middleware still accepts req.cookies.jwt for direct API clients.
         res.clearCookie('jwt', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -233,39 +246,14 @@ export const getUserById = asyncHandler(async (req: Request, res: Response, next
  * @returns {Promise<Response>}
  */
 
-// Helper function to log debug information in test environment
-const logDebugInfo = (_message: string, _data?: unknown) => {
-    // Debug logging disabled to reduce test output noise
-};
-
-// Helper function to handle user lookup
-const handleUserLookup = async (userId: string) => {
-    logDebugInfo('Looking up user with ID:', userId);
-    logDebugInfo('userId type:', typeof userId);
-
-    const user = await UserServices.findUserById(userId);
-
-    logDebugInfo('User lookup result:', user ? 'found' : 'not found');
-    if (user) {
-        logDebugInfo('Found user ID:', user._id);
-        logDebugInfo('Found user email:', user.email);
-    }
-
-    return user;
-};
-
 export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        logDebugInfo('req.user:', req.user);
-        logDebugInfo('req.user?._id:', req.user?._id);
-        logDebugInfo('typeof req.user?._id:', typeof req.user?._id);
-
         const userId = req.user?._id;
         if (!userId) {
             throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not authenticated');
         }
 
-        const user = await handleUserLookup(userId);
+        const user = await UserServices.findUserById(userId);
         if (!user) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
         }

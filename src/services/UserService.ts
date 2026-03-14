@@ -108,9 +108,6 @@ abstract class BaseService {
             throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'JWT secret not configured');
         }
         const decoded = jwt.verify(resetToken, secret) as JwtPayload;
-        if (!decoded) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid token'));
-        }
 
         // Verify this is actually a password-reset token, not a repurposed access token
         if (decoded.purpose !== 'password-reset') {

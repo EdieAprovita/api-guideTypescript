@@ -341,23 +341,23 @@ class TokenService {
     }
 
     async blacklistToken(token: string): Promise<void> {
+        const blacklistKey = `blacklist:${token}`;
+        let ttl = 3600; // Default: 1 hour
+
         try {
             const decoded = jwt.decode(token) as { exp?: number } | null;
-            const blacklistKey = `blacklist:${token}`;
-
             if (decoded?.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
-                const ttl = Math.max(expirationTime, 3600); // Minimum 1 hour
-                await this.redis.setex(blacklistKey, ttl, 'revoked');
-            } else {
-                await this.redis.setex(blacklistKey, 3600, 'revoked'); // Default 1 hour
+                ttl = Math.max(expirationTime, 3600);
             }
-        } catch (error) {
-            // If token decode fails, still blacklist with default TTL
-            // Error is intentionally caught to ensure token is blacklisted even if decode fails
-            const blacklistKey = `blacklist:${token}`;
-            await this.redis.setex(blacklistKey, 3600, 'revoked');
+        } catch {
+            // jwt.decode failed (malformed token) — proceed with default TTL
         }
+
+        // Perform the blacklist write. If Redis is unavailable this will throw,
+        // which is the correct fail-closed behaviour: the caller (logout) should
+        // know the blacklist write failed rather than silently succeeding.
+        await this.redis.setex(blacklistKey, ttl, 'revoked');
     }
 
     async isTokenBlacklisted(token: string): Promise<boolean> {
