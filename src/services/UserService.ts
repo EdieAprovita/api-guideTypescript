@@ -120,7 +120,6 @@ abstract class BaseService {
         user.password = newPassword;
         await user.save();
     }
-
 }
 
 class UserService extends BaseService {
