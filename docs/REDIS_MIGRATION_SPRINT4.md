@@ -31,7 +31,7 @@ In practice this means: if a token was blacklisted before the Sprint 4 deploy us
 
 1. **All app-generated tokens carry a `jti`.** `createTokenPayload` unconditionally sets `jti: randomUUID()`. The fallback path is only exercised for tokens that are missing this field — i.e., tokens not issued by this service (legacy clients, hand-crafted tokens, or third-party tokens).
 
-2. **Short TTL.** Blacklist entries are written with `setex` using either the token's remaining lifetime or a hard cap of 3600 seconds (1 hour). Any legacy-format entry still in Redis will expire within one hour of the deploy.
+2. **Short TTL.** Blacklist entries are written with `setex` using the token's remaining lifetime, with a minimum of 3600 seconds (1 hour). Any legacy-format entry still in Redis will expire according to the TTL that was set when it was created (at least one hour, up to the token's original remaining lifetime).
 
 3. **The primary path is unaffected.** Normal logout and token-refresh flows use `blacklist:<jti>`, which did not change.
 
@@ -43,7 +43,7 @@ No automated migration script is required.
 
 ### Option A — Wait for natural expiry (preferred)
 
-Deploy Sprint 4 normally. Any legacy-format blacklist entries (`blacklist:<raw_token>`) will expire within one hour. No action is required after that point.
+Deploy Sprint 4 normally. Any legacy-format blacklist entries (`blacklist:<raw_token>`) will expire according to their existing TTLs. No action is required after they naturally expire.
 
 ### Option B — Flush the blacklist namespace before deploy
 
@@ -73,11 +73,11 @@ redis-cli --scan --pattern "blacklist:*" | head
 #
 # Keys that look like:
 #   blacklist:eyJhbGciOi...   (long base64 strings)
-# are legacy Sprint 3 fallback entries and will expire within 1 hour.
+# are legacy Sprint 3 fallback entries and will expire according to their original TTLs.
 ```
 
 ---
 
 ## No Action Required After Expiry Window
 
-Once one hour has elapsed since the Sprint 4 deploy, the Redis blacklist namespace will contain only entries in the current formats. No follow-up cleanup is needed.
+Once all legacy-format entries have naturally expired according to their TTLs, the Redis blacklist namespace will contain only entries in the current formats. No follow-up cleanup is needed.
