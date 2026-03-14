@@ -231,11 +231,15 @@ describe('registerUser controller — response contract', () => {
 
 describe('updateUserRole controller — audit log action field', () => {
     let updateUserRole: ControllerFn;
+    let mockLogger: { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn> };
     let res: Response;
     let next: NextFunction;
 
     beforeAll(async () => {
-        ({ updateUserRole } = await import('@/controllers/userControllers.js'));
+        [{ updateUserRole }, { default: mockLogger }] = await Promise.all([
+            import('@/controllers/userControllers.js'),
+            import('@/utils/logger.js'),
+        ]);
     });
 
     beforeEach(() => {
@@ -250,6 +254,8 @@ describe('updateUserRole controller — audit log action field', () => {
         { previousRole: 'admin', newRole: 'user', expectedAction: 'role_demotion' },
         { previousRole: 'admin', newRole: 'professional', expectedAction: 'role_demotion' },
         { previousRole: 'professional', newRole: 'user', expectedAction: 'role_demotion' },
+        { previousRole: 'user', newRole: 'user', expectedAction: 'role_unchanged' },
+        { previousRole: 'admin', newRole: 'admin', expectedAction: 'role_unchanged' },
     ])(
         'logs action: $expectedAction when role changes $previousRole → $newRole',
         async ({ previousRole, newRole, expectedAction }) => {
@@ -264,8 +270,7 @@ describe('updateUserRole controller — audit log action field', () => {
 
             await updateUserRole(req, res, next);
 
-            const { default: logger } = await import('@/utils/logger.js');
-            const infoCalls = (logger.info as ReturnType<typeof vi.fn>).mock.calls;
+            const infoCalls = mockLogger.info.mock.calls;
             const roleUpdateCall = infoCalls.find(([, meta]) => meta?.previousRole !== undefined);
             expect(roleUpdateCall).toBeDefined();
             expect(roleUpdateCall![1]).toMatchObject({

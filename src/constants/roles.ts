@@ -6,3 +6,10 @@
  */
 export const REGISTER_ALLOWED_ROLES = ['user', 'professional'] as const;
 export type RegisterAllowedRole = (typeof REGISTER_ALLOWED_ROLES)[number];
+
+/**
+ * Numeric rank for each role, used to classify role changes as escalations or demotions.
+ * Higher value = more privilege. Evaluated once at module load — not per-request.
+ * Used by updateUserRole in userControllers.ts for SIEM audit logging.
+ */
+export const ROLE_RANK: Record<string, number> = { user: 0, professional: 1, admin: 2 };

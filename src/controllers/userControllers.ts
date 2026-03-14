@@ -6,7 +6,7 @@ import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
-import { REGISTER_ALLOWED_ROLES } from '../constants/roles.js';
+import { REGISTER_ALLOWED_ROLES, ROLE_RANK } from '../constants/roles.js';
 
 /**
  * @description Register a new user
@@ -290,16 +290,23 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response, n
         const updatedUser = await UserServices.updateUserById(id as string, sanitizedUpdate);
 
         // High-value security event logging.
-        // Role hierarchy: user(0) < professional(1) < admin(2).
-        // action distinguishes escalations from demotions for SIEM filtering.
-        const roleRank: Record<string, number> = { user: 0, professional: 1, admin: 2 };
-        if (!(previousRole in roleRank)) {
+        // ROLE_RANK lives in src/constants/roles.ts — evaluated once at module load, not per-request.
+        // action distinguishes escalations, demotions, and no-ops for accurate SIEM filtering.
+        if (!(previousRole in ROLE_RANK)) {
             logger.warn('updateUserRole: unrecognised previousRole value — role rank defaulting to 0', {
                 previousRole,
                 targetId: id,
             });
         }
-        const action = (roleRank[role] ?? 0) > (roleRank[previousRole] ?? 0) ? 'role_escalation' : 'role_demotion';
+        if (!(role in ROLE_RANK)) {
+            logger.warn('updateUserRole: unrecognised newRole value — role rank defaulting to 0', {
+                role,
+                targetId: id,
+            });
+        }
+        const prevRank = ROLE_RANK[previousRole] ?? 0;
+        const newRank = ROLE_RANK[role] ?? 0;
+        const action = newRank > prevRank ? 'role_escalation' : newRank < prevRank ? 'role_demotion' : 'role_unchanged';
         logger.info('User role updated', {
             adminId: req.user?._id,
             targetId: id,
