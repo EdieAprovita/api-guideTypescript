@@ -112,12 +112,13 @@ class TokenService {
                 mockRedisStorage.delete(key);
                 return Promise.resolve(existed ? 1 : 0);
             },
-            keys: (pattern: string) => {
-                const keys = Array.from(mockRedisStorage.keys());
-                if (pattern === '*') return Promise.resolve(keys);
-
-                const regex = new RegExp(pattern.replace('*', '.*'));
-                return Promise.resolve(keys.filter(key => regex.test(key)));
+            scan: (_cursor: string, _matchArg: string, pattern: string, _countArg: string, _count: number) => {
+                const allKeys = Array.from(mockRedisStorage.keys());
+                const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+                const regex = new RegExp(`^${escaped}$`);
+                const matched = allKeys.filter(key => regex.test(key));
+                // Return all results in one shot (cursor '0' = done)
+                return Promise.resolve(['0', matched] as [string, string[]]);
             },
             ttl: (key: string) => {
                 const entry = mockRedisStorage.get(key);
@@ -446,16 +447,18 @@ class TokenService {
      * case where setex was bypassed.
      */
     async cleanup(): Promise<void> {
-        const pattern = 'blacklist:*';
-        const keys = await this.redis.keys(pattern);
-
-        for (const key of keys) {
-            const ttl = await this.redis.ttl(key);
-            if (ttl === -1) {
-                // Key exists but has no TTL — remove it
-                await this.redis.del(key);
+        let cursor = '0';
+        do {
+            const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'blacklist:*', 'COUNT', 100);
+            cursor = nextCursor;
+            for (const key of keys) {
+                const ttl = await this.redis.ttl(key);
+                if (ttl === -1) {
+                    // Key exists but has no TTL — remove it
+                    await this.redis.del(key);
+                }
             }
-        }
+        } while (cursor !== '0');
     }
 
     async disconnect(): Promise<void> {
