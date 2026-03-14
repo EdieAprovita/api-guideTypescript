@@ -15,11 +15,13 @@ import { User } from '../models/User.js';
  */
 
 // Security: whitelist the roles a user may self-assign on registration.
-// Only 'user' and 'professional' are accepted; anything else (e.g. 'admin')
-// is silently dropped so the User model default ('user') applies instead.
+// 'professional' is intentionally self-assignable — users declare their own role at sign-up
+// with no vetting required. If an approval workflow is introduced later, remove 'professional'
+// from this list and handle it via a separate /users/:id/upgrade-role endpoint.
+// 'admin' and any unknown role are silently dropped; the User model default ('user') applies.
 // Note: Joi in validators.ts already rejects invalid values — this is defense-in-depth.
-// Keep in sync with the Joi .valid() list in validators.ts (register schema).
-const REGISTER_ALLOWED_ROLES = ['user', 'professional'] as const;
+// validators.ts imports this constant directly — do NOT duplicate the list there.
+export const REGISTER_ALLOWED_ROLES = ['user', 'professional'] as const;
 
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {

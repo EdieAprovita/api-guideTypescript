@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { REGISTER_ALLOWED_ROLES } from '../controllers/userControllers.js';
 
 // Common validation patterns
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
@@ -107,7 +108,7 @@ export const userSchemas = {
         dateOfBirth: Joi.date().max('now').optional(),
         phoneNumber: commonSchemas.phone.optional(),
         location: createLocationSchema(false),
-        role: Joi.string().valid('user', 'professional').optional(), // keep in sync with REGISTER_ALLOWED_ROLES in userControllers.ts
+        role: Joi.string().valid(...REGISTER_ALLOWED_ROLES).optional(),
     }),
 
     login: Joi.object({
