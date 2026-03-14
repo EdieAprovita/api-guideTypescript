@@ -28,4 +28,25 @@ export default [
             'no-debugger': 'warn',
         },
     },
+    {
+        files: ['src/test/**/*.ts'],
+        languageOptions: {
+            parser: tsParser,
+            parserOptions: {
+                ecmaVersion: 2018,
+                sourceType: 'module',
+                project: './tsconfig.test.json',
+            },
+            globals: {
+                ...globals.node,
+                ...globals.es6,
+            },
+        },
+        plugins: {
+            '@typescript-eslint': tseslint,
+        },
+        rules: {
+            'no-debugger': 'warn',
+        },
+    },
 ];
