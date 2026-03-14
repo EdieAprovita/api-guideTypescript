@@ -6,6 +6,17 @@ import { setupTestEnvironment, cleanupTestEnvironment } from '../testConfig.js';
 import { TokenService } from '../../services/TokenService.js';
 import type { Redis as RedisType } from 'ioredis';
 
+type MockRedis = {
+    setex:      ReturnType<typeof vi.fn>;
+    get:        ReturnType<typeof vi.fn>;
+    del:        ReturnType<typeof vi.fn>;
+    keys:       ReturnType<typeof vi.fn>;
+    ttl:        ReturnType<typeof vi.fn>;
+    scan:       ReturnType<typeof vi.fn>;
+    disconnect: ReturnType<typeof vi.fn>;
+    flushall:   ReturnType<typeof vi.fn>;
+};
+
 // ---------------------------------------------------------------------------
 // JWT mock
 // The real TokenService imports `import * as jwt from 'jsonwebtoken'` so it
@@ -56,14 +67,16 @@ const AUDIENCE = 'vegan-guide-client';
 // Injected mock Redis — passed directly to the TokenService constructor so
 // each test controls Redis behaviour without touching the real ioredis client.
 // ---------------------------------------------------------------------------
-const mockRedis = {
+const mockRedis: MockRedis = {
     setex:      vi.fn(),
     get:        vi.fn(),
     del:        vi.fn(),
     keys:       vi.fn(),
+    scan:       vi.fn(),
     ttl:        vi.fn(),
     disconnect: vi.fn(),
-} as unknown as RedisType;
+    flushall:   vi.fn(),
+};
 
 describe('TokenService', () => {
     let service: InstanceType<typeof TokenService>;
@@ -82,12 +95,13 @@ describe('TokenService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         // Fresh instance per test — redis is injected so no real ioredis connection
-        service = new TokenService(mockRedis);
-        (mockRedis.setex as ReturnType<typeof vi.fn>).mockResolvedValue('OK');
-        (mockRedis.get    as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-        (mockRedis.del    as ReturnType<typeof vi.fn>).mockResolvedValue(1);
-        (mockRedis.keys   as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-        (mockRedis.ttl    as ReturnType<typeof vi.fn>).mockResolvedValue(-1);
+        service = new TokenService(mockRedis as unknown as RedisType);
+        mockRedis.setex.mockResolvedValue('OK');
+        mockRedis.get.mockResolvedValue(null);
+        mockRedis.del.mockResolvedValue(1);
+        mockRedis.keys.mockResolvedValue([]);
+        mockRedis.scan.mockResolvedValue(['0', []]);
+        mockRedis.ttl.mockResolvedValue(-1);
     });
 
     // Configures jwt spies and returns the payload so tests can reuse it
@@ -121,7 +135,7 @@ describe('TokenService', () => {
             delete process.env.JWT_EXPIRES_IN;
             delete process.env.JWT_REFRESH_EXPIRES_IN;
 
-            const testService = new TokenService(mockRedis);
+            const testService = new TokenService(mockRedis as unknown as RedisType);
             expect(testService).toBeDefined();
 
             // Restore for subsequent tests
@@ -170,7 +184,7 @@ describe('TokenService', () => {
         it('should verify valid access token', async () => {
             const mockPayload = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() };
             setupMockToken(mockPayload);
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockResolvedValue(null); // Not blacklisted
+            mockRedis.get.mockResolvedValue(null); // Not blacklisted
 
             const result = await service.verifyAccessToken('valid-token');
 
@@ -184,7 +198,7 @@ describe('TokenService', () => {
 
         it('should reject blacklisted token', async () => {
             setupMockToken({ userId: faker.database.mongodbObjectId(), email: faker.internet.email() });
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockResolvedValue('revoked');
+            mockRedis.get.mockResolvedValue('revoked');
 
             await expect(service.verifyAccessToken('blacklisted-token'))
                 .rejects.toThrow('Invalid or expired access token: Token has been revoked');
@@ -203,7 +217,7 @@ describe('TokenService', () => {
             // JWT is valid but Redis throws — the token must be rejected, not silently accepted
             const mockPayload = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() };
             setupMockToken(mockPayload);
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Redis connection refused'));
+            mockRedis.get.mockRejectedValue(new Error('Redis connection refused'));
 
             await expect(service.verifyAccessToken('valid-jwt-redis-down'))
                 .rejects.toThrow('Invalid or expired access token');
@@ -211,7 +225,7 @@ describe('TokenService', () => {
 
         it('should propagate TokenRevokedError as rejected (not swallowed as Redis error)', async () => {
             setupMockToken({ userId: faker.database.mongodbObjectId(), email: faker.internet.email() });
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockResolvedValue('revoked');
+            mockRedis.get.mockResolvedValue('revoked');
 
             await expect(service.verifyAccessToken('revoked-token'))
                 .rejects.toThrow('Invalid or expired access token: Token has been revoked');
@@ -229,7 +243,7 @@ describe('TokenService', () => {
             setupMockToken(mockPayload);
             // verifyToken calls isTokenBlacklisted first (get → null = not blacklisted),
             // then verifyRefreshToken checks the stored token (get → 'stored-token')
-            (mockRedis.get as ReturnType<typeof vi.fn>)
+            mockRedis.get
                 .mockResolvedValueOnce(null)           // blacklist check → not blacklisted
                 .mockResolvedValueOnce('stored-token'); // refresh_token:{userId} lookup
 
@@ -245,7 +259,7 @@ describe('TokenService', () => {
                 type: 'access', // Wrong type
             };
             setupMockToken(mockPayload);
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null); // blacklist check
+            mockRedis.get.mockResolvedValueOnce(null); // blacklist check
 
             await expect(service.verifyRefreshToken('wrong-type-token'))
                 .rejects.toThrow('Invalid or expired refresh token: Invalid token type');
@@ -259,7 +273,7 @@ describe('TokenService', () => {
             };
             setupMockToken(mockPayload);
             // First call: blacklist check → null; second call: stored token → null
-            (mockRedis.get as ReturnType<typeof vi.fn>)
+            mockRedis.get
                 .mockResolvedValueOnce(null)  // blacklist check
                 .mockResolvedValueOnce(null); // refresh_token:{userId} → not found
 
@@ -274,7 +288,7 @@ describe('TokenService', () => {
                 type: 'refresh',
             };
             setupMockToken(mockPayload);
-            (mockRedis.get as ReturnType<typeof vi.fn>)
+            mockRedis.get
                 .mockResolvedValueOnce(null)              // blacklist check → not blacklisted
                 .mockResolvedValueOnce('different-token'); // stored token doesn't match
 
@@ -293,7 +307,7 @@ describe('TokenService', () => {
             };
             setupMockToken(mockPayload);
             // verifyToken: blacklist check → null; verifyRefreshToken: stored token check → match
-            (mockRedis.get as ReturnType<typeof vi.fn>)
+            mockRedis.get
                 .mockResolvedValueOnce(null)                  // blacklist check
                 .mockResolvedValueOnce('valid-refresh-token'); // refresh_token:{userId} match
 
@@ -370,7 +384,7 @@ describe('TokenService', () => {
     // -----------------------------------------------------------------------
     describe('isTokenBlacklisted', () => {
         it('should return true for blacklisted token', async () => {
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockResolvedValue('revoked');
+            mockRedis.get.mockResolvedValue('revoked');
 
             const token = 'blacklisted-token';
             const expectedKey = `blacklist:hash:${createHash('sha256').update(token).digest('hex')}`;
@@ -381,7 +395,7 @@ describe('TokenService', () => {
         });
 
         it('should return false for non-blacklisted token', async () => {
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+            mockRedis.get.mockResolvedValue(null);
 
             const result = await service.isTokenBlacklisted('valid-token');
 
@@ -389,7 +403,7 @@ describe('TokenService', () => {
         });
 
         it('re-throws when redis.get rejects (fail-closed)', async () => {
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+            mockRedis.get.mockRejectedValueOnce(
                 new Error('Redis connection lost')
             );
 
@@ -401,26 +415,26 @@ describe('TokenService', () => {
     // -----------------------------------------------------------------------
     describe('cleanup', () => {
         it('should clean up blacklisted tokens without TTL', async () => {
-            (mockRedis.keys as ReturnType<typeof vi.fn>).mockResolvedValue(['blacklist:token1', 'blacklist:token2']);
-            (mockRedis.ttl as ReturnType<typeof vi.fn>)
+            mockRedis.scan.mockResolvedValue(['0', ['blacklist:token1', 'blacklist:token2']]);
+            mockRedis.ttl
                 .mockResolvedValueOnce(-1)   // token1: no TTL → delete
                 .mockResolvedValueOnce(3600); // token2: has TTL → keep
-            (mockRedis.del as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+            mockRedis.del.mockResolvedValue(1);
 
             await service.cleanup();
 
-            expect(mockRedis.keys).toHaveBeenCalledWith('blacklist:*');
+            expect(mockRedis.scan).toHaveBeenCalledWith('0', 'MATCH', 'blacklist:*', 'COUNT', 100);
             expect(mockRedis.ttl).toHaveBeenCalledTimes(2);
             expect(mockRedis.del).toHaveBeenCalledWith('blacklist:token1');
             expect(mockRedis.del).toHaveBeenCalledTimes(1);
         });
 
         it('should handle empty blacklist', async () => {
-            (mockRedis.keys as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+            mockRedis.scan.mockResolvedValue(['0', []]);
 
             await service.cleanup();
 
-            expect(mockRedis.keys).toHaveBeenCalledWith('blacklist:*');
+            expect(mockRedis.scan).toHaveBeenCalledWith('0', 'MATCH', 'blacklist:*', 'COUNT', 100);
             expect(mockRedis.del).not.toHaveBeenCalled();
         });
     });
@@ -430,7 +444,7 @@ describe('TokenService', () => {
         it('should revoke all user tokens', async () => {
             const mockRevokeRefreshToken = vi.spyOn(service, 'revokeRefreshToken');
             mockRevokeRefreshToken.mockResolvedValue();
-            (mockRedis.setex as ReturnType<typeof vi.fn>).mockResolvedValue('OK');
+            mockRedis.setex.mockResolvedValue('OK');
 
             const userId = faker.database.mongodbObjectId();
             await service.revokeAllUserTokens(userId);
@@ -447,7 +461,7 @@ describe('TokenService', () => {
     // -----------------------------------------------------------------------
     describe('isUserTokensRevoked', () => {
         it('should return true when user tokens are revoked', async () => {
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockResolvedValue('revoked');
+            mockRedis.get.mockResolvedValue('revoked');
 
             const userId = faker.database.mongodbObjectId();
             const result = await service.isUserTokensRevoked(userId);
@@ -457,7 +471,7 @@ describe('TokenService', () => {
         });
 
         it('should return false when user tokens are not revoked', async () => {
-            (mockRedis.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+            mockRedis.get.mockResolvedValue(null);
 
             const userId = faker.database.mongodbObjectId();
             const result = await service.isUserTokensRevoked(userId);
@@ -532,7 +546,7 @@ describe('TokenService', () => {
     // -----------------------------------------------------------------------
     describe('disconnect', () => {
         it('should disconnect from Redis', async () => {
-            (mockRedis.disconnect as ReturnType<typeof vi.fn>).mockImplementation(() => {});
+            mockRedis.disconnect.mockImplementation(() => {});
 
             await service.disconnect();
 
@@ -543,7 +557,7 @@ describe('TokenService', () => {
     // -----------------------------------------------------------------------
     describe('Redis Configuration', () => {
         it('should accept injected Redis client', () => {
-            const injectedService = new TokenService(mockRedis);
+            const injectedService = new TokenService(mockRedis as unknown as RedisType);
             expect(injectedService).toBeDefined();
         });
     });
