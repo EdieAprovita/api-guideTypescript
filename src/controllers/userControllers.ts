@@ -288,13 +288,17 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response, n
         const previousRole = previousUser.role;
         const updatedUser = await UserServices.updateUserById(id as string, sanitizedUpdate);
 
-        // High-value security event logging
+        // High-value security event logging.
+        // Role hierarchy: user(0) < professional(1) < admin(2).
+        // action distinguishes escalations from demotions for SIEM filtering.
+        const roleRank: Record<string, number> = { user: 0, professional: 1, admin: 2 };
+        const action = (roleRank[role] ?? 0) > (roleRank[previousRole] ?? 0) ? 'role_escalation' : 'role_demotion';
         logger.info('User role updated', {
             adminId: req.user?._id,
             targetId: id,
             previousRole,
             newRole: role,
-            action: 'role_escalation',
+            action,
         });
 
         res.json(updatedUser);

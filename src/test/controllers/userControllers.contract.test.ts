@@ -182,11 +182,11 @@ describe('registerUser controller — response contract', () => {
         await registerUser(req, res, next);
 
         // Controller strips role before passing to service
-        // Verify service was not called with role: 'admin'
-        const serviceCallArg = mockRegisterUser.mock.calls[0]?.[0];
-        if (serviceCallArg) {
-            expect(serviceCallArg.role).toBeUndefined();
-        }
+        // Hard assertion: service must have been called exactly once —
+        // if it wasn't, the security boundary was never exercised and the test must fail.
+        expect(mockRegisterUser).toHaveBeenCalledTimes(1);
+        const serviceCallArg = mockRegisterUser.mock.calls[0][0];
+        expect(serviceCallArg.role).toBeUndefined();
     });
 
     // Defense-in-depth: these tests call the controller directly (Joi bypassed)
@@ -199,7 +199,19 @@ describe('registerUser controller — response contract', () => {
         }) as Request;
         await registerUser(req, res, next);
 
-        expect(mockRegisterUser.mock.calls[0]?.[0]?.role).toBe('professional');
+        expect(mockRegisterUser).toHaveBeenCalledTimes(1);
+        expect(mockRegisterUser.mock.calls[0][0].role).toBe('professional');
+    });
+
+    it('passes role: user to service (whitelisted role, controller-level check)', async () => {
+        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role: 'user' });
+        const req = testUtils.createMockRequest({
+            body: { username: 'usr', email: 'usr@example.com', password: 'TestPass123!', role: 'user' },
+        }) as Request;
+        await registerUser(req, res, next);
+
+        expect(mockRegisterUser).toHaveBeenCalledTimes(1);
+        expect(mockRegisterUser.mock.calls[0][0].role).toBe('user');
     });
 
     it('omits role from service call when role is absent from body (model default applies)', async () => {

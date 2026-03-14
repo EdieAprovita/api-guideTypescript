@@ -107,6 +107,8 @@ router.patch(
     validate({
         params: paramSchemas.id,
         body: Joi.object({
+            // All roles valid here — admins may assign any role including 'admin'.
+            // Do NOT replace with REGISTER_ALLOWED_ROLES (that constant intentionally excludes 'admin').
             role: Joi.string().valid('user', 'professional', 'admin').required(),
         }),
     }),
