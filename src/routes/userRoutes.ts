@@ -1,6 +1,6 @@
 import express from 'express';
 import Joi from 'joi';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect, admin, checkOwnership } from '../middleware/authMiddleware.js';
 import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
 import { userSchemas, paramSchemas, querySchemas, commonSchemas, createPasswordSchema } from '../utils/validators.js';
 import {
@@ -94,6 +94,7 @@ router.put(
     rateLimits.api,
     validateInputLength(4096), // 4KB limit for profile updates
     protect,
+    checkOwnership(),
     validate({
         params: paramSchemas.id,
         body: userSchemas.updateProfile,

@@ -373,9 +373,8 @@ class TokenService {
             blacklistKey = `blacklist:hash:${tokenHash}`;
         }
 
-        // Perform the blacklist write. If Redis is unavailable this will throw,
-        // which is the correct fail-closed behaviour: the caller (logout) should
-        // know the blacklist write failed rather than silently succeeding.
+        // Fail-closed: if Redis is unavailable this will throw. The logout controller
+        // handles this with a best-effort catch so the client session still ends.
         await this.redis.setex(blacklistKey, ttl, 'revoked');
     }
 

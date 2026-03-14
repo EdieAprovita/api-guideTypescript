@@ -243,6 +243,9 @@ jobs:
               env:
                   CI: true
                   NODE_ENV: test
+                  # Required by BACK-02: handleTestEnvironment now gates on both
+                  # NODE_ENV=test AND this flag to prevent accidental staging bypasses.
+                  BYPASS_AUTH_FOR_TESTING: 'true'
                   MONGODB_MEMORY_SERVER_VERSION: '6.0.4'
                   MONGODB_MEMORY_SERVER_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
                   MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT: '120000'
