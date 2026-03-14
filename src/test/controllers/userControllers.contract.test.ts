@@ -10,9 +10,11 @@
  * Expected shapes documented in: Vegan-Guide-Platform/src/lib/contracts/types.ts
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
 import { testUtils } from '@test/helpers/testBase';
+
+type ControllerFn = (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 
 // Mock UserService so we can control what loginUser/registerUser return
 const mockLoginUser = vi.fn();
@@ -54,31 +56,37 @@ const mockLoginResult = {
     refreshToken: 'refresh-token-value',
 };
 
+const BASE_LOGIN_BODY = { email: 'test@example.com', password: 'TestPass123!' };
+const BASE_REGISTER_BODY = { username: 'newuser', email: 'new@example.com', password: 'TestPass123!' };
+
 // ---------------------------------------------------------------------------
 // loginUser — contract test
 // ---------------------------------------------------------------------------
 
 describe('loginUser controller — response contract', () => {
+    let loginUser: ControllerFn;
+    let res: Response;
+    let next: NextFunction;
+
+    const getJsonResponse = () => (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+
+    beforeAll(async () => {
+        ({ loginUser } = await import('@/controllers/userControllers.js'));
+    });
+
     beforeEach(() => {
         vi.clearAllMocks();
+        mockLoginUser.mockResolvedValue(mockLoginResult);
+        res = testUtils.createMockResponse() as Response;
+        next = testUtils.createMockNext() as NextFunction;
     });
 
     it('wraps response in { success, message, data } envelope', async () => {
-        const { loginUser } = await import('@/controllers/userControllers.js');
-        mockLoginUser.mockResolvedValue(mockLoginResult);
-
-        const req = testUtils.createMockRequest({
-            body: { email: 'test@example.com', password: 'TestPass123!' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext() as NextFunction;
-
+        const req = testUtils.createMockRequest({ body: BASE_LOGIN_BODY }) as Request;
         await loginUser(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(200);
-
-        const jsonCall = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
+        const jsonCall = getJsonResponse();
         // Verify the { success, message, data } wrapper — required by FE parser
         expect(jsonCall).toHaveProperty('success', true);
         expect(jsonCall).toHaveProperty('message', 'Login successful');
@@ -86,20 +94,10 @@ describe('loginUser controller — response contract', () => {
     });
 
     it('places user fields directly in data (flat, not nested under data.user)', async () => {
-        const { loginUser } = await import('@/controllers/userControllers.js');
-        mockLoginUser.mockResolvedValue(mockLoginResult);
-
-        const req = testUtils.createMockRequest({
-            body: { email: 'test@example.com', password: 'TestPass123!' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext() as NextFunction;
-
+        const req = testUtils.createMockRequest({ body: BASE_LOGIN_BODY }) as Request;
         await loginUser(req, res, next);
 
-        const jsonCall = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-        const data = jsonCall.data;
-
+        const { data } = getJsonResponse();
         // FE auth.ts reads: response.data._id, response.data.username, etc.
         expect(data).toHaveProperty('_id', mockLoginResult._id);
         expect(data).toHaveProperty('username', mockLoginResult.username);
@@ -107,23 +105,13 @@ describe('loginUser controller — response contract', () => {
         expect(data).toHaveProperty('role', mockLoginResult.role);
         expect(data).toHaveProperty('token');
         expect(data).toHaveProperty('refreshToken');
-
         // Verify it is NOT nested under a 'user' key (old broken format)
         expect(data).not.toHaveProperty('user');
     });
 
     it('returns 200 status code', async () => {
-        const { loginUser } = await import('@/controllers/userControllers.js');
-        mockLoginUser.mockResolvedValue(mockLoginResult);
-
-        const req = testUtils.createMockRequest({
-            body: { email: 'test@example.com', password: 'TestPass123!' },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext() as NextFunction;
-
+        const req = testUtils.createMockRequest({ body: BASE_LOGIN_BODY }) as Request;
         await loginUser(req, res, next);
-
         expect(res.status).toHaveBeenCalledWith(200);
     });
 });
@@ -133,54 +121,39 @@ describe('loginUser controller — response contract', () => {
 // ---------------------------------------------------------------------------
 
 describe('registerUser controller — response contract', () => {
+    let registerUser: ControllerFn;
+    let res: Response;
+    let next: NextFunction;
+
+    const getJsonResponse = () => (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+
+    beforeAll(async () => {
+        ({ registerUser } = await import('@/controllers/userControllers.js'));
+    });
+
     beforeEach(() => {
         vi.clearAllMocks();
+        mockRegisterUser.mockResolvedValue(mockLoginResult);
+        res = testUtils.createMockResponse() as Response;
+        next = testUtils.createMockNext() as NextFunction;
     });
 
     it('wraps response in { success, message, data } envelope', async () => {
-        const { registerUser } = await import('@/controllers/userControllers.js');
-        mockRegisterUser.mockResolvedValue(mockLoginResult);
-
-        const req = testUtils.createMockRequest({
-            body: {
-                username: 'newuser',
-                email: 'new@example.com',
-                password: 'TestPass123!',
-            },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext() as NextFunction;
-
+        const req = testUtils.createMockRequest({ body: BASE_REGISTER_BODY }) as Request;
         await registerUser(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(201);
-
-        const jsonCall = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
+        const jsonCall = getJsonResponse();
         expect(jsonCall).toHaveProperty('success', true);
         expect(jsonCall).toHaveProperty('message', 'User registered successfully');
         expect(jsonCall).toHaveProperty('data');
     });
 
     it('places user fields directly in data (flat, not nested)', async () => {
-        const { registerUser } = await import('@/controllers/userControllers.js');
-        mockRegisterUser.mockResolvedValue(mockLoginResult);
-
-        const req = testUtils.createMockRequest({
-            body: {
-                username: 'newuser',
-                email: 'new@example.com',
-                password: 'TestPass123!',
-            },
-        }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext() as NextFunction;
-
+        const req = testUtils.createMockRequest({ body: BASE_REGISTER_BODY }) as Request;
         await registerUser(req, res, next);
 
-        const jsonCall = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-        const data = jsonCall.data;
-
+        const { data } = getJsonResponse();
         expect(data).toHaveProperty('_id');
         expect(data).toHaveProperty('username');
         expect(data).toHaveProperty('email');
@@ -189,20 +162,10 @@ describe('registerUser controller — response contract', () => {
     });
 
     it('strips the role field from incoming body (privilege escalation prevention)', async () => {
-        const { registerUser } = await import('@/controllers/userControllers.js');
         mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role: 'user' });
-
         const req = testUtils.createMockRequest({
-            body: {
-                username: 'hacker',
-                email: 'hacker@example.com',
-                password: 'TestPass123!',
-                role: 'admin', // Attempted privilege escalation
-            },
+            body: { ...BASE_REGISTER_BODY, username: 'hacker', email: 'hacker@example.com', role: 'admin' },
         }) as Request;
-        const res = testUtils.createMockResponse() as Response;
-        const next = testUtils.createMockNext() as NextFunction;
-
         await registerUser(req, res, next);
 
         // Controller strips role before passing to service
@@ -211,6 +174,26 @@ describe('registerUser controller — response contract', () => {
         if (serviceCallArg) {
             expect(serviceCallArg.role).toBeUndefined();
         }
+    });
+
+    // Defense-in-depth: these tests call the controller directly (Joi bypassed)
+    // to verify REGISTER_ALLOWED_ROLES works independently of the validation layer.
+
+    it('passes role: professional to service (whitelisted role, controller-level check)', async () => {
+        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role: 'professional' });
+        const req = testUtils.createMockRequest({
+            body: { username: 'pro', email: 'pro@example.com', password: 'TestPass123!', role: 'professional' },
+        }) as Request;
+        await registerUser(req, res, next);
+
+        expect(mockRegisterUser.mock.calls[0]?.[0]?.role).toBe('professional');
+    });
+
+    it('omits role from service call when role is absent from body (model default applies)', async () => {
+        const req = testUtils.createMockRequest({ body: BASE_REGISTER_BODY }) as Request;
+        await registerUser(req, res, next);
+
+        expect(mockRegisterUser.mock.calls[0]?.[0]?.role).toBeUndefined();
     });
 });
 

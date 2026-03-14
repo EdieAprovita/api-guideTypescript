@@ -976,14 +976,6 @@ const swaggerDocument: OpenAPIV3.Document = {
                 responses: createStandardResponses(),
             },
         },
-        '/users/logout': {
-            post: {
-                tags: ['Authentication'],
-                summary: 'Logout user',
-                security: [{ bearerAuth: [] }],
-                responses: createStandardResponses(),
-            },
-        },
         '/auth/refresh-token': {
             post: {
                 tags: ['Authentication'],

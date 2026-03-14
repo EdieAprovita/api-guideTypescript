@@ -25,7 +25,7 @@ const createUserData = (overrides: Partial<UserTestData> = {}): UserTestData => 
     };
 };
 
-const generateMockToken = (role: 'user' | 'admin' | 'business' = 'user'): string => {
+const generateMockToken = (role: 'user' | 'admin' | 'professional' = 'user'): string => {
     return jwt.sign(
         { userId: '507f1f77bcf86cd799439011', email: 'test@example.com', role },
         process.env.JWT_SECRET || 'test-jwt-secret-key-12345',
@@ -142,13 +142,24 @@ describe('User API Integration Tests', () => {
         it('should handle PATCH /api/v1/users/profile/:id/role with valid admin token', async () => {
             const adminToken = generateMockToken('admin');
             const response: Response = await request(app)
-                .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role') // id format bypass handled via validate/mock
+                .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
+                .set('Authorization', `Bearer ${adminToken}`)
+                .send({ role: 'professional' });
+
+            // Depending on the native mock setup, this will either be a 404 (user not found) or 200 (updated)
+            // Tests that auth guards and Joi validation pass for a valid role
+            expect([200, 404]).toContain(response.status);
+        });
+
+        it('should reject PATCH /api/v1/users/profile/:id/role with invalid role', async () => {
+            const adminToken = generateMockToken('admin');
+            const response: Response = await request(app)
+                .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
                 .set('Authorization', `Bearer ${adminToken}`)
                 .send({ role: 'business' });
 
-            // Depending on the native mock setup, this will either be a 404 (user not found for valid update) or 200
-            // Here we test simply that it cleared auth guards and valid Joi formatting
-            expect([200, 404]).toContain(response.status);
+            // 'business' is not in the model enum — Joi rejects with 400
+            expect(response.status).toBe(400);
         });
 
         it('should handle DELETE /api/v1/users/:id without auth', async () => {

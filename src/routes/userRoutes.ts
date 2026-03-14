@@ -13,7 +13,6 @@ import {
     updateUserProfile,
     updateUserRole,
     getCurrentUserProfile,
-    logout,
     deleteUserById,
 } from '../controllers/userControllers.js';
 
@@ -63,8 +62,6 @@ router.post(
     forgotPassword
 );
 
-router.post('/logout', rateLimits.api, logout);
-
 router.put(
     '/reset-password',
     rateLimits.auth,
@@ -110,7 +107,7 @@ router.patch(
     validate({
         params: paramSchemas.id,
         body: Joi.object({
-            role: Joi.string().valid('user', 'admin', 'business').required(),
+            role: Joi.string().valid('user', 'professional', 'admin').required(),
         }),
     }),
     updateUserRole
