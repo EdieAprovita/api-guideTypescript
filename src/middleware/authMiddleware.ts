@@ -104,7 +104,7 @@ const validateUserAccount = async (userId: string) => {
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
     }
 
-    if (currentUser.isDeleted ?? !currentUser.isActive) {
+    if (currentUser.isDeleted || !currentUser.isActive) {
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User account is inactive');
     }
 
@@ -213,9 +213,11 @@ export const professional = (req: Request, res: Response, next: NextFunction) =>
 };
 
 /**
- * @description Check resource ownership
- * @name checkOwnership
- * @returns {Function}
+ * Middleware factory that enforces resource ownership.
+ * Admins bypass the check; regular users must own the resource
+ * (i.e. `req.params.id` must equal their own user ID).
+ *
+ * Deny-by-default: if ownership cannot be confirmed, the request is rejected.
  */
 export const checkOwnership = (_resourceField: string = 'userId') => {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -227,22 +229,25 @@ export const checkOwnership = (_resourceField: string = 'userId') => {
             });
         }
 
-        const resourceId = req.params.id;
-        const userId = req.user?._id?.toString();
-
         // Admins can access any resource
         if (req.user.role === 'admin') {
             return next();
         }
 
-        // For profile routes, check if user is accessing their own profile
-        if (req.route.path.includes('/profile') && resourceId === userId) {
+        const resourceId = req.params.id;
+        const userId = req.user._id?.toString();
+
+        // Allow if the user is accessing their own resource
+        if (resourceId && userId && resourceId === userId) {
             return next();
         }
 
-        // For other resources, we'll need to check the database
-        // This is a basic implementation - you may need to customize per resource type
-        next();
+        // Deny-by-default: ownership could not be confirmed
+        return res.status(403).json({
+            message: 'Forbidden',
+            success: false,
+            error: 'You do not have permission to access this resource',
+        });
     };
 };
 

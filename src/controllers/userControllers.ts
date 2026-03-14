@@ -139,7 +139,9 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
 
 export const logout = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
-        const response = await UserServices.logoutUser(res);
+        // Cookie clearing belongs in the controller (HTTP concern, not business logic)
+        res.clearCookie('jwt');
+        const response = await UserServices.logoutUser();
         res.status(200).json(response);
     } catch (error) {
         next(

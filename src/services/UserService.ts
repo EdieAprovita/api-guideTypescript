@@ -1,4 +1,3 @@
-import { Response } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
@@ -74,11 +73,13 @@ abstract class BaseService {
     }
 
     protected async generateResetToken(user: IUser) {
-        const secret = process.env.JWT_SECRET;
+        // Use a dedicated secret for password-reset tokens so that access tokens
+        // and reset tokens are not interchangeable (defense-in-depth).
+        const secret = process.env.JWT_RESET_SECRET ?? process.env.JWT_SECRET;
         if (!secret) {
             throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'JWT secret not configured');
         }
-        return jwt.sign({ userId: user._id }, secret, {
+        return jwt.sign({ userId: user._id, purpose: 'password-reset' }, secret, {
             expiresIn: '1h',
         });
     }
@@ -101,13 +102,19 @@ abstract class BaseService {
     }
 
     protected async getUserByResetToken(resetToken: string) {
-        const secret = process.env.JWT_SECRET;
+        // Must match the secret used in generateResetToken
+        const secret = process.env.JWT_RESET_SECRET ?? process.env.JWT_SECRET;
         if (!secret) {
             throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'JWT secret not configured');
         }
         const decoded = jwt.verify(resetToken, secret) as JwtPayload;
         if (!decoded) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid token'));
+        }
+
+        // Verify this is actually a password-reset token, not a repurposed access token
+        if (decoded.purpose !== 'password-reset') {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid reset token'));
         }
 
         const user = await User.findById(decoded.userId).exec();
@@ -124,44 +131,15 @@ abstract class BaseService {
 
 class UserService extends BaseService {
     async registerUser(userData: Pick<IUser, 'username' | 'email' | 'password'>) {
-        try {
-            // Debug logging - only visible in development or when DEBUG_TESTS is set
-            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
-                console.log('=== UserService.registerUser REAL METHOD CALLED ===');
-                console.log('userData received:', userData);
-            }
+        await this.validateUserNotExists(userData.email);
+        const user = await User.create(userData);
+        const tokens = await TokenService.generateTokens(user._id.toString(), user.email, user.role);
 
-            await this.validateUserNotExists(userData.email);
-            const user = await User.create(userData);
-
-            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
-                console.log('User created:', user?._id);
-            }
-
-            const tokens = await TokenService.generateTokens(user._id.toString(), user.email, user.role);
-
-            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
-                console.log('Tokens generated:', !!tokens.accessToken);
-            }
-
-            const result = {
-                ...this.getUserResponse(user),
-                token: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
-            };
-
-            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
-                console.log('Final result:', result);
-            }
-
-            return result;
-        } catch (error) {
-            // In test environment, log the error to understand what's happening
-            if (process.env.NODE_ENV === 'development' || process.env.DEBUG_TESTS) {
-                console.log('UserService.registerUser error:', error);
-            }
-            throw error;
-        }
+        return {
+            ...this.getUserResponse(user),
+            token: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+        };
     }
 
     async loginUser(email: string, password: string) {
@@ -190,8 +168,7 @@ class UserService extends BaseService {
         return { message: 'Password reset successful' };
     }
 
-    async logoutUser(res: Response) {
-        res.clearCookie('jwt');
+    async logoutUser() {
         return { message: 'User logged out successfully' };
     }
 
@@ -225,15 +202,30 @@ class UserService extends BaseService {
         return { _id, username, email, role, photo };
     }
 
+    /**
+     * Allowlisted fields that regular users may update on their own profile.
+     * `role`, `isAdmin`, `isActive`, `isDeleted` are intentionally excluded
+     * to prevent privilege escalation. Role changes go through `updateUserRole`.
+     */
+    private static readonly ALLOWED_UPDATE_FIELDS: ReadonlySet<string> = new Set([
+        'username',
+        'email',
+        'photo',
+        'firstName',
+        'lastName',
+    ]);
+
     private updateUserFields(user: IUser, updateData: Partial<IUser>) {
-        const { password, username, email, photo, role } = updateData;
-        if (password) {
-            user.password = password;
+        for (const key of UserService.ALLOWED_UPDATE_FIELDS) {
+            const value = (updateData as Record<string, unknown>)[key];
+            if (value !== undefined) {
+                (user as unknown as Record<string, unknown>)[key] = value;
+            }
         }
-        user.username = username ?? user.username;
-        user.email = email ?? user.email;
-        user.photo = photo ?? user.photo;
-        user.role = role ?? user.role;
+        // Password is handled separately — it triggers the pre-save bcrypt hook
+        if (updateData.password) {
+            user.password = updateData.password;
+        }
     }
 }
 
