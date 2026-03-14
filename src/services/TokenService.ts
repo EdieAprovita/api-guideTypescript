@@ -341,27 +341,39 @@ class TokenService {
     }
 
     async blacklistToken(token: string): Promise<void> {
-        try {
-            const decoded = jwt.decode(token) as { exp?: number } | null;
-            const blacklistKey = `blacklist:${token}`;
+        let blacklistKey = `blacklist:${token}`; // fallback: full token
+        let ttl = 3600;
 
+        try {
+            const decoded = jwt.decode(token) as { exp?: number; jti?: string } | null;
+            if (decoded?.jti) {
+                blacklistKey = `blacklist:${decoded.jti}`;
+            } else if (!decoded?.jti) {
+                console.warn('blacklistToken: token missing jti — falling back to full-token key');
+            }
             if (decoded?.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
-                const ttl = Math.max(expirationTime, 3600); // Minimum 1 hour
-                await this.redis.setex(blacklistKey, ttl, 'revoked');
-            } else {
-                await this.redis.setex(blacklistKey, 3600, 'revoked'); // Default 1 hour
+                ttl = Math.max(expirationTime, 3600); // Minimum 1 hour
             }
-        } catch (error) {
-            // If token decode fails, still blacklist with default TTL
-            // Error is intentionally caught to ensure token is blacklisted even if decode fails
-            const blacklistKey = `blacklist:${token}`;
-            await this.redis.setex(blacklistKey, 3600, 'revoked');
+        } catch {
+            // jwt.decode failed — use default key and TTL
         }
+
+        await this.redis.setex(blacklistKey, ttl, 'revoked');
     }
 
     async isTokenBlacklisted(token: string): Promise<boolean> {
-        const blacklistKey = `blacklist:${token}`;
+        let blacklistKey = `blacklist:${token}`; // fallback: full token
+
+        try {
+            const decoded = jwt.decode(token) as { jti?: string } | null;
+            if (decoded?.jti) {
+                blacklistKey = `blacklist:${decoded.jti}`;
+            }
+        } catch {
+            // jwt.decode failed — use default key
+        }
+
         const result = await this.redis.get(blacklistKey);
         return result !== null;
     }

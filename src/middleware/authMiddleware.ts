@@ -60,7 +60,7 @@ const createTestUser = (payload: any): AuthenticatedUser => ({
 
 // Helper function to handle test environment user setup
 const handleTestEnvironment = (payload: any, req: Request): boolean => {
-    if (process.env.NODE_ENV !== 'test') {
+    if (process.env.NODE_ENV !== 'test' || process.env.BYPASS_AUTH_FOR_TESTING !== 'true') {
         return false;
     }
 
