@@ -3,6 +3,7 @@ import { faker } from '@faker-js/faker';
 import jwt from 'jsonwebtoken';
 import { createMockTokenPayload, setupJWTMocks } from '../utils/testHelpers.js';
 import { TEST_JWT_CONFIG, TEST_REDIS_CONFIG, setupTestEnvironment, cleanupTestEnvironment } from '../testConfig.js';
+import { TokenRevokedError } from '../../types/Errors.js';
 
 // Mock jwt module completely with default export support (Vitest ESM mocks)
 vi.mock('jsonwebtoken', () => ({
@@ -75,16 +76,21 @@ class TestTokenService {
 
     async verifyAccessToken(token: string): Promise<any> {
         try {
-            // Check if token is blacklisted
-            const isBlacklisted = await this.isTokenBlacklisted(token);
-            if (isBlacklisted) {
-                throw new Error('Token has been revoked');
-            }
-
             const payload = jwt.verify(token, this.accessTokenSecret, {
                 issuer: TEST_JWT_CONFIG.issuer,
                 audience: TEST_JWT_CONFIG.audience,
             });
+
+            // Check if token is blacklisted — fail-closed: reject if Redis is unavailable
+            try {
+                const isBlacklisted = await this.isTokenBlacklisted(token);
+                if (isBlacklisted) {
+                    throw new TokenRevokedError();
+                }
+            } catch (redisError) {
+                if (redisError instanceof TokenRevokedError) throw redisError;
+                throw new Error('Token verification unavailable — please try again later');
+            }
 
             return payload;
         } catch (error) {
@@ -364,6 +370,25 @@ describe('TokenService', () => {
 
             await expect(TokenService.verifyAccessToken('expired-token'))
                 .rejects.toThrow('Invalid or expired access token: Token expired');
+        });
+
+        it('should reject token when Redis is unavailable (fail-closed)', async () => {
+            // JWT is valid but Redis throws — token must be rejected, not accepted
+            const mockPayload = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() };
+            setupMockToken(mockPayload);
+            mockRedis.get.mockRejectedValue(new Error('Redis connection refused'));
+
+            await expect(TokenService.verifyAccessToken('valid-jwt-redis-down'))
+                .rejects.toThrow('Invalid or expired access token: Token verification unavailable');
+        });
+
+        it('should propagate TokenRevokedError as rejected (not swallowed as Redis error)', async () => {
+            // Blacklisted token must be rejected even if the error is caught in the Redis block
+            setupMockToken({ userId: faker.database.mongodbObjectId(), email: faker.internet.email() });
+            mockRedis.get.mockResolvedValue('revoked'); // explicitly blacklisted
+
+            await expect(TokenService.verifyAccessToken('revoked-token'))
+                .rejects.toThrow('Invalid or expired access token: Token has been revoked');
         });
     });
 

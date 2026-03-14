@@ -227,6 +227,14 @@ lerna-debug.log*
 .pnp.*
 
 ################################################################################
+# GITNEXUS — LOCAL MACHINE ARTIFACTS (never commit)
+################################################################################
+
+# Generated graph database and local machine metadata — these are tied to the
+# developer's local path and must not be shared.
+.gitnexus/
+
+################################################################################
 # LOGS
 ################################################################################
 

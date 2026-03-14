@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
 import { errorHandler } from './errorHandler.js';
 import TokenService from '../services/TokenService.js';
-import logger from '../utils/logger.js';
 
 // Define interface for authenticated user
 interface AuthenticatedUser {
@@ -86,6 +86,8 @@ const verifyTokenAndGetPayload = async (token: string) => {
 
 // Helper function to validate user account
 const validateUserAccount = async (userId: string) => {
+    // Fail-closed: if Redis is unavailable we cannot confirm revocation state,
+    // so we reject the request rather than risk accepting a revoked session.
     try {
         const areTokensRevoked = await TokenService.isUserTokensRevoked(userId);
         if (areTokensRevoked) {

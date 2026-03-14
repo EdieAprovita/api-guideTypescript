@@ -1,6 +1,5 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
-import bcrypt from 'bcryptjs';
 
 import { User, IUser } from '../models/User.js';
 import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors.js';
@@ -124,19 +123,9 @@ abstract class BaseService {
     }
 
     protected async updateUserPassword(user: IUser, newPassword: string) {
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
+        // Assign plain password — the Mongoose pre('save') hook handles hashing
+        user.password = newPassword;
         await user.save();
-    }
-
-    protected generateJWTToken(userId: string): string {
-        const secret = process.env.JWT_SECRET;
-        if (!secret) {
-            throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'JWT secret not configured');
-        }
-        return jwt.sign({ userId }, secret, {
-            expiresIn: '30d',
-        });
     }
 }
 
@@ -158,10 +147,11 @@ class UserService extends BaseService {
         const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
         await this.validateUserCredentials(user, password);
         const tokens = await TokenService.generateTokens(user!._id.toString(), user!.email, user!.role);
+        const userResponse = this.getUserResponse(user!);
         return {
             token: tokens.accessToken,
             refreshToken: tokens.refreshToken,
-            ...this.getUserResponse(user!),
+            ...userResponse,
         };
     }
 
@@ -229,13 +219,13 @@ class UserService extends BaseService {
         for (const key of UserService.ALLOWED_UPDATE_FIELDS) {
             const value = (updateData as Record<string, unknown>)[key];
             if (value !== undefined) {
-                (user as Record<string, unknown>)[key] = value;
+                (user as unknown as Record<string, unknown>)[key] = value;
             }
         }
-        // Password is handled separately — it triggers the pre-save bcrypt hook
-        if (updateData.password) {
-            user.password = updateData.password;
-        }
+        // Password changes MUST go through updateUserPassword (which requires
+        // current-password verification via resetPassword or a dedicated endpoint).
+        // Allowing password in updateUserFields would let any authenticated user
+        // change their password without proving they know the current one.
     }
 }
 
