@@ -25,8 +25,8 @@ if (!process.env.JWT_RESET_SECRET) {
     );
 }
 
-if (process.env.BYPASS_AUTH_FOR_TESTING === 'true' && process.env.NODE_ENV === 'production') {
-    logger.warn('⚠️  BYPASS_AUTH_FOR_TESTING is enabled in production — this is a critical security risk!');
+if (process.env.BYPASS_AUTH_FOR_TESTING === 'true' && process.env.NODE_ENV !== 'test') {
+    logger.warn('⚠️  BYPASS_AUTH_FOR_TESTING is enabled in a non-test environment — this is a critical security risk!');
 }
 
 const server = app.listen(Number(PORT), HOST, () => {

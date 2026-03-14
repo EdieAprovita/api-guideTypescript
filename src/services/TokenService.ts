@@ -4,6 +4,7 @@ import type { Redis as RedisType } from 'ioredis';
 const Redis = RedisLib.default || RedisLib;
 import { randomUUID } from 'crypto';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
+import logger from '../utils/logger.js';
 
 interface TokenPayload {
     userId: string;
@@ -351,7 +352,7 @@ class TokenService {
             if (decoded?.jti) {
                 blacklistKey = `blacklist:${decoded.jti}`;
             } else {
-                console.warn('blacklistToken: token missing jti — falling back to full-token key');
+                logger.warn('blacklistToken: token missing jti — falling back to full-token key');
             }
             if (decoded?.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
