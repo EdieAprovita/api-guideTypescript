@@ -219,7 +219,7 @@ export const professional = (req: Request, res: Response, next: NextFunction) =>
  *
  * Deny-by-default: if ownership cannot be confirmed, the request is rejected.
  */
-export const checkOwnership = (_resourceField: string = 'userId') => {
+export const checkOwnership = () => {
     return (req: Request, res: Response, next: NextFunction) => {
         if (!req.user) {
             return res.status(401).json({
