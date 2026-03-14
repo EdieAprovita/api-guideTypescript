@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../middleware/asyncHandler.js';
 import UserServices from '../services/UserService.js';
-import TokenService from '../services/TokenService.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
