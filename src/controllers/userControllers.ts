@@ -14,13 +14,15 @@ import { User } from '../models/User.js';
  * @access Public
  */
 
+// Security: whitelist the roles a user may self-assign on registration.
+// Only 'user' and 'professional' are accepted; anything else (e.g. 'admin')
+// is silently dropped so the User model default ('user') applies instead.
+// Note: Joi in validators.ts already rejects invalid values — this is defense-in-depth.
+const REGISTER_ALLOWED_ROLES = ['user', 'professional'] as const;
+
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
-        // Security: whitelist the roles a user may self-assign on registration.
-        // Only 'user' and 'professional' are accepted; anything else (e.g. 'admin')
-        // is silently dropped so the User model default ('user') applies instead.
-        const REGISTER_ALLOWED_ROLES = ['user', 'professional'] as const;
         const { role: requestedRole, ...restData } = sanitizedData;
         const safeData = REGISTER_ALLOWED_ROLES.includes(requestedRole)
             ? { ...restData, role: requestedRole }

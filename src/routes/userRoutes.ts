@@ -107,7 +107,7 @@ router.patch(
     validate({
         params: paramSchemas.id,
         body: Joi.object({
-            role: Joi.string().valid('user', 'admin', 'business').required(),
+            role: Joi.string().valid('user', 'professional', 'admin').required(),
         }),
     }),
     updateUserRole

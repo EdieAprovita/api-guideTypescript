@@ -165,10 +165,6 @@ class UserService extends BaseService {
         return { message: 'Password reset successful' };
     }
 
-    async logoutUser() {
-        return { message: 'User logged out successfully' };
-    }
-
     async findAllUsers() {
         const users = await User.find({}).exec();
         return users.map(this.getUserResponse);

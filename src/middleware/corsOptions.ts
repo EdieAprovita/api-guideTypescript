@@ -12,7 +12,12 @@ const getAllowedOrigins = (): string[] => {
         return [];
     }
 
-    return [frontendUrl];
+    try {
+        return [new URL(frontendUrl).origin];
+    } catch {
+        logger.warn(`FRONTEND_URL is not a valid URL ("${frontendUrl}") — CORS will reject all cross-origin requests`);
+        return [];
+    }
 };
 
 const corsOptions = {
