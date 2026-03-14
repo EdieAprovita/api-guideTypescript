@@ -10,7 +10,6 @@ type MockRedis = {
     setex:      ReturnType<typeof vi.fn>;
     get:        ReturnType<typeof vi.fn>;
     del:        ReturnType<typeof vi.fn>;
-    keys:       ReturnType<typeof vi.fn>;
     ttl:        ReturnType<typeof vi.fn>;
     scan:       ReturnType<typeof vi.fn>;
     disconnect: ReturnType<typeof vi.fn>;
@@ -71,7 +70,6 @@ const mockRedis: MockRedis = {
     setex:      vi.fn(),
     get:        vi.fn(),
     del:        vi.fn(),
-    keys:       vi.fn(),
     scan:       vi.fn(),
     ttl:        vi.fn(),
     disconnect: vi.fn(),
@@ -99,7 +97,6 @@ describe('TokenService', () => {
         mockRedis.setex.mockResolvedValue('OK');
         mockRedis.get.mockResolvedValue(null);
         mockRedis.del.mockResolvedValue(1);
-        mockRedis.keys.mockResolvedValue([]);
         mockRedis.scan.mockResolvedValue(['0', []]);
         mockRedis.ttl.mockResolvedValue(-1);
     });

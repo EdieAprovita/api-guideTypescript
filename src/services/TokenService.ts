@@ -112,13 +112,6 @@ class TokenService {
                 mockRedisStorage.delete(key);
                 return Promise.resolve(existed ? 1 : 0);
             },
-            keys: (pattern: string) => {
-                const keys = Array.from(mockRedisStorage.keys());
-                if (pattern === '*') return Promise.resolve(keys);
-
-                const regex = new RegExp(pattern.replace('*', '.*'));
-                return Promise.resolve(keys.filter(key => regex.test(key)));
-            },
             scan: (_cursor: string, _matchArg: string, pattern: string, _countArg: string, _count: number) => {
                 const allKeys = Array.from(mockRedisStorage.keys());
                 const regex = new RegExp(pattern.replace('*', '.*'));

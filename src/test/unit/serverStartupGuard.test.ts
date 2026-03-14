@@ -72,6 +72,20 @@ describe('validateStartupEnvironment', () => {
         expect(exitSpy).not.toHaveBeenCalled();
     });
 
+    it('calls process.exit(1) when BYPASS_AUTH_FOR_TESTING=true and NODE_ENV=development', () => {
+        process.env.BYPASS_AUTH_FOR_TESTING = 'true';
+        process.env.NODE_ENV = 'development';
+
+        const exitSpy = vi
+            .spyOn(process, 'exit')
+            .mockImplementation((_code?: string | number | null | undefined) => {
+                throw new Error('process.exit called');
+            });
+
+        expect(() => validateStartupEnvironment()).toThrow('process.exit called');
+        expect(exitSpy).toHaveBeenCalledWith(1);
+    });
+
     it('does NOT call process.exit when BYPASS_AUTH_FOR_TESTING is unset', () => {
         delete process.env.BYPASS_AUTH_FOR_TESTING;
         process.env.NODE_ENV = 'production';
