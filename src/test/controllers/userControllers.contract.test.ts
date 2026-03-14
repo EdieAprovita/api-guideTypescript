@@ -192,26 +192,18 @@ describe('registerUser controller — response contract', () => {
     // Defense-in-depth: these tests call the controller directly (Joi bypassed)
     // to verify REGISTER_ALLOWED_ROLES works independently of the validation layer.
 
-    it('passes role: professional to service (whitelisted role, controller-level check)', async () => {
-        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role: 'professional' });
+    it.each([
+        { role: 'professional', username: 'pro', email: 'pro@example.com' },
+        { role: 'user', username: 'usr', email: 'usr@example.com' },
+    ])('passes role: $role to service (whitelisted role, controller-level check)', async ({ role, username, email }) => {
+        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role });
         const req = testUtils.createMockRequest({
-            body: { username: 'pro', email: 'pro@example.com', password: 'TestPass123!', role: 'professional' },
+            body: { username, email, password: 'TestPass123!', role },
         }) as Request;
         await registerUser(req, res, next);
 
         expect(mockRegisterUser).toHaveBeenCalledTimes(1);
-        expect(mockRegisterUser.mock.calls[0][0].role).toBe('professional');
-    });
-
-    it('passes role: user to service (whitelisted role, controller-level check)', async () => {
-        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role: 'user' });
-        const req = testUtils.createMockRequest({
-            body: { username: 'usr', email: 'usr@example.com', password: 'TestPass123!', role: 'user' },
-        }) as Request;
-        await registerUser(req, res, next);
-
-        expect(mockRegisterUser).toHaveBeenCalledTimes(1);
-        expect(mockRegisterUser.mock.calls[0][0].role).toBe('user');
+        expect(mockRegisterUser.mock.calls[0][0].role).toBe(role);
     });
 
     it('omits role from service call when role is absent from body (model default applies)', async () => {
