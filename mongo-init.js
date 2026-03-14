@@ -14,10 +14,15 @@ if (!appPassword) throw new Error('MONGO_APP_PASSWORD must be set');
 
 db = db.getSiblingDB(dbName);
 
-db.createUser({
-    user: appUser,
-    pwd: appPassword,
-    roles: [{ role: 'readWrite', db: dbName }],
-});
-
-print('MongoDB initialization complete: database and user created.');
+// Idempotent: only create user if it does not already exist.
+// db.createUser() throws MongoServerError if the user is already present.
+if (db.getUser(appUser) === null) {
+    db.createUser({
+        user: appUser,
+        pwd: appPassword,
+        roles: [{ role: 'readWrite', db: dbName }],
+    });
+    print('MongoDB initialization complete: user created.');
+} else {
+    print('MongoDB initialization: user already exists, skipping.');
+}

@@ -93,9 +93,18 @@ const userSchema = new Schema<IUser>(
     { timestamps: true }
 );
 
+// WARNING: This hook only runs on .save(). Methods like updateOne(),
+// findByIdAndUpdate(), findOneAndUpdate() bypass Mongoose middleware entirely.
+// NEVER pass a plain-text password through those methods — always use .save()
+// via UserService.updateUserPassword() to ensure hashing.
 userSchema.pre('save', async function (next) {
     if (this.isModified('password')) {
-        this.password = await bcrypt.hash(this.password, parseInt(process.env.BCRYPT_SALT_ROUNDS ?? '10'));
+        // Guard: skip hashing if the value is already a bcrypt hash (e.g. seeded data).
+        // bcrypt hashes always start with $2a$, $2b$, or $2y$ followed by a cost factor.
+        const isBcryptHash = /^\$2[aby]\$\d{2}\$/.test(this.password);
+        if (!isBcryptHash) {
+            this.password = await bcrypt.hash(this.password, parseInt(process.env.BCRYPT_SALT_ROUNDS ?? '10'));
+        }
     }
     next();
 });
