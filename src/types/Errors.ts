@@ -26,13 +26,6 @@ export class HttpError extends Error {
     }
 }
 
-export class TokenGenerationError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = 'TokenGenerationError';
-    }
-}
-
 export class UserIdRequiredError extends Error {
     constructor(message: string) {
         super(message);

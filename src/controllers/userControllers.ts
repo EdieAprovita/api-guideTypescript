@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../middleware/asyncHandler.js';
 import UserServices from '../services/UserService.js';
+import TokenService from '../services/TokenService.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
@@ -137,10 +138,30 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
  * @returns {Promise<Response>}
  */
 
-export const logout = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
+export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
+        // Blacklist the current access token so it cannot be reused after logout.
+        // Without this, a stolen token remains valid until expiry.
+        let token: string | undefined;
+
+        if (req.cookies?.jwt) {
+            token = req.cookies.jwt;
+        } else if (req.headers.authorization?.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        if (token) {
+            await TokenService.blacklistToken(token);
+        }
+
         // Cookie clearing belongs in the controller (HTTP concern, not business logic)
-        res.clearCookie('jwt');
+        res.clearCookie('jwt', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+        });
+
         const response = await UserServices.logoutUser();
         res.status(200).json(response);
     } catch (error) {
