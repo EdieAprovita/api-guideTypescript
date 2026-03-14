@@ -114,7 +114,8 @@ class TokenService {
             },
             scan: (_cursor: string, _matchArg: string, pattern: string, _countArg: string, _count: number) => {
                 const allKeys = Array.from(mockRedisStorage.keys());
-                const regex = new RegExp(pattern.replace('*', '.*'));
+                const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+                const regex = new RegExp(`^${escaped}$`);
                 const matched = allKeys.filter(key => regex.test(key));
                 // Return all results in one shot (cursor '0' = done)
                 return Promise.resolve(['0', matched] as [string, string[]]);
