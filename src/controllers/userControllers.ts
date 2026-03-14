@@ -6,6 +6,9 @@ import { getErrorMessage } from '../types/modalTypes.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
+import { REGISTER_ALLOWED_ROLES } from '../constants/roles.js';
+
+export { REGISTER_ALLOWED_ROLES };
 
 /**
  * @description Authenticate user and get token
@@ -18,10 +21,9 @@ import { User } from '../models/User.js';
 // 'professional' is intentionally self-assignable — users declare their own role at sign-up
 // with no vetting required. If an approval workflow is introduced later, remove 'professional'
 // from this list and handle it via a separate /users/:id/upgrade-role endpoint.
-// 'admin' and any unknown role are silently dropped; the User model default ('user') applies.
-// Note: Joi in validators.ts already rejects invalid values — this is defense-in-depth.
-// validators.ts imports this constant directly — do NOT duplicate the list there.
-export const REGISTER_ALLOWED_ROLES = ['user', 'professional'] as const;
+// 'admin' and any unknown role are rejected by Joi (400) before reaching this controller;
+// this check is defense-in-depth for callers that bypass the validation layer.
+// Constant lives in src/constants/roles.ts — shared with validators.ts.
 
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {

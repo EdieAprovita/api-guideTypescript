@@ -27,7 +27,7 @@ const getAllowedOrigins = (): string[] => {
 const corsOptions = {
     credentials: true,
     origin: getAllowedOrigins(),
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 };
 

@@ -24,7 +24,6 @@ vi.mock('@/services/UserService.js', () => ({
     default: {
         loginUser: mockLoginUser,
         registerUser: mockRegisterUser,
-        logoutUser: vi.fn(),
         findAllUsers: vi.fn(),
         findUserById: vi.fn(),
         updateUserById: vi.fn(),
@@ -63,8 +62,15 @@ const BASE_REGISTER_BODY = { username: 'newuser', email: 'new@example.com', pass
 // Shared test utilities
 // ---------------------------------------------------------------------------
 
-/** Returns the first argument passed to res.json() — works for any mock response. */
-const getJsonResponse = (res: Response) => (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+/** Returns the first argument passed to res.json() — works for any mock response.
+ *  Throws a descriptive error if res.json was never called, so test failures are actionable. */
+const getJsonResponse = (res: Response) => {
+    const calls = (res.json as ReturnType<typeof vi.fn>).mock.calls;
+    if (!calls || calls.length === 0) {
+        throw new Error('res.json was never called — controller did not send a response');
+    }
+    return calls[0][0];
+};
 
 /** Creates fresh mock res + next for each test. */
 const createMocks = () => ({
