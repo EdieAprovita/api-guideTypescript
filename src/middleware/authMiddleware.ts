@@ -262,11 +262,23 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
     try {
         let token: string | undefined;
 
-        // Extract token using same logic as protect middleware
-        if (req.cookies.jwt) {
+        // Extract token using same logic as extractToken (protect middleware).
+        // All three branches must stay in sync with extractToken to ensure every
+        // token delivery path is blacklisted on logout.
+        if (req.cookies?.jwt) {
             token = req.cookies.jwt;
         } else if (req.headers.authorization?.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
+        } else if (req.headers.cookie) {
+            const cookies = req.headers.cookie.split(';').reduce(
+                (acc, cookie) => {
+                    const [key, value] = cookie.trim().split('=');
+                    if (key && value) acc[key] = value;
+                    return acc;
+                },
+                {} as Record<string, string>
+            );
+            token = cookies.jwt;
         }
 
         if (token) {

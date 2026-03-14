@@ -7,13 +7,16 @@ import mongoose, { Schema, Document } from 'mongoose';
  */
 export const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
+/** Canonical set of valid role values — single source of truth for the role field. */
+export type UserRole = 'user' | 'professional' | 'admin';
+
 export interface IUser extends Document {
     _id: string;
     username: string;
     password: string;
     passwordResetToken?: string;
     passwordResetExpires?: Date;
-    role: 'user' | 'professional' | 'admin';
+    role: UserRole;
     isAdmin: boolean;
     isActive: boolean;
     isDeleted: boolean;

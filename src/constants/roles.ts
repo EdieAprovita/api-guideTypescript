@@ -10,6 +10,8 @@ export type RegisterAllowedRole = (typeof REGISTER_ALLOWED_ROLES)[number];
 /**
  * Numeric rank for each role, used to classify role changes as escalations or demotions.
  * Higher value = more privilege. Evaluated once at module load — not per-request.
- * Used by updateUserRole in userControllers.ts for SIEM audit logging.
+ * Typed as Record<UserRole, number> so TypeScript catches drift if a new role is added
+ * to the User model without updating this map.
  */
-export const ROLE_RANK: Record<string, number> = { user: 0, professional: 1, admin: 2 };
+import type { UserRole } from '../models/User.js';
+export const ROLE_RANK: Record<UserRole, number> = { user: 0, professional: 1, admin: 2 };

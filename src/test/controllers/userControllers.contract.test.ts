@@ -255,6 +255,7 @@ describe('updateUserRole controller — audit log action field', () => {
         { previousRole: 'admin', newRole: 'professional', expectedAction: 'role_demotion' },
         { previousRole: 'professional', newRole: 'user', expectedAction: 'role_demotion' },
         { previousRole: 'user', newRole: 'user', expectedAction: 'role_unchanged' },
+        { previousRole: 'professional', newRole: 'professional', expectedAction: 'role_unchanged' },
         { previousRole: 'admin', newRole: 'admin', expectedAction: 'role_unchanged' },
     ])(
         'logs action: $expectedAction when role changes $previousRole → $newRole',
