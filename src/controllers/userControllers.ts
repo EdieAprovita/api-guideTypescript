@@ -151,7 +151,17 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
         }
 
         if (token) {
-            await TokenService.blacklistToken(token);
+            try {
+                await TokenService.blacklistToken(token);
+            } catch (blacklistError) {
+                // Best-effort blacklist: if Redis is unavailable, log and proceed.
+                // The cookie is still cleared so the client session ends. The token
+                // will expire naturally; this is an acceptable trade-off vs. blocking
+                // the user from logging out entirely.
+                logger.error('Failed to blacklist token on logout — Redis may be unavailable', {
+                    error: blacklistError instanceof Error ? blacklistError.message : blacklistError,
+                });
+            }
         }
 
         // Belt-and-suspenders: clear the jwt cookie if the client set one directly.
