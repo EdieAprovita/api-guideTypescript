@@ -24,6 +24,8 @@ const getAllowedOrigins = (): string[] => {
 // getAllowedOrigins() is evaluated once at module load time.
 // This is intentional: FRONTEND_URL is a static deploy-time env var.
 // If dynamic CORS updates are ever needed, change origin to a function: (origin, cb) => ...
+// Test-time note: tests run with NODE_ENV !== 'production', so the localhost
+// branch is always taken — setting FRONTEND_URL in a test beforeAll has no effect.
 const corsOptions = {
     credentials: true,
     origin: getAllowedOrigins(),

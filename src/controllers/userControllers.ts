@@ -9,10 +9,11 @@ import { User } from '../models/User.js';
 import { REGISTER_ALLOWED_ROLES } from '../constants/roles.js';
 
 /**
- * @description Authenticate user and get token
- * @name authUser
- * @route POST /api/users/login
+ * @description Register a new user
+ * @name registerUser
+ * @route POST /api/users
  * @access Public
+ * @returns {Promise<Response>}
  */
 
 // Security: whitelist the roles a user may self-assign on registration.
@@ -48,9 +49,9 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
 });
 
 /**
- * @description Register a new user
- * @name registerUser
- * @route POST /api/users
+ * @description Authenticate user and get token
+ * @name loginUser
+ * @route POST /api/users/login
  * @access Public
  * @returns {Promise<Response>}
  */
@@ -292,6 +293,12 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response, n
         // Role hierarchy: user(0) < professional(1) < admin(2).
         // action distinguishes escalations from demotions for SIEM filtering.
         const roleRank: Record<string, number> = { user: 0, professional: 1, admin: 2 };
+        if (!(previousRole in roleRank)) {
+            logger.warn('updateUserRole: unrecognised previousRole value — role rank defaulting to 0', {
+                previousRole,
+                targetId: id,
+            });
+        }
         const action = (roleRank[role] ?? 0) > (roleRank[previousRole] ?? 0) ? 'role_escalation' : 'role_demotion';
         logger.info('User role updated', {
             adminId: req.user?._id,

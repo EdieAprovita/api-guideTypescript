@@ -16,9 +16,10 @@ import { testUtils } from '@test/helpers/testBase';
 
 type ControllerFn = (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 
-// Mock UserService so we can control what loginUser/registerUser return
+// Mock UserService so we can control what loginUser/registerUser/updateUserById return
 const mockLoginUser = vi.fn();
 const mockRegisterUser = vi.fn();
+const mockUpdateUserById = vi.fn();
 
 vi.mock('@/services/UserService.js', () => ({
     default: {
@@ -26,11 +27,17 @@ vi.mock('@/services/UserService.js', () => ({
         registerUser: mockRegisterUser,
         findAllUsers: vi.fn(),
         findUserById: vi.fn(),
-        updateUserById: vi.fn(),
+        updateUserById: mockUpdateUserById,
         deleteUserById: vi.fn(),
         forgotPassword: vi.fn(),
         resetPassword: vi.fn(),
     },
+}));
+
+// Mock User model for updateUserRole (needs findById to get previousRole)
+const mockUserFindById = vi.fn();
+vi.mock('@/models/User.js', () => ({
+    User: { findById: mockUserFindById },
 }));
 
 vi.mock('@/utils/sanitizer.js', () => ({
@@ -195,23 +202,79 @@ describe('registerUser controller — response contract', () => {
     it.each([
         { role: 'professional', username: 'pro', email: 'pro@example.com' },
         { role: 'user', username: 'usr', email: 'usr@example.com' },
-    ])('passes role: $role to service (whitelisted role, controller-level check)', async ({ role, username, email }) => {
-        mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role });
-        const req = testUtils.createMockRequest({
-            body: { username, email, password: 'TestPass123!', role },
-        }) as Request;
-        await registerUser(req, res, next);
+    ])(
+        'passes role: $role to service (whitelisted role, controller-level check)',
+        async ({ role, username, email }) => {
+            mockRegisterUser.mockResolvedValue({ ...mockLoginResult, role });
+            const req = testUtils.createMockRequest({
+                body: { username, email, password: 'TestPass123!', role },
+            }) as Request;
+            await registerUser(req, res, next);
 
-        expect(mockRegisterUser).toHaveBeenCalledTimes(1);
-        expect(mockRegisterUser.mock.calls[0][0].role).toBe(role);
-    });
+            expect(mockRegisterUser).toHaveBeenCalledTimes(1);
+            expect(mockRegisterUser.mock.calls[0][0].role).toBe(role);
+        }
+    );
 
     it('omits role from service call when role is absent from body (model default applies)', async () => {
         const req = testUtils.createMockRequest({ body: BASE_REGISTER_BODY }) as Request;
         await registerUser(req, res, next);
 
-        expect(mockRegisterUser.mock.calls[0]?.[0]?.role).toBeUndefined();
+        expect(mockRegisterUser).toHaveBeenCalledTimes(1);
+        expect(mockRegisterUser.mock.calls[0][0].role).toBeUndefined();
     });
+});
+
+// ---------------------------------------------------------------------------
+// updateUserRole — audit log action field contract test
+// ---------------------------------------------------------------------------
+
+describe('updateUserRole controller — audit log action field', () => {
+    let updateUserRole: ControllerFn;
+    let res: Response;
+    let next: NextFunction;
+
+    beforeAll(async () => {
+        ({ updateUserRole } = await import('@/controllers/userControllers.js'));
+    });
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        ({ res, next } = createMocks());
+    });
+
+    it.each([
+        { previousRole: 'user', newRole: 'admin', expectedAction: 'role_escalation' },
+        { previousRole: 'user', newRole: 'professional', expectedAction: 'role_escalation' },
+        { previousRole: 'professional', newRole: 'admin', expectedAction: 'role_escalation' },
+        { previousRole: 'admin', newRole: 'user', expectedAction: 'role_demotion' },
+        { previousRole: 'admin', newRole: 'professional', expectedAction: 'role_demotion' },
+        { previousRole: 'professional', newRole: 'user', expectedAction: 'role_demotion' },
+    ])(
+        'logs action: $expectedAction when role changes $previousRole → $newRole',
+        async ({ previousRole, newRole, expectedAction }) => {
+            mockUserFindById.mockResolvedValue({ _id: 'target123', role: previousRole });
+            mockUpdateUserById.mockResolvedValue({ _id: 'target123', role: newRole });
+
+            const req = testUtils.createMockRequest({
+                params: { id: 'target123' },
+                body: { role: newRole },
+                user: { _id: 'admin1', role: 'admin', email: 'admin@test.com', isActive: true },
+            }) as Request;
+
+            await updateUserRole(req, res, next);
+
+            const { default: logger } = await import('@/utils/logger.js');
+            const infoCalls = (logger.info as ReturnType<typeof vi.fn>).mock.calls;
+            const roleUpdateCall = infoCalls.find(([, meta]) => meta?.previousRole !== undefined);
+            expect(roleUpdateCall).toBeDefined();
+            expect(roleUpdateCall![1]).toMatchObject({
+                previousRole,
+                newRole,
+                action: expectedAction,
+            });
+        }
+    );
 });
 
 // ---------------------------------------------------------------------------
@@ -277,8 +340,10 @@ describe('addComment controller — payload contract ({ text } not { content })'
 
         // Patch the service's addComment for this test
         const PostServiceModule = await import('@/services/PostService.js');
-        (PostServiceModule.postService.addComment as ReturnType<typeof vi.fn>)
-            .mockResolvedValue({ text: 'A comment', _id: 'c1' });
+        (PostServiceModule.postService.addComment as ReturnType<typeof vi.fn>).mockResolvedValue({
+            text: 'A comment',
+            _id: 'c1',
+        });
 
         const req = testUtils.createMockRequest({
             params: { id: 'post123' },
