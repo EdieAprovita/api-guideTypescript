@@ -20,7 +20,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
         // Security: strip role from user input to prevent privilege escalation.
         // Role should only be set server-side (defaults to 'user' in the User model).
         const { role: _stripRole, ...safeData } = sanitizedData;
-        const result = await UserServices.registerUser(safeData, res);
+        const result = await UserServices.registerUser(safeData);
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
@@ -49,7 +49,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
         const { email, password } = sanitizedData;
-        const result = await UserServices.loginUser(email, password, res);
+        const result = await UserServices.loginUser(email, password);
         res.status(200).json({
             success: true,
             message: 'Login successful',
@@ -139,7 +139,9 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
 
 export const logout = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
-        const response = await UserServices.logoutUser(res);
+        // Cookie clearing belongs in the controller (HTTP concern, not business logic)
+        res.clearCookie('jwt');
+        const response = await UserServices.logoutUser();
         res.status(200).json(response);
     } catch (error) {
         next(

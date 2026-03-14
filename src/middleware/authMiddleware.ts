@@ -3,6 +3,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { User } from '../models/User.js';
 import { errorHandler } from './errorHandler.js';
 import TokenService from '../services/TokenService.js';
+import logger from '../utils/logger.js';
 
 // Define interface for authenticated user
 interface AuthenticatedUser {
@@ -85,9 +86,15 @@ const verifyTokenAndGetPayload = async (token: string) => {
 
 // Helper function to validate user account
 const validateUserAccount = async (userId: string) => {
-    const areTokensRevoked = await TokenService.isUserTokensRevoked(userId);
-    if (areTokensRevoked) {
-        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User session has been revoked');
+    try {
+        const areTokensRevoked = await TokenService.isUserTokensRevoked(userId);
+        if (areTokensRevoked) {
+            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User session has been revoked');
+        }
+    } catch (error) {
+        if (error instanceof HttpError) throw error;
+        logger.error('Redis unavailable during token revocation check — denying request', { userId, error });
+        throw new HttpError(HttpStatusCode.SERVICE_UNAVAILABLE, 'Authentication service temporarily unavailable');
     }
 
     const currentUser = await User.findById(userId).select('-password').exec();
@@ -95,7 +102,7 @@ const validateUserAccount = async (userId: string) => {
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
     }
 
-    if (currentUser.isDeleted ?? !currentUser.isActive) {
+    if (currentUser.isDeleted || !currentUser.isActive) {
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User account is inactive');
     }
 
@@ -204,9 +211,11 @@ export const professional = (req: Request, res: Response, next: NextFunction) =>
 };
 
 /**
- * @description Check resource ownership
- * @name checkOwnership
- * @returns {Function}
+ * Middleware factory that enforces resource ownership.
+ * Admins bypass the check; regular users must own the resource
+ * (i.e. `req.params.id` must equal their own user ID).
+ *
+ * Deny-by-default: if ownership cannot be confirmed, the request is rejected.
  */
 export const checkOwnership = (_resourceField: string = 'userId') => {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -218,22 +227,25 @@ export const checkOwnership = (_resourceField: string = 'userId') => {
             });
         }
 
-        const resourceId = req.params.id;
-        const userId = req.user?._id?.toString();
-
         // Admins can access any resource
         if (req.user.role === 'admin') {
             return next();
         }
 
-        // For profile routes, check if user is accessing their own profile
-        if (req.route.path.includes('/profile') && resourceId === userId) {
+        const resourceId = req.params.id;
+        const userId = req.user._id?.toString();
+
+        // Allow if the user is accessing their own resource
+        if (resourceId && userId && resourceId === userId) {
             return next();
         }
 
-        // For other resources, we'll need to check the database
-        // This is a basic implementation - you may need to customize per resource type
-        next();
+        // Deny-by-default: ownership could not be confirmed
+        return res.status(403).json({
+            message: 'Forbidden',
+            success: false,
+            error: 'You do not have permission to access this resource',
+        });
     };
 };
 

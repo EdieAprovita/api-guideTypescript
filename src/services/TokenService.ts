@@ -228,7 +228,10 @@ class TokenService {
             await this.redis.setex(refreshTokenKey, 7 * 24 * 60 * 60, refreshToken);
             this.debugLog('Successfully stored in Redis');
         } catch (redisError) {
-            this.debugError('Redis error:', redisError);
+            this.debugError('Redis error storing refresh token:', redisError);
+            // Fail-closed: if we can't persist the refresh token, the user won't be
+            // able to refresh later. Better to fail now than issue an unusable pair.
+            throw new Error('Unable to complete token generation — please try again later');
         }
 
         const result = { accessToken, refreshToken };
