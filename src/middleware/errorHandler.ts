@@ -120,12 +120,19 @@ const handleGenericObjectError = (err: UnknownError): ErrorResult => {
     };
 };
 
+const isTokenRevokedError = (err: unknown): boolean => {
+    if (err instanceof TokenRevokedError) return true;
+    if (err instanceof Error && err.message === 'Token has been revoked') return true;
+    return false;
+};
+
 const processError = (err: unknown): ErrorResult => {
-    if (err instanceof TokenRevokedError) {
+    if (isTokenRevokedError(err)) {
         return {
             status: HttpStatusCode.UNAUTHORIZED,
             message: 'Token has been revoked',
-            errorDetail: 'Token has been revoked',
+            errorDetail:
+                process.env.NODE_ENV === 'production' ? 'Token has been revoked' : 'Token revoked — authenticate again',
         };
     }
 

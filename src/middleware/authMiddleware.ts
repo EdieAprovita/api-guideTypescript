@@ -123,12 +123,12 @@ export const protect = async (req: Request, _res: Response, next: NextFunction) 
         // Validate user account for production
         const currentUser = await validateUserAccount(payload.userId);
         req.user = currentUser;
-        next();
+        return next();
     } catch (error) {
         if (process.env.NODE_ENV === 'test') {
             console.error('Authentication middleware error:', error);
         }
-        return next(error instanceof Error ? error : new Error(String(error)));
+        return next(error);
     }
 };
 
@@ -272,9 +272,13 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
             path: '/',
         });
 
-        next();
+        return next();
     } catch (error) {
-        return next(error instanceof Error ? error : new Error(String(error)));
+        if (error instanceof Error) {
+            return next(error);
+        }
+        logger.error('Error during logout', { error });
+        return next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'Logout failed'));
     }
 };
 

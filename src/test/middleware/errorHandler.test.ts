@@ -3,7 +3,7 @@ import { faker } from '@faker-js/faker';
 import request from 'supertest';
 import express from 'express';
 import { errorHandler } from '../../middleware/errorHandler.js';
-import { HttpError, HttpStatusCode } from '../../types/Errors.js';
+import { HttpError, HttpStatusCode, TokenRevokedError } from '../../types/Errors.js';
 import logger from '../../utils/logger.js';
 import testConfig from '../testConfig.js';
 import { expectErrorResponse, expectValidationErrorResponse, expectServerError } from '../utils/responseExpectations.js';
@@ -94,6 +94,16 @@ app.use(express.json());
 // Setup error routes
 [...errorScenarios, ...jsErrorScenarios].forEach(({ path, creator }) => {
     createErrorRoute(app, path, creator);
+});
+
+// TokenRevokedError route — tests isTokenRevokedError helper (instanceof path)
+app.get('/token-revoked-error', (_req, _res, next) => {
+    next(new TokenRevokedError());
+});
+
+// Generic Error with revocation message — tests isTokenRevokedError helper (message-string path)
+app.get('/token-revoked-generic', (_req, _res, next) => {
+    next(new Error('Token has been revoked'));
 });
 
 // Specialized error routes
@@ -215,6 +225,20 @@ describe('Error Handler Middleware Tests', () => {
                     expect.objectContaining(expectedProps)
                 );
             });
+        });
+    });
+
+    describe('TokenRevokedError handling', () => {
+        it('should return 401 for TokenRevokedError (instanceof path)', async () => {
+            const response = await request(app).get('/token-revoked-error');
+            expect(response.status).toBe(HttpStatusCode.UNAUTHORIZED);
+            expect(response.body.message).toBe('Token has been revoked');
+        });
+
+        it('should return 401 for generic Error with revocation message (message-string path)', async () => {
+            const response = await request(app).get('/token-revoked-generic');
+            expect(response.status).toBe(HttpStatusCode.UNAUTHORIZED);
+            expect(response.body.message).toBe('Token has been revoked');
         });
     });
 
