@@ -115,10 +115,10 @@ if (process.env.NODE_ENV !== 'test') {
 if (process.env.NODE_ENV !== 'test') {
     app.use(validateUserAgent);
 } // Block malicious user agents
-app.use(limitRequestSize(10 * 1024 * 1024)); // 10MB global limit
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(limitRequestSize(10 * 1024 * 1024)); // 10MB global limit — must run after parsers so req.body is populated
 app.use(detectSuspiciousActivity); // Detect and block suspicious patterns
 
 // app.use(mongoSanitize()); // prevent MongoDB operator injection - disabled due to version conflict
