@@ -121,12 +121,7 @@ const handleGenericObjectError = (err: UnknownError): ErrorResult => {
 };
 
 const isTokenRevokedError = (err: unknown): boolean => {
-    if (err instanceof TokenRevokedError) return true;
-    // TokenService.verifyAccessToken() wraps all errors in a new generic Error,
-    // so the original TokenRevokedError instance is never propagated. We match
-    // by message string as a fallback until the service preserves error types.
-    if (err instanceof Error && err.message === 'Token has been revoked') return true;
-    return false;
+    return err instanceof TokenRevokedError;
 };
 
 const processError = (err: unknown): ErrorResult => {

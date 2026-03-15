@@ -101,10 +101,6 @@ app.get('/token-revoked-error', (_req, _res, next) => {
     next(new TokenRevokedError());
 });
 
-// Generic Error with revocation message — tests isTokenRevokedError helper (message-string path)
-app.get('/token-revoked-generic', (_req, _res, next) => {
-    next(new Error('Token has been revoked'));
-});
 
 // Specialized error routes
 app.get('/validation-error', (_req, _res, next) => {
@@ -235,11 +231,6 @@ describe('Error Handler Middleware Tests', () => {
             expect(response.body.message).toBe('Token has been revoked');
         });
 
-        it('should return 401 for generic Error with revocation message (message-string path)', async () => {
-            const response = await request(app).get('/token-revoked-generic');
-            expect(response.status).toBe(HttpStatusCode.UNAUTHORIZED);
-            expect(response.body.message).toBe('Token has been revoked');
-        });
     });
 
     describe('Edge Cases', () => {
