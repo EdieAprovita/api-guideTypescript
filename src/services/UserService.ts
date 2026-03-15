@@ -206,6 +206,12 @@ class UserService extends BaseService {
         return user.save();
     }
 
+    async deletePushSubscription(userId: string): Promise<IUser> {
+        const user = await User.findByIdAndUpdate(userId, { $unset: { pushSubscription: 1 } }, { new: true });
+        if (!user) throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        return user;
+    }
+
     async updateNotificationSettings(
         userId: string,
         settings: Partial<NonNullable<IUser['notificationSettings']>>

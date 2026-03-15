@@ -372,6 +372,30 @@ export const updatePushSubscription = asyncHandler(async (req: Request, res: Res
  * @access Private
  * @returns {Promise<Response>}
  */
+/**
+ * @description Delete push subscription for the authenticated user
+ * @name deletePushSubscription
+ * @route DELETE /api/users/push-subscription
+ * @access Private
+ */
+export const deletePushSubscription = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?._id?.toString();
+    if (!userId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+    }
+    await UserServices.deletePushSubscription(userId);
+    res.status(200).json({
+        success: true,
+        message: 'Push subscription deleted',
+    });
+});
+
+/**
+ * @description Update notification settings for the authenticated user
+ * @name updateNotificationSettings
+ * @route PUT /api/users/push-settings
+ * @access Private
+ */
 export const updateNotificationSettings = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?._id?.toString();
     if (!userId) {
