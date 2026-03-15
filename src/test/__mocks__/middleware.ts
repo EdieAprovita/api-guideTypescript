@@ -74,6 +74,7 @@ export const validationMocks = {
         upload: vi.fn((req: Request, res: Response, next: NextFunction) =>
             next()
         ) as unknown as RateLimitRequestHandler,
+        push: vi.fn((req: Request, res: Response, next: NextFunction) => next()) as unknown as RateLimitRequestHandler,
     },
 };
 
