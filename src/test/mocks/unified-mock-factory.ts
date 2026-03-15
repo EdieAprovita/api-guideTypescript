@@ -599,6 +599,7 @@ export class UnifiedMockFactory {
                 upload: createValidationMiddleware(),
                 search: createValidationMiddleware(),
                 register: createValidationMiddleware(),
+                push: createValidationMiddleware(),
             },
             handleValidationError: createValidationMiddleware(),
             securityHeaders: createValidationMiddleware(),

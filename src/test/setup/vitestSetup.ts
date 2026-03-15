@@ -190,6 +190,7 @@ vi.mock('../../middleware/validation', () => ({
         api: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
         search: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
         upload: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
+        push: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
     },
 }));
 

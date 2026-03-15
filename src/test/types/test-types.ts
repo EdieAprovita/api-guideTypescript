@@ -229,6 +229,7 @@ export interface MockedValidationMiddleware {
         upload: MockedMiddleware;
         search: MockedMiddleware;
         register: MockedMiddleware;
+        push: MockedMiddleware;
     };
     handleValidationError: MockedMiddleware;
     securityHeaders: MockedMiddleware;

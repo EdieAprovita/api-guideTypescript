@@ -14,6 +14,8 @@ import {
     updateUserRole,
     getCurrentUserProfile,
     deleteUserById,
+    updatePushSubscription,
+    updateNotificationSettings,
 } from '../controllers/userControllers.js';
 
 const router = express.Router();
@@ -113,6 +115,24 @@ router.patch(
         }),
     }),
     updateUserRole
+);
+
+router.put(
+    '/push-subscription',
+    rateLimits.push,
+    validateInputLength(2048),
+    protect,
+    validate({ body: userSchemas.updatePushSubscription }),
+    updatePushSubscription
+);
+
+router.put(
+    '/push-settings',
+    rateLimits.push,
+    validateInputLength(512),
+    protect,
+    validate({ body: userSchemas.updateNotificationSettings }),
+    updateNotificationSettings
 );
 
 router.get('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), getUserById);

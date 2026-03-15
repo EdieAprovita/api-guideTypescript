@@ -28,6 +28,18 @@ export interface IUser extends Document {
         createdAt: Date;
         updatedAt: Date;
     };
+    pushSubscription?: {
+        endpoint: string;
+        keys: { p256dh: string; auth: string };
+    };
+    notificationSettings?: {
+        enabled: boolean;
+        newRestaurants: boolean;
+        newRecipes: boolean;
+        communityUpdates: boolean;
+        healthTips: boolean;
+        promotions: boolean;
+    };
     matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
@@ -91,6 +103,32 @@ const userSchema = new Schema<IUser>(
             type: String,
             trim: true,
             maxlength: 50,
+        },
+        pushSubscription: {
+            type: {
+                endpoint: { type: String },
+                keys: {
+                    type: {
+                        p256dh: { type: String },
+                        auth: { type: String },
+                    },
+                    _id: false,
+                },
+            },
+            default: undefined,
+            _id: false,
+        },
+        notificationSettings: {
+            type: {
+                enabled: { type: Boolean, default: true },
+                newRestaurants: { type: Boolean, default: true },
+                newRecipes: { type: Boolean, default: true },
+                communityUpdates: { type: Boolean, default: true },
+                healthTips: { type: Boolean, default: false },
+                promotions: { type: Boolean, default: false },
+            },
+            default: undefined,
+            _id: false,
         },
     },
     { timestamps: true }

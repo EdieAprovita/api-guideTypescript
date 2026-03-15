@@ -190,6 +190,48 @@ class UserService extends BaseService {
         return { message: 'User deleted successfully' };
     }
 
+    async updatePushSubscription(
+        userId: string,
+        subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+        settings?: Partial<NonNullable<IUser['notificationSettings']>>
+    ): Promise<IUser> {
+        const user = await this.findUserById(userId);
+        if (!user) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        }
+        user.pushSubscription = subscription;
+        if (settings) {
+            user.notificationSettings = this.mergeNotificationSettings(settings, user.notificationSettings);
+        }
+        return user.save();
+    }
+
+    async updateNotificationSettings(
+        userId: string,
+        settings: Partial<NonNullable<IUser['notificationSettings']>>
+    ): Promise<IUser> {
+        const user = await this.findUserById(userId);
+        if (!user) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        }
+        user.notificationSettings = this.mergeNotificationSettings(settings, user.notificationSettings);
+        return user.save();
+    }
+
+    private mergeNotificationSettings(
+        incoming: Partial<NonNullable<IUser['notificationSettings']>>,
+        existing?: IUser['notificationSettings']
+    ): NonNullable<IUser['notificationSettings']> {
+        return {
+            enabled: incoming.enabled ?? existing?.enabled ?? true,
+            newRestaurants: incoming.newRestaurants ?? existing?.newRestaurants ?? true,
+            newRecipes: incoming.newRecipes ?? existing?.newRecipes ?? true,
+            communityUpdates: incoming.communityUpdates ?? existing?.communityUpdates ?? true,
+            healthTips: incoming.healthTips ?? existing?.healthTips ?? false,
+            promotions: incoming.promotions ?? existing?.promotions ?? false,
+        };
+    }
+
     private getUserResponse(user: IUser) {
         const { _id, username, email, role, photo } = user;
         return { _id, username, email, role, photo };

@@ -295,6 +295,7 @@ export const createMockMiddleware = () => ({
         auth: (_req: Request, _res: Response, next: NextFunction) => next(),
         search: (_req: Request, _res: Response, next: NextFunction) => next(),
         register: (_req: Request, _res: Response, next: NextFunction) => next(),
+        push: (_req: Request, _res: Response, next: NextFunction) => next(),
     },
     securityHeaders: (_req: Request, _res: Response, next: NextFunction) => next(),
     enforceHTTPS: (_req: Request, _res: Response, next: NextFunction) => next(),

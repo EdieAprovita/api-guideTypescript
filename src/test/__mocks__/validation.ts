@@ -41,6 +41,9 @@ export const rateLimits = {
     upload: vi.fn((req: Request, res: Response, next: NextFunction) => {
         next();
     }) as MockRateLimitHandler,
+    push: vi.fn((req: Request, res: Response, next: NextFunction) => {
+        next();
+    }) as MockRateLimitHandler,
 };
 
 export const handleValidationError = vi.fn((error: unknown, req: Request, res: Response, next: NextFunction) => {

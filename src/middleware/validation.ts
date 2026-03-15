@@ -243,6 +243,14 @@ export const rateLimits = {
         max: 10, // 10 uploads per window
         message: 'Upload rate limit exceeded. Please try again later.',
     }),
+
+    // Push endpoints - shared budget across /push-subscription and /push-settings (10 req/window combined).
+    // Sized for infrequent subscription changes; settings calls count against the same pool.
+    push: createRateLimitOrBypass({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 10, // 10 combined requests per window across both push endpoints
+        message: 'Push rate limit exceeded. Please try again later.',
+    }),
 };
 
 // Validation error handler
@@ -298,10 +306,12 @@ export const validateInputLength = (maxBodySize: number = 1024 * 1024) => {
         const contentLength = req.get('content-length');
 
         if (contentLength && parseInt(contentLength) > maxBodySize) {
+            const maxSizeLabel =
+                maxBodySize >= 1024 * 1024 ? `${maxBodySize / 1024 / 1024}MB` : `${Math.round(maxBodySize / 1024)}KB`;
             return res.status(413).json({
                 success: false,
                 message: 'Request body too large',
-                maxSize: `${maxBodySize / 1024 / 1024}MB`,
+                maxSize: maxSizeLabel,
             });
         }
 

@@ -126,6 +126,46 @@ export const userSchemas = {
         phoneNumber: commonSchemas.phone.optional(),
         location: createLocationSchema(false),
     }),
+
+    updatePushSubscription: Joi.object({
+        subscription: Joi.object({
+            endpoint: Joi.string()
+                .uri({ scheme: ['https'] })
+                .max(500)
+                .required(),
+            keys: Joi.object({
+                p256dh: Joi.string()
+                    .pattern(/^[A-Za-z0-9_-]+(={0,2})?$/)
+                    .min(87)
+                    .max(200)
+                    .required(),
+                auth: Joi.string()
+                    .pattern(/^[A-Za-z0-9_-]+(={0,2})?$/)
+                    .min(22)
+                    .max(100)
+                    .required(),
+            }).required(),
+        }).required(),
+        // settings: {} is valid and treated as a no-op — existing settings are preserved.
+        // Omitting settings entirely is equivalent to passing settings: {}.
+        settings: Joi.object({
+            enabled: Joi.boolean(),
+            newRestaurants: Joi.boolean(),
+            newRecipes: Joi.boolean(),
+            communityUpdates: Joi.boolean(),
+            healthTips: Joi.boolean(),
+            promotions: Joi.boolean(),
+        }).optional(),
+    }),
+
+    updateNotificationSettings: Joi.object({
+        enabled: Joi.boolean(),
+        newRestaurants: Joi.boolean(),
+        newRecipes: Joi.boolean(),
+        communityUpdates: Joi.boolean(),
+        healthTips: Joi.boolean(),
+        promotions: Joi.boolean(),
+    }).min(1),
 };
 
 // Business validation schemas
