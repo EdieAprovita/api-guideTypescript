@@ -124,11 +124,11 @@ app.use(detectSuspiciousActivity); // Runs after parsers so req.body is availabl
 // app.use(mongoSanitize()); // prevent MongoDB operator injection - disabled due to version conflict
 app.use(xssSanitizer()); // sanitize user input against XSS using secure DOMPurify
 
+app.use(corsMiddleware);
+
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
-
-app.use(corsMiddleware);
 const enableSwaggerUI = process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER_UI === 'true';
 if (enableSwaggerUI && swaggerDocument) {
     // Protect Swagger UI in production if credentials are provided
