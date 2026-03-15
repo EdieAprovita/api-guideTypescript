@@ -126,6 +126,33 @@ export const userSchemas = {
         phoneNumber: commonSchemas.phone.optional(),
         location: createLocationSchema(false),
     }),
+
+    updatePushSubscription: Joi.object({
+        subscription: Joi.object({
+            endpoint: Joi.string().uri().required(),
+            keys: Joi.object({
+                p256dh: Joi.string().required(),
+                auth: Joi.string().required(),
+            }).required(),
+        }).required(),
+        settings: Joi.object({
+            enabled: Joi.boolean(),
+            newRestaurants: Joi.boolean(),
+            newRecipes: Joi.boolean(),
+            communityUpdates: Joi.boolean(),
+            healthTips: Joi.boolean(),
+            promotions: Joi.boolean(),
+        }).optional(),
+    }),
+
+    updateNotificationSettings: Joi.object({
+        enabled: Joi.boolean(),
+        newRestaurants: Joi.boolean(),
+        newRecipes: Joi.boolean(),
+        communityUpdates: Joi.boolean(),
+        healthTips: Joi.boolean(),
+        promotions: Joi.boolean(),
+    }).min(1),
 };
 
 // Business validation schemas

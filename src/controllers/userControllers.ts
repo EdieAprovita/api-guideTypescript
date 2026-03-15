@@ -340,6 +340,49 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response, n
  * @returns {Promise<Response>}
  * */
 
+/**
+ * @description Update push subscription for the authenticated user
+ * @name updatePushSubscription
+ * @route PUT /api/users/push-subscription
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+export const updatePushSubscription = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?._id?.toString();
+    if (!userId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+    }
+    const sanitized = sanitizeNoSQLInput(req.body);
+    const { subscription, settings } = sanitized;
+    const user = await UserServices.updatePushSubscription(userId, subscription, settings);
+    res.json({
+        success: true,
+        message: 'Push subscription updated',
+        data: { pushSubscription: user.pushSubscription, notificationSettings: user.notificationSettings },
+    });
+});
+
+/**
+ * @description Update notification settings for the authenticated user
+ * @name updateNotificationSettings
+ * @route PUT /api/users/push-settings
+ * @access Private
+ * @returns {Promise<Response>}
+ */
+export const updateNotificationSettings = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?._id?.toString();
+    if (!userId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
+    }
+    const sanitized = sanitizeNoSQLInput(req.body);
+    const user = await UserServices.updateNotificationSettings(userId, sanitized);
+    res.json({
+        success: true,
+        message: 'Notification settings updated',
+        data: { notificationSettings: user.notificationSettings },
+    });
+});
+
 export const deleteUserById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;

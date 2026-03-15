@@ -190,6 +190,48 @@ class UserService extends BaseService {
         return { message: 'User deleted successfully' };
     }
 
+    async updatePushSubscription(
+        userId: string,
+        subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+        settings?: Partial<NonNullable<IUser['notificationSettings']>>
+    ): Promise<IUser> {
+        const user = await this.findUserById(userId);
+        if (!user) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        }
+        user.pushSubscription = subscription;
+        if (settings) {
+            user.notificationSettings = {
+                enabled: settings.enabled ?? user.notificationSettings?.enabled ?? true,
+                newRestaurants: settings.newRestaurants ?? user.notificationSettings?.newRestaurants ?? true,
+                newRecipes: settings.newRecipes ?? user.notificationSettings?.newRecipes ?? true,
+                communityUpdates: settings.communityUpdates ?? user.notificationSettings?.communityUpdates ?? true,
+                healthTips: settings.healthTips ?? user.notificationSettings?.healthTips ?? false,
+                promotions: settings.promotions ?? user.notificationSettings?.promotions ?? false,
+            };
+        }
+        return user.save();
+    }
+
+    async updateNotificationSettings(
+        userId: string,
+        settings: Partial<NonNullable<IUser['notificationSettings']>>
+    ): Promise<IUser> {
+        const user = await this.findUserById(userId);
+        if (!user) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        }
+        user.notificationSettings = {
+            enabled: settings.enabled ?? user.notificationSettings?.enabled ?? true,
+            newRestaurants: settings.newRestaurants ?? user.notificationSettings?.newRestaurants ?? true,
+            newRecipes: settings.newRecipes ?? user.notificationSettings?.newRecipes ?? true,
+            communityUpdates: settings.communityUpdates ?? user.notificationSettings?.communityUpdates ?? true,
+            healthTips: settings.healthTips ?? user.notificationSettings?.healthTips ?? false,
+            promotions: settings.promotions ?? user.notificationSettings?.promotions ?? false,
+        };
+        return user.save();
+    }
+
     private getUserResponse(user: IUser) {
         const { _id, username, email, role, photo } = user;
         return { _id, username, email, role, photo };
