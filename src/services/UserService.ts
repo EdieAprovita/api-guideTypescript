@@ -207,11 +207,7 @@ class UserService extends BaseService {
     }
 
     async deletePushSubscription(userId: string): Promise<IUser> {
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { $unset: { pushSubscription: 1 } },
-            { new: true }
-        );
+        const user = await User.findByIdAndUpdate(userId, { $unset: { pushSubscription: 1 } }, { new: true });
         if (!user) throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
         return user;
     }
