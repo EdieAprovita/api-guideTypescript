@@ -131,6 +131,7 @@ export const userSchemas = {
         subscription: Joi.object({
             endpoint: Joi.string()
                 .uri({ scheme: ['https'] })
+                .max(500)
                 .required(),
             keys: Joi.object({
                 p256dh: Joi.string().max(200).required(),
