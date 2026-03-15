@@ -393,6 +393,12 @@ describe('updatePushSubscription controller', () => {
     });
 
     // -------------------------------------------------------------------------
+    // Rate limit (integration test only — unit mocks rateLimits.push to next())
+    // -------------------------------------------------------------------------
+
+    it.todo('rate limit: 11th request in 15min returns 429 — requires integration test with real rate limiter');
+
+    // -------------------------------------------------------------------------
     // 404 — user deleted between auth middleware and service call
     // -------------------------------------------------------------------------
 

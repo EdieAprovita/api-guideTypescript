@@ -355,7 +355,7 @@ export const updatePushSubscription = asyncHandler(async (req: Request, res: Res
     const sanitized = sanitizeNoSQLInput(req.body);
     const { subscription, settings } = sanitized;
     const user = await UserServices.updatePushSubscription(userId, subscription, settings);
-    res.json({
+    res.status(200).json({
         success: true,
         message: 'Push subscription updated',
         data: {
@@ -387,7 +387,7 @@ export const updateNotificationSettings = asyncHandler(async (req: Request, res:
         healthTips,
         promotions,
     });
-    res.json({
+    res.status(200).json({
         success: true,
         message: 'Notification settings updated',
         data: { notificationSettings: user.notificationSettings },
