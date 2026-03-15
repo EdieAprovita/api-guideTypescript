@@ -243,6 +243,13 @@ export const rateLimits = {
         max: 10, // 10 uploads per window
         message: 'Upload rate limit exceeded. Please try again later.',
     }),
+
+    // Push subscription endpoints - tight limit (subscription changes rarely, keys are sensitive)
+    push: createRateLimitOrBypass({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 10, // 10 subscription changes per window
+        message: 'Push subscription rate limit exceeded. Please try again later.',
+    }),
 };
 
 // Validation error handler
