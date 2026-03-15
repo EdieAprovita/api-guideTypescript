@@ -28,11 +28,13 @@ type ControllerFn = (req: Request, res: Response, next: NextFunction) => Promise
 // ---------------------------------------------------------------------------
 const mockUpdatePushSubscription = vi.fn();
 const mockUpdateNotificationSettings = vi.fn();
+const mockDeletePushSubscription = vi.fn();
 
 vi.mock('@/services/UserService.js', () => ({
     default: {
         updatePushSubscription: mockUpdatePushSubscription,
         updateNotificationSettings: mockUpdateNotificationSettings,
+        deletePushSubscription: mockDeletePushSubscription,
         loginUser: vi.fn(),
         registerUser: vi.fn(),
         findAllUsers: vi.fn(),
@@ -768,5 +770,74 @@ describe('mergeNotificationSettings (via UserService.updateNotificationSettings)
         const second = merge(incoming, first);
 
         expect(second).toEqual(first);
+    });
+});
+
+// ===========================================================================
+// DELETE /api/v1/users/push-subscription — deletePushSubscription
+// ===========================================================================
+
+describe('deletePushSubscription controller', () => {
+    let deletePushSubscription: ControllerFn;
+    let req: Request;
+    let res: Response;
+    let next: NextFunction;
+
+    beforeAll(async () => {
+        ({ deletePushSubscription } = await import('@/controllers/userControllers.js'));
+    });
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockDeletePushSubscription.mockResolvedValue({ _id: 'user123' });
+        req = testUtils.createMockRequest({ user: { _id: 'user123', role: 'user' } }) as Request;
+        ({ res, next } = createMocks());
+    });
+
+    it('deletes subscription and returns 200', async () => {
+        await deletePushSubscription(req, res, next);
+
+        expect(mockDeletePushSubscription).toHaveBeenCalledWith('user123');
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({
+            success: true,
+            message: 'Push subscription deleted',
+        });
+    });
+
+    it('returns 401 when user not authenticated', async () => {
+        req = testUtils.createMockRequest({}) as Request;
+        delete (req as Record<string, unknown>).user;
+
+        await deletePushSubscription(req, res, next);
+
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 401 }));
+    });
+
+    it('does not invoke UserService when user is missing', async () => {
+        req = testUtils.createMockRequest({}) as Request;
+        delete (req as Record<string, unknown>).user;
+
+        await deletePushSubscription(req, res, next);
+
+        expect(mockDeletePushSubscription).not.toHaveBeenCalled();
+    });
+
+    it('forwards NOT_FOUND error to next() when service throws 404', async () => {
+        const { HttpError, HttpStatusCode } = await import('@/types/Errors.js');
+        mockDeletePushSubscription.mockRejectedValue(new HttpError(HttpStatusCode.NOT_FOUND, 'User not found'));
+
+        await deletePushSubscription(req, res, next);
+
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
+    });
+
+    it('does not send a response body when service throws 404', async () => {
+        const { HttpError, HttpStatusCode } = await import('@/types/Errors.js');
+        mockDeletePushSubscription.mockRejectedValue(new HttpError(HttpStatusCode.NOT_FOUND, 'User not found'));
+
+        await deletePushSubscription(req, res, next);
+
+        expect(res.json).not.toHaveBeenCalled();
     });
 });

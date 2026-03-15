@@ -16,6 +16,7 @@ import {
     deleteUserById,
     updatePushSubscription,
     updateNotificationSettings,
+    deletePushSubscription,
 } from '../controllers/userControllers.js';
 
 const router = express.Router();
@@ -134,6 +135,8 @@ router.put(
     validate({ body: userSchemas.updateNotificationSettings }),
     updateNotificationSettings
 );
+
+router.delete('/push-subscription', protect, rateLimits.push, deletePushSubscription);
 
 router.get('/:id', rateLimits.api, protect, admin, validate({ params: paramSchemas.id }), getUserById);
 
