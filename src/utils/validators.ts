@@ -129,7 +129,7 @@ export const userSchemas = {
 
     updatePushSubscription: Joi.object({
         subscription: Joi.object({
-            endpoint: Joi.string().uri().required(),
+            endpoint: Joi.string().uri({ scheme: ['https'] }).required(),
             keys: Joi.object({
                 p256dh: Joi.string().required(),
                 auth: Joi.string().required(),

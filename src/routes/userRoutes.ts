@@ -120,7 +120,7 @@ router.patch(
 router.put(
     '/push-subscription',
     rateLimits.api,
-    validateInputLength(4096),
+    validateInputLength(2048),
     protect,
     validate({ body: userSchemas.updatePushSubscription }),
     updatePushSubscription
@@ -129,6 +129,7 @@ router.put(
 router.put(
     '/push-settings',
     rateLimits.api,
+    validateInputLength(512),
     protect,
     validate({ body: userSchemas.updateNotificationSettings }),
     updateNotificationSettings

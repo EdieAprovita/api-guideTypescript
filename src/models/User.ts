@@ -31,7 +31,7 @@ export interface IUser extends Document {
     pushSubscription?: {
         endpoint: string;
         keys: { p256dh: string; auth: string };
-    };
+    } | null;
     notificationSettings?: {
         enabled: boolean;
         newRestaurants: boolean;
@@ -39,7 +39,7 @@ export interface IUser extends Document {
         communityUpdates: boolean;
         healthTips: boolean;
         promotions: boolean;
-    };
+    } | null;
     matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
@@ -108,8 +108,11 @@ const userSchema = new Schema<IUser>(
             type: {
                 endpoint: { type: String },
                 keys: {
-                    p256dh: { type: String },
-                    auth: { type: String },
+                    type: {
+                        p256dh: { type: String },
+                        auth: { type: String },
+                    },
+                    _id: false,
                 },
             },
             required: false,

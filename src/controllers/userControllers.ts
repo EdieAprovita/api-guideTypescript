@@ -358,7 +358,10 @@ export const updatePushSubscription = asyncHandler(async (req: Request, res: Res
     res.json({
         success: true,
         message: 'Push subscription updated',
-        data: { pushSubscription: user.pushSubscription, notificationSettings: user.notificationSettings },
+        data: {
+            pushSubscription: user.pushSubscription ? { endpoint: user.pushSubscription.endpoint } : undefined,
+            notificationSettings: user.notificationSettings,
+        },
     });
 });
 
