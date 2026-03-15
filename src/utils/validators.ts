@@ -134,7 +134,7 @@ export const userSchemas = {
                 .required(),
             keys: Joi.object({
                 p256dh: Joi.string().max(200).required(),
-                auth:   Joi.string().max(100).required(),
+                auth: Joi.string().max(100).required(),
             }).required(),
         }).required(),
         settings: Joi.object({

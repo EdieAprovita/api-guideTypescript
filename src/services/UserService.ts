@@ -223,12 +223,12 @@ class UserService extends BaseService {
         existing?: IUser['notificationSettings']
     ): NonNullable<IUser['notificationSettings']> {
         return {
-            enabled:          incoming.enabled          ?? existing?.enabled          ?? true,
-            newRestaurants:   incoming.newRestaurants   ?? existing?.newRestaurants   ?? true,
-            newRecipes:       incoming.newRecipes        ?? existing?.newRecipes        ?? true,
-            communityUpdates: incoming.communityUpdates  ?? existing?.communityUpdates  ?? true,
-            healthTips:       incoming.healthTips        ?? existing?.healthTips        ?? false,
-            promotions:       incoming.promotions        ?? existing?.promotions        ?? false,
+            enabled: incoming.enabled ?? existing?.enabled ?? true,
+            newRestaurants: incoming.newRestaurants ?? existing?.newRestaurants ?? true,
+            newRecipes: incoming.newRecipes ?? existing?.newRecipes ?? true,
+            communityUpdates: incoming.communityUpdates ?? existing?.communityUpdates ?? true,
+            healthTips: incoming.healthTips ?? existing?.healthTips ?? false,
+            promotions: incoming.promotions ?? existing?.promotions ?? false,
         };
     }
 
