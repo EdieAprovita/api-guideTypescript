@@ -4,6 +4,7 @@ import * as jwtNamespace from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { setupTestEnvironment, cleanupTestEnvironment } from '../testConfig.js';
 import { TokenService } from '../../services/TokenService.js';
+import { TokenRevokedError } from '../../types/Errors.js';
 import type { Redis as RedisType } from 'ioredis';
 
 type MockRedis = {
@@ -198,7 +199,7 @@ describe('TokenService', () => {
             mockRedis.get.mockResolvedValue('revoked');
 
             await expect(service.verifyAccessToken('blacklisted-token'))
-                .rejects.toThrow('Invalid or expired access token: Token has been revoked');
+                .rejects.toThrow(TokenRevokedError);
         });
 
         it('should handle verification errors', async () => {
@@ -225,7 +226,7 @@ describe('TokenService', () => {
             mockRedis.get.mockResolvedValue('revoked');
 
             await expect(service.verifyAccessToken('revoked-token'))
-                .rejects.toThrow('Invalid or expired access token: Token has been revoked');
+                .rejects.toThrow(TokenRevokedError);
         });
     });
 

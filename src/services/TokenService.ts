@@ -291,12 +291,12 @@ class TokenService {
 
             return decoded;
         } catch (error) {
-            if (error instanceof jwt.JsonWebTokenError) {
-                throw new Error(`JWT verification failed: ${error.message}`);
-            } else if (error instanceof jwt.TokenExpiredError) {
+            if (error instanceof jwt.TokenExpiredError) {
                 throw new Error('Token has expired');
             } else if (error instanceof jwt.NotBeforeError) {
                 throw new Error('Token not active yet');
+            } else if (error instanceof jwt.JsonWebTokenError) {
+                throw new Error(`JWT verification failed: ${error.message}`);
             } else {
                 throw error;
             }
@@ -307,7 +307,11 @@ class TokenService {
         this.ensureInitialized();
         try {
             return await this.verifyToken(token, this.accessTokenSecret!);
-        } catch (error) {
+        } catch (error: unknown) {
+            // Preserve TokenRevokedError so errorHandler can map it to 401
+            if (error instanceof TokenRevokedError) {
+                throw error;
+            }
             const message = error instanceof Error ? error.message : 'Unknown error';
             throw new Error(`Invalid or expired access token: ${message}`);
         }

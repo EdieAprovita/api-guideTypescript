@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { HttpError, HttpStatusCode, TokenRevokedError } from '../types/Errors.js';
 import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
-import { errorHandler } from './errorHandler.js';
 import TokenService from '../services/TokenService.js';
 
 // Define interface for authenticated user
@@ -62,10 +61,9 @@ const verifyTokenAndGetPayload = async (token: string) => {
         const payload = await TokenService.verifyAccessToken(token);
 
         return payload;
-    } catch (error) {
-        if (process.env.NODE_ENV === 'test') {
-            console.error('Token verification failed:', error);
-            console.error('Token:', token);
+    } catch (error: unknown) {
+        if (error instanceof TokenRevokedError) {
+            throw error; // let protect's next(error) propagate it to errorHandler
         }
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid or expired token');
     }
@@ -104,7 +102,7 @@ const validateUserAccount = async (userId: string) => {
  * @returns {Promise<void>}
  */
 
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
+export const protect = async (req: Request, _res: Response, next: NextFunction) => {
     try {
         const token = extractToken(req);
         if (!token) {
@@ -124,12 +122,9 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         // Validate user account for production
         const currentUser = await validateUserAccount(payload.userId);
         req.user = currentUser;
-        next();
+        return next();
     } catch (error) {
-        if (process.env.NODE_ENV === 'test') {
-            console.error('Authentication middleware error:', error);
-        }
-        errorHandler(error instanceof Error ? error : new Error('Unknown error'), req, res, next);
+        return next(error);
     }
 };
 
@@ -273,9 +268,13 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
             path: '/',
         });
 
-        next();
+        return next();
     } catch (error) {
-        errorHandler(error instanceof Error ? error : new Error('Logout failed'), req, res, next);
+        if (error instanceof Error) {
+            return next(error);
+        }
+        logger.error('Error during logout', { error });
+        return next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'Logout failed'));
     }
 };
 
