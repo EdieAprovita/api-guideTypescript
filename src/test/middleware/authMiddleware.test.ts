@@ -29,16 +29,6 @@ vi.mock('../../utils/logger', () => ({
     },
 }));
 
-// Capture the error passed to errorHandler so we can assert on it
-let capturedError: Error | null = null;
-vi.mock('../../middleware/errorHandler', () => ({
-    errorHandler: vi.fn((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-        capturedError = err;
-        const statusCode = err instanceof HttpError ? (err as HttpError).statusCode : 500;
-        res.status(statusCode).json({ message: err.message });
-    }),
-}));
-
 import { protect } from '../../middleware/authMiddleware.js';
 import TokenService from '../../services/TokenService.js';
 import { User } from '../../models/User.js';
@@ -73,7 +63,6 @@ function mockUserLookup(userData: Record<string, unknown>) {
 describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        capturedError = null;
         // Force non-test env so protect() runs validateUserAccount
         // instead of short-circuiting via handleTestEnvironment
         process.env.NODE_ENV = 'development';
@@ -105,8 +94,11 @@ describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => 
 
         await protect(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(HttpStatusCode.UNAUTHORIZED);
-        expect(capturedError?.message).toContain('inactive');
+        expect(next).toHaveBeenCalledOnce();
+        const err = vi.mocked(next).mock.calls[0][0] as HttpError;
+        expect(err).toBeInstanceOf(HttpError);
+        expect(err.statusCode).toBe(HttpStatusCode.UNAUTHORIZED);
+        expect(err.message).toContain('inactive');
     });
 
     it('should DENY access when isDeleted=false and isActive=false (regression: ?? vs ||)', async () => {
@@ -128,8 +120,11 @@ describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => 
 
         await protect(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(HttpStatusCode.UNAUTHORIZED);
-        expect(capturedError?.message).toContain('inactive');
+        expect(next).toHaveBeenCalledOnce();
+        const err = vi.mocked(next).mock.calls[0][0] as HttpError;
+        expect(err).toBeInstanceOf(HttpError);
+        expect(err.statusCode).toBe(HttpStatusCode.UNAUTHORIZED);
+        expect(err.message).toContain('inactive');
     });
 
     it('should ALLOW access when isDeleted=false and isActive=true', async () => {
@@ -148,7 +143,8 @@ describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => 
         await protect(req, res, next);
 
         // next() called without error — user passes validation
-        expect(next).toHaveBeenCalled();
+        expect(next).toHaveBeenCalledOnce();
+        expect(vi.mocked(next).mock.calls[0][0]).toBeUndefined();
         expect(req.user).toBeDefined();
     });
 
@@ -167,7 +163,10 @@ describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => 
 
         await protect(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(HttpStatusCode.UNAUTHORIZED);
+        expect(next).toHaveBeenCalledOnce();
+        const err = vi.mocked(next).mock.calls[0][0] as HttpError;
+        expect(err).toBeInstanceOf(HttpError);
+        expect(err.statusCode).toBe(HttpStatusCode.UNAUTHORIZED);
     });
 
     it('should return 503 when Redis is unavailable during token revocation check', async () => {
@@ -179,7 +178,10 @@ describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => 
 
         await protect(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(HttpStatusCode.SERVICE_UNAVAILABLE);
-        expect(capturedError?.message).toContain('temporarily unavailable');
+        expect(next).toHaveBeenCalledOnce();
+        const err = vi.mocked(next).mock.calls[0][0] as HttpError;
+        expect(err).toBeInstanceOf(HttpError);
+        expect(err.statusCode).toBe(HttpStatusCode.SERVICE_UNAVAILABLE);
+        expect(err.message).toContain('temporarily unavailable');
     });
 });

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { HttpError, HttpStatusCode, TokenRevokedError } from '../types/Errors.js';
 import logger from '../utils/logger.js';
 
 type UnknownError = {
@@ -121,6 +121,14 @@ const handleGenericObjectError = (err: UnknownError): ErrorResult => {
 };
 
 const processError = (err: unknown): ErrorResult => {
+    if (err instanceof TokenRevokedError) {
+        return {
+            status: HttpStatusCode.UNAUTHORIZED,
+            message: 'Token has been revoked',
+            errorDetail: 'Token has been revoked',
+        };
+    }
+
     if (err instanceof HttpError) {
         return handleHttpError(err);
     }

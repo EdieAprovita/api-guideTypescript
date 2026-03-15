@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
-import { errorHandler } from './errorHandler.js';
 import TokenService from '../services/TokenService.js';
 
 // Define interface for authenticated user
@@ -104,7 +103,7 @@ const validateUserAccount = async (userId: string) => {
  * @returns {Promise<void>}
  */
 
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
+export const protect = async (req: Request, _res: Response, next: NextFunction) => {
     try {
         const token = extractToken(req);
         if (!token) {
@@ -129,7 +128,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         if (process.env.NODE_ENV === 'test') {
             console.error('Authentication middleware error:', error);
         }
-        errorHandler(error instanceof Error ? error : new Error('Unknown error'), req, res, next);
+        return next(error instanceof Error ? error : new Error(String(error)));
     }
 };
 
@@ -275,7 +274,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 
         next();
     } catch (error) {
-        errorHandler(error instanceof Error ? error : new Error('Logout failed'), req, res, next);
+        return next(error instanceof Error ? error : new Error(String(error)));
     }
 };
 
