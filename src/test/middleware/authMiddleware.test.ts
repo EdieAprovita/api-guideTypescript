@@ -173,6 +173,20 @@ describe('authMiddleware — logout', () => {
         process.env.NODE_ENV = originalNodeEnv;
     });
 
+    it('should call next() without error and clear the jwt cookie on successful logout', async () => {
+        vi.mocked(TokenService.blacklistToken).mockResolvedValueOnce(undefined);
+
+        const { req, res, next } = createMocks({
+            cookies: { jwt: 'valid-token' },
+        });
+
+        await logout(req, res, next);
+
+        expect(next).toHaveBeenCalledOnce();
+        expect(next).toHaveBeenCalledWith(); // no arguments = success
+        expect(res.clearCookie).toHaveBeenCalledWith('jwt', expect.any(Object));
+    });
+
     it('should call next(error) when blacklistToken rejects', async () => {
         const blacklistError = new Error('Redis write failed');
         vi.mocked(TokenService.blacklistToken).mockRejectedValue(blacklistError);

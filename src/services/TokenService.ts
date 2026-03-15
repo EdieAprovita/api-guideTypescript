@@ -307,7 +307,11 @@ class TokenService {
         this.ensureInitialized();
         try {
             return await this.verifyToken(token, this.accessTokenSecret!);
-        } catch (error) {
+        } catch (error: unknown) {
+            // Preserve TokenRevokedError so errorHandler can map it to 401
+            if (error instanceof TokenRevokedError) {
+                throw error;
+            }
             const message = error instanceof Error ? error.message : 'Unknown error';
             throw new Error(`Invalid or expired access token: ${message}`);
         }

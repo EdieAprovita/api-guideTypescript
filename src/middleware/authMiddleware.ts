@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { HttpError, HttpStatusCode } from '../types/Errors.js';
+import { HttpError, HttpStatusCode, TokenRevokedError } from '../types/Errors.js';
 import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
 import TokenService from '../services/TokenService.js';
@@ -61,10 +61,9 @@ const verifyTokenAndGetPayload = async (token: string) => {
         const payload = await TokenService.verifyAccessToken(token);
 
         return payload;
-    } catch (error) {
-        if (process.env.NODE_ENV === 'test') {
-            console.error('Token verification failed:', error);
-            console.error('Token:', token);
+    } catch (error: unknown) {
+        if (error instanceof TokenRevokedError) {
+            throw error; // let protect's next(error) propagate it to errorHandler
         }
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Invalid or expired token');
     }
