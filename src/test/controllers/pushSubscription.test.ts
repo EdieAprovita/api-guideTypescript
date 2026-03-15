@@ -391,6 +391,43 @@ describe('updatePushSubscription controller', () => {
             expect(json.success).toBe(false);
         });
     });
+
+    // -------------------------------------------------------------------------
+    // 404 — user deleted between auth middleware and service call
+    // -------------------------------------------------------------------------
+
+    describe('404 — user not found at service level', () => {
+        it('forwards NOT_FOUND error to next() when service throws 404', async () => {
+            const { HttpError, HttpStatusCode } = await import('@/types/Errors.js');
+            mockUpdatePushSubscription.mockRejectedValue(new HttpError(HttpStatusCode.NOT_FOUND, 'User not found'));
+
+            const req = testUtils.createMockRequest({
+                body: { subscription: VALID_SUBSCRIPTION },
+                user: { _id: 'user123', role: 'user' },
+            }) as Request;
+
+            await updatePushSubscription(req, res, next);
+
+            expect(next).toHaveBeenCalledOnce();
+            const err = (next as ReturnType<typeof vi.fn>).mock.calls[0][0];
+            expect(err).toBeDefined();
+            expect(err.statusCode ?? err.status).toBe(404);
+        });
+
+        it('does not send a response when service throws 404', async () => {
+            const { HttpError, HttpStatusCode } = await import('@/types/Errors.js');
+            mockUpdatePushSubscription.mockRejectedValue(new HttpError(HttpStatusCode.NOT_FOUND, 'User not found'));
+
+            const req = testUtils.createMockRequest({
+                body: { subscription: VALID_SUBSCRIPTION },
+                user: { _id: 'user123', role: 'user' },
+            }) as Request;
+
+            await updatePushSubscription(req, res, next);
+
+            expect(res.json).not.toHaveBeenCalled();
+        });
+    });
 });
 
 // ===========================================================================

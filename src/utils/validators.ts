@@ -135,11 +135,11 @@ export const userSchemas = {
                 .required(),
             keys: Joi.object({
                 p256dh: Joi.string()
-                    .pattern(/^[A-Za-z0-9_-]+=*$/)
+                    .pattern(/^[A-Za-z0-9_-]+(={0,2})?$/)
                     .max(200)
                     .required(),
                 auth: Joi.string()
-                    .pattern(/^[A-Za-z0-9_-]+=*$/)
+                    .pattern(/^[A-Za-z0-9_-]+(={0,2})?$/)
                     .max(100)
                     .required(),
             }).required(),
