@@ -115,11 +115,11 @@ if (process.env.NODE_ENV !== 'test') {
 if (process.env.NODE_ENV !== 'test') {
     app.use(validateUserAgent);
 } // Block malicious user agents
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(limitRequestSize(10 * 1024 * 1024)); // Pre-parse gate: rejects oversized streams via Content-Length header before any body parsing occurs
+app.use(express.json({ limit: '10mb' })); // Second line of defense: enforces 10MB cap post-parse
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Second line of defense: enforces 10MB cap post-parse
 app.use(cookieParser());
-app.use(limitRequestSize(10 * 1024 * 1024)); // 10MB global limit — must run after parsers so req.body is populated
-app.use(detectSuspiciousActivity); // Detect and block suspicious patterns
+app.use(detectSuspiciousActivity); // Runs after parsers so req.body is available for pattern inspection
 
 // app.use(mongoSanitize()); // prevent MongoDB operator injection - disabled due to version conflict
 app.use(xssSanitizer()); // sanitize user input against XSS using secure DOMPurify
