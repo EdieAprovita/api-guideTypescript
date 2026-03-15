@@ -133,8 +133,8 @@ export const userSchemas = {
                 .uri({ scheme: ['https'] })
                 .required(),
             keys: Joi.object({
-                p256dh: Joi.string().required(),
-                auth: Joi.string().required(),
+                p256dh: Joi.string().max(200).required(),
+                auth:   Joi.string().max(100).required(),
             }).required(),
         }).required(),
         settings: Joi.object({

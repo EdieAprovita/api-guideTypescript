@@ -201,14 +201,7 @@ class UserService extends BaseService {
         }
         user.pushSubscription = subscription;
         if (settings) {
-            user.notificationSettings = {
-                enabled: settings.enabled ?? user.notificationSettings?.enabled ?? true,
-                newRestaurants: settings.newRestaurants ?? user.notificationSettings?.newRestaurants ?? true,
-                newRecipes: settings.newRecipes ?? user.notificationSettings?.newRecipes ?? true,
-                communityUpdates: settings.communityUpdates ?? user.notificationSettings?.communityUpdates ?? true,
-                healthTips: settings.healthTips ?? user.notificationSettings?.healthTips ?? false,
-                promotions: settings.promotions ?? user.notificationSettings?.promotions ?? false,
-            };
+            user.notificationSettings = this.mergeNotificationSettings(settings, user.notificationSettings);
         }
         return user.save();
     }
@@ -221,15 +214,22 @@ class UserService extends BaseService {
         if (!user) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
         }
-        user.notificationSettings = {
-            enabled: settings.enabled ?? user.notificationSettings?.enabled ?? true,
-            newRestaurants: settings.newRestaurants ?? user.notificationSettings?.newRestaurants ?? true,
-            newRecipes: settings.newRecipes ?? user.notificationSettings?.newRecipes ?? true,
-            communityUpdates: settings.communityUpdates ?? user.notificationSettings?.communityUpdates ?? true,
-            healthTips: settings.healthTips ?? user.notificationSettings?.healthTips ?? false,
-            promotions: settings.promotions ?? user.notificationSettings?.promotions ?? false,
-        };
+        user.notificationSettings = this.mergeNotificationSettings(settings, user.notificationSettings);
         return user.save();
+    }
+
+    private mergeNotificationSettings(
+        incoming: Partial<NonNullable<IUser['notificationSettings']>>,
+        existing?: IUser['notificationSettings']
+    ): NonNullable<IUser['notificationSettings']> {
+        return {
+            enabled:          incoming.enabled          ?? existing?.enabled          ?? true,
+            newRestaurants:   incoming.newRestaurants   ?? existing?.newRestaurants   ?? true,
+            newRecipes:       incoming.newRecipes        ?? existing?.newRecipes        ?? true,
+            communityUpdates: incoming.communityUpdates  ?? existing?.communityUpdates  ?? true,
+            healthTips:       incoming.healthTips        ?? existing?.healthTips        ?? false,
+            promotions:       incoming.promotions        ?? existing?.promotions        ?? false,
+        };
     }
 
     private getUserResponse(user: IUser) {
