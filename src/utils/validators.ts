@@ -144,6 +144,8 @@ export const userSchemas = {
                     .required(),
             }).required(),
         }).required(),
+        // settings: {} is valid and treated as a no-op — existing settings are preserved.
+        // Omitting settings entirely is equivalent to passing settings: {}.
         settings: Joi.object({
             enabled: Joi.boolean(),
             newRestaurants: Joi.boolean(),

@@ -594,7 +594,9 @@ describe('mergeNotificationSettings (via UserService.updateNotificationSettings)
         // This is the canonical approach when a private method has no
         // separate export: test the observable contract through the public API.
 
-        // The real merge logic from UserService (line-for-line mirror):
+        // Mirrors UserService.mergeNotificationSettings — update both if logic changes.
+        // TODO: extract to a standalone exported helper (e.g. src/utils/userUtils.ts)
+        // if this function grows beyond simple ?? fallbacks, so tests can import the real impl.
         const merge = (incoming: Partial<typeof existing>, ex?: typeof existing): typeof existing => ({
             enabled: incoming.enabled ?? ex?.enabled ?? true,
             newRestaurants: incoming.newRestaurants ?? ex?.newRestaurants ?? true,
