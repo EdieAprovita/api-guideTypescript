@@ -60,8 +60,8 @@ const makeUser = (overrides: Record<string, unknown> = {}) => ({
         newRestaurants: true,
         newRecipes: true,
         communityUpdates: true,
-        healthTips: false,
-        promotions: false,
+        healthTips: true,
+        promotions: true,
     },
     ...overrides,
 });
@@ -78,14 +78,15 @@ describe('NotificationService', () => {
 
     beforeEach(async () => {
         vi.resetModules();
-        // Set VAPID env vars before importing the module
+        // Set VAPID env vars before importing the module so isConfigured() returns true.
         Object.assign(process.env, VAPID_ENV);
 
-        // Re-import after resetting modules so VAPID is picked up
+        // Re-import after resetting modules so module-level VAPID constants are re-evaluated.
         service = (await import('../../services/NotificationService.js')).default;
 
         mockFindById = vi.mocked(User.findById);
-        mockSendNotification = vi.mocked((webpush as unknown as { sendNotification: typeof vi.fn }).sendNotification);
+        // webpush default export is { setVapidDetails, sendNotification } per the mock factory.
+        mockSendNotification = vi.mocked(webpush).sendNotification as ReturnType<typeof vi.fn>;
         mockUpdateOne = vi.mocked(User.updateOne);
     });
 
@@ -115,8 +116,7 @@ describe('NotificationService', () => {
 
     describe('sendToUser()', () => {
         it('sends notification on happy path', async () => {
-            const user = makeUser();
-            mockFindById.mockReturnValue({ select: vi.fn().mockResolvedValue(user) });
+            mockFindById.mockReturnValue({ select: vi.fn().mockResolvedValue(makeUser()) });
             mockSendNotification.mockResolvedValue(undefined);
 
             await service.sendToUser('user123', PAYLOAD, 'newRestaurant');
@@ -138,6 +138,18 @@ describe('NotificationService', () => {
             expect(mockSendNotification).not.toHaveBeenCalled();
             expect(vi.mocked(logger.warn)).toHaveBeenCalledWith(
                 'NotificationService: VAPID not configured — push skipped',
+                expect.any(Object)
+            );
+        });
+
+        it('skips when user is not found in DB', async () => {
+            mockFindById.mockReturnValue({ select: vi.fn().mockResolvedValue(null) });
+
+            await service.sendToUser('nonexistent', PAYLOAD, 'newRestaurant');
+
+            expect(mockSendNotification).not.toHaveBeenCalled();
+            expect(vi.mocked(logger.warn)).toHaveBeenCalledWith(
+                'NotificationService: user not found',
                 expect.any(Object)
             );
         });
@@ -171,15 +183,27 @@ describe('NotificationService', () => {
             );
         });
 
-        it('skips when specific event type is disabled', async () => {
+        it('skips when specific event type is disabled (validates EVENT_SETTING_MAP)', async () => {
+            // All settings explicitly true except healthTips — validates the correct key is checked.
             const user = makeUser({
-                notificationSettings: { ...makeUser().notificationSettings, healthTips: false },
+                notificationSettings: {
+                    enabled: true,
+                    newRestaurants: true,
+                    newRecipes: true,
+                    communityUpdates: true,
+                    healthTips: false, // the one under test
+                    promotions: true, // explicitly true to catch wrong key mapping
+                },
             });
             mockFindById.mockReturnValue({ select: vi.fn().mockResolvedValue(user) });
 
             await service.sendToUser('user123', PAYLOAD, 'healthTip');
 
             expect(mockSendNotification).not.toHaveBeenCalled();
+            expect(vi.mocked(logger.debug)).toHaveBeenCalledWith(
+                'NotificationService: event type disabled for user',
+                expect.any(Object)
+            );
         });
 
         it('auto-deletes subscription on 410 Gone', async () => {
@@ -190,21 +214,19 @@ describe('NotificationService', () => {
 
             await service.sendToUser('user123', PAYLOAD, 'newRestaurant');
 
-            expect(mockUpdateOne).toHaveBeenCalledWith(
-                { _id: 'user123' },
-                { $unset: { pushSubscription: 1 } }
-            );
+            expect(mockSendNotification).toHaveBeenCalledOnce();
+            expect(mockUpdateOne).toHaveBeenCalledWith({ _id: 'user123' }, { $unset: { pushSubscription: 1 } });
             expect(vi.mocked(logger.info)).toHaveBeenCalledWith(
                 'NotificationService: stale subscription removed (410 Gone)',
                 expect.any(Object)
             );
         });
 
-        it('logs error without throwing on non-410 webpush failure', async () => {
+        it('logs error and rethrows on non-410 webpush failure (enables broadcast to count it)', async () => {
             mockFindById.mockReturnValue({ select: vi.fn().mockResolvedValue(makeUser()) });
             mockSendNotification.mockRejectedValue(new Error('Network error'));
 
-            await expect(service.sendToUser('user123', PAYLOAD, 'newRecipe')).resolves.toBeUndefined();
+            await expect(service.sendToUser('user123', PAYLOAD, 'newRecipe')).rejects.toThrow('Network error');
 
             expect(vi.mocked(logger.error)).toHaveBeenCalledWith(
                 'NotificationService: failed to send push notification',
@@ -251,6 +273,11 @@ describe('NotificationService', () => {
                 'NotificationService: broadcast had failures',
                 expect.objectContaining({ failed: 1, total: 3 })
             );
+        });
+
+        it('resolves immediately with no warnings for an empty userIds array', async () => {
+            await expect(service.broadcast([], PAYLOAD, 'newRestaurant')).resolves.toBeUndefined();
+            expect(vi.mocked(logger.warn)).not.toHaveBeenCalled();
         });
     });
 });

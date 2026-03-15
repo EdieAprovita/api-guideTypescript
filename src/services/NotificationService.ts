@@ -2,7 +2,7 @@ import webpush, { WebPushError } from 'web-push';
 import { User } from '../models/User.js';
 import logger from '../utils/logger.js';
 
-// VAPID keys loaded at module init — missing keys disable push silently in dev.
+// VAPID keys loaded at module init — missing keys emit a warn log and skip push.
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT;
@@ -19,12 +19,7 @@ export interface PushPayload {
     data?: Record<string, unknown>;
 }
 
-export type NotificationEvent =
-    | 'newRestaurant'
-    | 'newRecipe'
-    | 'communityUpdate'
-    | 'healthTip'
-    | 'promotion';
+export type NotificationEvent = 'newRestaurant' | 'newRecipe' | 'communityUpdate' | 'healthTip' | 'promotion';
 
 // Maps each event type to the corresponding notificationSettings field.
 const EVENT_SETTING_MAP: Record<
@@ -50,29 +45,30 @@ class NotificationService {
     /**
      * Sends a push notification to a single user.
      *
-     * Silently skips if:
-     * - VAPID is not configured (dev environment)
-     * - User has no pushSubscription stored
-     * - User has notifications globally disabled
-     * - User has the specific event type disabled
+     * Logs and returns early if:
+     * - VAPID is not configured (warn)
+     * - User not found in DB (warn)
+     * - User has no pushSubscription stored (debug)
+     * - User has notifications globally disabled (debug)
+     * - User has the specific event type disabled (debug)
      *
      * Auto-deletes stale subscriptions on HTTP 410 Gone.
+     * Throws for non-410 delivery failures so broadcast() can count them.
      */
-    async sendToUser(
-        userId: string,
-        payload: PushPayload,
-        event: NotificationEvent
-    ): Promise<void> {
+    async sendToUser(userId: string, payload: PushPayload, event: NotificationEvent): Promise<void> {
         if (!this.isConfigured()) {
             logger.warn('NotificationService: VAPID not configured — push skipped', { userId, event });
             return;
         }
 
-        const user = await User.findById(userId).select(
-            '+pushSubscription +notificationSettings'
-        );
+        const user = await User.findById(userId).select('pushSubscription notificationSettings');
 
-        if (!user?.pushSubscription) {
+        if (!user) {
+            logger.warn('NotificationService: user not found', { userId });
+            return;
+        }
+
+        if (!user.pushSubscription) {
             logger.debug('NotificationService: user has no push subscription', { userId });
             return;
         }
@@ -104,11 +100,16 @@ class NotificationService {
             logger.info('NotificationService: push notification sent', { userId, event });
         } catch (err) {
             if (err instanceof WebPushError && err.statusCode === 410) {
-                // Subscription expired or revoked — clean it up to avoid future attempts.
-                await User.updateOne({ _id: userId }, { $unset: { pushSubscription: 1 } });
-                logger.info('NotificationService: stale subscription removed (410 Gone)', {
-                    userId,
-                });
+                // Subscription expired or revoked — best-effort cleanup to avoid future attempts.
+                try {
+                    await User.updateOne({ _id: userId }, { $unset: { pushSubscription: 1 } });
+                    logger.info('NotificationService: stale subscription removed (410 Gone)', { userId });
+                } catch (dbErr) {
+                    logger.error('NotificationService: failed to clean stale subscription', {
+                        userId,
+                        error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+                    });
+                }
                 return;
             }
 
@@ -117,6 +118,7 @@ class NotificationService {
                 event,
                 error: err instanceof Error ? err.message : String(err),
             });
+            throw err;
         }
     }
 
@@ -124,16 +126,10 @@ class NotificationService {
      * Sends a push notification to multiple users concurrently.
      * Uses allSettled so a single failure never blocks the rest.
      */
-    async broadcast(
-        userIds: string[],
-        payload: PushPayload,
-        event: NotificationEvent
-    ): Promise<void> {
-        const results = await Promise.allSettled(
-            userIds.map((userId) => this.sendToUser(userId, payload, event))
-        );
+    async broadcast(userIds: string[], payload: PushPayload, event: NotificationEvent): Promise<void> {
+        const results = await Promise.allSettled(userIds.map(userId => this.sendToUser(userId, payload, event)));
 
-        const failed = results.filter((r) => r.status === 'rejected').length;
+        const failed = results.filter(r => r.status === 'rejected').length;
         if (failed > 0) {
             logger.warn('NotificationService: broadcast had failures', {
                 total: userIds.length,
