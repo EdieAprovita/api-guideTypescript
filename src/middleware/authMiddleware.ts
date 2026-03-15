@@ -125,9 +125,6 @@ export const protect = async (req: Request, _res: Response, next: NextFunction) 
         req.user = currentUser;
         return next();
     } catch (error) {
-        if (process.env.NODE_ENV === 'test') {
-            console.error('Authentication middleware error:', error);
-        }
         return next(error);
     }
 };

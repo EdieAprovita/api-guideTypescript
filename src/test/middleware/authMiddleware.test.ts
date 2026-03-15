@@ -186,5 +186,21 @@ describe('authMiddleware — logout', () => {
         expect(next).toHaveBeenCalledOnce();
         const err = vi.mocked(next).mock.calls[0][0];
         expect(err).toBeInstanceOf(Error);
+        expect(err).toBe(blacklistError); // Error instances should be forwarded directly
+    });
+
+    it('should wrap non-Error throws in HttpError for logout', async () => {
+        vi.mocked(TokenService.blacklistToken).mockRejectedValueOnce('redis unavailable');
+
+        const { req, res, next } = createMocks({
+            headers: { authorization: 'Bearer some-token' } as any,
+        });
+
+        await logout(req, res, next);
+
+        expect(next).toHaveBeenCalledOnce();
+        const err = vi.mocked(next).mock.calls[0][0];
+        expect(err).toBeInstanceOf(HttpError);
+        expect((err as HttpError).statusCode).toBe(HttpStatusCode.INTERNAL_SERVER_ERROR);
     });
 });
