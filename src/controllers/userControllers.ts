@@ -378,7 +378,15 @@ export const updateNotificationSettings = asyncHandler(async (req: Request, res:
         throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User not found');
     }
     const sanitized = sanitizeNoSQLInput(req.body);
-    const user = await UserServices.updateNotificationSettings(userId, sanitized);
+    const { enabled, newRestaurants, newRecipes, communityUpdates, healthTips, promotions } = sanitized;
+    const user = await UserServices.updateNotificationSettings(userId, {
+        enabled,
+        newRestaurants,
+        newRecipes,
+        communityUpdates,
+        healthTips,
+        promotions,
+    });
     res.json({
         success: true,
         message: 'Notification settings updated',

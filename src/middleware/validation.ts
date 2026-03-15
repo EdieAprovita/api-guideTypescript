@@ -305,10 +305,12 @@ export const validateInputLength = (maxBodySize: number = 1024 * 1024) => {
         const contentLength = req.get('content-length');
 
         if (contentLength && parseInt(contentLength) > maxBodySize) {
+            const maxSizeLabel =
+                maxBodySize >= 1024 * 1024 ? `${maxBodySize / 1024 / 1024}MB` : `${Math.round(maxBodySize / 1024)}KB`;
             return res.status(413).json({
                 success: false,
                 message: 'Request body too large',
-                maxSize: `${maxBodySize / 1024 / 1024}MB`,
+                maxSize: maxSizeLabel,
             });
         }
 
