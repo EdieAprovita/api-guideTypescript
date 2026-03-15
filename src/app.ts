@@ -116,6 +116,9 @@ if (process.env.NODE_ENV !== 'test') {
     app.use(validateUserAgent);
 } // Block malicious user agents
 app.use(limitRequestSize(10 * 1024 * 1024)); // 10MB global limit
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(detectSuspiciousActivity); // Detect and block suspicious patterns
 
 // app.use(mongoSanitize()); // prevent MongoDB operator injection - disabled due to version conflict
@@ -125,9 +128,6 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(corsMiddleware);
 const enableSwaggerUI = process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER_UI === 'true';
 if (enableSwaggerUI && swaggerDocument) {
