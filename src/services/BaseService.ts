@@ -142,7 +142,7 @@ class BaseService<T extends Document> {
         // Convert string to ObjectId to prevent injection
         const objectId = new Types.ObjectId(id);
 
-        const item = await this.model.findByIdAndUpdate(objectId, data, { new: true });
+        const item = await this.model.findByIdAndUpdate(objectId, data, { new: true, runValidators: true, context: 'query' });
         if (!item) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, getErrorMessage('Item not found'));
         }

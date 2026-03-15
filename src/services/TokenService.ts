@@ -291,12 +291,12 @@ class TokenService {
 
             return decoded;
         } catch (error) {
-            if (error instanceof jwt.JsonWebTokenError) {
-                throw new Error(`JWT verification failed: ${error.message}`);
-            } else if (error instanceof jwt.TokenExpiredError) {
+            if (error instanceof jwt.TokenExpiredError) {
                 throw new Error('Token has expired');
             } else if (error instanceof jwt.NotBeforeError) {
                 throw new Error('Token not active yet');
+            } else if (error instanceof jwt.JsonWebTokenError) {
+                throw new Error(`JWT verification failed: ${error.message}`);
             } else {
                 throw error;
             }
