@@ -134,8 +134,14 @@ export const userSchemas = {
                 .max(500)
                 .required(),
             keys: Joi.object({
-                p256dh: Joi.string().max(200).required(),
-                auth: Joi.string().max(100).required(),
+                p256dh: Joi.string()
+                    .pattern(/^[A-Za-z0-9_-]+=*$/)
+                    .max(200)
+                    .required(),
+                auth: Joi.string()
+                    .pattern(/^[A-Za-z0-9_-]+=*$/)
+                    .max(100)
+                    .required(),
             }).required(),
         }).required(),
         settings: Joi.object({

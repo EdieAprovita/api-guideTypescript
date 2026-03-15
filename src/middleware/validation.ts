@@ -244,11 +244,12 @@ export const rateLimits = {
         message: 'Upload rate limit exceeded. Please try again later.',
     }),
 
-    // Push subscription endpoints - tight limit (subscription changes rarely, keys are sensitive)
+    // Push endpoints - shared budget across /push-subscription and /push-settings (10 req/window combined).
+    // Sized for infrequent subscription changes; settings calls count against the same pool.
     push: createRateLimitOrBypass({
         windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 10, // 10 subscription changes per window
-        message: 'Push subscription rate limit exceeded. Please try again later.',
+        max: 10, // 10 combined requests per window across both push endpoints
+        message: 'Push rate limit exceeded. Please try again later.',
     }),
 };
 

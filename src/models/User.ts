@@ -31,7 +31,7 @@ export interface IUser extends Document {
     pushSubscription?: {
         endpoint: string;
         keys: { p256dh: string; auth: string };
-    } | null;
+    };
     notificationSettings?: {
         enabled: boolean;
         newRestaurants: boolean;
@@ -39,7 +39,7 @@ export interface IUser extends Document {
         communityUpdates: boolean;
         healthTips: boolean;
         promotions: boolean;
-    } | null;
+    };
     matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
