@@ -59,7 +59,9 @@ vi.mock('@/utils/logger.js', () => ({
 const VALID_SUBSCRIPTION = {
     endpoint: 'https://push.example.com/subscribe/abc123',
     keys: {
-        p256dh: 'BNcRdreALRFXTkOOUHK1EtK2wtwe_ZkR4NViJpO2qDuXat5YxQ',
+        // 87-char base64url string — matches .min(87) in validators.ts (65-byte P-256 uncompressed public key)
+        p256dh: 'BDJXfKHG6xA1Wn-kye4TOF2Cp8zxFjtgharP9Bk-Y4it0vccQWaLsNX6H0RpjrPY_SJHbJG22wAlSm-Uud4DKE0',
+        // 22-char base64url string — matches .min(22) in validators.ts (16-byte VAPID auth secret)
         auth: 'tBHItJI5svbpez7KI4CCXg',
     },
 };
