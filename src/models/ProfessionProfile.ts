@@ -182,7 +182,10 @@ const professionalProfileSchema = new Schema<IProfessionProfile>(
 );
 
 // Performance indexes — Sprint 5
-professionalProfileSchema.index({ user: 1 }, { unique: true });
+professionalProfileSchema.index(
+    { user: 1 },
+    { unique: true, partialFilterExpression: { user: { $exists: true, $ne: null } } }
+);
 
 export const ProfessionalProfile =
     (mongoose.models.ProfessionalProfile as mongoose.Model<IProfessionProfile>) ||
