@@ -3,6 +3,7 @@ import express from 'express';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import requestLogger from './middleware/requestLogger.js';
+import mongoSanitize from 'express-mongo-sanitize';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
 import { responseWrapper } from './middleware/responseWrapper.js';
 import fs from 'node:fs';
@@ -19,6 +20,7 @@ import {
     validateUserAgent,
     requireAPIVersion,
 } from './middleware/security.js';
+import { sanitizeInput } from './middleware/validation.js';
 
 import userRoutes from './routes/userRoutes.js';
 import businessRoutes from './routes/businessRoutes.js';
@@ -121,7 +123,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Second line o
 app.use(cookieParser());
 app.use(detectSuspiciousActivity); // Runs after parsers so req.body is available for pattern inspection
 
-// app.use(mongoSanitize()); // prevent MongoDB operator injection - disabled due to version conflict
+app.use(mongoSanitize()); // prevent MongoDB operator injection
+app.use(...sanitizeInput()); // defense-in-depth: mongoSanitize + custom XSS patterns
 app.use(xssSanitizer()); // sanitize user input against XSS using secure DOMPurify
 
 app.use(corsMiddleware);
