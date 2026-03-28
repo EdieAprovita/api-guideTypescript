@@ -20,6 +20,7 @@ import {
     validateUserAgent,
     requireAPIVersion,
 } from './middleware/security.js';
+import { sanitizeInput } from './middleware/validation.js';
 
 import userRoutes from './routes/userRoutes.js';
 import businessRoutes from './routes/businessRoutes.js';
@@ -123,6 +124,7 @@ app.use(cookieParser());
 app.use(detectSuspiciousActivity); // Runs after parsers so req.body is available for pattern inspection
 
 app.use(mongoSanitize()); // prevent MongoDB operator injection
+app.use(...sanitizeInput()); // defense-in-depth: mongoSanitize + custom XSS patterns
 app.use(xssSanitizer()); // sanitize user input against XSS using secure DOMPurify
 
 app.use(corsMiddleware);

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Types } from 'mongoose';
+import { MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_PAGE } from '../../types/pagination';
 
 // Mock the dependencies
 vi.mock('../../types/modalTypes', () => ({
@@ -44,6 +45,47 @@ describe('BaseService', () => {
             const BaseService = (await import('../../services/BaseService')).default;
             expect(BaseService).toBeDefined();
             expect(typeof BaseService).toBe('function');
+        });
+    });
+
+    describe('Pagination constants', () => {
+        it('MAX_LIMIT should be 100', () => {
+            expect(MAX_LIMIT).toBe(100);
+        });
+
+        it('DEFAULT_LIMIT should be less than MAX_LIMIT', () => {
+            expect(DEFAULT_LIMIT).toBeGreaterThan(0);
+            expect(DEFAULT_LIMIT).toBeLessThanOrEqual(MAX_LIMIT);
+        });
+
+        it('normalizePaginationParams clamps limit to MAX_LIMIT', async () => {
+            const { normalizePaginationParams } = await import('../../types/pagination');
+            const { limit } = normalizePaginationParams(1, 9999);
+            expect(limit).toBe(MAX_LIMIT);
+        });
+
+        it('normalizePaginationParams handles zero limit', async () => {
+            const { normalizePaginationParams } = await import('../../types/pagination');
+            const { limit } = normalizePaginationParams(1, 0);
+            expect(limit).toBe(DEFAULT_LIMIT);
+        });
+
+        it('normalizePaginationParams clamps negative limit to minimum 1', async () => {
+            const { normalizePaginationParams } = await import('../../types/pagination');
+            const { limit } = normalizePaginationParams(1, -5);
+            expect(limit).toBe(1); // Math.max(1, -5) = 1
+        });
+
+        it('normalizePaginationParams handles NaN limit', async () => {
+            const { normalizePaginationParams } = await import('../../types/pagination');
+            const { limit } = normalizePaginationParams(1, NaN);
+            expect(limit).toBe(DEFAULT_LIMIT);
+        });
+
+        it('normalizePaginationParams clamps page to minimum 1', async () => {
+            const { normalizePaginationParams } = await import('../../types/pagination');
+            const { page } = normalizePaginationParams(0, 10);
+            expect(page).toBe(DEFAULT_PAGE);
         });
     });
 

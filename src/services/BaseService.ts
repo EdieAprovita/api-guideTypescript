@@ -58,8 +58,11 @@ class BaseService<T extends Document> {
         this.modelName = model.modelName.toLowerCase();
     }
 
+    /**
+     * Returns up to MAX_LIMIT documents. For full pagination use getAllPaginated().
+     */
     async getAll(): Promise<T[]> {
-        return this.model.find().limit(MAX_LIMIT);
+        return this.model.find().limit(MAX_LIMIT).exec() as Promise<T[]>;
     }
 
     async countAll(): Promise<number> {
@@ -379,7 +382,7 @@ class BaseService<T extends Document> {
         return this.model.find({}).limit(MAX_LIMIT).exec() as Promise<T[]>;
     }
 
-    protected async findWithPagination(query: FilterQuery<T>, page: number = 1, limit: number = 10): Promise<T[]> {
+    protected async findWithPagination(query: FilterQuery<T>, page?: number, limit?: number): Promise<T[]> {
         const safeLimitValue = Math.min(MAX_LIMIT, Math.max(1, Number(limit) || DEFAULT_LIMIT));
         const safePage = Math.max(1, Number(page) || DEFAULT_PAGE);
         const skip = (safePage - 1) * safeLimitValue;
