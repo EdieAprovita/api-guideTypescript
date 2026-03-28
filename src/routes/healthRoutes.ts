@@ -26,7 +26,10 @@ router.get('/', async (_req: Request, res: Response) => {
 
         res.status(isDbHealthy ? 200 : 503).json(health);
     } catch (error) {
-        logger.error('Health check failed', { error });
+        logger.error('Health check failed', {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+        });
         res.status(503).json({
             status: 'error',
             timestamp: new Date().toISOString(),

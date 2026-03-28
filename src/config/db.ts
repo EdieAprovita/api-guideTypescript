@@ -15,7 +15,7 @@ const connectDB = async (): Promise<void> => {
         if (!mongoUri) {
             const error = new Error('MONGODB_URI is not defined in environment variables');
             logger.error(error.message);
-            logger.warn('Continuing without database connection. Some features may be unavailable.');
+            logger.warn('MONGODB_URI is not set — database connection will not be established.');
             throw error;
         }
 

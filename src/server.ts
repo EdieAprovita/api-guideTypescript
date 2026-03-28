@@ -105,6 +105,7 @@ const gracefulShutdown = (signal: string): void => {
     }
 
     server.close(() => {
+        clearTimeout(forceKillTimer);
         logger.info('HTTP server closed');
         mongoose.connection
             .close(false)
