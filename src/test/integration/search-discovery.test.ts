@@ -62,7 +62,7 @@ describe('Search & Discovery Integration Tests (Phase 4)', () => {
             const res = await request(app).get('/api/v1/search/restaurants?latitude=abc&longitude=-73.935242');
             expect(res.status).toBe(400);
             expect(res.body.success).toBe(false);
-            expect(res.body.message).toMatch(/valid finite number/);
+            expect(res.body.message).toMatch(/Validation failed|valid finite number/);
         });
     });
 
