@@ -40,6 +40,10 @@ export function validateStartupEnvironment(): void {
 
 validateStartupEnvironment();
 
+// Track open sockets so graceful shutdown can destroy keep-alive connections
+// that would otherwise prevent server.close() from completing.
+const openSockets = new Set<import('net').Socket>();
+
 const server = app.listen(Number(PORT), HOST, () => {
     if (process.env.NODE_ENV === 'production') {
         logger.info(`🚀 Server is ready and accepting connections on ${HOST}:${PORT}`);
@@ -53,6 +57,12 @@ const server = app.listen(Number(PORT), HOST, () => {
         logger.info(colorTheme.info.bold(`❤️  Health check available at: http://localhost:${PORT}/health`));
         logger.info(colorTheme.success.bold(`✅ Server is ready to accept connections`));
     }
+});
+
+// Register socket tracker after server starts listening
+server.on('connection', (socket: import('net').Socket) => {
+    openSockets.add(socket);
+    socket.once('close', () => openSockets.delete(socket));
 });
 
 // Prevent recursive shutdown handling and keep tests stable when process.exit is mocked by Vitest
@@ -118,6 +128,13 @@ const gracefulShutdown = (signal: string): void => {
                 process.exit(1);
             });
     });
+
+    // Destroy lingering keep-alive sockets so server.close() callback fires
+    // promptly on Cloud Run / HTTP2 environments with persistent connections.
+    for (const socket of openSockets) {
+        socket.destroy();
+    }
+    openSockets.clear();
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
