@@ -133,5 +133,11 @@ marketSchema
 
 marketSchema.index({ location: '2dsphere' });
 
+// Performance indexes — Sprint 5
+marketSchema.index({ rating: -1 });
+marketSchema.index({ createdAt: -1 });
+marketSchema.index({ author: 1 });
+marketSchema.index({ typeMarket: 1 });
+
 export const Market =
     (mongoose.models.Market as mongoose.Model<IMarket>) || mongoose.model<IMarket>('Market', marketSchema);

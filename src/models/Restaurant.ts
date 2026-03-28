@@ -94,6 +94,11 @@ restaurantSchema
 
 restaurantSchema.index({ location: '2dsphere' });
 
+// Performance indexes — Sprint 5
+restaurantSchema.index({ rating: -1 });
+restaurantSchema.index({ createdAt: -1 });
+restaurantSchema.index({ author: 1 });
+
 export const Restaurant =
     (mongoose.models.Restaurant as mongoose.Model<IRestaurant>) ||
     mongoose.model<IRestaurant>('Restaurant', restaurantSchema);

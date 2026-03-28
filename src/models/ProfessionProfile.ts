@@ -25,6 +25,7 @@ const professionalProfileSchema = new Schema<IProfessionProfile>(
         user: {
             type: Schema.Types.ObjectId,
             ref: 'Professional',
+            required: true,
         },
         date: {
             type: Date,
@@ -178,6 +179,12 @@ const professionalProfileSchema = new Schema<IProfessionProfile>(
         },
     },
     { timestamps: true }
+);
+
+// Performance indexes — Sprint 5
+professionalProfileSchema.index(
+    { user: 1 },
+    { unique: true, partialFilterExpression: { user: { $exists: true, $ne: null } } }
 );
 
 export const ProfessionalProfile =

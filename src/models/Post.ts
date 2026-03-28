@@ -91,4 +91,8 @@ postSchema
 postSchema.set('toJSON', { virtuals: true });
 postSchema.set('toObject', { virtuals: true });
 
+// Performance indexes — Sprint 5
+postSchema.index({ createdAt: -1 });
+postSchema.index({ username: 1 });
+
 export const Post = (mongoose.models.Post as mongoose.Model<IPost>) || mongoose.model<IPost>('Post', postSchema);

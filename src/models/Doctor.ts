@@ -83,5 +83,12 @@ const doctorSchema = new Schema<IDoctor>(
     { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 doctorSchema.index({ location: '2dsphere' });
+
+// Performance indexes — Sprint 5
+doctorSchema.index({ rating: -1 });
+doctorSchema.index({ createdAt: -1 });
+doctorSchema.index({ author: 1 });
+doctorSchema.index({ specialty: 1 });
+
 export const Doctor =
     (mongoose.models.Doctor as mongoose.Model<IDoctor>) || mongoose.model<IDoctor>('Doctor', doctorSchema);

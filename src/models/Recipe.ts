@@ -133,5 +133,10 @@ recipeSchema.pre('save', function (next) {
     next();
 });
 
+// Performance indexes — Sprint 5
+recipeSchema.index({ rating: -1 });
+recipeSchema.index({ createdAt: -1 });
+recipeSchema.index({ author: 1 });
+
 export const Recipe =
     (mongoose.models.Recipe as mongoose.Model<IRecipe>) || mongoose.model<IRecipe>('Recipe', recipeSchema);

@@ -138,6 +138,12 @@ const sanctuarySchema = new Schema<ISanctuary>(
     { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 sanctuarySchema.index({ location: '2dsphere' });
+
+// Performance indexes — Sprint 5
+sanctuarySchema.index({ rating: -1 });
+sanctuarySchema.index({ createdAt: -1 });
+sanctuarySchema.index({ author: 1 });
+
 export const Sanctuary =
     (mongoose.models.sanctuary as mongoose.Model<ISanctuary>) ||
     mongoose.model<ISanctuary>('sanctuary', sanctuarySchema);
