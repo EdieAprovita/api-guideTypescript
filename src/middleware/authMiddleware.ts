@@ -286,8 +286,8 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
  */
 export const refreshToken = async (req: Request, res: Response) => {
     try {
-        // Accept refresh token from body (for initial auth) or HttpOnly cookie (after refresh)
-        const refreshTokenValue = req.body.refreshToken || req.cookies?.refreshToken;
+        // Prefer HttpOnly cookie (secure) over body (legacy/initial auth)
+        const refreshTokenValue = req.cookies?.refreshToken || req.body.refreshToken;
 
         if (!refreshTokenValue) {
             return res.status(400).json({
@@ -323,10 +323,14 @@ export const refreshToken = async (req: Request, res: Response) => {
         // Clear invalid refresh token cookie on error
         res.clearCookie('refreshToken');
 
+        // Log detailed error server-side; return generic message to client
+        logger.warn('Refresh token validation failed', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
         return res.status(401).json({
             success: false,
-            message: 'Invalid refresh token',
-            error: error instanceof Error ? error.message : 'Unknown error',
+            message: 'Invalid or expired refresh token',
         });
     }
 };

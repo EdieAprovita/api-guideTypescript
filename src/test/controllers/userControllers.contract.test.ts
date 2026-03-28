@@ -127,7 +127,7 @@ describe('loginUser controller — response contract', () => {
         expect(data).toHaveProperty('email', mockLoginResult.email);
         expect(data).toHaveProperty('role', mockLoginResult.role);
         expect(data).toHaveProperty('token');
-        expect(data).toHaveProperty('refreshToken');
+        expect(data).not.toHaveProperty('refreshToken');
         // Verify it is NOT nested under a 'user' key (old broken format)
         expect(data).not.toHaveProperty('user');
     });
@@ -178,6 +178,8 @@ describe('registerUser controller — response contract', () => {
         expect(data).toHaveProperty('username');
         expect(data).toHaveProperty('email');
         expect(data).toHaveProperty('role');
+        expect(data).toHaveProperty('token');
+        expect(data).not.toHaveProperty('refreshToken');
         expect(data).not.toHaveProperty('user'); // must NOT be nested
     });
 
