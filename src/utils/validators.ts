@@ -290,6 +290,19 @@ export const querySchemas = {
 };
 
 // Search-specific schemas (unified search routes)
+const VALID_RESOURCE_TYPES = [
+    'restaurant',
+    'restaurants',
+    'business',
+    'businesses',
+    'doctor',
+    'doctors',
+    'market',
+    'markets',
+    'sanctuary',
+    'sanctuaries',
+] as const;
+
 export const searchSchemas = {
     // Query params shared by GET /search and GET /search/:resourceType
     // Accepts both lat/lng (shorthand) and latitude/longitude (canonical) conventions.
@@ -322,36 +335,14 @@ export const searchSchemas = {
     analytics: Joi.object({
         query: Joi.string().trim().min(1).max(200).required(),
         resourceType: Joi.string()
-            .valid(
-                'restaurant',
-                'restaurants',
-                'business',
-                'businesses',
-                'doctor',
-                'doctors',
-                'market',
-                'markets',
-                'sanctuary',
-                'sanctuaries'
-            )
+            .valid(...VALID_RESOURCE_TYPES)
             .optional(),
     }),
 
     // URL param for GET /search/:resourceType
     resourceTypeParam: Joi.object({
         resourceType: Joi.string()
-            .valid(
-                'restaurant',
-                'restaurants',
-                'business',
-                'businesses',
-                'doctor',
-                'doctors',
-                'market',
-                'markets',
-                'sanctuary',
-                'sanctuaries'
-            )
+            .valid(...VALID_RESOURCE_TYPES)
             .required(),
     }),
 };

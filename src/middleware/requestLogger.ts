@@ -23,7 +23,8 @@ const SENSITIVE_KEYS = new Set([
 ]);
 
 function sanitizeForLog(obj: unknown, depth: number = 0): unknown {
-    if (depth > 5 || obj === null || obj === undefined) return obj;
+    if (obj === null || obj === undefined) return obj;
+    if (depth > 5) return '[TRUNCATED]';
     if (Array.isArray(obj)) return obj.map(item => sanitizeForLog(item, depth + 1));
     if (typeof obj === 'object') {
         const result: Record<string, unknown> = {};
