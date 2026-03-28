@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Mock the entire app module to prevent the full Express + DB import chain
 vi.mock('../../app.js', () => ({
     default: {
-        listen: vi.fn().mockReturnValue({ close: vi.fn() }),
+        listen: vi.fn().mockReturnValue({ close: vi.fn(), on: vi.fn() }),
     },
 }));
 
@@ -22,11 +22,9 @@ vi.mock('../../utils/logger', () => ({
 import { validateStartupEnvironment } from '../../server.js';
 
 function spyOnProcessExit() {
-    return vi
-        .spyOn(process, 'exit')
-        .mockImplementation((_code?: string | number | null | undefined) => {
-            throw new Error('process.exit called');
-        });
+    return vi.spyOn(process, 'exit').mockImplementation((_code?: string | number | null | undefined) => {
+        throw new Error('process.exit called');
+    });
 }
 
 describe('validateStartupEnvironment', () => {
