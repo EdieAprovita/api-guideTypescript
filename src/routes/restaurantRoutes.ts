@@ -12,12 +12,10 @@ import {
     deleteRestaurant,
     getTopRatedRestaurants,
     getNearbyRestaurants,
+    getRestaurantReviews,
+    getRestaurantReviewStats,
 } from '../controllers/restaurantControllers.js';
 import { createReviewForRestaurant } from '../controllers/reviewControllers.js';
-import { reviewService as ReviewService } from '../services/ReviewService.js';
-import { restaurantService as RestaurantService } from '../services/RestaurantService.js';
-import asyncHandler from '../middleware/asyncHandler.js';
-import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
 const router = express.Router();
 
@@ -113,59 +111,14 @@ router.get(
     '/:restaurantId/reviews',
     rateLimits.api,
     validate({ params: paramSchemas.restaurantId }),
-    asyncHandler(async (req, res) => {
-        const { restaurantId } = req.params;
-        const { page = 1, limit = 10, rating, sort = '-createdAt' } = req.query;
-
-        if (!restaurantId) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required');
-        }
-
-        // Check if restaurant exists
-        const restaurant = await RestaurantService.findById(restaurantId);
-        if (!restaurant) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
-        }
-
-        const reviews = await ReviewService.getReviewsByEntity('Restaurant', restaurantId, {
-            page: Number(page),
-            limit: Number(limit),
-            ...(rating && { rating: Number(rating) }),
-            sort: String(sort),
-        });
-
-        res.status(200).json({
-            success: true,
-            data: reviews.data,
-            pagination: reviews.pagination,
-        });
-    })
+    getRestaurantReviews
 );
 
 router.get(
     '/:restaurantId/reviews/stats',
     rateLimits.api,
     validate({ params: paramSchemas.restaurantId }),
-    asyncHandler(async (req, res) => {
-        const { restaurantId } = req.params;
-
-        if (!restaurantId) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Restaurant ID is required');
-        }
-
-        // Check if restaurant exists
-        const restaurant = await RestaurantService.findById(restaurantId);
-        if (!restaurant) {
-            throw new HttpError(HttpStatusCode.NOT_FOUND, 'Restaurant not found');
-        }
-
-        const stats = await ReviewService.getReviewStats('Restaurant', restaurantId);
-
-        res.status(200).json({
-            success: true,
-            data: stats,
-        });
-    })
+    getRestaurantReviewStats
 );
 
 export default router;
