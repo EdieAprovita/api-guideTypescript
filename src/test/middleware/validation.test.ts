@@ -497,6 +497,8 @@ describe('Validation Edge Cases — validateInputLength', () => {
     });
 
     it('should call next() when Content-Length is within the cap', async () => {
+        // supertest auto-sets Content-Length from the serialized body, so this
+        // covers the normal "header present and within cap" path without manual header manipulation.
         const smallPayload = { ok: true };
 
         const response = await request(app).post('/test-input-length').send(smallPayload);
@@ -553,7 +555,7 @@ describe('Validation Edge Cases — Malformed data and boundary values', () => {
         const payload = {
             username: 'a',
             email: 'test@example.com',
-            password: 'SecurePass123!',
+            password: TEST_PASSWORD,
         };
 
         const response = await request(app).post('/test-user-validation').send(payload);
@@ -566,7 +568,7 @@ describe('Validation Edge Cases — Malformed data and boundary values', () => {
         const payload = {
             username: 'a'.repeat(51),
             email: 'test@example.com',
-            password: 'SecurePass123!',
+            password: TEST_PASSWORD,
         };
 
         const response = await request(app).post('/test-user-validation').send(payload);
@@ -582,7 +584,7 @@ describe('Validation Edge Cases — Malformed data and boundary values', () => {
         const payload = {
             username: 'johndoe',
             email: 'test@example.com',
-            password: 'SecurePass123!',
+            password: TEST_PASSWORD,
             dateOfBirth: futureDate.toISOString(),
         };
 
