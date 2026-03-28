@@ -12,7 +12,7 @@ router.post(
     validateInputLength(512),
     validate({
         body: Joi.object({
-            refreshToken: Joi.string().required(),
+            refreshToken: Joi.string().optional(),
         }),
     }),
     refreshToken

@@ -133,7 +133,7 @@ describe('Cache Routes', () => {
     it('should return error for missing pattern', async () => {
       const response = await request(app)
         .delete('/api/cache/invalidate/')
-        .expect(404) // Express returns 404 for missing route param
+        .expect(400) // Validation middleware rejects missing pattern
     })
   })
 

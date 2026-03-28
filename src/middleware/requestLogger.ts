@@ -2,6 +2,40 @@ import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
 
+const SENSITIVE_KEYS = new Set([
+    'token',
+    'accesstoken',
+    'refreshtoken',
+    'password',
+    'newpassword',
+    'currentpassword',
+    'confirmpassword',
+    'secret',
+    'apikey',
+    'api_key',
+    'authorization',
+    'key',
+    'cookie',
+    'cookies',
+    'session',
+    'sessionid',
+    'session_id',
+]);
+
+function sanitizeForLog(obj: unknown, depth: number = 0): unknown {
+    if (obj === null || obj === undefined) return obj;
+    if (depth > 5) return '[TRUNCATED]';
+    if (Array.isArray(obj)) return obj.map(item => sanitizeForLog(item, depth + 1));
+    if (typeof obj === 'object') {
+        const result: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+            result[k] = SENSITIVE_KEYS.has(k.toLowerCase()) ? '[REDACTED]' : sanitizeForLog(v, depth + 1);
+        }
+        return result;
+    }
+    return obj;
+}
+
 /**
  * @description Middleware to log requests with a correlation ID
  * Adds a unique correlation ID to each request and logs entry/exit
@@ -20,7 +54,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
         correlationId,
         method: req.method,
         path: req.path,
-        query: Object.keys(req.query).length > 0 ? req.query : undefined,
+        query: Object.keys(req.query).length > 0 ? sanitizeForLog(req.query) : undefined,
         ip: req.ip,
         userAgent: req.get('user-agent'),
     });

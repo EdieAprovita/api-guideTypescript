@@ -289,6 +289,64 @@ export const querySchemas = {
     }),
 };
 
+// Search-specific schemas (unified search routes)
+const VALID_RESOURCE_TYPES = [
+    'restaurant',
+    'restaurants',
+    'business',
+    'businesses',
+    'doctor',
+    'doctors',
+    'market',
+    'markets',
+    'sanctuary',
+    'sanctuaries',
+] as const;
+
+export const searchSchemas = {
+    // Query params shared by GET /search and GET /search/:resourceType
+    // Accepts both lat/lng (shorthand) and latitude/longitude (canonical) conventions.
+    query: Joi.object({
+        q: Joi.string().trim().max(200).optional(),
+        // Canonical coordinate fields
+        latitude: Joi.number().min(-90).max(90).optional(),
+        longitude: Joi.number().min(-180).max(180).optional(),
+        // Shorthand coordinate fields (frontend alias)
+        lat: Joi.number().min(-90).max(90).optional(),
+        lng: Joi.number().min(-180).max(180).optional(),
+        radius: Joi.number().integer().min(1).max(50000).optional(),
+        category: Joi.string().trim().max(100).optional(),
+        sortBy: Joi.string().valid('name', 'rating', 'distance', 'createdAt').optional(),
+        sortOrder: Joi.string().valid('asc', 'desc').optional(),
+        page: commonSchemas.pagination.page,
+        limit: commonSchemas.pagination.limit,
+    })
+        .and('latitude', 'longitude')
+        .and('lat', 'lng')
+        .oxor('latitude', 'lat')
+        .oxor('longitude', 'lng'),
+
+    // Query params for GET /search/suggestions (only q is meaningful here)
+    suggestions: Joi.object({
+        q: Joi.string().trim().max(200).optional(),
+    }),
+
+    // Body for POST /search/analytics
+    analytics: Joi.object({
+        query: Joi.string().trim().min(1).max(200).required(),
+        resourceType: Joi.string()
+            .valid(...VALID_RESOURCE_TYPES)
+            .optional(),
+    }),
+
+    // URL param for GET /search/:resourceType
+    resourceTypeParam: Joi.object({
+        resourceType: Joi.string()
+            .valid(...VALID_RESOURCE_TYPES)
+            .required(),
+    }),
+};
+
 // Parameter schemas
 export const paramSchemas = {
     id: Joi.object({

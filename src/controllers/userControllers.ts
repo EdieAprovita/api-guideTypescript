@@ -8,6 +8,11 @@ import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
 import type { UserRole } from '../models/User.js';
 import { REGISTER_ALLOWED_ROLES, ROLE_RANK } from '../constants/roles.js';
+import { getRefreshTokenCookieOptions } from '../constants/cookies.js';
+
+function setRefreshTokenCookie(res: Response, refreshToken: string): void {
+    res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
+}
 
 /**
  * @description Register a new user
@@ -32,11 +37,12 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
         const safeData = REGISTER_ALLOWED_ROLES.includes(requestedRole as (typeof REGISTER_ALLOWED_ROLES)[number])
             ? { ...restData, role: requestedRole }
             : restData; // defaults to 'user' via User model
-        const result = await UserServices.registerUser(safeData);
+        const { refreshToken, ...data } = await UserServices.registerUser(safeData);
+        setRefreshTokenCookie(res, refreshToken);
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
-            data: result,
+            data,
         });
     } catch (error) {
         // Log error details in test environment for debugging
@@ -61,11 +67,12 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
     try {
         const sanitizedData = sanitizeNoSQLInput(req.body);
         const { email, password } = sanitizedData;
-        const result = await UserServices.loginUser(email, password);
+        const { refreshToken, ...data } = await UserServices.loginUser(email, password);
+        setRefreshTokenCookie(res, refreshToken);
         res.status(200).json({
             success: true,
             message: 'Login successful',
-            data: result,
+            data,
         });
     } catch (error) {
         // Log error details in test environment for debugging
