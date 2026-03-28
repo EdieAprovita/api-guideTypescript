@@ -8,6 +8,21 @@ import pkg from 'express-validator';
 const { validationResult } = pkg;
 
 /**
+ * @description Classifies caught errors into appropriate HTTP responses.
+ * Mongoose ValidationError → 400, HttpError → preserve status, else → 500.
+ */
+function handleControllerError(error: unknown, next: NextFunction): void {
+    if (error instanceof HttpError) {
+        return next(error);
+    }
+    if (error instanceof Error && error.name === 'ValidationError') {
+        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error.message)));
+    }
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(message)));
+}
+
+/**
  * @description Standard validation check for controllers
  */
 export function validateRequest(req: Request, next: NextFunction): boolean {
@@ -59,8 +74,8 @@ export function createGetNearbyHandler<T extends Document>(
                 data: result.data,
                 meta: result.meta,
             });
-        } catch (error: any) {
-            next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+        } catch (error: unknown) {
+            handleControllerError(error, next);
         }
     });
 }
@@ -94,8 +109,8 @@ export function createGetAllHandler<T extends Document>(
                     data: result,
                 });
             }
-        } catch (error: any) {
-            next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+        } catch (error: unknown) {
+            handleControllerError(error, next);
         }
     });
 }
@@ -122,11 +137,8 @@ export function createGetByIdHandler<T extends Document>(
                 message: `${entityName} fetched successfully`,
                 data: resource,
             });
-        } catch (error: any) {
-            if (error instanceof HttpError) {
-                return next(error);
-            }
-            next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+        } catch (error: unknown) {
+            handleControllerError(error, next);
         }
     });
 }
@@ -155,8 +167,8 @@ export function createCreateHandler<T extends Document>(
                 message: `${entityName} created successfully`,
                 data: resource,
             });
-        } catch (error: any) {
-            next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+        } catch (error: unknown) {
+            handleControllerError(error, next);
         }
     });
 }
@@ -196,8 +208,8 @@ export function createUpdateHandler<T extends Document>(
                 message: `${entityName} updated successfully`,
                 data: resource,
             });
-        } catch (error: any) {
-            next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+        } catch (error: unknown) {
+            handleControllerError(error, next);
         }
     });
 }
@@ -219,8 +231,8 @@ export function createDeleteHandler<T extends Document>(service: BaseService<T>,
                 success: true,
                 message: `${entityName} deleted successfully`,
             });
-        } catch (error: any) {
-            next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(error)));
+        } catch (error: unknown) {
+            handleControllerError(error, next);
         }
     });
 }
