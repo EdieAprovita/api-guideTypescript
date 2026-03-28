@@ -5,7 +5,7 @@
  */
 
 import { faker } from '@faker-js/faker';
-import { generateTestPassword, generateWeakPassword } from './utils/passwordGenerator.js';
+import { generateTestPassword, generateWeakPassword, generateValidatedPassword } from './utils/passwordGenerator.js';
 import { ERROR_MESSAGES } from './constants/validationMessages.js';
 
 // Generate unique test session ID to avoid conflicts
@@ -115,7 +115,10 @@ export default {
         mongoId: generateTestMongoId,
     },
     passwords: {
-        validPassword: generateTestPassword(),
+        // generateValidatedPassword() explicitly places one char from each required class
+        // before filling, avoiding the ensureRequirements positional-overwrite race that
+        // could (rarely) produce a password missing an uppercase letter in CI.
+        validPassword: generateValidatedPassword(),
         weakPassword: generateWeakPassword(),
         wrongPassword: generateTestPassword(),
         fixturePassword: generateTestPassword(),
