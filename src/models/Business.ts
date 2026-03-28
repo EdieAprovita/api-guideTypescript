@@ -97,5 +97,10 @@ const businessSchema: Schema = new mongoose.Schema<IBusiness>(
 
 businessSchema.index({ location: '2dsphere' });
 
+// Performance indexes — Sprint 5
+businessSchema.index({ rating: -1 });
+businessSchema.index({ createdAt: -1 });
+businessSchema.index({ author: 1 });
+
 export const Business =
     (mongoose.models.Business as mongoose.Model<IBusiness>) || mongoose.model<IBusiness>('Business', businessSchema);

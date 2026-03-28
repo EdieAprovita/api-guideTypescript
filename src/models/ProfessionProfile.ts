@@ -180,6 +180,9 @@ const professionalProfileSchema = new Schema<IProfessionProfile>(
     { timestamps: true }
 );
 
+// Performance indexes — Sprint 5
+professionalProfileSchema.index({ user: 1 }, { unique: true });
+
 export const ProfessionalProfile =
     (mongoose.models.ProfessionalProfile as mongoose.Model<IProfessionProfile>) ||
     mongoose.model<IProfessionProfile>('ProfessionalProfile', professionalProfileSchema);

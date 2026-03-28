@@ -81,6 +81,11 @@ const professionSchema: Schema = new mongoose.Schema<IProfession>(
 
 professionSchema.index({ location: '2dsphere' });
 
+// Performance indexes — Sprint 5
+professionSchema.index({ rating: -1 });
+professionSchema.index({ author: 1 });
+professionSchema.index({ professionName: 1 });
+
 export const Profession =
     (mongoose.models.Profession as mongoose.Model<IProfession>) ||
     mongoose.model<IProfession>('Profession', professionSchema);

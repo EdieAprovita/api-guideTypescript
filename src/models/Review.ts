@@ -143,5 +143,8 @@ reviewSchema.index({ author: 1 });
 // Legacy index - kept during migration
 reviewSchema.index({ restaurant: 1, rating: -1 });
 
+// Performance indexes — Sprint 5
+reviewSchema.index({ entityType: 1, rating: -1, helpfulCount: -1, createdAt: -1 });
+
 export const Review =
     (mongoose.models.Review as mongoose.Model<IReview>) || mongoose.model<IReview>('Review', reviewSchema);
