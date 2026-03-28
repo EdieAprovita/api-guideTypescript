@@ -508,8 +508,14 @@ describe('Validation Edge Cases — validateInputLength', () => {
     });
 
     it('should call next() when no Content-Length header is present', async () => {
-        // Some clients omit Content-Length — middleware should not reject without it
-        const response = await request(app).post('/test-input-length').send({ a: 1 });
+        // supertest auto-sets Content-Length when .send() is used.
+        // Passing an empty string to .set() removes the header from the request,
+        // so req.get('content-length') returns undefined inside the middleware and
+        // the `if (contentLength && ...)` guard is skipped — exercising the absent-header branch.
+        const response = await request(app)
+            .post('/test-input-length')
+            .set('Content-Length', '')
+            .send({ a: 1 });
 
         expect(response.status).toBe(200);
     });
