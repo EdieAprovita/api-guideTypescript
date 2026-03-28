@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import app from './app.js';
+import mongoose from 'mongoose';
 import { colorTheme } from './types/colorTheme.js';
 import logger, { logWarn } from './utils/logger.js';
 
@@ -31,13 +32,17 @@ export function validateStartupEnvironment(): void {
     if (process.env.BYPASS_AUTH_FOR_TESTING === 'true' && process.env.NODE_ENV !== 'test') {
         logger.error(
             '🛑 BYPASS_AUTH_FOR_TESTING is set in a non-test environment. ' +
-            'This is a critical security misconfiguration — refusing to start.'
+                'This is a critical security misconfiguration — refusing to start.'
         );
         process.exit(1);
     }
 }
 
 validateStartupEnvironment();
+
+// Track open sockets so graceful shutdown can destroy keep-alive connections
+// that would otherwise prevent server.close() from completing.
+const openSockets = new Set<import('net').Socket>();
 
 const server = app.listen(Number(PORT), HOST, () => {
     if (process.env.NODE_ENV === 'production') {
@@ -52,6 +57,12 @@ const server = app.listen(Number(PORT), HOST, () => {
         logger.info(colorTheme.info.bold(`❤️  Health check available at: http://localhost:${PORT}/health`));
         logger.info(colorTheme.success.bold(`✅ Server is ready to accept connections`));
     }
+});
+
+// Register socket tracker after server starts listening
+server.on('connection', (socket: import('net').Socket) => {
+    openSockets.add(socket);
+    socket.once('close', () => openSockets.delete(socket));
 });
 
 // Prevent recursive shutdown handling and keep tests stable when process.exit is mocked by Vitest
@@ -83,12 +94,50 @@ process.on('uncaughtException', (err: Error) => {
     }
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    logWarn('SIGTERM received. Shutting down gracefully...');
+// Graceful shutdown — single authoritative handler for SIGTERM and SIGINT.
+// DB-level signal listeners were removed from config/db.ts to avoid duplicate handling.
+const gracefulShutdown = (signal: string): void => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    logger.info(`${signal} received, shutting down gracefully`);
+
+    // Force-kill safety net: if the server hasn't closed within 30 s, exit hard.
+    const forceKillTimer: ReturnType<typeof setTimeout> = setTimeout(() => {
+        logger.error('Forced shutdown after timeout', { signal });
+        process.exit(1);
+    }, 30_000);
+
+    // Allow the timer to be garbage-collected if shutdown completes in time.
+    // ReturnType<typeof setTimeout> is NodeJS.Timeout in Node environments.
+    if (typeof (forceKillTimer as unknown as NodeJS.Timeout).unref === 'function') {
+        (forceKillTimer as unknown as NodeJS.Timeout).unref();
+    }
+
     server.close(() => {
-        logger.info('Process terminated');
+        clearTimeout(forceKillTimer);
+        logger.info('HTTP server closed');
+        mongoose.connection
+            .close(false)
+            .then(() => {
+                logger.info('MongoDB connection closed');
+                process.exit(0);
+            })
+            .catch(err => {
+                logger.error('Error closing MongoDB connection', { error: (err as Error).message });
+                process.exit(1);
+            });
     });
-});
+
+    // Destroy lingering keep-alive sockets so server.close() callback fires
+    // promptly on Cloud Run / HTTP2 environments with persistent connections.
+    for (const socket of openSockets) {
+        socket.destroy();
+    }
+    openSockets.clear();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export { server, app };
