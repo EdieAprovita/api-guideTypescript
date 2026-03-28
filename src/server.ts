@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import app from './app.js';
+import mongoose from 'mongoose';
 import { colorTheme } from './types/colorTheme.js';
 import logger, { logWarn } from './utils/logger.js';
 
@@ -31,7 +32,7 @@ export function validateStartupEnvironment(): void {
     if (process.env.BYPASS_AUTH_FOR_TESTING === 'true' && process.env.NODE_ENV !== 'test') {
         logger.error(
             '🛑 BYPASS_AUTH_FOR_TESTING is set in a non-test environment. ' +
-            'This is a critical security misconfiguration — refusing to start.'
+                'This is a critical security misconfiguration — refusing to start.'
         );
         process.exit(1);
     }
@@ -83,12 +84,42 @@ process.on('uncaughtException', (err: Error) => {
     }
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    logWarn('SIGTERM received. Shutting down gracefully...');
+// Graceful shutdown — single authoritative handler for SIGTERM and SIGINT.
+// DB-level signal listeners were removed from config/db.ts to avoid duplicate handling.
+const gracefulShutdown = (signal: string): void => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    logger.info(`${signal} received, shutting down gracefully`);
+
+    // Force-kill safety net: if the server hasn't closed within 30 s, exit hard.
+    const forceKillTimer: ReturnType<typeof setTimeout> = setTimeout(() => {
+        logger.error('Forced shutdown after timeout', { signal });
+        process.exit(1);
+    }, 30_000);
+
+    // Allow the timer to be garbage-collected if shutdown completes in time.
+    // ReturnType<typeof setTimeout> is NodeJS.Timeout in Node environments.
+    if (typeof (forceKillTimer as unknown as NodeJS.Timeout).unref === 'function') {
+        (forceKillTimer as unknown as NodeJS.Timeout).unref();
+    }
+
     server.close(() => {
-        logger.info('Process terminated');
+        logger.info('HTTP server closed');
+        mongoose.connection
+            .close(false)
+            .then(() => {
+                logger.info('MongoDB connection closed');
+                process.exit(0);
+            })
+            .catch(err => {
+                logger.error('Error closing MongoDB connection', { error: (err as Error).message });
+                process.exit(1);
+            });
     });
-});
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export { server, app };

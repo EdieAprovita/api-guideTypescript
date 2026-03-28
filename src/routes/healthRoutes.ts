@@ -5,19 +5,33 @@ import mongoose from 'mongoose';
 const router = express.Router();
 
 /**
- * @description Liveness probe - indicates if the server is alive
+ * @description Health check — reports server liveness and database connectivity.
+ * Returns 200 when the database is connected, 503 when degraded or unavailable.
+ * Intentionally lightweight so load-balancer probes remain fast.
  * @route GET /health
  */
-router.get('/', (_req: Request, res: Response) => {
-    // Let logger levels control output in production vs development
-    logger.debug('Liveness probe requested');
+router.get('/', async (_req: Request, res: Response) => {
+    try {
+        logger.debug('Health check requested');
 
-    res.status(200).json({
-        status: 'alive',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV,
-    });
+        const dbState = mongoose.connection.readyState;
+        const isDbHealthy = dbState === 1; // 1 = connected
+
+        const health = {
+            status: isDbHealthy ? 'ok' : 'degraded',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            database: isDbHealthy ? 'connected' : 'disconnected',
+        };
+
+        res.status(isDbHealthy ? 200 : 503).json(health);
+    } catch (error) {
+        logger.error('Health check failed', { error });
+        res.status(503).json({
+            status: 'error',
+            timestamp: new Date().toISOString(),
+        });
+    }
 });
 
 /**

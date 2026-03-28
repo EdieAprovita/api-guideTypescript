@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { colorTheme } from '../types/colorTheme.js';
 import { DataBaseError } from '../types/Errors.js';
+import logger from '../utils/logger.js';
 
 /**
  * @description Connect to MongoDB database with proper configuration
@@ -14,10 +14,8 @@ const connectDB = async (): Promise<void> => {
 
         if (!mongoUri) {
             const error = new Error('MONGODB_URI is not defined in environment variables');
-            console.error(colorTheme.danger.bold(error.message));
-            console.log(
-                colorTheme.warning.bold('⚠️  Continuing without database connection. Some features may be unavailable.')
-            );
+            logger.error(error.message);
+            logger.warn('Continuing without database connection. Some features may be unavailable.');
             throw error;
         }
 
@@ -31,44 +29,30 @@ const connectDB = async (): Promise<void> => {
             retryWrites: true, // Retry write operations
         };
 
-        console.log(colorTheme.info.bold('🔄 Attempting to connect to MongoDB...'));
+        logger.info('Attempting to connect to MongoDB...');
         const conn = await mongoose.connect(mongoUri, options);
 
-        console.log(
-            colorTheme.info.bold(
-                `✅ MongoDB Connected: ${conn.connection.host}:${conn.connection.port}/${conn.connection.name}`
-            )
-        );
+        logger.info('MongoDB connected', {
+            host: conn.connection.host,
+            port: conn.connection.port,
+            name: conn.connection.name,
+        });
 
         // Handle connection events
         mongoose.connection.on('error', err => {
-            console.error(colorTheme.danger.bold(`❌ MongoDB connection error: ${err}`));
+            logger.error('MongoDB connection error', { error: String(err) });
         });
 
         mongoose.connection.on('disconnected', () => {
-            console.log(colorTheme.warning.bold('⚠️  MongoDB disconnected'));
+            logger.warn('MongoDB disconnected');
         });
 
         mongoose.connection.on('reconnected', () => {
-            console.log(colorTheme.info.bold('✅ MongoDB reconnected'));
-        });
-
-        // Graceful shutdown
-        process.on('SIGINT', async () => {
-            await mongoose.connection.close();
-            console.log(colorTheme.info.bold('👋 MongoDB connection closed through app termination'));
-            process.exit(0);
-        });
-
-        // SIGTERM handler for Cloud Run graceful shutdown
-        process.on('SIGTERM', async () => {
-            console.log(colorTheme.warning.bold('👋 SIGTERM received, closing MongoDB connection...'));
-            await mongoose.connection.close();
-            console.log(colorTheme.info.bold('✅ MongoDB connection closed'));
+            logger.info('MongoDB reconnected');
         });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
-        console.error(colorTheme.danger.bold(`❌ Database connection error: ${errorMessage}`));
+        logger.error('Database connection error', { error: errorMessage });
         // Re-throw to let the caller handle it
         throw new DataBaseError(`Error connecting to the database: ${errorMessage}`);
     }
