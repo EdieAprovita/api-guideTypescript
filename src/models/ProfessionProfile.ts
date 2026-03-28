@@ -25,6 +25,7 @@ const professionalProfileSchema = new Schema<IProfessionProfile>(
         user: {
             type: Schema.Types.ObjectId,
             ref: 'Professional',
+            required: true,
         },
         date: {
             type: Date,
