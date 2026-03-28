@@ -3,7 +3,14 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { cacheService, CacheOptions } from './CacheService.js';
 import logger from '../utils/logger.js';
-import { PaginatedResponse, PaginationMeta, normalizePaginationParams } from '../types/pagination.js';
+import {
+    PaginatedResponse,
+    PaginationMeta,
+    normalizePaginationParams,
+    MAX_LIMIT,
+    DEFAULT_LIMIT,
+    DEFAULT_PAGE,
+} from '../types/pagination.js';
 
 /**
  * @description Options for nearby search
@@ -52,7 +59,7 @@ class BaseService<T extends Document> {
     }
 
     async getAll(): Promise<T[]> {
-        return this.model.find();
+        return this.model.find().limit(MAX_LIMIT);
     }
 
     async countAll(): Promise<number> {
@@ -303,14 +310,14 @@ class BaseService<T extends Document> {
      */
     async findWithCache<U = T>(query: object, cacheKey: string, options?: CacheOptions): Promise<U[]> {
         if (!this.cacheEnabled) {
-            return this.model.find(query).exec() as Promise<U[]>;
+            return this.model.find(query).limit(MAX_LIMIT).exec() as Promise<U[]>;
         }
 
         try {
             let results = await cacheService.get<U[]>(cacheKey);
 
             if (!results || results === null) {
-                results = (await this.model.find(query).exec()) as U[];
+                results = (await this.model.find(query).limit(MAX_LIMIT).exec()) as U[];
                 await cacheService.set(cacheKey, results, this.modelName, {
                     ttl: options?.ttl || this.cacheTTL,
                     tags: options?.tags || [this.modelName],
@@ -320,7 +327,7 @@ class BaseService<T extends Document> {
             return results || ([] as U[]);
         } catch (error) {
             logger.error(`Cache error in findWithCache for ${this.modelName}:`, error);
-            return this.model.find(query).exec() as Promise<U[]>;
+            return this.model.find(query).limit(MAX_LIMIT).exec() as Promise<U[]>;
         }
     }
 
@@ -369,20 +376,15 @@ class BaseService<T extends Document> {
     }
 
     protected async findAll(): Promise<T[]> {
-        return this.model.find({}).exec() as Promise<T[]>;
+        return this.model.find({}).limit(MAX_LIMIT).exec() as Promise<T[]>;
     }
 
     protected async findWithPagination(query: FilterQuery<T>, page: number = 1, limit: number = 10): Promise<T[]> {
-        const skip = (page - 1) * limit;
-        let results: T[];
+        const safeLimitValue = Math.min(MAX_LIMIT, Math.max(1, Number(limit) || DEFAULT_LIMIT));
+        const safePage = Math.max(1, Number(page) || DEFAULT_PAGE);
+        const skip = (safePage - 1) * safeLimitValue;
 
-        if (limit > 0) {
-            results = (await this.model.find(query).skip(skip).limit(limit).exec()) as T[];
-        } else {
-            results = (await this.model.find(query).exec()) as T[];
-        }
-
-        return results;
+        return (await this.model.find(query).skip(skip).limit(safeLimitValue).exec()) as T[];
     }
 
     protected async findNearby(coordinates: [number, number], maxDistance: number = 10000): Promise<T[]> {
@@ -394,7 +396,7 @@ class BaseService<T extends Document> {
                 },
             },
         };
-        return this.model.find(query).exec() as Promise<T[]>;
+        return this.model.find(query).limit(MAX_LIMIT).exec() as Promise<T[]>;
     }
 
     /**
