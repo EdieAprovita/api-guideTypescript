@@ -1,15 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 import asyncHandler from '../middleware/asyncHandler.js';
-import pkg from 'express-validator';
-const { validationResult } = pkg;
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { businessService as BusinessService } from '../services/BusinessService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
-import { sendSuccessResponse, sendCreatedResponse, sendPaginatedResponse } from '../utils/responseHelpers.js';
 import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
 import { resolveCoords, parseFiniteNumber } from '../utils/geoHelpers.js';
+import { sendPaginatedResponse } from '../utils/responseHelpers.js';
+import {
+    createGetAllHandler,
+    createGetByIdHandler,
+    createCreateHandler,
+    createUpdateHandler,
+    createDeleteHandler,
+} from './factories/entityControllerFactory.js';
+import { createAddReviewHandler } from './factories/reviewEndpointsFactory.js';
 
 /**
  * @description Get all businesses
@@ -18,21 +24,7 @@ import { resolveCoords, parseFiniteNumber } from '../utils/geoHelpers.js';
  * @access Public
  * @returns {Promise<Response>}
  */
-
-export const getBusinesses = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-        // Usar método con cache para mejor rendimiento
-        const businesses = await BusinessService.getAllCached();
-        sendSuccessResponse(res, businesses, 'Businesses fetched successfully');
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const getBusinesses = createGetAllHandler(BusinessService, 'Business', { useCache: true });
 
 /**
  * @description Get a business by id
@@ -41,31 +33,15 @@ export const getBusinesses = asyncHandler(async (_req: Request, res: Response, n
  * @access Public
  * @returns {Promise<Response>}
  */
+export const getBusinessById = createGetByIdHandler(BusinessService, 'Business', { useCache: true });
 
-export const getBusinessById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Business ID is required'));
-        }
-        // Usar método con cache para mejor rendimiento
-        const business = await BusinessService.findByIdCached(id);
-        sendSuccessResponse(res, business, 'Business fetched successfully');
-    } catch (error) {
-        // If the service already threw an HttpError (e.g. 404 not found), re-throw it.
-        // Otherwise treat unknown errors as internal server errors so DB failures
-        // don't masquerade as 404 responses.
-        if (error instanceof HttpError) {
-            return next(error);
-        }
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+const preProcessBusiness = async (data: Record<string, unknown>) => {
+    const sanitized = sanitizeNoSQLInput(data);
+    // Mutate in-place so the factory's reference to req.body receives the sanitized content
+    Object.keys(data).forEach(key => delete data[key]);
+    Object.assign(data, sanitized);
+    await geocodeAndAssignLocation(data);
+};
 
 /**
  * @description Create a new business
@@ -74,32 +50,8 @@ export const getBusinessById = asyncHandler(async (req: Request, res: Response, 
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const createBusiness = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
-    }
-
-    try {
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        await geocodeAndAssignLocation(sanitizedData);
-        const business = await BusinessService.create(sanitizedData);
-        sendCreatedResponse(res, business, 'Business created successfully');
-    } catch (error) {
-        // Check if it's a validation error from mongoose
-        if (error instanceof Error && error.name === 'ValidationError') {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error.message)));
-        }
-
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
+export const createBusiness = createCreateHandler(BusinessService, 'Business', {
+    preCreate: preProcessBusiness,
 });
 
 /**
@@ -109,34 +61,8 @@ export const createBusiness = asyncHandler(async (req: Request, res: Response, n
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const updateBusiness = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(firstError?.msg ?? 'Validation error')));
-    }
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Business ID is required'));
-        }
-        const sanitizedData = sanitizeNoSQLInput(req.body);
-        await geocodeAndAssignLocation(sanitizedData);
-        const updatedBusiness = await BusinessService.updateById(id, sanitizedData);
-        res.status(200).json({
-            success: true,
-            message: 'Business updated successfully',
-            data: updatedBusiness,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
+export const updateBusiness = createUpdateHandler(BusinessService, 'Business', {
+    preUpdate: preProcessBusiness,
 });
 
 /**
@@ -146,61 +72,16 @@ export const updateBusiness = asyncHandler(async (req: Request, res: Response, n
  * @access Private
  * @returns {Promise<Response>}
  */
-
-export const deleteBusiness = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'Business ID is required'));
-        }
-        await BusinessService.deleteById(id);
-        res.status(200).json({
-            success: true,
-            message: 'Business deleted successfully',
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const deleteBusiness = createDeleteHandler(BusinessService, 'Business');
 
 /**
  * @description Create a new review for a business
  * @name addReviewToBusiness
  * @route POST /api/businesses/:id/reviews
- * @access Public
+ * @access Private
  * @returns {Promise<Response>}
  */
-
-export const addReviewToBusiness = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const sanitizedBody = sanitizeNoSQLInput(req.body);
-        const reviewData = {
-            ...sanitizedBody,
-            entityType: 'Business',
-            entity: req.params.id,
-            businessId: req.params.id, // Keep for backward compatibility
-        };
-        const newReview = await ReviewService.addReview(reviewData);
-
-        res.status(200).json({
-            success: true,
-            message: 'Review added successfully',
-            data: newReview,
-        });
-    } catch (error) {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : 'Unknown error')
-            )
-        );
-    }
-});
+export const addReviewToBusiness = createAddReviewHandler('Business', BusinessService, 'businessId');
 
 /**
  * @description Get Top rated businesses
@@ -209,7 +90,6 @@ export const addReviewToBusiness = asyncHandler(async (req: Request, res: Respon
  * @access Public
  * @returns {Promise<Response>}
  */
-
 export const getTopRatedBusinesses = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const topRatedBusinesses = await ReviewService.getTopRatedReviews('business');
@@ -236,11 +116,8 @@ export const getTopRatedBusinesses = asyncHandler(async (_req: Request, res: Res
  * @access Public
  * @returns {Promise<Response>}
  */
-
 export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Use shared geoHelper to reliably resolve coordinate pairs (either lat/lng or latitude/longitude)
-        // This also handles finite number enforcement.
         const { latitude, longitude, lat: latShort, lng: lngShort, radius, page, limit } = req.query;
         let lat: number | undefined;
         let lng: number | undefined;
@@ -304,7 +181,6 @@ export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Respon
  * @access Public
  * @returns {Promise<Response>}
  */
-
 export const searchBusinesses = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { q, category, sortBy, sortOrder, page, limit } = req.query;

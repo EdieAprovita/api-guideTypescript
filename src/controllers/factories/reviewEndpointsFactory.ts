@@ -2,6 +2,7 @@ import { Request, Response, NextFunction, RequestHandler } from 'express';
 import asyncHandler from '../../middleware/asyncHandler.js';
 import { HttpError, HttpStatusCode } from '../../types/Errors.js';
 import { reviewService as ReviewService } from '../../services/ReviewService.js';
+import { sanitizeNoSQLInput } from '../../utils/sanitizer.js';
 
 type EntityType = 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
 
@@ -33,11 +34,14 @@ export function createAddReviewHandler<T>(
 
             const existingReview = await ReviewService.findByUserAndEntity(userId.toString(), entityType, id);
             if (existingReview) {
-                throw new HttpError(HttpStatusCode.CONFLICT, `User has already reviewed this ${entityType.toLowerCase()}`);
+                throw new HttpError(
+                    HttpStatusCode.CONFLICT,
+                    `User has already reviewed this ${entityType.toLowerCase()}`
+                );
             }
 
-            // Map frontend `comment` → backend `content` if needed
-            const body = { ...req.body };
+            // Sanitize before spreading to prevent NoSQL injection
+            const body = { ...sanitizeNoSQLInput(req.body) };
             if (body.comment && !body.content) {
                 body.content = body.comment;
                 delete body.comment;
@@ -59,10 +63,7 @@ export function createAddReviewHandler<T>(
     });
 }
 
-export function createGetReviewsHandler<T>(
-    entityType: EntityType,
-    entityService: EntityService<T>
-): RequestHandler {
+export function createGetReviewsHandler<T>(entityType: EntityType, entityService: EntityService<T>): RequestHandler {
     return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { id } = req.params;

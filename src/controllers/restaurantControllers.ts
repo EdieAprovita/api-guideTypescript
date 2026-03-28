@@ -14,6 +14,7 @@ import {
     createDeleteHandler,
     createGetNearbyHandler,
 } from './factories/entityControllerFactory.js';
+import { createGetReviewsHandler, createGetReviewStatsHandler } from './factories/reviewEndpointsFactory.js';
 
 /**
  * @description Get all restaurants
@@ -144,3 +145,33 @@ export const getTopRatedRestaurants = asyncHandler(async (_req: Request, res: Re
  * @returns {Promise<Response>}
  */
 export const getNearbyRestaurants = createGetNearbyHandler(RestaurantService, 'Restaurant');
+
+// Reviews for a restaurant — these routes use :restaurantId as the param name.
+// The factory handlers expect :id, so we remap the param before delegating.
+
+const _getReviewsHandler = createGetReviewsHandler('Restaurant', RestaurantService);
+const _getReviewStatsHandler = createGetReviewStatsHandler('Restaurant', RestaurantService);
+
+/**
+ * @description Get reviews for a restaurant
+ * @name getRestaurantReviews
+ * @route GET /api/restaurants/:restaurantId/reviews
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getRestaurantReviews = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    req.params.id = req.params.restaurantId!;
+    return _getReviewsHandler(req, res, next);
+});
+
+/**
+ * @description Get review statistics for a restaurant
+ * @name getRestaurantReviewStats
+ * @route GET /api/restaurants/:restaurantId/reviews/stats
+ * @access Public
+ * @returns {Promise<Response>}
+ */
+export const getRestaurantReviewStats = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    req.params.id = req.params.restaurantId!;
+    return _getReviewStatsHandler(req, res, next);
+});
