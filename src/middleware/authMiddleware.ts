@@ -3,6 +3,7 @@ import { HttpError, HttpStatusCode, TokenRevokedError } from '../types/Errors.js
 import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
 import TokenService from '../services/TokenService.js';
+import { getRefreshTokenCookieOptions } from '../constants/cookies.js';
 
 // Define interface for authenticated user
 interface AuthenticatedUser {
@@ -300,14 +301,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
         // SECURITY: Send new refresh token in HttpOnly, Secure cookie (not in JSON body)
         // This prevents XSS attacks from stealing the refresh token via document.cookie
-        const isProduction = process.env.NODE_ENV === 'production';
-        res.cookie('refreshToken', tokens.refreshToken, {
-            httpOnly: true, // Prevent JavaScript access (XSS protection)
-            secure: isProduction, // HTTPS only in production
-            sameSite: 'strict', // CSRF protection
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
+        res.cookie('refreshToken', tokens.refreshToken, getRefreshTokenCookieOptions());
 
         // Return ONLY the access token in response body
         // Refresh token is in secure cookie and NOT exposed to JavaScript

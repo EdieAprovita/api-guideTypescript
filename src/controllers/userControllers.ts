@@ -8,16 +8,10 @@ import logger from '../utils/logger.js';
 import { User } from '../models/User.js';
 import type { UserRole } from '../models/User.js';
 import { REGISTER_ALLOWED_ROLES, ROLE_RANK } from '../constants/roles.js';
+import { getRefreshTokenCookieOptions } from '../constants/cookies.js';
 
 function setRefreshTokenCookie(res: Response, refreshToken: string): void {
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
 }
 
 /**
