@@ -91,6 +91,11 @@ const recalculateEntityRating = async (entityType: string, entityId: string): Pr
     const EntityModel = await getEntityModel(entityType);
     if (!EntityModel) return; // test environment
 
+    if (!entityId || !Types.ObjectId.isValid(entityId)) {
+        logger.warn('Skipping rating recalculation: invalid entity ID', { entityType, entityId });
+        return;
+    }
+
     const safeEntityId = new Types.ObjectId(entityId);
 
     // Single aggregation pipeline to compute avgRating, count, and reviewIds atomically
@@ -361,8 +366,18 @@ export const reviewService = {
 
             await cacheService.invalidateByTag(`reviews:${reviewData.entityType}:${reviewData.entity}`);
 
-            // Sync denormalized rating/numReviews/reviews[] on the parent entity
-            await recalculateEntityRating(reviewData.entityType, reviewData.entity.toString());
+            // Sync denormalized rating/numReviews/reviews[] on the parent entity.
+            // Runs outside the review transaction; failures must not surface as API errors.
+            try {
+                await recalculateEntityRating(reviewData.entityType, reviewData.entity.toString());
+            } catch (err) {
+                logger.error('Failed to recalculate entity rating after review commit', {
+                    operation: 'review_rating_recalculation_failed',
+                    entityType: reviewData.entityType,
+                    entityId: reviewData.entity?.toString(),
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
 
             // Phase 8: Structured logging
             if (populatedReview) {
