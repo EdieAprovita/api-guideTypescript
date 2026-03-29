@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware.js';
-import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
+import { validate, rateLimits, validateInputLength, validateObjectId } from '../middleware/validation.js';
 import { paramSchemas, reviewSchemas, querySchemas } from '../utils/validators.js';
 import {
     getDoctors,
@@ -16,7 +16,7 @@ const router = express.Router();
 
 router.get('/', getDoctors);
 router.get('/nearby', rateLimits.search, validate({ query: querySchemas.geospatial }), getNearbyDoctors);
-router.get('/:id', getDoctorById);
+router.get('/:id', validateObjectId(), getDoctorById);
 
 router.post('/', protect, createDoctor);
 
@@ -46,7 +46,7 @@ router.post(
     addReviewToDoctor
 );
 
-router.put('/:id', protect, admin, updateDoctor);
-router.delete('/:id', protect, admin, deleteDoctor);
+router.put('/:id', validateObjectId(), protect, admin, updateDoctor);
+router.delete('/:id', validateObjectId(), protect, admin, deleteDoctor);
 
 export default router;

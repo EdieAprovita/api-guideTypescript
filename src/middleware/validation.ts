@@ -2,7 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
 import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
+import mongoose from 'mongoose';
 import { ValidationSchema } from '../types/validation.js';
+import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
 // Working validation middleware factory
 export const validate = (schema: ValidationSchema) => {
@@ -273,32 +275,6 @@ export const handleValidationError = (error: unknown, _req: Request, res: Respon
     return next(error);
 };
 
-// Security headers middleware
-export const securityHeaders = (_req: Request, res: Response, next: NextFunction) => {
-    // Remove server information
-    res.removeHeader('X-Powered-By');
-
-    // Add security headers
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-    // Content Security Policy
-    res.setHeader(
-        'Content-Security-Policy',
-        "default-src 'self'; " +
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-            "style-src 'self' 'unsafe-inline'; " +
-            "img-src 'self' data: https:; " +
-            "font-src 'self' https: data:; " +
-            "connect-src 'self' https:; " +
-            "frame-ancestors 'none';"
-    );
-
-    next();
-};
-
 // Input length validation middleware
 export const validateInputLength = (maxBodySize: number = 1024 * 1024) => {
     // 1MB default
@@ -318,3 +294,14 @@ export const validateInputLength = (maxBodySize: number = 1024 * 1024) => {
         return next();
     };
 };
+
+// ObjectId param validation middleware
+export function validateObjectId(paramName: string = 'id') {
+    return (req: Request, _res: Response, next: NextFunction) => {
+        const value = req.params[paramName];
+        if (!value || !mongoose.Types.ObjectId.isValid(value)) {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, `Invalid ${paramName} parameter`));
+        }
+        next();
+    };
+}
