@@ -366,7 +366,7 @@ jobs:
 
             - name: Build and push Docker image
               run: |
-                  IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/api-guidetypescript/app:${{ github.sha }}"
+                  IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/cloud-run-source-deploy/api-guidetypescript:${{ github.sha }}"
                   docker build -t "$IMAGE" .
                   docker push "$IMAGE"
                   echo "IMAGE=$IMAGE" >> $GITHUB_ENV
@@ -390,15 +390,16 @@ jobs:
                       JWT_REFRESH_SECRET=jwt-refresh-secret:latest
                       JWT_RESET_SECRET=jwt-reset-secret:latest
                       MONGODB_URI=mongodb-uri:latest
-                      REDIS_URL=redis-url:latest
                       SESSION_SECRET=session-secret:latest
+                      GOOGLE_MAPS_API_KEY=google-maps-api-key:latest
+                      EMAIL_USER=email-user:latest
+                      EMAIL_PASS=email-pass:latest
                   env_vars: |
                       NODE_ENV=production
-                      PORT=8080
                       LOG_LEVEL=info
                       BCRYPT_SALT_ROUNDS=12
-                      CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-                      FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+                      FRONTEND_URL=https://vegan-guide-platform.vercel.app
+                      CLIENT_URL=https://vegan-guide-platform.vercel.app
 
             - name: Verify deployment
               run: |
@@ -406,7 +407,7 @@ jobs:
                     --region=${{ env.GCP_REGION }} \
                     --format='value(status.url)')
                   echo "::notice::Deployed to $URL"
-                  STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 15 "$URL/health" || echo "000")
+                  STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 30 "$URL/health" || echo "000")
                   if [ "$STATUS" = "200" ]; then
                     echo "::notice::Health check passed (HTTP $STATUS)"
                   else
