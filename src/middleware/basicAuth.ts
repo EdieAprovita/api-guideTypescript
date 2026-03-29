@@ -39,12 +39,8 @@ export const basicAuth = () => {
             Buffer.from(expectedUsername).copy(expectedUserBuf);
             Buffer.from(expectedPassword).copy(expectedPassBuf);
 
-            const userMatch =
-                userBuf.length === expectedUserBuf.length &&
-                timingSafeEqual(userBuf, expectedUserBuf);
-            const passMatch =
-                passBuf.length === expectedPassBuf.length &&
-                timingSafeEqual(passBuf, expectedPassBuf);
+            const userMatch = userBuf.length === expectedUserBuf.length && timingSafeEqual(userBuf, expectedUserBuf);
+            const passMatch = passBuf.length === expectedPassBuf.length && timingSafeEqual(passBuf, expectedPassBuf);
 
             if (userMatch && passMatch) {
                 return next();

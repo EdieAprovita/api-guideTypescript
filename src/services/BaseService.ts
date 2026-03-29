@@ -3,9 +3,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { cacheService, CacheOptions } from './CacheService.js';
 import logger from '../utils/logger.js';
-import {
-    escapeRegex,
-} from '../utils/escapeRegex.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 import {
     PaginatedResponse,
     PaginationMeta,

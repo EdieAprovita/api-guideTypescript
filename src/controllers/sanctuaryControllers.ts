@@ -4,6 +4,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { sanctuaryService as SanctuaryService } from '../services/SanctuaryService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import { stripPrototypePollutionKeys } from '../utils/sanitizeKeys.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
 import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
 import {
@@ -34,7 +35,7 @@ export const getSanctuaries = createGetAllHandler(SanctuaryService, 'Sanctuary')
 export const getSanctuaryById = createGetByIdHandler(SanctuaryService, 'Sanctuary');
 
 const preProcessSanctuary = async (data: Record<string, unknown>) => {
-    const sanitized = sanitizeNoSQLInput(data);
+    const sanitized = stripPrototypePollutionKeys(sanitizeNoSQLInput(data));
     Object.keys(data).forEach(key => delete data[key]);
     Object.assign(data, sanitized);
     await geocodeAndAssignLocation(data);
