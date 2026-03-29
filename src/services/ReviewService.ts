@@ -436,7 +436,17 @@ export const reviewService = {
                 await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
 
                 // Sync denormalized rating/numReviews/reviews[] on the parent entity
-                await recalculateEntityRating(updatedReview.entityType, updatedReview.entity?.toString() ?? '');
+                try {
+                    await recalculateEntityRating(updatedReview.entityType, updatedReview.entity?.toString() ?? '');
+                } catch (err) {
+                    logger.error('Failed to recalculate entity rating after review update', {
+                        operation: 'review_rating_recalculation_failed',
+                        entityType: updatedReview.entityType,
+                        entityId: updatedReview.entity?.toString(),
+                        reviewId: updatedReview._id?.toString(),
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                }
 
                 // Phase 8: Structured logging
                 logger.info('Review updated successfully', {
@@ -487,7 +497,17 @@ export const reviewService = {
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
 
             // Sync denormalized rating/numReviews/reviews[] on the parent entity
-            await recalculateEntityRating(entityToInvalidate.entityType, entityToInvalidate.entityId);
+            try {
+                await recalculateEntityRating(entityToInvalidate.entityType, entityToInvalidate.entityId);
+            } catch (err) {
+                logger.error('Failed to recalculate entity rating after review deletion', {
+                    operation: 'review_rating_recalculation_failed',
+                    entityType: entityToInvalidate.entityType,
+                    entityId: entityToInvalidate.entityId,
+                    reviewId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
 
             // Phase 8: Structured logging
             logger.info('Review deleted successfully', {
