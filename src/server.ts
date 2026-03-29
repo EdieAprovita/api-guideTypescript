@@ -4,6 +4,7 @@ import app from './app.js';
 import mongoose from 'mongoose';
 import { colorTheme } from './types/colorTheme.js';
 import logger, { logWarn } from './utils/logger.js';
+import { validateSecrets } from './config/envValidation.js';
 
 // Cloud Run provides PORT via environment variable, default to 8080 for production compatibility
 const PORT = process.env.PORT ?? 8080;
@@ -36,6 +37,9 @@ export function validateStartupEnvironment(): void {
         );
         process.exit(1);
     }
+
+    // Reject placeholder / weak secrets before the server binds any port.
+    validateSecrets(process.env);
 }
 
 validateStartupEnvironment();

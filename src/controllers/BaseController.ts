@@ -46,12 +46,14 @@ export class BaseController<T extends Document> {
     }
 
     protected handleError(error: unknown, next: NextFunction, defaultMessage: string = 'Operation failed'): void {
-        next(
-            new HttpError(
-                HttpStatusCode.INTERNAL_SERVER_ERROR,
-                getErrorMessage(error instanceof Error ? error.message : defaultMessage)
-            )
-        );
+        if (error instanceof HttpError) {
+            return next(error);
+        }
+        if (error instanceof Error && error.name === 'ValidationError') {
+            return next(new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage(error.message)));
+        }
+        const message = error instanceof Error ? error.message : defaultMessage;
+        next(new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, getErrorMessage(message)));
     }
 
     // Standard CRUD operations

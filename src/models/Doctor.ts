@@ -28,11 +28,13 @@ export interface IDoctor extends Document {
 
 const doctorSchema = new Schema<IDoctor>(
     {
+        // PR review fix: removed Mongoose `alias` — alias only works on in-memory instances,
+        // not for Model.find({ name: 'x' }) queries. Virtual field below provides the same
+        // in-memory getter/setter without misleading consumers into thinking queries work.
         doctorName: {
             type: String,
             required: true,
             unique: true,
-            alias: 'name',
         },
         author: {
             type: Schema.Types.ObjectId,
@@ -82,6 +84,18 @@ const doctorSchema = new Schema<IDoctor>(
     },
     { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+// Virtual `name` provides a document-level getter/setter for doctorName.
+// IMPORTANT: Like Mongoose alias, virtuals are NOT available in queries.
+// Always use { doctorName: 'x' } with Model.find() — never { name: 'x' }.
+doctorSchema
+    .virtual('name')
+    .get(function (this: IDoctor) {
+        return this.doctorName;
+    })
+    .set(function (this: IDoctor, value: string) {
+        this.doctorName = value;
+    });
+
 doctorSchema.index({ location: '2dsphere' });
 
 // Performance indexes — Sprint 5

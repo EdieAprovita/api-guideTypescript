@@ -30,6 +30,8 @@ function spyOnProcessExit() {
 describe('validateStartupEnvironment', () => {
     const originalBypass = process.env.BYPASS_AUTH_FOR_TESTING;
     const originalNodeEnv = process.env.NODE_ENV;
+    const originalJwtSecret = process.env.JWT_SECRET;
+    const originalMongoUri = process.env.MONGODB_URI;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -45,6 +47,16 @@ describe('validateStartupEnvironment', () => {
             process.env.BYPASS_AUTH_FOR_TESTING = originalBypass;
         } else {
             delete process.env.BYPASS_AUTH_FOR_TESTING;
+        }
+        if (originalJwtSecret !== undefined) {
+            process.env.JWT_SECRET = originalJwtSecret;
+        } else {
+            delete process.env.JWT_SECRET;
+        }
+        if (originalMongoUri !== undefined) {
+            process.env.MONGODB_URI = originalMongoUri;
+        } else {
+            delete process.env.MONGODB_URI;
         }
         vi.restoreAllMocks();
     });
@@ -79,6 +91,9 @@ describe('validateStartupEnvironment', () => {
     it('does NOT call process.exit when BYPASS_AUTH_FOR_TESTING is unset', () => {
         delete process.env.BYPASS_AUTH_FOR_TESTING;
         process.env.NODE_ENV = 'production';
+        // Provide valid secrets so the env-validation step does not throw
+        process.env.JWT_SECRET = 'K9mP2xQzR7vLwNjH4bFdYeAu8cTsG1oI';
+        process.env.MONGODB_URI = 'mongodb+srv://user:pass@cluster.internal.net/db';
         const exitSpy = spyOnProcessExit();
 
         expect(() => validateStartupEnvironment()).not.toThrow();

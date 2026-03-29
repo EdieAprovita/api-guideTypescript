@@ -28,11 +28,13 @@ export interface ISanctuary extends Document {
 
 const sanctuarySchema = new Schema<ISanctuary>(
     {
+        // PR review fix: removed Mongoose `alias` — alias only works on in-memory instances,
+        // not for Model.find({ name: 'x' }) queries. Virtual field below provides the same
+        // in-memory getter/setter without misleading consumers into thinking queries work.
         sanctuaryName: {
             type: String,
             required: true,
             unique: true,
-            alias: 'name',
         },
         author: {
             type: Schema.Types.ObjectId,
@@ -56,12 +58,10 @@ const sanctuarySchema = new Schema<ISanctuary>(
                 animalName: {
                     type: String,
                     required: true,
-                    alias: 'name',
                 },
                 specie: {
                     type: String,
                     required: true,
-                    alias: 'species',
                 },
                 age: {
                     type: Number,
@@ -137,6 +137,18 @@ const sanctuarySchema = new Schema<ISanctuary>(
     },
     { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+// Virtual `name` provides a document-level getter/setter for sanctuaryName.
+// IMPORTANT: Like Mongoose alias, virtuals are NOT available in queries.
+// Always use { sanctuaryName: 'x' } with Model.find() — never { name: 'x' }.
+sanctuarySchema
+    .virtual('name')
+    .get(function (this: ISanctuary) {
+        return this.sanctuaryName;
+    })
+    .set(function (this: ISanctuary, value: string) {
+        this.sanctuaryName = value;
+    });
+
 sanctuarySchema.index({ location: '2dsphere' });
 
 // Performance indexes — Sprint 5
