@@ -93,6 +93,7 @@ describe('validateStartupEnvironment', () => {
         process.env.NODE_ENV = 'production';
         // Provide valid secrets so the env-validation step does not throw
         process.env.JWT_SECRET = 'K9mP2xQzR7vLwNjH4bFdYeAu8cTsG1oI';
+        process.env.JWT_REFRESH_SECRET = 'R3fR3sHt0k3nS3cR3tK3yV4Lu3F0rT3st';
         process.env.MONGODB_URI = 'mongodb+srv://user:pass@cluster.internal.net/db';
         const exitSpy = spyOnProcessExit();
 

@@ -349,10 +349,10 @@ export const revokeAllTokens = async (req: Request, res: Response) => {
             message: 'All tokens revoked successfully',
         });
     } catch (error) {
+        logger.error('Failed to revoke all tokens', { error });
         return res.status(500).json({
             success: false,
             message: 'Failed to revoke tokens',
-            error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 };

@@ -50,6 +50,7 @@ export interface SecretRule {
 
 const REQUIRED_SECRETS: readonly SecretRule[] = [
     { name: 'JWT_SECRET', minLength: MIN_SECRET_LENGTH },
+    { name: 'JWT_REFRESH_SECRET', minLength: MIN_SECRET_LENGTH },
     { name: 'MONGODB_URI', minLength: 1, skipPatternCheck: true }, // format validated separately by Mongoose
     { name: 'SESSION_SECRET', minLength: MIN_SECRET_LENGTH, warnOnly: true },
 ];

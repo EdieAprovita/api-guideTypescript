@@ -4,6 +4,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { professionService as ProfessionService } from '../services/ProfessionService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import { stripPrototypePollutionKeys } from '../utils/sanitizeKeys.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
 import {
     createGetAllHandler,
@@ -32,8 +33,10 @@ export const getProfessions = createGetAllHandler(ProfessionService, 'Profession
  */
 export const getProfessionById = createGetByIdHandler(ProfessionService, 'Profession');
 
-const preProcessProfession = async (data: any) => {
-    return sanitizeNoSQLInput(data);
+const preProcessProfession = async (data: Record<string, unknown>) => {
+    const sanitized = stripPrototypePollutionKeys(sanitizeNoSQLInput(data));
+    Object.keys(data).forEach(key => delete data[key]);
+    Object.assign(data, sanitized);
 };
 
 /**

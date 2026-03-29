@@ -1,5 +1,6 @@
 import { marketsService as MarketsService } from '../services/MarketsService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import { stripPrototypePollutionKeys } from '../utils/sanitizeKeys.js';
 import {
     createAddReviewHandler,
     createGetReviewsHandler,
@@ -33,9 +34,11 @@ export const getMarkets = createGetAllHandler(MarketsService, 'Market');
  */
 export const getMarketById = createGetByIdHandler(MarketsService, 'Market');
 
-const preProcessMarket = async (data: any) => {
-    const sanitized = sanitizeNoSQLInput(data);
-    await geocodeAndAssignLocation(sanitized);
+const preProcessMarket = async (data: Record<string, unknown>) => {
+    const sanitized = stripPrototypePollutionKeys(sanitizeNoSQLInput(data));
+    Object.keys(data).forEach(key => delete data[key]);
+    Object.assign(data, sanitized);
+    await geocodeAndAssignLocation(data);
 };
 
 /**

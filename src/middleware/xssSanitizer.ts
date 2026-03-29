@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 // @ts-ignore - isomorphic-dompurify doesn't have types but works fine
 import DOMPurify from 'isomorphic-dompurify';
+import logger from '../utils/logger.js';
 
 /**
  * Custom XSS sanitization middleware using DOMPurify
@@ -52,7 +53,7 @@ const sanitizeValue = (value: any): any => {
  * Sanitizes req.body, req.query, and req.params
  */
 export const xssSanitizer = () => {
-    return (req: Request, _res: Response, next: NextFunction) => {
+    return (req: Request, res: Response, next: NextFunction) => {
         try {
             // Sanitize request body
             if (req.body) {
@@ -71,9 +72,15 @@ export const xssSanitizer = () => {
 
             next();
         } catch (error) {
-            console.error('XSS Sanitization Error:', error);
-            // Don't fail the request, but log the error
-            next();
+            // Fail-closed: if sanitization throws, reject the request rather than
+            // forwarding unsanitized data. Forwarding would be fail-open and could
+            // allow malicious payloads to reach downstream handlers.
+            logger.error('XSS sanitization error', error);
+            res.status(400).json({
+                success: false,
+                message: 'Request contains invalid content',
+            });
+            // Do NOT call next() — unsanitized data must never reach route handlers
         }
     };
 };

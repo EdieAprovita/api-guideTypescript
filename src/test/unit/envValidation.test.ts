@@ -23,6 +23,7 @@ function validEnv(overrides: Record<string, string | undefined> = {}): NodeJS.Pr
         NODE_ENV: 'production',
         // 32 random-looking chars, no banned substrings
         JWT_SECRET: 'K9mP2xQzR7vLwNjH4bFdYeAu8cTsG1oI',
+        JWT_REFRESH_SECRET: 'R3fR3sHt0k3nS3cR3tK3yV4Lu3F0rT3st',
         MONGODB_URI: 'mongodb+srv://user:pass@cluster.internal.net/db',
         // SESSION_SECRET and JWT_RESET_SECRET are warnOnly — omitting is fine for error tests
         ...overrides,
@@ -221,6 +222,7 @@ describe('validateSecrets', () => {
             validateSecrets({
                 NODE_ENV: 'production',
                 JWT_SECRET: 'K9mP2xQzR7vLwNjH4bFdYeAu8cTsG1oI',
+                JWT_REFRESH_SECRET: 'R3fR3sHt0k3nS3cR3tK3yV4Lu3F0rT3st',
                 MONGODB_URI: 'mongodb+srv://user:pass@cluster.internal.net/db',
                 JWT_RESET_SECRET: undefined, // warnOnly — should warn but not throw
             })

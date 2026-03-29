@@ -4,6 +4,7 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import { doctorService as DoctorService } from '../services/DoctorService.js';
 import { sanitizeNoSQLInput } from '../utils/sanitizer.js';
+import { stripPrototypePollutionKeys } from '../utils/sanitizeKeys.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
 import geocodeAndAssignLocation from '../utils/geocodeLocation.js';
 import {
@@ -33,9 +34,11 @@ export const getDoctors = createGetAllHandler(DoctorService, 'Doctor');
  */
 export const getDoctorById = createGetByIdHandler(DoctorService, 'Doctor');
 
-const preProcessDoctor = async (data: any) => {
-    const sanitized = sanitizeNoSQLInput(data);
-    await geocodeAndAssignLocation(sanitized);
+const preProcessDoctor = async (data: Record<string, unknown>) => {
+    const sanitized = stripPrototypePollutionKeys(sanitizeNoSQLInput(data));
+    Object.keys(data).forEach(key => delete data[key]);
+    Object.assign(data, sanitized);
+    await geocodeAndAssignLocation(data);
 };
 
 /**
