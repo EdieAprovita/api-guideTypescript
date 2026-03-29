@@ -60,6 +60,7 @@ export const validationMocks = {
             (req: Request, res: Response, next: NextFunction) => next(),
         ]),
     validateInputLength: vi.fn(() => (req: Request, res: Response, next: NextFunction) => next()),
+    validateObjectId: vi.fn(() => (_req: any, _res: any, next: any) => next()),
     securityHeaders: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
     handleValidationError: vi.fn((error: unknown, req: Request, res: Response, next: NextFunction) => next()),
     rateLimits: {

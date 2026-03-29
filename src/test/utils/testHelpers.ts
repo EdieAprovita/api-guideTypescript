@@ -308,6 +308,7 @@ export const createMockMiddleware = () => ({
     sanitizeInput: () => [(_req: Request, _res: Response, next: NextFunction) => next()],
     validateInputLength: () => (_req: Request, _res: Response, next: NextFunction) => next(),
     validate: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    validateObjectId: vi.fn(() => (_req: any, _res: any, next: any) => next()),
 });
 
 export const createMockAuthMiddleware = () => ({

@@ -29,7 +29,6 @@ export class CacheService {
     private redis!: RedisType;
     private hits = 0;
     private misses = 0;
-    private readonly tagMap: Map<string, Set<string>> = new Map();
 
     // TTL por tipo de contenido (en segundos)
     private readonly ttlConfig: Record<string, number> = {
@@ -176,10 +175,25 @@ export class CacheService {
      */
     async invalidate(key: string): Promise<void> {
         try {
-            await this.redis.del(key);
-            logger.debug(`🗑️ Cache INVALIDATED: ${key}`);
+            const reverseKey = `keytags:${key}`;
+            const associatedTags = await this.redis.smembers(reverseKey);
+
+            const pipeline = this.redis.pipeline();
+
+            // Remove this key from every tag SET that references it
+            for (const tag of associatedTags) {
+                pipeline.srem(`tag:${tag}`, key);
+            }
+
+            // Delete the reverse index entry and the cache key itself
+            pipeline.del(reverseKey);
+            pipeline.del(key);
+
+            await pipeline.exec();
+
+            logger.debug(`Cache INVALIDATED: ${key}`);
         } catch (error) {
-            logger.error(`Cache INVALIDATE error for key ${key}:`, error);
+            logger.warn(`Cache INVALIDATE warning for key ${key}:`, error);
         }
     }
 
@@ -196,8 +210,28 @@ export class CacheService {
                 cursor = nextCursor;
                 keys.push(...batchKeys);
             } while (cursor !== '0');
+
             if (keys.length > 0) {
-                await this.redis.del(...keys);
+                // Fetch the reverse index for each matched key to clean up tag sets
+                const keyTagSets = await Promise.all(
+                    keys.map(key => this.redis.smembers(`keytags:${key}`).catch(() => [] as string[]))
+                );
+
+                const pipeline = this.redis.pipeline();
+
+                keys.forEach((key, i) => {
+                    // Delete the cache key itself
+                    pipeline.del(key);
+                    // Delete the reverse index entry
+                    pipeline.del(`keytags:${key}`);
+                    // Remove the key from every tag set it belonged to
+                    (keyTagSets[i] ?? []).forEach(tag => {
+                        pipeline.srem(`tag:${tag}`, key);
+                    });
+                });
+
+                await pipeline.exec();
+
                 logger.info(`🧹 Cache PATTERN INVALIDATED: ${pattern} (${keys.length} keys)`);
             }
         } catch (error) {
@@ -211,13 +245,39 @@ export class CacheService {
      */
     async invalidateByTag(tag: string): Promise<void> {
         try {
-            const keys = this.tagMap.get(tag);
-            if (keys && keys.size > 0) {
-                const keyArray = Array.from(keys);
-                await this.redis.del(...keyArray);
-                this.tagMap.delete(tag);
-                logger.info(`🏷️ Cache TAG INVALIDATED: ${tag} (${keyArray.length} keys)`);
+            const tagSetKey = `tag:${tag}`;
+            const members = await this.redis.smembers(tagSetKey);
+
+            if (members.length === 0) {
+                return;
             }
+
+            // For each member, fetch its full reverse index so we can clean other tag sets
+            const memberTagSets = await Promise.all(
+                members.map(member => this.redis.smembers(`keytags:${member}`).catch(() => [] as string[]))
+            );
+
+            const pipeline = this.redis.pipeline();
+
+            // Delete every cache key that belongs to this tag
+            members.forEach((member, i) => {
+                pipeline.del(member);
+                // Remove the reverse index entry for each deleted key
+                pipeline.del(`keytags:${member}`);
+                // Remove the member from every other tag set it belonged to
+                (memberTagSets[i] ?? []).forEach(otherTag => {
+                    if (otherTag !== tag) {
+                        pipeline.srem(`tag:${otherTag}`, member);
+                    }
+                });
+            });
+
+            // Delete the forward tag SET itself
+            pipeline.del(tagSetKey);
+
+            await pipeline.exec();
+
+            logger.info(`Cache TAG INVALIDATED: ${tag} (${members.length} keys)`);
         } catch (error) {
             logger.error(`Cache TAG INVALIDATE error for tag ${tag}:`, error);
         }
@@ -263,10 +323,9 @@ export class CacheService {
     async flush(): Promise<void> {
         try {
             await this.redis.flushdb();
-            this.tagMap.clear();
             this.hits = 0;
             this.misses = 0;
-            logger.warn('🧽 Cache FLUSHED completely');
+            logger.warn('Cache FLUSHED completely');
         } catch (error) {
             logger.error('Cache FLUSH error:', error);
         }
@@ -301,16 +360,30 @@ export class CacheService {
     }
 
     /**
-     * Asociar tags con una clave para invalidación masiva
+     * Asociar tags con una clave para invalidación masiva (Redis-backed).
+     *
+     * Forward index:  tag:{tagName}  → SET of cache keys
+     * Reverse index:  keytags:{key}  → SET of tag names
      * @private
      */
     private async associateTags(key: string, tags: string[]): Promise<void> {
-        tags.forEach(tag => {
-            if (!this.tagMap.has(tag)) {
-                this.tagMap.set(tag, new Set());
+        if (tags.length === 0) return;
+
+        try {
+            const pipeline = this.redis.pipeline();
+
+            for (const tag of tags) {
+                // Forward: tag → keys
+                pipeline.sadd(`tag:${tag}`, key);
             }
-            this.tagMap.get(tag)!.add(key);
-        });
+
+            // Reverse: key → tags (spread so all tags are added in one SADD call)
+            pipeline.sadd(`keytags:${key}`, ...tags);
+
+            await pipeline.exec();
+        } catch (error) {
+            logger.warn(`Cache ASSOCIATE TAGS warning for key ${key}:`, error);
+        }
     }
 
     /**

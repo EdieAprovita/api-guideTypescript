@@ -59,3 +59,5 @@ export const validateInputLength = vi.fn(() => {
         next();
     };
 });
+
+export const validateObjectId = vi.fn(() => (_req: any, _res: any, next: any) => next());

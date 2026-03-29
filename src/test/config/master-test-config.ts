@@ -376,6 +376,7 @@ export const setupAllMasterMocks = (): void => {
             handleValidationError: mockValidation,
             securityHeaders: mockValidation,
             validateInputLength: vi.fn(() => mockValidation),
+            validateObjectId: vi.fn(() => (_req: any, _res: any, next: any) => next()),
         };
     });
 
@@ -398,6 +399,7 @@ export const setupAllMasterMocks = (): void => {
             handleValidationError: mockValidation,
             securityHeaders: mockValidation,
             validateInputLength: vi.fn(() => mockValidation),
+            validateObjectId: vi.fn(() => (_req: any, _res: any, next: any) => next()),
         };
     });
 };
