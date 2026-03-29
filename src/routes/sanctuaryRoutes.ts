@@ -45,7 +45,7 @@ router.post(
     addReviewToSanctuary
 );
 
-router.put('/:id', validateObjectId(), protect, admin, updateSanctuary);
-router.delete('/:id', validateObjectId(), protect, admin, deleteSanctuary);
+router.put('/:id', protect, admin, validateObjectId(), updateSanctuary);
+router.delete('/:id', protect, admin, validateObjectId(), deleteSanctuary);
 
 export default router;

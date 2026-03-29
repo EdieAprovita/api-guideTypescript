@@ -18,21 +18,21 @@ const router = express.Router();
 router.get('/', getPosts);
 router.get('/:id', validateObjectId(), getPostById);
 router.post('/', protect, createPost);
-router.post('/like/:id', validateObjectId(), protect, likePost);
-router.post('/comment/:id', validateObjectId(), protect, addComment);
-router.put('/:id', validateObjectId(), protect, updatePost);
+router.post('/like/:id', protect, validateObjectId(), likePost);
+router.post('/comment/:id', protect, validateObjectId(), addComment);
+router.put('/:id', protect, validateObjectId(), updatePost);
 
 // Specific DELETE routes must be defined before the wildcard /:id
-router.delete('/:id/likes', validateObjectId(), protect, unlikePost);
+router.delete('/:id/likes', protect, validateObjectId(), unlikePost);
 router.delete(
     '/:postId/comments/:commentId',
+    protect,
     validateObjectId('postId'),
     validateObjectId('commentId'),
-    protect,
     removeComment
 );
 
 // Generic wildcard — must remain last among DELETE routes
-router.delete('/:id', validateObjectId(), protect, deletePost);
+router.delete('/:id', protect, validateObjectId(), deletePost);
 
 export default router;

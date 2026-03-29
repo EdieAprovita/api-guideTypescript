@@ -14,7 +14,7 @@ const router = express.Router();
 router.get('/', getProfessionsProfile);
 router.get('/:id', validateObjectId(), getProfessionProfileById);
 router.post('/', protect, professional, createProfessionProfile);
-router.put('/:id', validateObjectId(), protect, professional, updateProfessionProfile);
-router.delete('/:id', validateObjectId(), protect, professional, admin, deleteProfessionProfile);
+router.put('/:id', protect, professional, validateObjectId(), updateProfessionProfile);
+router.delete('/:id', protect, professional, admin, validateObjectId(), deleteProfessionProfile);
 
 export default router;

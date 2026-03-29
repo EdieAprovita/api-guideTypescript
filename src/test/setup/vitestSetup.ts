@@ -192,6 +192,7 @@ vi.mock('../../middleware/validation', () => ({
         upload: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
         push: vi.fn((req: Request, res: Response, next: NextFunction) => next()),
     },
+    validateObjectId: vi.fn(() => (_req: any, _res: any, next: any) => next()),
 }));
 
 // Mock security middleware

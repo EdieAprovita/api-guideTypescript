@@ -210,8 +210,28 @@ export class CacheService {
                 cursor = nextCursor;
                 keys.push(...batchKeys);
             } while (cursor !== '0');
+
             if (keys.length > 0) {
-                await this.redis.del(...keys);
+                // Fetch the reverse index for each matched key to clean up tag sets
+                const keyTagSets = await Promise.all(
+                    keys.map(key => this.redis.smembers(`keytags:${key}`).catch(() => [] as string[]))
+                );
+
+                const pipeline = this.redis.pipeline();
+
+                keys.forEach((key, i) => {
+                    // Delete the cache key itself
+                    pipeline.del(key);
+                    // Delete the reverse index entry
+                    pipeline.del(`keytags:${key}`);
+                    // Remove the key from every tag set it belonged to
+                    keyTagSets[i].forEach(tag => {
+                        pipeline.srem(`tag:${tag}`, key);
+                    });
+                });
+
+                await pipeline.exec();
+
                 logger.info(`🧹 Cache PATTERN INVALIDATED: ${pattern} (${keys.length} keys)`);
             }
         } catch (error) {
@@ -232,14 +252,25 @@ export class CacheService {
                 return;
             }
 
+            // For each member, fetch its full reverse index so we can clean other tag sets
+            const memberTagSets = await Promise.all(
+                members.map(member => this.redis.smembers(`keytags:${member}`).catch(() => [] as string[]))
+            );
+
             const pipeline = this.redis.pipeline();
 
             // Delete every cache key that belongs to this tag
-            for (const member of members) {
+            members.forEach((member, i) => {
                 pipeline.del(member);
                 // Remove the reverse index entry for each deleted key
                 pipeline.del(`keytags:${member}`);
-            }
+                // Remove the member from every other tag set it belonged to
+                memberTagSets[i].forEach(otherTag => {
+                    if (otherTag !== tag) {
+                        pipeline.srem(`tag:${otherTag}`, member);
+                    }
+                });
+            });
 
             // Delete the forward tag SET itself
             pipeline.del(tagSetKey);
@@ -248,7 +279,7 @@ export class CacheService {
 
             logger.info(`Cache TAG INVALIDATED: ${tag} (${members.length} keys)`);
         } catch (error) {
-            logger.warn(`Cache TAG INVALIDATE warning for tag ${tag}:`, error);
+            logger.error(`Cache TAG INVALIDATE error for tag ${tag}:`, error);
         }
     }
 

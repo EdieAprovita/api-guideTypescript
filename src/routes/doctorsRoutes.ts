@@ -46,7 +46,7 @@ router.post(
     addReviewToDoctor
 );
 
-router.put('/:id', validateObjectId(), protect, admin, updateDoctor);
-router.delete('/:id', validateObjectId(), protect, admin, deleteDoctor);
+router.put('/:id', protect, admin, validateObjectId(), updateDoctor);
+router.delete('/:id', protect, admin, validateObjectId(), deleteDoctor);
 
 export default router;

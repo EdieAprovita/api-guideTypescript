@@ -45,7 +45,7 @@ router.post(
     addReviewToProfession
 );
 
-router.put('/:id', validateObjectId(), protect, admin, updateProfession);
-router.delete('/:id', validateObjectId(), protect, admin, deleteProfession);
+router.put('/:id', protect, admin, validateObjectId(), updateProfession);
+router.delete('/:id', protect, admin, validateObjectId(), deleteProfession);
 
 export default router;
