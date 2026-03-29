@@ -36,47 +36,100 @@ interface PaginationOptions {
 const VALID_ENTITY_TYPES = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor', 'Sanctuary'] as const;
 type ValidEntityType = (typeof VALID_ENTITY_TYPES)[number];
 
-const validateEntityTypeAndId = async (entityType: string, entityId: string): Promise<void> => {
+/**
+ * Dynamically imports and returns the Mongoose model for a given entity type.
+ * Returns null in test environment to avoid heavy module imports.
+ */
+const getEntityModel = async (entityType: string): Promise<mongoose.Model<any> | null> => {
     if (!VALID_ENTITY_TYPES.includes(entityType as ValidEntityType)) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, `Invalid entity type: ${entityType}`);
     }
 
+    // Skip dynamic imports in test environment to avoid mocking conflicts
+    if (process.env.NODE_ENV === 'test') return null;
+
+    switch (entityType as ValidEntityType) {
+        case 'Restaurant':
+            return (await import('../models/Restaurant.js')).Restaurant;
+        case 'Recipe':
+            return (await import('../models/Recipe.js')).Recipe;
+        case 'Market':
+            return (await import('../models/Market.js')).Market;
+        case 'Business':
+            return (await import('../models/Business.js')).Business;
+        case 'Doctor':
+            return (await import('../models/Doctor.js')).Doctor;
+        case 'Sanctuary':
+            return (await import('../models/Sanctuary.js')).Sanctuary;
+        default:
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, `Invalid entity type: ${entityType}`);
+    }
+};
+
+const validateEntityTypeAndId = async (entityType: string, entityId: string): Promise<void> => {
     if (!Types.ObjectId.isValid(entityId)) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Invalid entity ID format');
     }
 
-    // Skip DB existence check in test environment to avoid heavy module imports
-    if (process.env.NODE_ENV === 'test') return;
-
-    // Dynamically import the model only when needed to avoid test mocking conflicts
-    let EntityModel: any;
-    switch (entityType as ValidEntityType) {
-        case 'Restaurant':
-            EntityModel = (await import('../models/Restaurant.js')).Restaurant;
-            break;
-        case 'Recipe':
-            EntityModel = (await import('../models/Recipe.js')).Recipe;
-            break;
-        case 'Market':
-            EntityModel = (await import('../models/Market.js')).Market;
-            break;
-        case 'Business':
-            EntityModel = (await import('../models/Business.js')).Business;
-            break;
-        case 'Doctor':
-            EntityModel = (await import('../models/Doctor.js')).Doctor;
-            break;
-        case 'Sanctuary':
-            EntityModel = (await import('../models/Sanctuary.js')).Sanctuary;
-            break;
-        default:
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, `Invalid entity type: ${entityType}`);
-    }
+    const EntityModel = await getEntityModel(entityType);
+    if (!EntityModel) return; // test environment
 
     const entity = await EntityModel.findById(entityId);
     if (!entity) {
         throw new HttpError(HttpStatusCode.NOT_FOUND, `${entityType} not found`);
     }
+};
+
+/**
+ * Recalculates and syncs the denormalized rating, numReviews, and reviews[]
+ * fields on the parent entity after any review mutation.
+ *
+ * Uses aggregation to compute the average rating and count, then updates the
+ * entity document atomically. When no reviews remain, resets to defaults (0, 0, []).
+ */
+const recalculateEntityRating = async (entityType: string, entityId: string): Promise<void> => {
+    const EntityModel = await getEntityModel(entityType);
+    if (!EntityModel) return; // test environment
+
+    if (!entityId || !Types.ObjectId.isValid(entityId)) {
+        logger.warn('Skipping rating recalculation: invalid entity ID', { entityType, entityId });
+        return;
+    }
+
+    const safeEntityId = new Types.ObjectId(entityId);
+
+    // Single aggregation pipeline to compute avgRating, count, and reviewIds atomically
+    // (eliminates TOCTOU race between separate aggregate + find queries)
+    const aggregationResult = await Review.aggregate([
+        { $match: { entity: safeEntityId, entityType } },
+        {
+            $group: {
+                _id: null,
+                avgRating: { $avg: '$rating' },
+                count: { $sum: 1 },
+                reviewIds: { $push: '$_id' },
+            },
+        },
+    ]);
+
+    const stats = aggregationResult[0];
+    const avgRating = stats ? Math.round(stats.avgRating * 10) / 10 : 0;
+    const count = stats ? stats.count : 0;
+    const reviewIds = stats ? stats.reviewIds : [];
+
+    await EntityModel.findByIdAndUpdate(entityId, {
+        rating: avgRating,
+        numReviews: count,
+        reviews: reviewIds,
+    });
+
+    logger.info('Entity rating recalculated', {
+        operation: 'entity_rating_recalculated',
+        entityType,
+        entityId,
+        rating: avgRating,
+        numReviews: count,
+    });
 };
 
 const buildReviewListCacheKey = (
@@ -313,6 +366,19 @@ export const reviewService = {
 
             await cacheService.invalidateByTag(`reviews:${reviewData.entityType}:${reviewData.entity}`);
 
+            // Sync denormalized rating/numReviews/reviews[] on the parent entity.
+            // Runs outside the review transaction; failures must not surface as API errors.
+            try {
+                await recalculateEntityRating(reviewData.entityType, reviewData.entity.toString());
+            } catch (err) {
+                logger.error('Failed to recalculate entity rating after review commit', {
+                    operation: 'review_rating_recalculation_failed',
+                    entityType: reviewData.entityType,
+                    entityId: reviewData.entity?.toString(),
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
+
             // Phase 8: Structured logging
             if (populatedReview) {
                 logger.info('Review created successfully', {
@@ -369,6 +435,19 @@ export const reviewService = {
             if (updatedReview) {
                 await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
 
+                // Sync denormalized rating/numReviews/reviews[] on the parent entity
+                try {
+                    await recalculateEntityRating(updatedReview.entityType, updatedReview.entity?.toString() ?? '');
+                } catch (err) {
+                    logger.error('Failed to recalculate entity rating after review update', {
+                        operation: 'review_rating_recalculation_failed',
+                        entityType: updatedReview.entityType,
+                        entityId: updatedReview.entity?.toString(),
+                        reviewId: updatedReview._id?.toString(),
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                }
+
                 // Phase 8: Structured logging
                 logger.info('Review updated successfully', {
                     operation: 'review_updated',
@@ -416,6 +495,19 @@ export const reviewService = {
             });
 
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
+
+            // Sync denormalized rating/numReviews/reviews[] on the parent entity
+            try {
+                await recalculateEntityRating(entityToInvalidate.entityType, entityToInvalidate.entityId);
+            } catch (err) {
+                logger.error('Failed to recalculate entity rating after review deletion', {
+                    operation: 'review_rating_recalculation_failed',
+                    entityType: entityToInvalidate.entityType,
+                    entityId: entityToInvalidate.entityId,
+                    reviewId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
 
             // Phase 8: Structured logging
             logger.info('Review deleted successfully', {

@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import { colorTheme } from './types/colorTheme.js';
 import logger, { logWarn } from './utils/logger.js';
 import { validateSecrets } from './config/envValidation.js';
+import { cacheService } from './services/CacheService.js';
 
 // Cloud Run provides PORT via environment variable, default to 8080 for production compatibility
 const PORT = process.env.PORT ?? 8080;
@@ -34,6 +35,14 @@ export function validateStartupEnvironment(): void {
     if (process.env.BYPASS_AUTH_FOR_TESTING === 'true' && process.env.NODE_ENV !== 'test') {
         logger.error(
             '🛑 BYPASS_AUTH_FOR_TESTING is set in a non-test environment. ' +
+                'This is a critical security misconfiguration — refusing to start.'
+        );
+        process.exit(1);
+    }
+
+    if (process.env.DISABLE_RATE_LIMIT === 'true' && process.env.NODE_ENV === 'production') {
+        logger.error(
+            '🛑 DISABLE_RATE_LIMIT is set in production. ' +
                 'This is a critical security misconfiguration — refusing to start.'
         );
         process.exit(1);
@@ -122,8 +131,12 @@ const gracefulShutdown = (signal: string): void => {
     server.close(() => {
         clearTimeout(forceKillTimer);
         logger.info('HTTP server closed');
-        mongoose.connection
-            .close(false)
+
+        // Disconnect Redis before closing MongoDB to ensure no cache writes
+        // occur while the database connection is being torn down.
+        cacheService
+            .disconnect()
+            .then(() => mongoose.connection.close(false))
             .then(async () => {
                 logger.info('MongoDB connection closed');
                 if (otelSdk) {
@@ -132,7 +145,7 @@ const gracefulShutdown = (signal: string): void => {
                 process.exit(0);
             })
             .catch(err => {
-                logger.error('Error closing MongoDB connection', { error: (err as Error).message });
+                logger.error('Error during graceful shutdown', { error: (err as Error).message });
                 process.exit(1);
             });
     });

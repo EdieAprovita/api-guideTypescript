@@ -320,12 +320,40 @@ export class CacheService {
         }
     }
 
+    /**
+     * Flush only cache-owned keys, preserving security-critical keys
+     * (token blacklist, refresh tokens, user revocation markers).
+     *
+     * Uses SCAN iterator to avoid blocking Redis on large key sets,
+     * and deletes in pipelined batches for efficiency.
+     */
     async flush(): Promise<void> {
+        // Prefixes managed by TokenService — must NEVER be deleted by a cache flush.
+        const protectedPrefixes = ['blacklist:', 'user_tokens:', 'refresh_token:', 'tag:', 'keytags:'];
+
         try {
-            await this.redis.flushdb();
+            let cursor = '0';
+            let deletedCount = 0;
+
+            do {
+                const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', '*', 'COUNT', 200);
+                cursor = nextCursor;
+
+                const keysToDelete = keys.filter(key => !protectedPrefixes.some(prefix => key.startsWith(prefix)));
+
+                if (keysToDelete.length > 0) {
+                    const pipeline = this.redis.pipeline();
+                    for (const key of keysToDelete) {
+                        pipeline.del(key);
+                    }
+                    await pipeline.exec();
+                    deletedCount += keysToDelete.length;
+                }
+            } while (cursor !== '0');
+
             this.hits = 0;
             this.misses = 0;
-            logger.warn('Cache FLUSHED completely');
+            logger.warn(`Cache FLUSHED (scoped): removed ${deletedCount} cache keys, token/blacklist keys preserved`);
         } catch (error) {
             logger.error('Cache FLUSH error:', error);
         }
