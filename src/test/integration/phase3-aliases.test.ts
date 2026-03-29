@@ -55,7 +55,7 @@ describe('Phase 3: Entity Field Standardization - Aliases and Schema Extensions'
         expect(market.typeMarket).toBe('grocery store');
     });
 
-    it('should allow accessing sanctuaryName and animal fields via aliases', async () => {
+    it('should allow accessing sanctuaryName via virtual and animal fields via stored paths', async () => {
         const sanctuary = new Sanctuary({
             sanctuaryName: 'Happy Animals',
             author: authorId,
@@ -79,12 +79,14 @@ describe('Phase 3: Entity Field Standardization - Aliases and Schema Extensions'
         });
 
         expect(sanctuary.sanctuaryName).toBe('Happy Animals');
+        // Virtual getter provides document-level access via 'name'
         expect((sanctuary as any).name).toBe('Happy Animals');
 
+        // Sub-document fields: aliases were removed (Sprint 7) because they
+        // cause silent query failures. Access via stored field names only.
         const animal = sanctuary.animals[0];
         expect(animal.animalName).toBe('Bessie');
-        expect((animal as any).name).toBe('Bessie');
-        expect((animal as any).species).toBe('Cow');
+        expect(animal.specie).toBe('Cow');
     });
 
     it('should correctly save and retrieve extended Recipe fields', async () => {
