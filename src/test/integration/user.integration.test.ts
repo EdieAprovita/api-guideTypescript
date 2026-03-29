@@ -110,24 +110,18 @@ describe('User API Integration Tests', () => {
 
         beforeEach(async () => {
             // Re-seed the admin user after the global collection clear.
-            // upsert avoids duplicate-key errors if clearDatabase misses a race.
-            await User.findByIdAndUpdate(
-                ADMIN_ID,
-                {
+            // Use .save() so that pre('save') middleware runs and the password gets bcrypt-hashed.
+            const existingAdmin = await User.findById(ADMIN_ID);
+            if (!existingAdmin) {
+                const admin = new User({
                     _id: ADMIN_ID,
-                    email: 'integration-admin@example.com',
-                    username: 'integration_admin',
-                    firstName: 'Integration',
-                    lastName: 'Admin',
+                    username: 'testadmin',
+                    email: 'admin@test.com',
                     password: 'AdminPass123!',
                     role: 'admin',
-                    isAdmin: true,
-                    isActive: true,
-                    isDeleted: false,
-                    isVerified: true,
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-            );
+                });
+                await admin.save();
+            }
         });
 
         it('should handle GET /api/v1/users without auth', async () => {
