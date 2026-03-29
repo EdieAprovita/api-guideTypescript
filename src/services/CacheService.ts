@@ -329,7 +329,7 @@ export class CacheService {
      */
     async flush(): Promise<void> {
         // Prefixes managed by TokenService — must NEVER be deleted by a cache flush.
-        const protectedPrefixes = ['blacklist:', 'user_tokens:', 'refresh_token:'];
+        const protectedPrefixes = ['blacklist:', 'user_tokens:', 'refresh_token:', 'tag:', 'keytags:'];
 
         try {
             let cursor = '0';

@@ -93,24 +93,24 @@ const recalculateEntityRating = async (entityType: string, entityId: string): Pr
 
     const safeEntityId = new Types.ObjectId(entityId);
 
-    const [aggregationResult, reviewDocs] = await Promise.all([
-        Review.aggregate([
-            { $match: { entity: safeEntityId, entityType } },
-            {
-                $group: {
-                    _id: null,
-                    avgRating: { $avg: '$rating' },
-                    count: { $sum: 1 },
-                },
+    // Single aggregation pipeline to compute avgRating, count, and reviewIds atomically
+    // (eliminates TOCTOU race between separate aggregate + find queries)
+    const aggregationResult = await Review.aggregate([
+        { $match: { entity: safeEntityId, entityType } },
+        {
+            $group: {
+                _id: null,
+                avgRating: { $avg: '$rating' },
+                count: { $sum: 1 },
+                reviewIds: { $push: '$_id' },
             },
-        ]),
-        Review.find({ entity: safeEntityId, entityType }).select('_id'),
+        },
     ]);
 
     const stats = aggregationResult[0];
     const avgRating = stats ? Math.round(stats.avgRating * 10) / 10 : 0;
     const count = stats ? stats.count : 0;
-    const reviewIds = reviewDocs.map(doc => doc._id);
+    const reviewIds = stats ? stats.reviewIds : [];
 
     await EntityModel.findByIdAndUpdate(entityId, {
         rating: avgRating,
