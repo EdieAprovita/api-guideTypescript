@@ -33,9 +33,11 @@ export const getSanctuaries = createGetAllHandler(SanctuaryService, 'Sanctuary')
  */
 export const getSanctuaryById = createGetByIdHandler(SanctuaryService, 'Sanctuary');
 
-const preProcessSanctuary = async (data: any) => {
+const preProcessSanctuary = async (data: Record<string, unknown>) => {
     const sanitized = sanitizeNoSQLInput(data);
-    await geocodeAndAssignLocation(sanitized);
+    Object.keys(data).forEach(key => delete data[key]);
+    Object.assign(data, sanitized);
+    await geocodeAndAssignLocation(data);
 };
 
 /**

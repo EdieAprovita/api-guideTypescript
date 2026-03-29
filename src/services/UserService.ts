@@ -5,6 +5,7 @@ import { User, IUser } from '../models/User.js';
 import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import TokenService from './TokenService.js';
+import logger from '../utils/logger.js';
 
 /**
  * Validates and sanitizes email input to prevent NoSQL injection attacks
@@ -152,11 +153,43 @@ class UserService extends BaseService {
         };
     }
 
+    /**
+     * Initiates a password reset flow for the given email address.
+     *
+     * @security OWASP A07:2021 - Identification and Authentication Failures
+     * Always returns the same response regardless of whether the email exists
+     * in the database. This prevents attackers from enumerating valid accounts
+     * by observing different error responses.
+     *
+     * Real transport errors (SMTP failures) are logged server-side but never
+     * surfaced to the client.
+     *
+     * @see https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
+     */
     async forgotPassword(email: string) {
-        const user = await this.getUserByEmail(email);
-        const resetToken = await this.generateResetToken(user);
-        await this.sendPasswordResetEmail(user.email, resetToken);
-        return { message: 'Email sent with password reset instructions' };
+        const SAFE_RESPONSE = { message: 'If that email exists, reset instructions have been sent' } as const;
+
+        try {
+            const sanitizedEmail = validateAndSanitizeEmail(email);
+            const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
+
+            if (user) {
+                const resetToken = await this.generateResetToken(user);
+                await this.sendPasswordResetEmail(user.email, resetToken);
+            }
+            // If user is null we intentionally do nothing -- no error, no email.
+        } catch (error) {
+            // Log real infrastructure errors (SMTP, JWT config) for ops visibility,
+            // but never leak them to the client.
+            if (error instanceof HttpError && error.statusCode === HttpStatusCode.BAD_REQUEST) {
+                // Invalid email format -- still return the safe generic response
+                // so attackers cannot distinguish "bad format" from "not found".
+            } else {
+                logger.error('forgotPassword: unexpected error during reset flow', error);
+            }
+        }
+
+        return SAFE_RESPONSE;
     }
 
     async resetPassword(resetToken: string, newPassword: string) {

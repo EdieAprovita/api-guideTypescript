@@ -34,9 +34,11 @@ export const getRestaurants = createGetAllHandler(RestaurantService, 'Restaurant
  */
 export const getRestaurantById = createGetByIdHandler(RestaurantService, 'Restaurant', { useCache: true });
 
-const preProcessRestaurant = async (data: any) => {
+const preProcessRestaurant = async (data: Record<string, unknown>) => {
     const sanitized = sanitizeNoSQLInput(data);
-    await geocodeAndAssignLocation(sanitized);
+    Object.keys(data).forEach(key => delete data[key]);
+    Object.assign(data, sanitized);
+    await geocodeAndAssignLocation(data);
 };
 
 /**

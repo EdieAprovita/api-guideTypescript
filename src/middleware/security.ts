@@ -180,18 +180,23 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         return next();
     }
 
+    // IMPORTANT: These patterns must NOT use the /g flag.
+    // RegExp with /g maintains a stateful lastIndex between calls, causing
+    // pattern.test() to alternate between matching and not matching on
+    // successive calls with the same string — a silent security bypass.
+    // The /g flag is only correct for .exec()/.match()/.replace(), never .test().
     const suspiciousPatterns = [
         // SQL injection patterns - safer regex without nested quantifiers
         /\b(union|select|insert|update|delete|drop|create|alter|exec|script)\b/i,
         // XSS patterns - safer regex without nested quantifiers
-        /<script[^>]*>[^<]*<\/script>/gi,
-        /javascript:/gi,
-        /on\w+\s*=/gi,
+        /<script[^>]*>[^<]*<\/script>/i,
+        /javascript:/i,
+        /on\w+\s*=/i,
         // Path traversal
-        /\.\.\//g,
-        /\.\.\\/g,
+        /\.\.\//,
+        /\.\.\\/,
         // Command injection - detect common command injection patterns
-        /[;&|`$()]/g, // Flag any command injection special chars
+        /[;&|`$()]/, // Flag any command injection special chars
     ];
 
     const checkValue = (value: unknown): boolean => {

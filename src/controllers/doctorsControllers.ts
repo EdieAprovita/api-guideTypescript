@@ -33,9 +33,11 @@ export const getDoctors = createGetAllHandler(DoctorService, 'Doctor');
  */
 export const getDoctorById = createGetByIdHandler(DoctorService, 'Doctor');
 
-const preProcessDoctor = async (data: any) => {
+const preProcessDoctor = async (data: Record<string, unknown>) => {
     const sanitized = sanitizeNoSQLInput(data);
-    await geocodeAndAssignLocation(sanitized);
+    Object.keys(data).forEach(key => delete data[key]);
+    Object.assign(data, sanitized);
+    await geocodeAndAssignLocation(data);
 };
 
 /**

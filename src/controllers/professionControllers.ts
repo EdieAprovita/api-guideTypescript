@@ -32,8 +32,10 @@ export const getProfessions = createGetAllHandler(ProfessionService, 'Profession
  */
 export const getProfessionById = createGetByIdHandler(ProfessionService, 'Profession');
 
-const preProcessProfession = async (data: any) => {
-    return sanitizeNoSQLInput(data);
+const preProcessProfession = async (data: Record<string, unknown>) => {
+    const sanitized = sanitizeNoSQLInput(data);
+    Object.keys(data).forEach(key => delete data[key]);
+    Object.assign(data, sanitized);
 };
 
 /**

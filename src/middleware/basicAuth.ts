@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { timingSafeEqual } from 'crypto';
 
 /**
  * Basic Auth middleware for protecting Swagger UI (or any route)
@@ -26,7 +27,26 @@ export const basicAuth = () => {
             const decoded = Buffer.from(base64, 'base64').toString('utf8');
             const [user, pass] = decoded.split(':');
 
-            if (user === username && pass === password) {
+            // username and password are string (hasCreds guarantees this);
+            // cast once here so Buffer.from and Buffer.byteLength are satisfied.
+            const expectedUsername = username as string;
+            const expectedPassword = password as string;
+
+            const userBuf = Buffer.from(user ?? '');
+            const passBuf = Buffer.from(pass ?? '');
+            const expectedUserBuf = Buffer.alloc(Buffer.byteLength(expectedUsername));
+            const expectedPassBuf = Buffer.alloc(Buffer.byteLength(expectedPassword));
+            Buffer.from(expectedUsername).copy(expectedUserBuf);
+            Buffer.from(expectedPassword).copy(expectedPassBuf);
+
+            const userMatch =
+                userBuf.length === expectedUserBuf.length &&
+                timingSafeEqual(userBuf, expectedUserBuf);
+            const passMatch =
+                passBuf.length === expectedPassBuf.length &&
+                timingSafeEqual(passBuf, expectedPassBuf);
+
+            if (userMatch && passMatch) {
                 return next();
             }
         } catch {

@@ -4,6 +4,9 @@ import { getErrorMessage } from '../types/modalTypes.js';
 import { cacheService, CacheOptions } from './CacheService.js';
 import logger from '../utils/logger.js';
 import {
+    escapeRegex,
+} from '../utils/escapeRegex.js';
+import {
     PaginatedResponse,
     PaginationMeta,
     normalizePaginationParams,
@@ -439,8 +442,9 @@ class BaseService<T extends Document> {
         };
 
         if (q && searchFields.length > 0) {
+            const safeQ = escapeRegex(q);
             combinedFilter.$or = searchFields.map(field => ({
-                [field]: { $regex: q, $options: 'i' },
+                [field]: { $regex: safeQ, $options: 'i' },
             }));
         }
 
@@ -484,14 +488,15 @@ class BaseService<T extends Document> {
         const filter: Record<string, any> = {};
 
         if (q && searchFields.length > 0) {
+            const safeQ = escapeRegex(q);
             filter.$or = searchFields.map(field => ({
-                [field]: { $regex: q, $options: 'i' },
+                [field]: { $regex: safeQ, $options: 'i' },
             }));
         }
 
         if (category) {
-            // This is a generic category filter, might need customization in child services if field name differs
-            filter.category = { $regex: category, $options: 'i' };
+            const safeCategory = escapeRegex(category);
+            filter.category = { $regex: safeCategory, $options: 'i' };
         }
 
         // Whitelist allowed sort fields to prevent arbitrary field injection
