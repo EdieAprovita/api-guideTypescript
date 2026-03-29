@@ -225,7 +225,7 @@ export class CacheService {
                     // Delete the reverse index entry
                     pipeline.del(`keytags:${key}`);
                     // Remove the key from every tag set it belonged to
-                    keyTagSets[i].forEach(tag => {
+                    (keyTagSets[i] ?? []).forEach(tag => {
                         pipeline.srem(`tag:${tag}`, key);
                     });
                 });
@@ -265,7 +265,7 @@ export class CacheService {
                 // Remove the reverse index entry for each deleted key
                 pipeline.del(`keytags:${member}`);
                 // Remove the member from every other tag set it belonged to
-                memberTagSets[i].forEach(otherTag => {
+                (memberTagSets[i] ?? []).forEach(otherTag => {
                     if (otherTag !== tag) {
                         pipeline.srem(`tag:${otherTag}`, member);
                     }
