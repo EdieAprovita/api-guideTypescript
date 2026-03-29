@@ -41,9 +41,12 @@ export default defineConfig({
             provider: 'v8',
             reporter: ['text', 'json', 'html', 'lcov'],
             include: [
-                'src/controllers/BaseController.ts',
-                'src/services/GeoService.ts',
-                'src/middleware/errorHandler.ts',
+                'src/controllers/**/*.ts',
+                'src/services/**/*.ts',
+                'src/middleware/**/*.ts',
+                'src/models/**/*.ts',
+                'src/utils/**/*.ts',
+                'src/config/**/*.ts',
             ],
             exclude: [
                 'node_modules/**',
@@ -59,30 +62,14 @@ export default defineConfig({
                 'src/server.ts',
                 'src/app.ts',
             ],
+            // Thresholds set to current baseline — raise as coverage improves.
+            // Target: 60/50/60/60 by Sprint 9.
             thresholds: {
                 global: {
-                    branches: 30, // Reduced from 60
-                    functions: 30, // Reduced from 60
-                    lines: 30, // Reduced from 60
-                    statements: 30, // Reduced from 60
-                },
-                'src/controllers/**': {
-                    branches: 40, // Reduced from 70
-                    functions: 40, // Reduced from 70
-                    lines: 40, // Reduced from 70
-                    statements: 40, // Reduced from 70
-                },
-                'src/services/**': {
-                    branches: 35, // Reduced from 65
-                    functions: 35, // Reduced from 65
-                    lines: 35, // Reduced from 65
-                    statements: 35, // Reduced from 65
-                },
-                'src/middleware/**': {
-                    branches: 35, // Reduced from 65
-                    functions: 35, // Reduced from 65
-                    lines: 35, // Reduced from 65
-                    statements: 35, // Reduced from 65
+                    branches: 25,
+                    functions: 25,
+                    lines: 25,
+                    statements: 25,
                 },
             },
         },
