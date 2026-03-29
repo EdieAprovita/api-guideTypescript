@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
+import { trace } from '@opentelemetry/api';
 
 const SENSITIVE_KEYS = new Set([
     'token',
@@ -47,6 +48,12 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
 
     // Save correlation ID in response headers
     res.setHeader('X-Correlation-ID', correlationId);
+
+    // Propagate correlation ID onto the active OTel span (no-op when OTel is inactive)
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+        activeSpan.setAttribute('correlation.id', correlationId);
+    }
 
     // Log entry
     const startTime = Date.now();

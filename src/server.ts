@@ -1,3 +1,4 @@
+import otelSdk from './instrumentation.js';
 import dotenv from 'dotenv';
 dotenv.config();
 import app from './app.js';
@@ -123,8 +124,11 @@ const gracefulShutdown = (signal: string): void => {
         logger.info('HTTP server closed');
         mongoose.connection
             .close(false)
-            .then(() => {
+            .then(async () => {
                 logger.info('MongoDB connection closed');
+                if (otelSdk) {
+                    await otelSdk.shutdown().catch((err: unknown) => logger.error('OTel shutdown error:', err));
+                }
                 process.exit(0);
             })
             .catch(err => {

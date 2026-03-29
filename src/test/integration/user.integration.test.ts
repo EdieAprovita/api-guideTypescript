@@ -4,9 +4,11 @@
  */
 
 import request from 'supertest';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import type { Response } from 'supertest';
 import jwt from 'jsonwebtoken';
+import { Types } from 'mongoose';
+import { User } from '../../models/User.js';
 import app from '../../app.js';
 
 interface UserTestData {
@@ -25,9 +27,14 @@ const createUserData = (overrides: Partial<UserTestData> = {}): UserTestData => 
     };
 };
 
-const generateMockToken = (role: 'user' | 'admin' | 'professional' = 'user'): string => {
+/**
+ * Generates a JWT signed with the same issuer/audience as the real TokenService.
+ * The userId must belong to a real document in the in-memory DB so that
+ * protect() can resolve the user and pass auth before Joi validation runs.
+ */
+const generateTokenForUser = (userId: string, role: 'user' | 'admin' | 'professional' = 'user'): string => {
     return jwt.sign(
-        { userId: '507f1f77bcf86cd799439011', email: 'test@example.com', role },
+        { userId, email: 'test@example.com', role },
         process.env.JWT_SECRET || 'test-jwt-secret-key-12345',
         {
             expiresIn: '1h',
@@ -92,6 +99,31 @@ describe('User API Integration Tests', () => {
     });
 
     describe('Protected Endpoints', () => {
+        /**
+         * The global beforeEach in integration-setup.ts clears all collections
+         * before each test. We use a fixed ObjectId so the JWT can be signed once
+         * at module load time and remains valid across all tests in this block.
+         * The user document is re-created before each test that needs it.
+         */
+        const ADMIN_ID = new Types.ObjectId('aaaaaaaaaaaaaaaaaaaaaaaa');
+        const adminToken = generateTokenForUser(ADMIN_ID.toString(), 'admin');
+
+        beforeEach(async () => {
+            // Re-seed the admin user after the global collection clear.
+            // Use .save() so that pre('save') middleware runs and the password gets bcrypt-hashed.
+            const existingAdmin = await User.findById(ADMIN_ID);
+            if (!existingAdmin) {
+                const admin = new User({
+                    _id: ADMIN_ID,
+                    username: 'testadmin',
+                    email: 'admin@test.com',
+                    password: 'AdminPass123!',
+                    role: 'admin',
+                });
+                await admin.save();
+            }
+        });
+
         it('should handle GET /api/v1/users without auth', async () => {
             const response: Response = await request(app).get('/api/v1/users');
 
@@ -119,18 +151,19 @@ describe('User API Integration Tests', () => {
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role invalid role validation', async () => {
-            const adminToken = generateMockToken('admin');
+            // 'notanid' fails paramSchemas.id (not a valid ObjectId) — Joi rejects with 400.
+            // adminToken references a real DB user so protect() passes first.
             const response: Response = await request(app)
                 .patch('/api/v1/users/profile/notanid/role')
                 .set('Authorization', `Bearer ${adminToken}`)
                 .send({ role: 'invalid_role' });
 
-            // Expect a 400 Bad Request due to validation on role ('admin', 'user', 'business')
             expect(response.status).toBe(400);
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role when role is missing', async () => {
-            const adminToken = generateMockToken('admin');
+            // Body missing required `role` field — Joi rejects with 400.
+            // adminToken references a real DB user so protect() passes first.
             const response: Response = await request(app)
                 .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
                 .set('Authorization', `Bearer ${adminToken}`)
@@ -140,25 +173,25 @@ describe('User API Integration Tests', () => {
         });
 
         it('should handle PATCH /api/v1/users/profile/:id/role with valid admin token', async () => {
-            const adminToken = generateMockToken('admin');
+            // adminToken references a real DB user so protect() + admin() pass.
+            // Target user 507f1f77bcf86cd799439011 does not exist → controller returns 404.
             const response: Response = await request(app)
                 .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
                 .set('Authorization', `Bearer ${adminToken}`)
                 .send({ role: 'professional' });
 
-            // Depending on the native mock setup, this will either be a 404 (user not found) or 200 (updated)
-            // Tests that auth guards and Joi validation pass for a valid role
+            // Auth and Joi validation pass; controller finds no target user → 404.
             expect([200, 404]).toContain(response.status);
         });
 
         it('should reject PATCH /api/v1/users/profile/:id/role with invalid role', async () => {
-            const adminToken = generateMockToken('admin');
+            // 'business' is not in the Joi enum ('user' | 'professional' | 'admin') — Joi rejects with 400.
+            // adminToken references a real DB user so protect() passes first.
             const response: Response = await request(app)
                 .patch('/api/v1/users/profile/507f1f77bcf86cd799439011/role')
                 .set('Authorization', `Bearer ${adminToken}`)
                 .send({ role: 'business' });
 
-            // 'business' is not in the model enum — Joi rejects with 400
             expect(response.status).toBe(400);
         });
 
