@@ -23,6 +23,7 @@
         "test:ui": "vitest --ui",
         "test:watch": "vitest --watch",
         "test:ci": "vitest run --coverage --reporter=verbose",
+        "test:ci:integration": "vitest run --config vitest.integration.config.mts --reporter=verbose",
         "test:integration": "vitest run --config vitest.integration.config.mts",
         "test:performance": "bash scripts/performance-test.sh",
         "test:services": "vitest run src/test/services",
@@ -163,12 +164,7 @@
             "src/**/*.ts"
         ],
         "exclude": [
-            "src/controllers/**",
-            "src/services/**",
-            "src/routes/**",
-            "src/middleware/**",
             "src/scripts/**",
-            "src/config/**",
             "src/test/**",
             "src/types/**"
         ],
