@@ -70,9 +70,14 @@ export class CacheService {
             maxRetriesPerRequest: 3,
             lazyConnect: true,
             keepAlive: 30000,
-            // Configuración de timeouts
             connectTimeout: 10000,
             commandTimeout: 5000,
+        };
+
+        // Exponential backoff for reconnection attempts
+        const retryStrategy = (times: number): number | null => {
+            if (times > 10) return null; // stop after 10 attempts
+            return Math.min(times * 200, 3000);
         };
 
         // Solo agregar password si está definida
@@ -80,7 +85,7 @@ export class CacheService {
             redisConfig.password = process.env.REDIS_PASSWORD;
         }
 
-        this.redis = new Redis(redisConfig);
+        this.redis = new Redis({ ...redisConfig, retryStrategy });
 
         // Event listeners para monitoreo
         this.redis.on('connect', () => {
@@ -327,6 +332,15 @@ export class CacheService {
      * Uses SCAN iterator to avoid blocking Redis on large key sets,
      * and deletes in pipelined batches for efficiency.
      */
+    async ping(): Promise<boolean> {
+        try {
+            const result = await this.redis.ping();
+            return result === 'PONG';
+        } catch {
+            return false;
+        }
+    }
+
     async flush(): Promise<void> {
         // Prefixes managed by TokenService — must NEVER be deleted by a cache flush.
         const protectedPrefixes = ['blacklist:', 'user_tokens:', 'refresh_token:', 'tag:', 'keytags:'];

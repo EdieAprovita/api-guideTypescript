@@ -145,10 +145,22 @@ class TokenService {
             lazyConnect: true,
             retryDelayOnFailover: 100,
             maxRetriesPerRequest: 1,
+            retryStrategy(times: number): number | null {
+                if (times > 10) return null;
+                return Math.min(times * 200, 3000);
+            },
             ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
         };
 
         this.redis = new Redis(redisConfig);
+
+        this.redis.on('error', (error: Error) => {
+            logger.error('TokenService Redis error', { error: error.message });
+        });
+
+        this.redis.on('reconnecting', (delay: number) => {
+            logger.warn('TokenService Redis reconnecting', { delay });
+        });
     }
 
     private initializeSecrets(): void {
