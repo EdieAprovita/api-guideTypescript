@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import express from 'express';
+import compression from 'compression';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import requestLogger from './middleware/requestLogger.js';
@@ -128,6 +129,7 @@ app.use(...sanitizeInput()); // defense-in-depth: mongoSanitize + custom XSS pat
 app.use(xssSanitizer()); // sanitize user input against XSS using secure DOMPurify
 
 app.use(corsMiddleware);
+app.use(compression({ level: 6, threshold: 1024 }));
 
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
