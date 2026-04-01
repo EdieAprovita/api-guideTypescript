@@ -356,13 +356,18 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this entity');
         }
 
+        // Capture narrowed values before the async transaction boundary so
+        // TypeScript control-flow narrowing is preserved inside the callback.
+        const narrowedEntityType: string = entityTypeValue;
+        const narrowedEntityId: string = entityId.toString();
+
         const session = await startSession();
 
         try {
             const review = await session.withTransaction(async () => {
                 const [newReview] = await Review.create([reviewData], { session });
                 // Recalculate inside the same transaction for atomicity
-                await recalculateEntityRating(reviewData.entityType, reviewData.entity.toString(), session);
+                await recalculateEntityRating(narrowedEntityType, narrowedEntityId, session);
                 return newReview;
             });
 
