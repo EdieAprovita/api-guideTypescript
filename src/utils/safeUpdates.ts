@@ -3,11 +3,18 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 const DANGEROUS_UPDATE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function visitKeys(value: unknown, path: string[] = []): string[] {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    if (!value || typeof value !== 'object') {
         return [];
     }
 
     const invalidPaths: string[] = [];
+
+    if (Array.isArray(value)) {
+        for (let index = 0; index < value.length; index++) {
+            invalidPaths.push(...visitKeys(value[index], [...path, String(index)]));
+        }
+        return invalidPaths;
+    }
 
     for (const [key, nestedValue] of Object.entries(value)) {
         const currentPath = [...path, key];

@@ -13,7 +13,7 @@ vi.mock('../../services/CacheService', () => ({
     },
 }));
 
-vi.mock('../../clients/redisClient', () => ({
+vi.mock('../../clients/redisClient.js', () => ({
     getCircuitBreakerState: vi.fn(() => ({
         state: 'closed',
         failures: 0,
@@ -63,7 +63,7 @@ async function getCacheService() {
 }
 
 async function getRedisClientModule() {
-    return await import('../../clients/redisClient');
+    return await import('../../clients/redisClient.js');
 }
 
 // ---------------------------------------------------------------------------
