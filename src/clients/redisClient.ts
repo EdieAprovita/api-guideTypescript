@@ -25,11 +25,7 @@ const circuitBreaker: CircuitBreakerState = {
 };
 
 export function checkAndAdvanceState(): void {
-    if (
-        circuitBreaker.state === 'open' &&
-        circuitBreaker.nextRetry &&
-        Date.now() >= circuitBreaker.nextRetry
-    ) {
+    if (circuitBreaker.state === 'open' && circuitBreaker.nextRetry && Date.now() >= circuitBreaker.nextRetry) {
         circuitBreaker.state = 'half-open';
         circuitBreaker.nextRetry = null;
         logger.info('Redis circuit breaker transitioning to HALF-OPEN');
