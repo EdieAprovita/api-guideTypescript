@@ -55,6 +55,16 @@ export function getCircuitBreakerState(): CircuitBreakerState {
 
 export function recordFailure(): void {
     const now = Date.now();
+    // Any failure during the probe immediately re-opens the circuit,
+    // independent of the sliding window count (which may have pruned old entries).
+    if (circuitBreaker.state === 'half-open') {
+        circuitBreaker.state = 'open';
+        circuitBreaker.nextRetry = now + CIRCUIT_BREAKER_RESET_MS;
+        circuitBreaker.failureTimestamps.push(now);
+        circuitBreaker.lastFailure = now;
+        logger.warn('Redis circuit breaker re-OPEN after failed half-open probe');
+        return;
+    }
     // Prune entries outside the sliding window
     circuitBreaker.failureTimestamps = circuitBreaker.failureTimestamps.filter(
         ts => now - ts < CIRCUIT_BREAKER_WINDOW_MS

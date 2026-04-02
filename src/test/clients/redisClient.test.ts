@@ -148,45 +148,58 @@ describe('sliding window circuit breaker (H-03)', () => {
 // ---------------------------------------------------------------------------
 // C-03 — Redis TLS support
 // ---------------------------------------------------------------------------
+// ioredis is mocked locally so getRedisClient() can be called without a real
+// server. The mock captures the constructor arguments so we can assert that
+// the `tls` option is present or absent as required.
+vi.mock('ioredis', () => {
+    const RedisMock = vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+        disconnect: vi.fn(),
+    }));
+    return { default: RedisMock };
+});
+
 describe('getRedisClient TLS config (C-03)', () => {
+    beforeEach(async () => {
+        resetRedisClient();
+        vi.clearAllMocks();
+    });
+
     afterEach(() => {
         resetRedisClient();
         delete process.env.REDIS_TLS;
     });
 
-    it('includes tls option when REDIS_TLS=true', () => {
+    it('passes tls option to ioredis constructor when REDIS_TLS=true', async () => {
+        const { default: RedisMock } = await import('ioredis');
         process.env.REDIS_TLS = 'true';
-        // We cannot call the real constructor without a server, so spy on the
-        // Redis constructor to capture the options it receives.
-        const RedisMock = vi.fn().mockReturnValue({
-            on: vi.fn(),
-            disconnect: vi.fn(),
-        });
 
-        // Dynamically patch the module-level Redis reference via vi.mock is
-        // not straightforward post-import, so we test the config object
-        // construction logic directly by inspecting the spread result.
-        const config = {
-            ...(process.env.REDIS_TLS === 'true' && { tls: {} }),
-        };
-        expect(config).toHaveProperty('tls');
-        // Ensure RedisMock was not called (we are testing config logic only)
-        expect(RedisMock).not.toHaveBeenCalled();
+        getRedisClient();
+
+        expect(RedisMock).toHaveBeenCalledOnce();
+        const constructorArg = (RedisMock as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        expect(constructorArg).toHaveProperty('tls');
     });
 
-    it('omits tls option when REDIS_TLS is not set', () => {
+    it('omits tls option from ioredis constructor when REDIS_TLS is not set', async () => {
+        const { default: RedisMock } = await import('ioredis');
         delete process.env.REDIS_TLS;
-        const config = {
-            ...(process.env.REDIS_TLS === 'true' && { tls: {} }),
-        };
-        expect(config).not.toHaveProperty('tls');
+
+        getRedisClient();
+
+        expect(RedisMock).toHaveBeenCalledOnce();
+        const constructorArg = (RedisMock as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        expect(constructorArg).not.toHaveProperty('tls');
     });
 
-    it('omits tls option when REDIS_TLS=false', () => {
+    it('omits tls option from ioredis constructor when REDIS_TLS=false', async () => {
+        const { default: RedisMock } = await import('ioredis');
         process.env.REDIS_TLS = 'false';
-        const config = {
-            ...(process.env.REDIS_TLS === 'true' && { tls: {} }),
-        };
-        expect(config).not.toHaveProperty('tls');
+
+        getRedisClient();
+
+        expect(RedisMock).toHaveBeenCalledOnce();
+        const constructorArg = (RedisMock as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        expect(constructorArg).not.toHaveProperty('tls');
     });
 });
