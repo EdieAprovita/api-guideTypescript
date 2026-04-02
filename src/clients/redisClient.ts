@@ -53,6 +53,16 @@ export function resetCircuitBreaker(): void {
     circuitBreaker.nextRetry = null;
 }
 
+function recordSuccess(): void {
+    if (circuitBreaker.state === 'half-open') {
+        resetCircuitBreaker();
+        logger.info('Redis circuit breaker CLOSED after successful operation');
+    } else if (circuitBreaker.failures > 0) {
+        resetCircuitBreaker();
+        logger.debug('Redis circuit breaker reset after successful operation');
+    }
+}
+
 export function isCircuitOpen(): boolean {
     checkAndAdvanceState();
     return circuitBreaker.state === 'open';
@@ -60,7 +70,7 @@ export function isCircuitOpen(): boolean {
 
 /**
  * Executes a Redis operation only if the circuit breaker is closed/half-open.
- * Throws if the circuit is open to fail fast instead of queuing commands.
+ * Returns null if the circuit is open to fail fast instead of queuing commands.
  */
 export async function executeIfCircuitClosed<T>(operation: () => Promise<T>): Promise<T | null> {
     if (isCircuitOpen()) {
@@ -69,10 +79,7 @@ export async function executeIfCircuitClosed<T>(operation: () => Promise<T>): Pr
     }
     try {
         const result = await operation();
-        if (circuitBreaker.state === 'half-open') {
-            resetCircuitBreaker();
-            logger.info('Redis circuit breaker CLOSED after successful operation');
-        }
+        recordSuccess();
         return result;
     } catch (error) {
         recordFailure();

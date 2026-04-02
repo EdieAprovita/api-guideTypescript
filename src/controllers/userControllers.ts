@@ -47,7 +47,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
     } catch (error) {
         // Log error details in test environment for debugging
         if (process.env.NODE_ENV === 'test') {
-            console.error('registerUser controller error:', error);
+            logger.error('registerUser controller error', error as Error);
         }
 
         const statusCode = error instanceof HttpError ? error.statusCode : HttpStatusCode.BAD_REQUEST;
@@ -77,7 +77,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
     } catch (error) {
         // Log error details in test environment for debugging
         if (process.env.NODE_ENV === 'test') {
-            console.error('loginUser controller error:', error);
+            logger.error('loginUser controller error', error as Error);
         }
 
         const statusCode = error instanceof HttpError ? error.statusCode : HttpStatusCode.UNAUTHORIZED;
@@ -222,7 +222,7 @@ export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Resp
         res.status(200).json(user);
     } catch (error) {
         if (process.env.NODE_ENV === 'test') {
-            console.error('getCurrentUserProfile controller error:', error);
+            logger.error('getCurrentUserProfile controller error', error as Error);
         }
 
         next(

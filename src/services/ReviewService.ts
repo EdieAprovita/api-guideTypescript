@@ -3,16 +3,14 @@ import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { cacheService } from './CacheService.js';
 import mongoose, { Types, startSession } from 'mongoose';
 import logger from '../utils/logger.js';
-
-interface ReviewFilters {
-    entityType?: string;
-    entity?: string;
-    rating?: number | { $gte?: number; $lte?: number };
-    author?: string;
-    sort?: string;
-    page?: number;
-    limit?: number;
-}
+import {
+    buildReviewEntityMatch,
+    buildReviewQuery,
+    buildReviewUpdatePayload,
+    ReviewFilters,
+    VALID_ENTITY_TYPES,
+    ValidEntityType,
+} from './reviewService/reviewPolicies.js';
 
 interface ReviewStats {
     totalReviews: number;
@@ -32,18 +30,6 @@ interface PaginationOptions {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
 }
-
-const VALID_ENTITY_TYPES = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor', 'Sanctuary'] as const;
-
-/**
- * Whitelist of fields that users are allowed to modify via updateReview.
- * Prevents mass assignment of protected fields such as author, entity,
- * entityType, helpfulVotes, helpfulCount, and timestamps.
- *
- * Security: OWASP A04:2021 – Insecure Design / Mass Assignment
- */
-const ALLOWED_REVIEW_UPDATE_FIELDS = ['rating', 'content', 'title', 'visitDate', 'recommendedDishes', 'tags'] as const;
-type ValidEntityType = (typeof VALID_ENTITY_TYPES)[number];
 
 /**
  * Dynamically imports and returns the Mongoose model for a given entity type.
@@ -113,7 +99,7 @@ const recalculateEntityRating = async (
 
     // Single aggregation pipeline to compute avgRating and count atomically
     const pipeline = [
-        { $match: { entity: safeEntityId, entityType } },
+        { $match: buildReviewEntityMatch(entityType, safeEntityId) },
         {
             $group: {
                 _id: null,
@@ -188,37 +174,6 @@ const extractRatingForKey = (filters: ReviewFilters): number | undefined => {
     return undefined;
 };
 
-const buildSafeQuery = (entityType: string, entityId: string, filters: ReviewFilters) => {
-    const objectId = new Types.ObjectId(entityId);
-    const query: Record<string, unknown> = {
-        entityType,
-        // Support legacy 'restaurant' field for backward compatibility
-        $or: [{ entity: objectId }, { restaurant: objectId }],
-    };
-
-    if (filters.author && typeof filters.author === 'string' && Types.ObjectId.isValid(filters.author)) {
-        query.author = new Types.ObjectId(filters.author);
-    }
-
-    if (typeof filters.rating === 'number') {
-        const r = Math.max(1, Math.min(5, filters.rating));
-        query.rating = r;
-    } else if (filters.rating && typeof filters.rating === 'object') {
-        const range: Record<string, number> = {};
-        if (typeof (filters.rating as any).$gte === 'number') {
-            range.$gte = Math.max(1, Math.min(5, (filters.rating as any).$gte));
-        }
-        if (typeof (filters.rating as any).$lte === 'number') {
-            range.$lte = Math.max(1, Math.min(5, (filters.rating as any).$lte));
-        }
-        if (Object.keys(range).length) {
-            query.rating = range;
-        }
-    }
-
-    return query;
-};
-
 export const reviewService = {
     async getReviewsByEntity(
         entityType: string,
@@ -260,7 +215,7 @@ export const reviewService = {
         }
 
         const skip = (page - 1) * limit;
-        const query = buildSafeQuery(entityType, entityId, filters);
+        const query = buildReviewQuery(entityType, entityId, filters);
         const sortOptions: Record<string, 1 | -1> = {};
         sortOptions[sortField] = sortDir;
 
@@ -296,13 +251,9 @@ export const reviewService = {
         }
 
         // Use aggregation to align with tests and avoid heavy in-memory work
-        const safeEntityId = new Types.ObjectId(entityId);
-        const safeEntityType = entityType as ValidEntityType;
         const agg = await Review.aggregate([
             {
-                $match: {
-                    $or: [{ entityType: safeEntityType, entity: safeEntityId }, { restaurant: safeEntityId }],
-                },
+                $match: buildReviewEntityMatch(entityType as ValidEntityType, entityId),
             },
             {
                 $group: {
@@ -349,8 +300,7 @@ export const reviewService = {
 
         const existingReview = await Review.findOne({
             author: authorId,
-            entityType: entityTypeValue,
-            entity: entityId,
+            ...buildReviewEntityMatch(entityTypeValue, entityId),
         });
 
         if (existingReview) {
@@ -431,29 +381,7 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.FORBIDDEN, 'Unauthorized to update this review');
         }
 
-        // Sanitize input: only allow whitelisted fields to prevent mass assignment.
-        // The virtual alias 'comment' is mapped to the actual schema field 'content'.
-        // Security: OWASP A04:2021 – Insecure Design / Mass Assignment
-        const safeSource = updateData as Record<string, unknown>;
-        const sanitizedUpdate: Record<string, unknown> = {};
-
-        for (const field of ALLOWED_REVIEW_UPDATE_FIELDS) {
-            if (field in safeSource) {
-                sanitizedUpdate[field] = safeSource[field];
-            }
-        }
-
-        // Map 'comment' alias to 'content' only if 'content' was not explicitly provided
-        if (!('content' in safeSource) && 'comment' in safeSource) {
-            sanitizedUpdate['content'] = safeSource['comment'];
-        }
-
-        sanitizedUpdate['updatedAt'] = new Date();
-
-        // Only updatedAt means no valid fields were provided
-        if (Object.keys(sanitizedUpdate).length === 1) {
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'No valid fields provided to update review');
-        }
+        const sanitizedUpdate = buildReviewUpdatePayload(updateData as Record<string, unknown>);
 
         const session = await startSession({
             defaultTransactionOptions: { writeConcern: { w: 'majority' } },
@@ -657,8 +585,7 @@ export const reviewService = {
 
         return await Review.findOne({
             author: new Types.ObjectId(userId),
-            entityType,
-            entity: new Types.ObjectId(entityId),
+            ...buildReviewEntityMatch(entityType, entityId),
         });
     },
 
@@ -732,7 +659,9 @@ export const reviewService = {
             return cached;
         }
 
-        const reviews = await Review.find({ entity: new Types.ObjectId(entityId) })
+        const reviews = await Review.find({
+            $or: [{ entity: new Types.ObjectId(entityId) }, { restaurant: new Types.ObjectId(entityId) }],
+        })
             .populate('author', 'name')
             .sort({ createdAt: -1 });
 

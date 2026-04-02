@@ -3,7 +3,7 @@ import type { Redis as RedisType } from 'ioredis';
 import { randomUUID, createHash } from 'crypto';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
 import logger from '../utils/logger.js';
-import { getRedisClient } from '../clients/redisClient.js';
+import { executeIfCircuitClosed, getRedisClient } from '../clients/redisClient.js';
 
 interface TokenPayload {
     userId: string;
@@ -43,7 +43,19 @@ class TokenService {
     private refreshTokenExpiry!: string;
     private readonly issuer = 'vegan-guide-api';
     private readonly audience = 'vegan-guide-client';
+    private readonly useCircuitBreaker: boolean;
     private initialized = false;
+
+    private async executeRedis<T>(operationName: string, operation: () => Promise<T>): Promise<T> {
+        if (!this.useCircuitBreaker) {
+            return await operation();
+        }
+        const result = await executeIfCircuitClosed(operation);
+        if (result === null) {
+            throw new Error(`Redis operation skipped because circuit breaker is open: ${operationName}`);
+        }
+        return result;
+    }
 
     /**
      * @param redisClient Optional Redis client to inject (used in tests to avoid
@@ -53,10 +65,13 @@ class TokenService {
     constructor(redisClient?: RedisType) {
         if (redisClient) {
             this.redis = redisClient;
+            this.useCircuitBreaker = false;
         } else if (process.env.NODE_ENV === 'test') {
             this.initializeMockRedis();
+            this.useCircuitBreaker = false;
         } else {
             this.redis = getRedisClient();
+            this.useCircuitBreaker = true;
         }
         // Don't initialize secrets in constructor - do it lazily on first use
     }
@@ -73,7 +88,7 @@ class TokenService {
                 // In production, we want to fail fast if secrets are missing
                 // But allow the server to start for health checks
                 if (process.env.NODE_ENV !== 'test') {
-                    console.warn('⚠️ JWT secrets not configured - token operations will fail');
+                    logger.warn('JWT secrets not configured - token operations will fail');
                 }
                 throw error;
             }
@@ -155,7 +170,7 @@ class TokenService {
 
     private signToken(payload: object, secret: string, expiresIn: string): string {
         if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-            console.log('🔧 signToken called with:', {
+            logger.debug('TokenService.signToken called', {
                 payloadKeys: Object.keys(payload),
                 secretLength: secret.length,
                 expiresIn,
@@ -173,12 +188,12 @@ class TokenService {
             } as jwt.SignOptions);
 
             if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-                console.log('🔧 signToken result:', result ? 'GENERATED' : 'UNDEFINED');
+                logger.debug('TokenService.signToken result', { generated: Boolean(result) });
             }
             return result;
         } catch (error) {
             if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-                console.error('🔧 signToken error:', error);
+                logger.error('TokenService.signToken error', error as Error);
             }
             throw error;
         }
@@ -186,13 +201,13 @@ class TokenService {
 
     private debugLog(message: string, ...optionalParams: any[]): void {
         if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-            console.log(`🔧 ${message}`, ...optionalParams);
+            logger.debug(`TokenService debug: ${message}`, { optionalParams });
         }
     }
 
     private debugError(message: string, ...optionalParams: any[]): void {
         if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-            console.error(`🔧 ${message}`, ...optionalParams);
+            logger.error(`TokenService debug error: ${message}`, { optionalParams });
         }
     }
 
@@ -217,7 +232,9 @@ class TokenService {
         this.debugLog('About to store in Redis with key:', refreshTokenKey);
 
         try {
-            await this.redis.setex(refreshTokenKey, 7 * 24 * 60 * 60, refreshToken);
+            await this.executeRedis('store refresh token', () =>
+                this.redis.setex(refreshTokenKey, 7 * 24 * 60 * 60, refreshToken)
+            );
             this.debugLog('Successfully stored in Redis');
         } catch (redisError) {
             this.debugError('Redis error storing refresh token:', redisError);
@@ -263,7 +280,7 @@ class TokenService {
                 }
                 // Fail-closed: if Redis is unavailable, reject the token for safety.
                 // A revoked token must never be accepted due to infrastructure failure.
-                console.error('Redis blacklist check unavailable — rejecting token for safety:', redisError);
+                logger.error('Redis blacklist check unavailable — rejecting token for safety', redisError as Error);
                 throw new HttpError(
                     HttpStatusCode.SERVICE_UNAVAILABLE,
                     'Token verification unavailable — please try again later'
@@ -309,7 +326,7 @@ class TokenService {
 
             // Verify token exists in Redis
             const refreshTokenKey = `refresh_token:${payload.userId}`;
-            const storedToken = await this.redis.get(refreshTokenKey);
+            const storedToken = await this.executeRedis('load refresh token', () => this.redis.get(refreshTokenKey));
 
             if (!storedToken || storedToken !== token) {
                 throw new Error('Refresh token not found or invalid');
@@ -361,27 +378,31 @@ class TokenService {
 
         // Fail-closed: if Redis is unavailable this will throw. The logout controller
         // handles this with a best-effort catch so the client session still ends.
-        await this.redis.setex(blacklistKey, ttl, 'revoked');
+        await this.executeRedis('blacklist token', () => this.redis.setex(blacklistKey, ttl, 'revoked'));
     }
 
     async isTokenBlacklisted(token: string): Promise<boolean> {
         try {
             const decoded = jwt.decode(token) as { jti?: string } | null;
             if (decoded?.jti) {
-                const result = await this.redis.get(`blacklist:${decoded.jti}`);
+                const result = await this.executeRedis('get blacklist jti', () =>
+                    this.redis.get(`blacklist:${decoded.jti}`)
+                );
                 return result !== null;
             }
         } catch {
             // jwt.decode failed — fall through to hash check
         }
         const tokenHash = createHash('sha256').update(token).digest('hex');
-        const result = await this.redis.get(`blacklist:hash:${tokenHash}`);
+        const result = await this.executeRedis('get blacklist hash', () =>
+            this.redis.get(`blacklist:hash:${tokenHash}`)
+        );
         return result !== null;
     }
 
     async revokeRefreshToken(userId: string): Promise<void> {
         const refreshTokenKey = `refresh_token:${userId}`;
-        await this.redis.del(refreshTokenKey);
+        await this.executeRedis('revoke refresh token', () => this.redis.del(refreshTokenKey));
     }
 
     async revokeAllUserTokens(userId: string): Promise<void> {
@@ -389,12 +410,14 @@ class TokenService {
 
         // Mark all access tokens for this user as revoked
         const userTokenKey = `user_tokens:${userId}`;
-        await this.redis.setex(userTokenKey, 24 * 60 * 60, 'revoked');
+        await this.executeRedis('revoke all user tokens', () =>
+            this.redis.setex(userTokenKey, 24 * 60 * 60, 'revoked')
+        );
     }
 
     async isUserTokensRevoked(userId: string): Promise<boolean> {
         const userTokenKey = `user_tokens:${userId}`;
-        const result = await this.redis.get(userTokenKey);
+        const result = await this.executeRedis('get user token revocation', () => this.redis.get(userTokenKey));
         return result === 'revoked';
     }
 
@@ -434,13 +457,15 @@ class TokenService {
     async cleanup(): Promise<void> {
         let cursor = '0';
         do {
-            const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'blacklist:*', 'COUNT', 100);
+            const [nextCursor, keys] = await this.executeRedis('scan blacklist keys', () =>
+                this.redis.scan(cursor, 'MATCH', 'blacklist:*', 'COUNT', 100)
+            );
             cursor = nextCursor;
             for (const key of keys) {
-                const ttl = await this.redis.ttl(key);
+                const ttl = await this.executeRedis(`ttl ${key}`, () => this.redis.ttl(key));
                 if (ttl === -1) {
                     // Key exists but has no TTL — remove it
-                    await this.redis.del(key);
+                    await this.executeRedis(`delete ${key}`, () => this.redis.del(key));
                 }
             }
         } while (cursor !== '0');

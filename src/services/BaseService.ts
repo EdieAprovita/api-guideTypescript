@@ -4,6 +4,7 @@ import { getErrorMessage } from '../types/modalTypes.js';
 import { cacheService, CacheOptions } from './CacheService.js';
 import logger from '../utils/logger.js';
 import { escapeRegex } from '../utils/escapeRegex.js';
+import { assertSafeUpdatePayload } from '../utils/safeUpdates.js';
 import {
     PaginatedResponse,
     PaginationMeta,
@@ -148,6 +149,16 @@ class BaseService<T extends Document> {
         // Validate ObjectId format to prevent injection
         if (!Types.ObjectId.isValid(id)) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid ID format'));
+        }
+
+        const updatePayload = data as Record<string, unknown>;
+        assertSafeUpdatePayload(updatePayload, `${this.modelName} update`);
+
+        if (Object.keys(updatePayload).length === 0) {
+            throw new HttpError(
+                HttpStatusCode.BAD_REQUEST,
+                getErrorMessage(`No valid fields provided to update ${this.modelName}`)
+            );
         }
 
         // Convert string to ObjectId to prevent injection

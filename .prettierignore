@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+
+# E2E tests (formatted separately)
+e2e/
+
+# Claude/GitNexus config
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# Package lock
+package-lock.json
+
+# Coverage
+coverage/
+
+# Playwright
+playwright-report/
+test-results/

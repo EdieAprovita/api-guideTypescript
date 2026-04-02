@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { randomUUID } from 'crypto';
+import logger from '../utils/logger.js';
 
 /**
  * Configure Helmet for security headers
@@ -131,9 +132,12 @@ export const createAdvancedRateLimit = (options: {
             }),
         handler: (req: Request, res: Response) => {
             // Log rate limit violations with better IP tracking
-            console.warn(
-                `Rate limit exceeded for IP: ${req.ip}, X-Forwarded-For: ${req.headers['x-forwarded-for']}, User-Agent: ${req.headers['user-agent']}`
-            );
+            logger.warn('Rate limit exceeded', {
+                ip: req.ip,
+                xForwardedFor: req.headers['x-forwarded-for'],
+                userAgent: req.headers['user-agent'],
+                correlationId: req.correlationId,
+            });
 
             res.status(429).json({
                 success: false,
@@ -221,7 +225,11 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
             queryKeys: typeof req.query === 'object' && req.query !== null ? Object.keys(req.query) : undefined,
             paramKeys: typeof req.params === 'object' && req.params !== null ? Object.keys(req.params) : undefined,
         };
-        console.warn(`Suspicious activity detected from IP: ${req.ip}`, logDetails);
+        logger.warn('Suspicious activity detected', {
+            ip: req.ip,
+            correlationId: req.correlationId,
+            ...logDetails,
+        });
 
         return res.status(400).json({
             success: false,
@@ -357,7 +365,7 @@ export const getClientIPInfo = (req: Request) => {
 
     // In development, log IP info for debugging
     if (process.env.NODE_ENV === 'development' || process.env.DEBUG_IP_INFO === 'true') {
-        console.log('🔍 Client IP Debug Info:', ipInfo);
+        logger.debug('Client IP Debug Info', ipInfo);
     }
 
     return ipInfo;

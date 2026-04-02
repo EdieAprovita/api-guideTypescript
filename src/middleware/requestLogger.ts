@@ -44,8 +44,10 @@ function sanitizeForLog(obj: unknown, depth: number = 0): unknown {
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
     // Use the correlation ID already set by addCorrelationId (security.ts),
     // falling back to header or a new UUID for resilience.
-    const correlationId: string = req.correlationId || req.get('X-Correlation-ID') || uuidv4();
+    const correlationId: string =
+        req.correlationId || req.get('X-Correlation-ID') || req.get('X-Request-ID') || uuidv4();
     req.correlationId = correlationId;
+    res.setHeader('X-Correlation-ID', correlationId);
 
     // Propagate correlation ID onto the active OTel span (no-op when OTel is inactive)
     const activeSpan = trace.getActiveSpan();

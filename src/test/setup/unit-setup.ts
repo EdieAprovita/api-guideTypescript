@@ -28,9 +28,16 @@ beforeAll(() => {
 // CORE MOCKS - Only essential mocks
 // ============================================================================
 
-beforeEach(() => {
+beforeEach(async () => {
     // Clear all mocks before each test
     vi.clearAllMocks();
+
+    try {
+        const redisClient = (await import('../../clients/redisClient.js')) as { resetCircuitBreaker?: () => void };
+        redisClient.resetCircuitBreaker?.();
+    } catch {
+        // Some unit tests fully mock the module and do not expose the reset helper.
+    }
 
     // Mock mongoose completely to avoid schema issues
     vi.mock('mongoose', () => ({
