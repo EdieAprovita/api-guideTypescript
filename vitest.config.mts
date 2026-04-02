@@ -24,7 +24,9 @@ export default defineConfig({
             'src/test/__mocks__/**',
             'src/test/templates/**',
             'src/test/fixtures/**',
-            'src/test/integration/**', // Temporarily exclude integration tests
+            // Integration tests run separately via test:ci:integration (they need
+            // MongoMemoryServer which conflicts with unit-setup.ts global mocks)
+            'src/test/integration/**',
             'src/test/setup/**',
             'src/test/config/**',
             'src/test/utils/**',
