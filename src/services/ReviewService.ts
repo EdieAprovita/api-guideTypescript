@@ -19,8 +19,10 @@ async function invalidateReviewCache(
 ): Promise<void> {
     for (let attempt = 1; attempt <= 2; attempt++) {
         try {
+            // Primary tag format used by getReviewsByEntity, getReviewStats, getReviewById, addReview
+            await cache.invalidateByTag(`reviews:${entityType}:${entityId}`);
+            // Secondary format used by listReviewsForModel
             await cache.invalidateByTag(`reviews:entity:${entityId}`);
-            await cache.invalidateByTag(`reviews:type:${entityType}`);
             return;
         } catch (error) {
             if (attempt === 2) {
@@ -432,11 +434,14 @@ export const reviewService = {
                     entityId: updatedReview.entity?.toString(),
                 });
 
-                await invalidateReviewCache(
-                    updatedReview.entityType,
-                    updatedReview.entity?.toString() ?? '',
-                    cacheService
-                );
+                const entityIdStr = updatedReview.entity?.toString();
+                if (!entityIdStr) {
+                    logger.warn('updateReview: committed document missing entity — skipping cache invalidation', {
+                        reviewId: updatedReview._id,
+                    });
+                } else {
+                    await invalidateReviewCache(updatedReview.entityType, entityIdStr, cacheService);
+                }
 
                 // Phase 8: Structured logging
                 logger.info('Review updated successfully', {

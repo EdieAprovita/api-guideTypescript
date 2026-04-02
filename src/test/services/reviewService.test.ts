@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, vi, MockedFunction } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, MockedFunction } from 'vitest';
 import { reviewService } from '../../services/ReviewService.js';
 import { Review } from '../../models/Review.js';
 import { HttpError, HttpStatusCode } from '../../types/Errors.js';
 import { cacheService } from '../../services/CacheService.js';
+import logger from '../../utils/logger.js';
 
 // ---------------------------------------------------------------------------
 // Shared mocked types
@@ -54,6 +55,15 @@ vi.mock('../../models/Review.js', () => ({
     },
 }));
 
+vi.mock('../../utils/logger.js', () => ({
+    default: {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
+
 vi.mock('mongoose', () => {
     const objectId = Object.assign(
         vi.fn((id?: string) => ({
@@ -81,6 +91,7 @@ vi.mock('mongoose', () => {
 
 const mockedCache = cacheService as unknown as MockedCacheService;
 const mockedReview = Review as unknown as MockedReviewModel;
+const mockedLogger = logger as { warn: MockedFunction<typeof logger.warn> };
 
 // ---------------------------------------------------------------------------
 // C-07 — getTopRatedReviews entity-type validation
@@ -153,17 +164,20 @@ describe('C-07 — getTopRatedReviews entity type validation', () => {
 });
 
 // ---------------------------------------------------------------------------
-// C-06 — invalidateReviewCache retry behaviour (via addReview / updateReview)
+// C-06 — invalidateReviewCache retry behaviour (via addReview)
 // ---------------------------------------------------------------------------
 describe('C-06 — cache invalidation retry', () => {
     const entityId = '507f1f77bcf86cd799439011';
     const authorId = '507f1f77bcf86cd799439012';
 
-    beforeEach(() => {
+    afterEach(() => {
+        vi.useRealTimers();
         vi.clearAllMocks();
     });
 
-    it('invalidation succeeds on second attempt after first failure in addReview', async () => {
+    it('invalidation retries and succeeds on second attempt after first failure', async () => {
+        vi.useFakeTimers();
+
         const committedReview = {
             _id: '507f1f77bcf86cd799439099',
             entityType: 'Restaurant',
@@ -172,38 +186,35 @@ describe('C-06 — cache invalidation retry', () => {
             rating: 5,
         };
 
-        // findOne returns null (no duplicate)
         mockedReview.findOne.mockResolvedValue(null);
-
-        // create returns the committed document
         mockedReview.create.mockResolvedValue([committedReview]);
-
-        // findById for populatedReview returns committed doc
         mockedReview.findById.mockReturnValue({
             populate: vi.fn().mockResolvedValue(committedReview),
         });
 
-        // First invalidateByTag call throws; subsequent calls succeed
-        let invalidateCallCount = 0;
-        mockedCache.invalidateByTag.mockImplementation(async () => {
-            invalidateCallCount++;
-            if (invalidateCallCount === 1) {
-                throw new Error('Redis timeout');
-            }
-        });
+        // First call throws; subsequent calls succeed
+        mockedCache.invalidateByTag.mockRejectedValueOnce(new Error('Redis timeout')).mockResolvedValue(undefined);
 
-        await reviewService.addReview({
+        const promise = reviewService.addReview({
             entityType: 'Restaurant',
             entity: entityId as unknown as never,
             author: authorId as unknown as never,
             rating: 5,
         });
 
-        // The helper retries: first pair of calls fail on call #1, retry succeeds
-        expect(mockedCache.invalidateByTag).toHaveBeenCalled();
+        // Advance past the 500ms retry delay
+        await vi.runAllTimersAsync();
+        await promise;
+
+        vi.useRealTimers();
+
+        // Retry verifications: invalidateByTag called more than once
+        expect(mockedCache.invalidateByTag.mock.calls.length).toBeGreaterThan(1);
     });
 
     it('does not throw when both invalidation attempts fail — logs warning instead', async () => {
+        vi.useFakeTimers();
+
         const committedReview = {
             _id: '507f1f77bcf86cd799439099',
             entityType: 'Restaurant',
@@ -218,18 +229,27 @@ describe('C-06 — cache invalidation retry', () => {
             populate: vi.fn().mockResolvedValue(committedReview),
         });
 
-        // All calls throw — both attempts exhausted
+        // All calls reject — both attempts exhausted
         mockedCache.invalidateByTag.mockRejectedValue(new Error('Redis down'));
 
+        const promise = reviewService.addReview({
+            entityType: 'Restaurant',
+            entity: entityId as unknown as never,
+            author: authorId as unknown as never,
+            rating: 4,
+        });
+
+        await vi.runAllTimersAsync();
         // Should resolve (not throw) because invalidation failure is non-fatal
-        await expect(
-            reviewService.addReview({
-                entityType: 'Restaurant',
-                entity: entityId as unknown as never,
-                author: authorId as unknown as never,
-                rating: 4,
-            })
-        ).resolves.toBeDefined();
+        await expect(promise).resolves.toBeDefined();
+
+        vi.useRealTimers();
+
+        // Verify observability: logger.warn is called when retries are exhausted
+        expect(mockedLogger.warn).toHaveBeenCalledWith(
+            'Cache invalidation failed after 2 attempts',
+            expect.objectContaining({ entityType: 'Restaurant', entityId })
+        );
     });
 });
 
@@ -249,7 +269,7 @@ describe('H-10 — addReview cache tags use committed document fields', () => {
     it('uses review.entityType from committed doc, not reviewData.entityType', async () => {
         const committedReview = {
             _id: '507f1f77bcf86cd799439088',
-            entityType: 'Market', // committed value — different from input below
+            entityType: 'Market', // committed value
             entity: { toString: () => committedEntityId },
             author: { _id: authorId },
             rating: 3,
