@@ -2,6 +2,7 @@ import RedisLib from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
 const Redis = RedisLib.default || RedisLib;
 import logger from '../utils/logger.js';
+import { redisRetryStrategy } from '../utils/redisRetryStrategy.js';
 
 export interface CacheStats {
     hitRatio: number;
@@ -74,18 +75,12 @@ export class CacheService {
             commandTimeout: 5000,
         };
 
-        // Exponential backoff for reconnection attempts
-        const retryStrategy = (times: number): number | null => {
-            if (times > 10) return null; // stop after 10 attempts
-            return Math.min(times * 200, 3000);
-        };
-
         // Solo agregar password si está definida
         if (process.env.REDIS_PASSWORD) {
             redisConfig.password = process.env.REDIS_PASSWORD;
         }
 
-        this.redis = new Redis({ ...redisConfig, retryStrategy });
+        this.redis = new Redis({ ...redisConfig, retryStrategy: redisRetryStrategy });
 
         // Event listeners para monitoreo
         this.redis.on('connect', () => {
@@ -326,11 +321,9 @@ export class CacheService {
     }
 
     /**
-     * Flush only cache-owned keys, preserving security-critical keys
-     * (token blacklist, refresh tokens, user revocation markers).
-     *
-     * Uses SCAN iterator to avoid blocking Redis on large key sets,
-     * and deletes in pipelined batches for efficiency.
+     * Sends a PING command to Redis and returns `true` when the reply is PONG.
+     * Returns `false` on any connection or command error, making it safe to use
+     * as a non-throwing health check.
      */
     async ping(): Promise<boolean> {
         try {
@@ -341,6 +334,13 @@ export class CacheService {
         }
     }
 
+    /**
+     * Flush only cache-owned keys, preserving security-critical keys
+     * (token blacklist, refresh tokens, user revocation markers).
+     *
+     * Uses SCAN iterator to avoid blocking Redis on large key sets,
+     * and deletes in pipelined batches for efficiency.
+     */
     async flush(): Promise<void> {
         // Prefixes managed by TokenService — must NEVER be deleted by a cache flush.
         const protectedPrefixes = ['blacklist:', 'user_tokens:', 'refresh_token:', 'tag:', 'keytags:'];

@@ -5,6 +5,7 @@ const Redis = RedisLib.default || RedisLib;
 import { randomUUID, createHash } from 'crypto';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
 import logger from '../utils/logger.js';
+import { redisRetryStrategy } from '../utils/redisRetryStrategy.js';
 
 interface TokenPayload {
     userId: string;
@@ -145,10 +146,7 @@ class TokenService {
             lazyConnect: true,
             retryDelayOnFailover: 100,
             maxRetriesPerRequest: 1,
-            retryStrategy(times: number): number | null {
-                if (times > 10) return null;
-                return Math.min(times * 200, 3000);
-            },
+            retryStrategy: redisRetryStrategy,
             ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
         };
 
