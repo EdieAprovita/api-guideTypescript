@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { redisRetryStrategy } from '../../utils/redisRetryStrategy.js';
 
 describe('redisRetryStrategy', () => {
-    describe('delay calculation', () => {
+    describe('linear backoff delay calculation', () => {
         it('should return 200ms delay on the first attempt', () => {
             expect(redisRetryStrategy(1)).toBe(200);
         });
@@ -17,10 +17,11 @@ describe('redisRetryStrategy', () => {
         });
     });
 
-    describe('cap behaviour', () => {
-        it('should cap delay at 3000ms (e.g. times=10 → min(2000,3000)=2000)', () => {
-            // Within retry window, verify cap applies at boundary
-            // times=10: min(10*200, 3000) = min(2000, 3000) = 2000
+    describe('linear backoff cap behaviour', () => {
+        it('should return 2000ms at max retry attempt (times=10) — the 3000ms cap is unreachable within the 10-retry window', () => {
+            // The formula is Math.min(times * 200, 3000).
+            // With a max of 10 retries, the highest possible delay is 10 * 200 = 2000ms,
+            // so the 3000ms ceiling is never reached within the configured retry window.
             expect(redisRetryStrategy(10)).toBe(2000);
         });
 
