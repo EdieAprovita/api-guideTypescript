@@ -1,11 +1,9 @@
 import * as jwt from 'jsonwebtoken';
-import RedisLib from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
-const Redis = RedisLib.default || RedisLib;
 import { randomUUID, createHash } from 'crypto';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
 import logger from '../utils/logger.js';
-import { redisRetryStrategy } from '../utils/redisRetryStrategy.js';
+import { getRedisClient } from '../clients/redisClient.js';
 
 interface TokenPayload {
     userId: string;
@@ -49,15 +47,16 @@ class TokenService {
 
     /**
      * @param redisClient Optional Redis client to inject (used in tests to avoid
-     *   real connections). When omitted the service selects mock or real Redis
-     *   based on NODE_ENV, preserving production behaviour.
+     *   real connections). When omitted the shared singleton from redisClient.ts
+     *   is used, ensuring CacheService and TokenService share the same connection.
      */
     constructor(redisClient?: RedisType) {
         if (redisClient) {
             this.redis = redisClient;
+        } else if (process.env.NODE_ENV === 'test') {
+            this.initializeMockRedis();
         } else {
-            // Initialize Redis immediately (it's lazy-loaded anyway)
-            this.initializeRedis();
+            this.redis = getRedisClient();
         }
         // Don't initialize secrets in constructor - do it lazily on first use
     }
@@ -78,14 +77,6 @@ class TokenService {
                 }
                 throw error;
             }
-        }
-    }
-
-    private initializeRedis(): void {
-        if (process.env.NODE_ENV === 'test') {
-            this.initializeMockRedis();
-        } else {
-            this.initializeRealRedis();
         }
     }
 
@@ -137,28 +128,6 @@ class TokenService {
                 return Promise.resolve('OK');
             },
         } as unknown as RedisType;
-    }
-
-    private initializeRealRedis(): void {
-        const redisConfig = {
-            host: process.env.REDIS_HOST ?? 'localhost',
-            port: parseInt(process.env.REDIS_PORT ?? '6379'),
-            lazyConnect: true,
-            retryDelayOnFailover: 100,
-            maxRetriesPerRequest: 1,
-            retryStrategy: redisRetryStrategy,
-            ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
-        };
-
-        this.redis = new Redis(redisConfig);
-
-        this.redis.on('error', (error: Error) => {
-            logger.error('TokenService Redis error', { error: error.message });
-        });
-
-        this.redis.on('reconnecting', (delay: number) => {
-            logger.warn('TokenService Redis reconnecting', { delay });
-        });
     }
 
     private initializeSecrets(): void {

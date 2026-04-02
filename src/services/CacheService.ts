@@ -1,8 +1,6 @@
-import RedisLib from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
-const Redis = RedisLib.default || RedisLib;
 import logger from '../utils/logger.js';
-import { redisRetryStrategy } from '../utils/redisRetryStrategy.js';
+import { getRedisClient } from '../clients/redisClient.js';
 
 export interface CacheStats {
     hitRatio: number;
@@ -43,61 +41,7 @@ export class CacheService {
     };
 
     constructor() {
-        this.initializeRedis();
-    }
-
-    /**
-     * Inicializar conexión Redis con configuración resiliente
-     */
-    private initializeRedis(): void {
-        interface RedisConfig {
-            host: string;
-            port: number;
-            db: number;
-            retryDelayOnFailover: number;
-            maxRetriesPerRequest: number;
-            lazyConnect: boolean;
-            keepAlive: number;
-            connectTimeout: number;
-            commandTimeout: number;
-            password?: string;
-        }
-
-        const redisConfig: RedisConfig = {
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379'),
-            db: 0,
-            retryDelayOnFailover: 100,
-            maxRetriesPerRequest: 3,
-            lazyConnect: true,
-            keepAlive: 30000,
-            connectTimeout: 10000,
-            commandTimeout: 5000,
-        };
-
-        // Solo agregar password si está definida
-        if (process.env.REDIS_PASSWORD) {
-            redisConfig.password = process.env.REDIS_PASSWORD;
-        }
-
-        this.redis = new Redis({ ...redisConfig, retryStrategy: redisRetryStrategy });
-
-        // Event listeners para monitoreo
-        this.redis.on('connect', () => {
-            logger.info('✅ Redis connected successfully');
-        });
-
-        this.redis.on('ready', () => {
-            logger.info('🚀 Redis ready to accept commands');
-        });
-
-        this.redis.on('error', (error: Error) => {
-            logger.error('❌ Redis connection error:', error);
-        });
-
-        this.redis.on('close', () => {
-            logger.warn('⚠️ Redis connection closed');
-        });
+        this.redis = getRedisClient();
     }
 
     /**
