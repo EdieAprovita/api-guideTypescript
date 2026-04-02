@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Types } from 'mongoose';
+import { HttpError } from '../../types/Errors';
 import { MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_PAGE } from '../../types/pagination';
 
 // Mock the dependencies
@@ -19,6 +20,17 @@ vi.mock('../../utils/logger', () => ({
 }));
 
 describe('BaseService', () => {
+    const importRealBaseService = async () => {
+        vi.doUnmock('mongoose');
+        vi.doUnmock('../../services/BaseService');
+        return (await vi.importActual<typeof import('../../services/BaseService')>('../../services/BaseService')).default;
+    };
+
+    const importRealMongoose = async () => {
+        vi.doUnmock('mongoose');
+        return await vi.importActual<typeof import('mongoose')>('mongoose');
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -42,7 +54,7 @@ describe('BaseService', () => {
 
     describe('Basic functionality', () => {
         it('should import BaseService correctly', async () => {
-            const BaseService = (await import('../../services/BaseService')).default;
+            const BaseService = await importRealBaseService();
             expect(BaseService).toBeDefined();
             expect(typeof BaseService).toBe('function');
         });
@@ -105,6 +117,34 @@ describe('BaseService', () => {
             const hasDangerousOperators = keys.some(key => typeof key === 'string' && key.startsWith('$'));
 
             expect(hasDangerousOperators).toBe(false);
+        });
+
+        it('rejects empty update payloads before calling the model', async () => {
+            const BaseService = await importRealBaseService();
+            const mongoose = await importRealMongoose();
+            const model = {
+                modelName: 'TestModel',
+                findByIdAndUpdate: vi.fn(),
+            };
+            const service = new BaseService(model as any);
+
+            await expect(service.updateById(new mongoose.Types.ObjectId().toString(), {})).rejects.toBeInstanceOf(HttpError);
+            expect(model.findByIdAndUpdate).not.toHaveBeenCalled();
+        });
+
+        it('rejects unsafe update keys before calling the model', async () => {
+            const BaseService = await importRealBaseService();
+            const mongoose = await importRealMongoose();
+            const model = {
+                modelName: 'TestModel',
+                findByIdAndUpdate: vi.fn(),
+            };
+            const service = new BaseService(model as any);
+
+            await expect(
+                service.updateById(new mongoose.Types.ObjectId().toString(), { $set: { username: 'admin' } } as any)
+            ).rejects.toBeInstanceOf(HttpError);
+            expect(model.findByIdAndUpdate).not.toHaveBeenCalled();
         });
     });
 });

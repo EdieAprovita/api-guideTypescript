@@ -119,7 +119,8 @@ router.get('/deep', async (_req: Request, res: Response) => {
         const uptime = process.uptime();
         const memoryUsage = process.memoryUsage();
 
-        const allHealthy = mongoConnected && redisConnected && circuitBreaker.state === 'closed';
+        const redisOperational = redisConnected && circuitBreaker.state !== 'open';
+        const allHealthy = mongoConnected && redisOperational;
 
         const healthStatus = {
             status: allHealthy ? 'healthy' : 'degraded',
@@ -145,6 +146,7 @@ router.get('/deep', async (_req: Request, res: Response) => {
             status: healthStatus.status,
             mongoConnected,
             redisConnected,
+            redisOperational,
             circuitBreakerState: circuitBreaker.state,
         });
 

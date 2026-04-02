@@ -1,6 +1,6 @@
 import type { Redis as RedisType } from 'ioredis';
 import logger from '../utils/logger.js';
-import { getRedisClient } from '../clients/redisClient.js';
+import { executeIfCircuitClosed, getRedisClient } from '../clients/redisClient.js';
 
 export interface CacheStats {
     hitRatio: number;
@@ -44,29 +44,37 @@ export class CacheService {
         this.redis = getRedisClient();
     }
 
+    private async executeRedis<T>(operationName: string, operation: () => Promise<T>, fallback: T): Promise<T> {
+        try {
+            const result = await executeIfCircuitClosed(operation);
+            if (result === null) {
+                logger.warn(`Cache ${operationName} skipped because Redis circuit breaker is open`);
+                return fallback;
+            }
+            return result;
+        } catch (error) {
+            logger.error(`Cache ${operationName} error`, error as Error);
+            return fallback;
+        }
+    }
+
     /**
      * Obtener valor del cache
      * @param key - Clave del cache
      * @returns Valor parseado o null si no existe
      */
     async get<T>(key: string): Promise<T | null> {
-        try {
-            const start = Date.now();
-            const value = await this.redis.get(key);
-            const duration = Date.now() - start;
+        const start = Date.now();
+        const value = await this.executeRedis(`GET ${key}`, () => this.redis.get(key), null);
+        const duration = Date.now() - start;
 
-            if (value) {
-                this.hits++;
-                logger.debug(`🎯 Cache HIT: ${key} (${duration}ms)`);
-                return JSON.parse(value) as T;
-            } else {
-                this.misses++;
-                logger.debug(`❌ Cache MISS: ${key} (${duration}ms)`);
-                return null;
-            }
-        } catch (error) {
-            logger.error(`Cache GET error for key ${key}:`, error);
+        if (value) {
+            this.hits++;
+            logger.debug(`🎯 Cache HIT: ${key} (${duration}ms)`);
+            return JSON.parse(value) as T;
+        } else {
             this.misses++;
+            logger.debug(`❌ Cache MISS: ${key} (${duration}ms)`);
             return null;
         }
     }
@@ -79,23 +87,21 @@ export class CacheService {
      * @param options - Opciones adicionales
      */
     async set<T>(key: string, value: T, type: string = 'default', options: CacheOptions = {}): Promise<void> {
-        try {
-            const start = Date.now();
-            const ttl = options.ttl || this.ttlConfig[type] || 300; // 5 min default
-            const serializedValue = JSON.stringify(value);
+        const start = Date.now();
+        const ttl = options.ttl || this.ttlConfig[type] || 300; // 5 min default
+        const serializedValue = JSON.stringify(value);
 
-            await this.redis.setex(key, ttl, serializedValue);
-
-            // Manejar tags para invalidación
-            if (options.tags) {
-                await this.associateTags(key, options.tags);
-            }
-
-            const duration = Date.now() - start;
-            logger.debug(`💾 Cache SET: ${key} (TTL: ${ttl}s, ${duration}ms)`);
-        } catch (error) {
-            logger.error(`Cache SET error for key ${key}:`, error);
+        const writeOk = await this.executeRedis(`SET ${key}`, () => this.redis.setex(key, ttl, serializedValue), false as boolean | string);
+        if (!writeOk) {
+            return;
         }
+
+        if (options.tags) {
+            await this.associateTags(key, options.tags);
+        }
+
+        const duration = Date.now() - start;
+        logger.debug(`💾 Cache SET: ${key} (TTL: ${ttl}s, ${duration}ms)`);
     }
 
     /**
@@ -118,26 +124,24 @@ export class CacheService {
      * @param key - Clave a invalidar
      */
     async invalidate(key: string): Promise<void> {
-        try {
-            const reverseKey = `keytags:${key}`;
-            const associatedTags = await this.redis.smembers(reverseKey);
-
+        const reverseKey = `keytags:${key}`;
+        const associatedTags = await this.executeRedis(`SMEMBERS ${reverseKey}`, () => this.redis.smembers(reverseKey), [] as string[]);
+        const invalidated = await this.executeRedis(`INVALIDATE ${key}`, async () => {
             const pipeline = this.redis.pipeline();
 
-            // Remove this key from every tag SET that references it
             for (const tag of associatedTags) {
                 pipeline.srem(`tag:${tag}`, key);
             }
 
-            // Delete the reverse index entry and the cache key itself
             pipeline.del(reverseKey);
             pipeline.del(key);
 
             await pipeline.exec();
+            return true;
+        }, false);
 
+        if (invalidated) {
             logger.debug(`Cache INVALIDATED: ${key}`);
-        } catch (error) {
-            logger.warn(`Cache INVALIDATE warning for key ${key}:`, error);
         }
     }
 
@@ -150,7 +154,11 @@ export class CacheService {
             const keys: string[] = [];
             let cursor = '0';
             do {
-                const [nextCursor, batchKeys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+                const [nextCursor, batchKeys] = await this.executeRedis(
+                    `SCAN ${pattern}`,
+                    () => this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100),
+                    ['0', []] as [string, string[]]
+                );
                 cursor = nextCursor;
                 keys.push(...batchKeys);
             } while (cursor !== '0');
@@ -158,25 +166,27 @@ export class CacheService {
             if (keys.length > 0) {
                 // Fetch the reverse index for each matched key to clean up tag sets
                 const keyTagSets = await Promise.all(
-                    keys.map(key => this.redis.smembers(`keytags:${key}`).catch(() => [] as string[]))
+                    keys.map(key => this.executeRedis(`SMEMBERS keytags:${key}`, () => this.redis.smembers(`keytags:${key}`), [] as string[]))
                 );
 
-                const pipeline = this.redis.pipeline();
+                const invalidated = await this.executeRedis(`INVALIDATE PATTERN ${pattern}`, async () => {
+                    const pipeline = this.redis.pipeline();
 
-                keys.forEach((key, i) => {
-                    // Delete the cache key itself
-                    pipeline.del(key);
-                    // Delete the reverse index entry
-                    pipeline.del(`keytags:${key}`);
-                    // Remove the key from every tag set it belonged to
-                    (keyTagSets[i] ?? []).forEach(tag => {
-                        pipeline.srem(`tag:${tag}`, key);
+                    keys.forEach((key, i) => {
+                        pipeline.del(key);
+                        pipeline.del(`keytags:${key}`);
+                        (keyTagSets[i] ?? []).forEach(tag => {
+                            pipeline.srem(`tag:${tag}`, key);
+                        });
                     });
-                });
 
-                await pipeline.exec();
+                    await pipeline.exec();
+                    return true;
+                }, false);
 
-                logger.info(`🧹 Cache PATTERN INVALIDATED: ${pattern} (${keys.length} keys)`);
+                if (invalidated) {
+                    logger.info(`🧹 Cache PATTERN INVALIDATED: ${pattern} (${keys.length} keys)`);
+                }
             }
         } catch (error) {
             logger.error(`Cache PATTERN INVALIDATE error for pattern ${pattern}:`, error);
@@ -188,27 +198,23 @@ export class CacheService {
      * @param tag - Tag para invalidar todas las claves asociadas
      */
     async invalidateByTag(tag: string): Promise<void> {
-        try {
-            const tagSetKey = `tag:${tag}`;
-            const members = await this.redis.smembers(tagSetKey);
+        const tagSetKey = `tag:${tag}`;
+        const members = await this.executeRedis(`SMEMBERS ${tagSetKey}`, () => this.redis.smembers(tagSetKey), [] as string[]);
 
-            if (members.length === 0) {
-                return;
-            }
+        if (members.length === 0) {
+            return;
+        }
 
-            // For each member, fetch its full reverse index so we can clean other tag sets
-            const memberTagSets = await Promise.all(
-                members.map(member => this.redis.smembers(`keytags:${member}`).catch(() => [] as string[]))
-            );
+        const memberTagSets = await Promise.all(
+            members.map(member => this.executeRedis(`SMEMBERS keytags:${member}`, () => this.redis.smembers(`keytags:${member}`), [] as string[]))
+        );
 
+        const invalidated = await this.executeRedis(`INVALIDATE TAG ${tag}`, async () => {
             const pipeline = this.redis.pipeline();
 
-            // Delete every cache key that belongs to this tag
             members.forEach((member, i) => {
                 pipeline.del(member);
-                // Remove the reverse index entry for each deleted key
                 pipeline.del(`keytags:${member}`);
-                // Remove the member from every other tag set it belonged to
                 (memberTagSets[i] ?? []).forEach(otherTag => {
                     if (otherTag !== tag) {
                         pipeline.srem(`tag:${otherTag}`, member);
@@ -216,14 +222,13 @@ export class CacheService {
                 });
             });
 
-            // Delete the forward tag SET itself
             pipeline.del(tagSetKey);
-
             await pipeline.exec();
+            return true;
+        }, false);
 
+        if (invalidated) {
             logger.info(`Cache TAG INVALIDATED: ${tag} (${members.length} keys)`);
-        } catch (error) {
-            logger.error(`Cache TAG INVALIDATE error for tag ${tag}:`, error);
         }
     }
 
@@ -232,7 +237,7 @@ export class CacheService {
      */
     async getStats(): Promise<CacheStats> {
         try {
-            const info = await this.redis.info('memory');
+            const info = await this.executeRedis('INFO memory', () => this.redis.info('memory'), '');
             const totalRequests = this.hits + this.misses;
             const hitRatio = totalRequests > 0 ? this.hits / totalRequests : 0;
 
@@ -243,7 +248,7 @@ export class CacheService {
             const uptimeMatch = RegExp(/uptime_in_seconds:(\d+)/).exec(info);
             const uptime = uptimeMatch?.[1] ? parseInt(uptimeMatch[1]) : 0;
 
-            const dbSize = await this.redis.dbsize();
+            const dbSize = await this.executeRedis('DBSIZE', () => this.redis.dbsize(), 0);
 
             return {
                 hitRatio: Number((hitRatio * 100).toFixed(2)),
@@ -270,12 +275,8 @@ export class CacheService {
      * as a non-throwing health check.
      */
     async ping(): Promise<boolean> {
-        try {
-            const result = await this.redis.ping();
-            return result === 'PONG';
-        } catch {
-            return false;
-        }
+        const result = await this.executeRedis('PING', () => this.redis.ping(), null);
+        return result === 'PONG';
     }
 
     /**
@@ -294,18 +295,27 @@ export class CacheService {
             let deletedCount = 0;
 
             do {
-                const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', '*', 'COUNT', 200);
+                const [nextCursor, keys] = await this.executeRedis(
+                    'SCAN *',
+                    () => this.redis.scan(cursor, 'MATCH', '*', 'COUNT', 200),
+                    ['0', []] as [string, string[]]
+                );
                 cursor = nextCursor;
 
                 const keysToDelete = keys.filter(key => !protectedPrefixes.some(prefix => key.startsWith(prefix)));
 
                 if (keysToDelete.length > 0) {
-                    const pipeline = this.redis.pipeline();
-                    for (const key of keysToDelete) {
-                        pipeline.del(key);
+                    const deleted = await this.executeRedis('FLUSH CACHE KEYS', async () => {
+                        const pipeline = this.redis.pipeline();
+                        for (const key of keysToDelete) {
+                            pipeline.del(key);
+                        }
+                        await pipeline.exec();
+                        return true;
+                    }, false);
+                    if (deleted) {
+                        deletedCount += keysToDelete.length;
                     }
-                    await pipeline.exec();
-                    deletedCount += keysToDelete.length;
                 }
             } while (cursor !== '0');
 
@@ -322,13 +332,8 @@ export class CacheService {
      * @param key - Clave a verificar
      */
     async exists(key: string): Promise<boolean> {
-        try {
-            const result = await this.redis.exists(key);
-            return result === 1;
-        } catch (error) {
-            logger.error(`Cache EXISTS error for key ${key}:`, error);
-            return false;
-        }
+        const result = await this.executeRedis(`EXISTS ${key}`, () => this.redis.exists(key), 0);
+        return result === 1;
     }
 
     /**
@@ -338,7 +343,10 @@ export class CacheService {
      */
     async expire(key: string, ttl: number): Promise<void> {
         try {
-            await this.redis.expire(key, ttl);
+            const updated = await this.executeRedis(`EXPIRE ${key}`, () => this.redis.expire(key, ttl), 0);
+            if (updated !== 1) {
+                return;
+            }
             logger.debug(`⏰ Cache TTL updated: ${key} (${ttl}s)`);
         } catch (error) {
             logger.error(`Cache EXPIRE error for key ${key}:`, error);
@@ -356,17 +364,18 @@ export class CacheService {
         if (tags.length === 0) return;
 
         try {
-            const pipeline = this.redis.pipeline();
+            await this.executeRedis(`ASSOCIATE TAGS ${key}`, async () => {
+                const pipeline = this.redis.pipeline();
 
-            for (const tag of tags) {
-                // Forward: tag → keys
-                pipeline.sadd(`tag:${tag}`, key);
-            }
+                for (const tag of tags) {
+                    pipeline.sadd(`tag:${tag}`, key);
+                }
 
-            // Reverse: key → tags (spread so all tags are added in one SADD call)
-            pipeline.sadd(`keytags:${key}`, ...tags);
+                pipeline.sadd(`keytags:${key}`, ...tags);
 
-            await pipeline.exec();
+                await pipeline.exec();
+                return true;
+            }, false);
         } catch (error) {
             logger.warn(`Cache ASSOCIATE TAGS warning for key ${key}:`, error);
         }

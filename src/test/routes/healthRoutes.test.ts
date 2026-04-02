@@ -13,6 +13,16 @@ vi.mock('../../services/CacheService', () => ({
     },
 }));
 
+vi.mock('../../clients/redisClient', () => ({
+    getCircuitBreakerState: vi.fn(() => ({
+        state: 'closed',
+        failures: 0,
+        lastFailure: null,
+        nextRetry: null,
+    })),
+    checkAndAdvanceState: vi.fn(),
+}));
+
 vi.mock('mongoose', () => ({
     default: {
         connection: {
@@ -50,6 +60,10 @@ async function getMongoose() {
 async function getCacheService() {
     const mod = await import('../../services/CacheService');
     return mod.cacheService;
+}
+
+async function getRedisClientModule() {
+    return await import('../../clients/redisClient');
 }
 
 // ---------------------------------------------------------------------------
@@ -151,5 +165,53 @@ describe('GET /health/ready', () => {
             expect(response.status).toBe(503);
             expect(response.body.redis).toBe(false);
         });
+    });
+});
+
+describe('GET /health/deep', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('returns 200 when Redis is healthy and the circuit breaker is half-open', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+        const redisClient = await getRedisClientModule();
+
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        vi.mocked(cacheService.ping).mockResolvedValue(true);
+        vi.mocked(redisClient.getCircuitBreakerState).mockReturnValue({
+            state: 'half-open',
+            failures: 5,
+            lastFailure: Date.now() - 1000,
+            nextRetry: null,
+        });
+
+        const response = await request(app).get('/health/deep').expect(200);
+
+        expect(response.body.status).toBe('healthy');
+        expect(response.body.services.redis).toBe(true);
+        expect(response.body.services.circuitBreaker.state).toBe('half-open');
+    });
+
+    it('returns 503 when Redis is connected but the circuit breaker is still open', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+        const redisClient = await getRedisClientModule();
+
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        vi.mocked(cacheService.ping).mockResolvedValue(true);
+        vi.mocked(redisClient.getCircuitBreakerState).mockReturnValue({
+            state: 'open',
+            failures: 5,
+            lastFailure: Date.now() - 1000,
+            nextRetry: Date.now() + 10_000,
+        });
+
+        const response = await request(app).get('/health/deep').expect(503);
+
+        expect(response.body.status).toBe('degraded');
+        expect(response.body.services.redis).toBe(true);
+        expect(response.body.services.circuitBreaker.state).toBe('open');
     });
 });

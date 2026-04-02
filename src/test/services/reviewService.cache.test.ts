@@ -115,6 +115,21 @@ describe('ReviewService Cache Tests', () => {
 
             expect(result.data).toEqual(dbReviews);
             expect(mockedCacheService.get).toHaveBeenCalled();
+            expect(mockedReview.find).toHaveBeenCalledWith({
+                $or: [
+                    {
+                        entityType: 'Restaurant',
+                        entity: expect.objectContaining({
+                            toString: expect.any(Function),
+                        }),
+                    },
+                    {
+                        restaurant: expect.objectContaining({
+                            toString: expect.any(Function),
+                        }),
+                    },
+                ],
+            });
             expect(mockedCacheService.setWithTags).toHaveBeenCalledWith(
                 'reviews:Restaurant:507f1f77bcf86cd799439011:p=1&l=10&s=createdAt',
                 expectedResult,
@@ -185,6 +200,26 @@ describe('ReviewService Cache Tests', () => {
 
             expect(result.totalReviews).toBe(10);
             expect(result.averageRating).toBe(4.5);
+            expect(mockedReview.aggregate).toHaveBeenCalledWith([
+                {
+                    $match: {
+                        $or: [
+                            {
+                                entityType: 'Restaurant',
+                                entity: expect.objectContaining({
+                                    toString: expect.any(Function),
+                                }),
+                            },
+                            {
+                                restaurant: expect.objectContaining({
+                                    toString: expect.any(Function),
+                                }),
+                            },
+                        ],
+                    },
+                },
+                expect.any(Object),
+            ]);
             expect(mockedCacheService.setWithTags).toHaveBeenCalledWith(
                 'reviews:stats:Restaurant:507f1f77bcf86cd799439011',
                 expect.objectContaining({

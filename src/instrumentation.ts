@@ -3,6 +3,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+import logger from './utils/logger.js';
 
 let sdk: NodeSDK | undefined;
 
@@ -28,7 +29,7 @@ if (process.env.NODE_ENV === 'production') {
     try {
         sdk.start();
     } catch (error: unknown) {
-        console.error('Failed to start OpenTelemetry SDK:', error);
+        logger.error('Failed to start OpenTelemetry SDK', error as Error);
     }
 }
 

@@ -8,6 +8,7 @@ interface MockedReviewModel {
     findById: MockedFunction<(id: string) => Promise<MockedReview | null>>;
     findOne: MockedFunction<(query: Record<string, unknown>) => Promise<MockedReview | null>>;
     create: MockedFunction<(data: unknown[]) => Promise<MockedReview[]>>;
+    findByIdAndUpdate: MockedFunction<(id: string, update: Record<string, unknown>, options: Record<string, unknown>) => { populate: MockedFunction<() => Promise<MockedReview>> }>;
     save: MockedFunction<() => Promise<MockedReview>>;
 }
 
@@ -28,6 +29,7 @@ vi.mock('../../models/Review', () => ({
         findById: vi.fn(),
         findOne: vi.fn(),
         create: vi.fn(),
+        findByIdAndUpdate: vi.fn(),
     },
 }));
 
@@ -252,10 +254,19 @@ describe('ReviewService Security Tests - Phase 7', () => {
                 author: expect.objectContaining({
                     toString: expect.any(Function),
                 }),
-                entityType,
-                entity: expect.objectContaining({
-                    toString: expect.any(Function),
-                }),
+                $or: [
+                    {
+                        entityType,
+                        entity: expect.objectContaining({
+                            toString: expect.any(Function),
+                        }),
+                    },
+                    {
+                        restaurant: expect.objectContaining({
+                            toString: expect.any(Function),
+                        }),
+                    },
+                ],
             });
         });
 
@@ -289,6 +300,79 @@ describe('ReviewService Security Tests - Phase 7', () => {
             const invalidEntityType = 'InvalidEntity';
             const isValid = validEntityTypes.includes(invalidEntityType);
             expect(isValid).toBe(false);
+        });
+    });
+
+    describe('Update Review Hardening', () => {
+        it('maps comment alias to content and ignores protected fields', async () => {
+            const reviewId = '507f1f77bcf86cd799439011';
+            const userId = '507f1f77bcf86cd799439012';
+
+            const existingReview: MockedReview = {
+                _id: reviewId,
+                author: userId,
+                entityType: 'Restaurant',
+                entity: '507f1f77bcf86cd799439013',
+                helpfulVotes: [],
+                helpfulCount: 0,
+                save: vi.fn(),
+                toString: () => reviewId,
+            };
+
+            mockedReview.findById.mockResolvedValue(existingReview);
+            mockedReview.findByIdAndUpdate.mockReturnValue({
+                populate: vi.fn().mockResolvedValue(existingReview),
+            });
+
+            await reviewService.updateReview(
+                reviewId,
+                {
+                    comment: 'Updated comment body that is long enough',
+                    author: 'attacker-id',
+                    helpfulCount: 999,
+                } as unknown as Partial<typeof existingReview>,
+                userId
+            );
+
+            expect(mockedReview.findByIdAndUpdate).toHaveBeenCalledWith(
+                reviewId,
+                expect.objectContaining({
+                    content: 'Updated comment body that is long enough',
+                    updatedAt: expect.any(Date),
+                }),
+                expect.objectContaining({
+                    new: true,
+                    runValidators: true,
+                    context: 'query',
+                })
+            );
+            const updatePayload = mockedReview.findByIdAndUpdate.mock.calls[0]?.[1] as Record<string, unknown>;
+            expect(updatePayload.author).toBeUndefined();
+            expect(updatePayload.helpfulCount).toBeUndefined();
+        });
+
+        it('rejects unsafe update operators before hitting the database', async () => {
+            const reviewId = '507f1f77bcf86cd799439011';
+            const userId = '507f1f77bcf86cd799439012';
+
+            const existingReview: MockedReview = {
+                _id: reviewId,
+                author: userId,
+                entityType: 'Restaurant',
+                entity: '507f1f77bcf86cd799439013',
+                helpfulVotes: [],
+                helpfulCount: 0,
+                save: vi.fn(),
+                toString: () => reviewId,
+            };
+
+            mockedReview.findById.mockResolvedValue(existingReview);
+
+            await expect(
+                reviewService.updateReview(reviewId, { $set: { rating: 5 } } as unknown as never, userId)
+            ).rejects.toThrow(HttpError);
+
+            expect(mockedReview.findByIdAndUpdate).not.toHaveBeenCalled();
         });
     });
 });

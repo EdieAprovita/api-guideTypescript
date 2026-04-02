@@ -7,6 +7,11 @@ import { TokenService } from '../../services/TokenService.js';
 import { TokenRevokedError } from '../../types/Errors.js';
 import type { Redis as RedisType } from 'ioredis';
 
+vi.mock('../../clients/redisClient.js', () => ({
+    executeIfCircuitClosed: vi.fn(async (operation: () => Promise<unknown>) => await operation()),
+    getRedisClient: vi.fn(),
+}));
+
 type MockRedis = {
     setex:      ReturnType<typeof vi.fn>;
     get:        ReturnType<typeof vi.fn>;
