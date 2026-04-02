@@ -81,13 +81,17 @@ const validateEntityTypeAndId = async (entityType: string, entityId: string): Pr
 };
 
 /**
- * Recalculates and syncs the denormalized rating, numReviews, and reviews[]
- * fields on the parent entity after any review mutation.
+ * Recalculates and syncs the denormalized rating and numReviews fields on the
+ * parent entity after any review mutation.
  *
  * Uses aggregation to compute the average rating and count, then updates the
- * entity document atomically. When no reviews remain, resets to defaults (0, 0, []).
+ * entity document atomically. When no reviews remain, resets to defaults (0, 0).
  */
-const recalculateEntityRating = async (entityType: string, entityId: string): Promise<void> => {
+const recalculateEntityRating = async (
+    entityType: string,
+    entityId: string,
+    session?: mongoose.ClientSession
+): Promise<void> => {
     const EntityModel = await getEntityModel(entityType);
     if (!EntityModel) return; // test environment
 
@@ -98,38 +102,33 @@ const recalculateEntityRating = async (entityType: string, entityId: string): Pr
 
     const safeEntityId = new Types.ObjectId(entityId);
 
-    // Single aggregation pipeline to compute avgRating, count, and reviewIds atomically
-    // (eliminates TOCTOU race between separate aggregate + find queries)
-    const aggregationResult = await Review.aggregate([
+    // Single aggregation pipeline to compute avgRating and count atomically
+    const pipeline = [
         { $match: { entity: safeEntityId, entityType } },
         {
             $group: {
                 _id: null,
                 avgRating: { $avg: '$rating' },
                 count: { $sum: 1 },
-                reviewIds: { $push: '$_id' },
             },
         },
-    ]);
+    ];
+
+    const aggregationResult = session
+        ? await Review.aggregate(pipeline).session(session)
+        : await Review.aggregate(pipeline);
 
     const stats = aggregationResult[0];
     const avgRating = stats ? Math.round(stats.avgRating * 10) / 10 : 0;
     const count = stats ? stats.count : 0;
-    const reviewIds = stats ? stats.reviewIds : [];
 
-    await EntityModel.findByIdAndUpdate(entityId, {
-        rating: avgRating,
-        numReviews: count,
-        reviews: reviewIds,
-    });
+    // Only denormalize rating and numReviews — the full review list is queried
+    // from the Review collection directly when needed (avoids unbounded array growth)
+    const updateOpts = session ? { session } : {};
+    await EntityModel.findByIdAndUpdate(entityId, { rating: avgRating, numReviews: count }, updateOpts);
 
-    logger.info('Entity rating recalculated', {
-        operation: 'entity_rating_recalculated',
-        entityType,
-        entityId,
-        rating: avgRating,
-        numReviews: count,
-    });
+    // NOTE: callers are responsible for logging after the transaction commits
+    // to avoid duplicate log entries on Mongoose transaction retries.
 };
 
 const buildReviewListCacheKey = (
@@ -349,11 +348,18 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.CONFLICT, 'User has already reviewed this entity');
         }
 
+        // Capture narrowed values before the async transaction boundary so
+        // TypeScript control-flow narrowing is preserved inside the callback.
+        const narrowedEntityType: string = entityTypeValue;
+        const narrowedEntityId: string = entityId.toString();
+
         const session = await startSession();
 
         try {
             const review = await session.withTransaction(async () => {
                 const [newReview] = await Review.create([reviewData], { session });
+                // Recalculate inside the same transaction for atomicity
+                await recalculateEntityRating(narrowedEntityType, narrowedEntityId, session);
                 return newReview;
             });
 
@@ -361,23 +367,16 @@ export const reviewService = {
                 throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'Failed to create review');
             }
 
+            logger.info('Entity rating recalculated', {
+                operation: 'entity_rating_recalculated',
+                entityType: narrowedEntityType,
+                entityId: narrowedEntityId,
+            });
+
             // Fetch populated review for logging
             const populatedReview = await Review.findById(review._id).populate('author', 'firstName lastName');
 
             await cacheService.invalidateByTag(`reviews:${reviewData.entityType}:${reviewData.entity}`);
-
-            // Sync denormalized rating/numReviews/reviews[] on the parent entity.
-            // Runs outside the review transaction; failures must not surface as API errors.
-            try {
-                await recalculateEntityRating(reviewData.entityType, reviewData.entity.toString());
-            } catch (err) {
-                logger.error('Failed to recalculate entity rating after review commit', {
-                    operation: 'review_rating_recalculation_failed',
-                    entityType: reviewData.entityType,
-                    entityId: reviewData.entity?.toString(),
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
 
             // Phase 8: Structured logging
             if (populatedReview) {
@@ -429,24 +428,21 @@ export const reviewService = {
                     { ...updateData, updatedAt: new Date() },
                     { new: true, session }
                 ).populate('author', 'firstName lastName');
+                if (!updated) {
+                    throw new HttpError(HttpStatusCode.NOT_FOUND, 'Review not found');
+                }
+                await recalculateEntityRating(updated.entityType, updated.entity?.toString() ?? '', session);
                 return updated;
             });
 
             if (updatedReview) {
-                await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
+                logger.info('Entity rating recalculated', {
+                    operation: 'entity_rating_recalculated',
+                    entityType: updatedReview.entityType,
+                    entityId: updatedReview.entity?.toString(),
+                });
 
-                // Sync denormalized rating/numReviews/reviews[] on the parent entity
-                try {
-                    await recalculateEntityRating(updatedReview.entityType, updatedReview.entity?.toString() ?? '');
-                } catch (err) {
-                    logger.error('Failed to recalculate entity rating after review update', {
-                        operation: 'review_rating_recalculation_failed',
-                        entityType: updatedReview.entityType,
-                        entityId: updatedReview.entity?.toString(),
-                        reviewId: updatedReview._id?.toString(),
-                        error: err instanceof Error ? err.message : String(err),
-                    });
-                }
+                await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
 
                 // Phase 8: Structured logging
                 logger.info('Review updated successfully', {
@@ -492,22 +488,16 @@ export const reviewService = {
         try {
             await session.withTransaction(async () => {
                 await Review.findByIdAndDelete(reviewId, { session });
+                await recalculateEntityRating(entityToInvalidate.entityType, entityToInvalidate.entityId, session);
+            });
+
+            logger.info('Entity rating recalculated', {
+                operation: 'entity_rating_recalculated',
+                entityType: entityToInvalidate.entityType,
+                entityId: entityToInvalidate.entityId,
             });
 
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
-
-            // Sync denormalized rating/numReviews/reviews[] on the parent entity
-            try {
-                await recalculateEntityRating(entityToInvalidate.entityType, entityToInvalidate.entityId);
-            } catch (err) {
-                logger.error('Failed to recalculate entity rating after review deletion', {
-                    operation: 'review_rating_recalculation_failed',
-                    entityType: entityToInvalidate.entityType,
-                    entityId: entityToInvalidate.entityId,
-                    reviewId,
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
 
             // Phase 8: Structured logging
             logger.info('Review deleted successfully', {
