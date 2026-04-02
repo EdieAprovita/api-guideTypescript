@@ -70,8 +70,17 @@ export class CacheService {
 
         if (value) {
             this.hits++;
-            logger.debug(`🎯 Cache HIT: ${key} (${duration}ms)`);
-            return JSON.parse(value) as T;
+            logger.debug(`Cache HIT: ${key} (${duration}ms)`);
+            try {
+                return JSON.parse(value) as T;
+            } catch (parseError) {
+                logger.warn('CacheService: corrupted JSON in cache, evicting key', {
+                    key,
+                    error: parseError instanceof Error ? parseError.message : String(parseError),
+                });
+                await this.executeRedis(`DEL ${key}`, () => this.redis.del(key), 0);
+                return null;
+            }
         } else {
             this.misses++;
             logger.debug(`❌ Cache MISS: ${key} (${duration}ms)`);
@@ -101,7 +110,7 @@ export class CacheService {
         }
 
         if (options.tags) {
-            await this.associateTags(key, options.tags);
+            await this.associateTags(key, options.tags, ttl);
         }
 
         const duration = Date.now() - start;
@@ -160,11 +169,15 @@ export class CacheService {
     /**
      * Invalidar múltiples claves por patrón
      * @param pattern - Patrón de claves (ej: "restaurants:*")
+     * @param maxKeys - Máximo de claves a escanear e invalidar en una llamada (default 1000).
+     *                  Si se alcanza el límite el escaneo se detiene y algunas claves que
+     *                  coincidan con el patrón podrían no invalidarse en esta ejecución.
      */
-    async invalidatePattern(pattern: string): Promise<void> {
+    async invalidatePattern(pattern: string, maxKeys = 1000): Promise<void> {
         try {
             const keys: string[] = [];
             let cursor = '0';
+            let limitReached = false;
             do {
                 const [nextCursor, batchKeys] = await this.executeRedis(
                     `SCAN ${pattern}`,
@@ -173,7 +186,23 @@ export class CacheService {
                 );
                 cursor = nextCursor;
                 keys.push(...batchKeys);
+                if (keys.length >= maxKeys) {
+                    limitReached = true;
+                    logger.warn('CacheService: invalidatePattern hit maxKeys limit, stopping scan', {
+                        pattern,
+                        maxKeys,
+                        matchedSoFar: keys.length,
+                    });
+                    break;
+                }
             } while (cursor !== '0');
+
+            if (limitReached) {
+                logger.warn('CacheService: invalidatePattern scan stopped early, some keys may not be invalidated', {
+                    pattern,
+                    maxKeys,
+                });
+            }
 
             if (keys.length > 0) {
                 // Fetch the reverse index for each matched key to clean up tag sets
@@ -398,9 +427,12 @@ export class CacheService {
      *
      * Forward index:  tag:{tagName}  → SET of cache keys
      * Reverse index:  keytags:{key}  → SET of tag names
+     * @param key    - Cache key being tagged
+     * @param tags   - Tags to associate with the key
+     * @param keyTtl - TTL (seconds) of the cache key; tag sets will live at least as long
      * @private
      */
-    private async associateTags(key: string, tags: string[]): Promise<void> {
+    private async associateTags(key: string, tags: string[], keyTtl = 0): Promise<void> {
         if (tags.length === 0) return;
 
         try {
@@ -409,11 +441,18 @@ export class CacheService {
                 async () => {
                     const pipeline = this.redis.pipeline();
 
+                    // Tag sets must outlive the cache keys they index.
+                    // Use 2× the key TTL with a minimum of 14400s (4h) so that
+                    // tag-based invalidation remains valid for the full key lifetime.
+                    const TAG_SET_TTL = Math.max(14400, keyTtl * 2);
+
                     for (const tag of tags) {
                         pipeline.sadd(`tag:${tag}`, key);
+                        pipeline.expire(`tag:${tag}`, TAG_SET_TTL);
                     }
 
                     pipeline.sadd(`keytags:${key}`, ...tags);
+                    pipeline.expire(`keytags:${key}`, TAG_SET_TTL);
 
                     await pipeline.exec();
                     return true;
