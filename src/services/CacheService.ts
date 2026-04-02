@@ -70,8 +70,17 @@ export class CacheService {
 
         if (value) {
             this.hits++;
-            logger.debug(`🎯 Cache HIT: ${key} (${duration}ms)`);
-            return JSON.parse(value) as T;
+            logger.debug(`Cache HIT: ${key} (${duration}ms)`);
+            try {
+                return JSON.parse(value) as T;
+            } catch (parseError) {
+                logger.warn('CacheService: corrupted JSON in cache, evicting key', {
+                    key,
+                    error: parseError instanceof Error ? parseError.message : String(parseError),
+                });
+                await this.redis.del(key).catch(() => {});
+                return null;
+            }
         } else {
             this.misses++;
             logger.debug(`❌ Cache MISS: ${key} (${duration}ms)`);
@@ -161,10 +170,11 @@ export class CacheService {
      * Invalidar múltiples claves por patrón
      * @param pattern - Patrón de claves (ej: "restaurants:*")
      */
-    async invalidatePattern(pattern: string): Promise<void> {
+    async invalidatePattern(pattern: string, maxKeys = 1000): Promise<void> {
         try {
             const keys: string[] = [];
             let cursor = '0';
+            let limitReached = false;
             do {
                 const [nextCursor, batchKeys] = await this.executeRedis(
                     `SCAN ${pattern}`,
@@ -173,7 +183,23 @@ export class CacheService {
                 );
                 cursor = nextCursor;
                 keys.push(...batchKeys);
+                if (keys.length >= maxKeys) {
+                    limitReached = true;
+                    logger.warn('CacheService: invalidatePattern hit maxKeys limit, stopping scan', {
+                        pattern,
+                        maxKeys,
+                        deletedSoFar: keys.length,
+                    });
+                    break;
+                }
             } while (cursor !== '0');
+
+            if (limitReached) {
+                logger.warn('CacheService: invalidatePattern scan stopped early, some keys may not be invalidated', {
+                    pattern,
+                    maxKeys,
+                });
+            }
 
             if (keys.length > 0) {
                 // Fetch the reverse index for each matched key to clean up tag sets
@@ -409,11 +435,17 @@ export class CacheService {
                 async () => {
                     const pipeline = this.redis.pipeline();
 
+                    // TAG_SET_TTL: 14400s (4h = 2× max cache TTL of 7200s)
+                    // Prevents unbounded Redis memory growth (M-04)
+                    const TAG_SET_TTL = 14400;
+
                     for (const tag of tags) {
                         pipeline.sadd(`tag:${tag}`, key);
+                        pipeline.expire(`tag:${tag}`, TAG_SET_TTL);
                     }
 
                     pipeline.sadd(`keytags:${key}`, ...tags);
+                    pipeline.expire(`keytags:${key}`, TAG_SET_TTL);
 
                     await pipeline.exec();
                     return true;
