@@ -386,6 +386,7 @@ export const reviewService = {
             const populatedReview = await Review.findById(review._id).populate('author', 'firstName lastName');
 
             await cacheService.invalidateByTag(`reviews:${reviewData.entityType}:${reviewData.entity}`);
+            await cacheService.invalidateByTag(`reviews:entity:${reviewData.entity}`);
 
             // Phase 8: Structured logging
             if (populatedReview) {
@@ -446,6 +447,11 @@ export const reviewService = {
 
         sanitizedUpdate['updatedAt'] = new Date();
 
+        // Only updatedAt means no valid fields were provided
+        if (Object.keys(sanitizedUpdate).length === 1) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'No valid fields provided to update review');
+        }
+
         const session = await startSession();
 
         try {
@@ -453,6 +459,8 @@ export const reviewService = {
                 const updated = await Review.findByIdAndUpdate(reviewId, sanitizedUpdate, {
                     new: true,
                     session,
+                    runValidators: true,
+                    context: 'query',
                 }).populate('author', 'firstName lastName');
                 if (!updated) {
                     throw new HttpError(HttpStatusCode.NOT_FOUND, 'Review not found');
@@ -715,7 +723,15 @@ export const reviewService = {
             .populate('author', 'name')
             .sort({ createdAt: -1 });
 
-        await cacheService.setWithTags(cacheKey, reviews, [`reviews:entity:${entityId}`], 300);
+        // Always include a stable entity-scoped tag so mutations can invalidate
+        // this cache entry even when the reviews array is empty (no entityType
+        // to derive from). Entity-type-specific tags are added when available.
+        const tags = ['reviews', `reviews:entity:${entityId}`];
+        const firstReview = reviews[0] as IReview | undefined;
+        if (firstReview?.entityType) {
+            tags.push(`reviews:${firstReview.entityType}:${entityId}`);
+        }
+        await cacheService.setWithTags(cacheKey, reviews, tags, 300);
         return reviews;
     },
 };
