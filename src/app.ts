@@ -4,7 +4,6 @@ import compression from 'compression';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import requestLogger from './middleware/requestLogger.js';
-import { correlationId } from './middleware/correlationId.js';
 import mongoSanitize from 'express-mongo-sanitize';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
 import { responseWrapper } from './middleware/responseWrapper.js';
@@ -21,6 +20,7 @@ import {
     limitRequestSize,
     validateUserAgent,
     requireAPIVersion,
+    addCorrelationId,
 } from './middleware/security.js';
 import { sanitizeInput } from './middleware/validation.js';
 
@@ -108,7 +108,7 @@ try {
 app.use(responseWrapper);
 
 // Correlation ID: must run before request logger so logs include the ID
-app.use(correlationId);
+app.use(addCorrelationId);
 
 // Add request logger early in the middleware chain
 app.use(requestLogger);

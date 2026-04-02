@@ -42,10 +42,10 @@ function sanitizeForLog(obj: unknown, depth: number = 0): unknown {
  * Adds a unique correlation ID to each request and logs entry/exit
  */
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-    // Use the correlation ID set by the upstream correlationId middleware,
+    // Use the correlation ID already set by addCorrelationId (security.ts),
     // falling back to header or a new UUID for resilience.
-    const correlationId: string = (res.locals.correlationId as string) || req.get('X-Correlation-ID') || uuidv4();
-    (req as any).correlationId = correlationId;
+    const correlationId: string = req.correlationId || req.get('X-Correlation-ID') || uuidv4();
+    req.correlationId = correlationId;
 
     // Propagate correlation ID onto the active OTel span (no-op when OTel is inactive)
     const activeSpan = trace.getActiveSpan();
