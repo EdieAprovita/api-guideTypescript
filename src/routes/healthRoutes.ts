@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import logger from '../utils/logger.js';
 import mongoose from 'mongoose';
 import { cacheService } from '../services/CacheService.js';
-import { getCircuitBreakerState } from '../clients/redisClient.js';
+import { getCircuitBreakerState, checkAndAdvanceState } from '../clients/redisClient.js';
 
 const router = express.Router();
 
@@ -53,8 +53,15 @@ router.get('/ready', async (_req: Request, res: Response) => {
         const mongoConnected = mongoose.connection.readyState === 1;
         // Bounded ping: resolves false after 500 ms so a stalled Redis connection
         // cannot hold the probe open past the Kubernetes failureThreshold window.
-        const redisPingWithTimeout = (): Promise<boolean> =>
-            Promise.race([cacheService.ping(), new Promise<boolean>(resolve => setTimeout(() => resolve(false), 500))]);
+        const redisPingWithTimeout = (): Promise<boolean> => {
+            let timeoutId: ReturnType<typeof setTimeout>;
+            return Promise.race([
+                cacheService.ping().finally(() => clearTimeout(timeoutId)),
+                new Promise<boolean>(resolve => {
+                    timeoutId = setTimeout(() => resolve(false), 500);
+                }),
+            ]);
+        };
 
         const redisConnected = await redisPingWithTimeout();
         const ready = mongoConnected && redisConnected;
@@ -107,6 +114,7 @@ router.get('/deep', async (_req: Request, res: Response) => {
             new Promise<boolean>(resolve => setTimeout(() => resolve(false), 500)),
         ]);
 
+        checkAndAdvanceState();
         const circuitBreaker = getCircuitBreakerState();
         const uptime = process.uptime();
         const memoryUsage = process.memoryUsage();

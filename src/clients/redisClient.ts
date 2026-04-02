@@ -24,17 +24,26 @@ const circuitBreaker: CircuitBreakerState = {
     nextRetry: null,
 };
 
-export function getCircuitBreakerState(): CircuitBreakerState {
-    if (circuitBreaker.state === 'open' && circuitBreaker.nextRetry && Date.now() >= circuitBreaker.nextRetry) {
+export function checkAndAdvanceState(): void {
+    if (
+        circuitBreaker.state === 'open' &&
+        circuitBreaker.nextRetry &&
+        Date.now() >= circuitBreaker.nextRetry
+    ) {
         circuitBreaker.state = 'half-open';
+        circuitBreaker.nextRetry = null;
+        logger.info('Redis circuit breaker transitioning to HALF-OPEN');
     }
+}
+
+export function getCircuitBreakerState(): CircuitBreakerState {
     return { ...circuitBreaker };
 }
 
 export function recordFailure(): void {
     circuitBreaker.failures++;
     circuitBreaker.lastFailure = Date.now();
-    if (circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+    if (circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD && circuitBreaker.state !== 'open') {
         circuitBreaker.state = 'open';
         circuitBreaker.nextRetry = Date.now() + CIRCUIT_BREAKER_RESET_MS;
         logger.warn('Redis circuit breaker OPEN', { failures: circuitBreaker.failures });
@@ -49,7 +58,30 @@ export function resetCircuitBreaker(): void {
 }
 
 export function isCircuitOpen(): boolean {
-    return getCircuitBreakerState().state === 'open';
+    checkAndAdvanceState();
+    return circuitBreaker.state === 'open';
+}
+
+/**
+ * Executes a Redis operation only if the circuit breaker is closed/half-open.
+ * Throws if the circuit is open to fail fast instead of queuing commands.
+ */
+export async function executeIfCircuitClosed<T>(operation: () => Promise<T>): Promise<T | null> {
+    if (isCircuitOpen()) {
+        logger.warn('Redis circuit breaker OPEN — skipping operation');
+        return null;
+    }
+    try {
+        const result = await operation();
+        if (circuitBreaker.state === 'half-open') {
+            resetCircuitBreaker();
+            logger.info('Redis circuit breaker CLOSED after successful operation');
+        }
+        return result;
+    } catch (error) {
+        recordFailure();
+        throw error;
+    }
 }
 
 // ---------------------------------------------------------------------------
