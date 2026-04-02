@@ -34,6 +34,15 @@ interface PaginationOptions {
 }
 
 const VALID_ENTITY_TYPES = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor', 'Sanctuary'] as const;
+
+/**
+ * Whitelist of fields that users are allowed to modify via updateReview.
+ * Prevents mass assignment of protected fields such as author, entity,
+ * entityType, helpfulVotes, helpfulCount, and timestamps.
+ *
+ * Security: OWASP A04:2021 – Insecure Design / Mass Assignment
+ */
+const ALLOWED_REVIEW_UPDATE_FIELDS = ['rating', 'content', 'title', 'visitDate', 'recommendedDishes', 'tags'] as const;
 type ValidEntityType = (typeof VALID_ENTITY_TYPES)[number];
 
 /**
@@ -377,6 +386,7 @@ export const reviewService = {
             const populatedReview = await Review.findById(review._id).populate('author', 'firstName lastName');
 
             await cacheService.invalidateByTag(`reviews:${reviewData.entityType}:${reviewData.entity}`);
+            await cacheService.invalidateByTag(`reviews:entity:${reviewData.entity}`);
 
             // Phase 8: Structured logging
             if (populatedReview) {
@@ -419,15 +429,39 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.FORBIDDEN, 'Unauthorized to update this review');
         }
 
+        // Sanitize input: only allow whitelisted fields to prevent mass assignment.
+        // The virtual alias 'comment' is mapped to the actual schema field 'content'.
+        const sanitizedUpdate: Record<string, unknown> = {};
+        const safeSource = updateData as Record<string, unknown>;
+
+        for (const field of ALLOWED_REVIEW_UPDATE_FIELDS) {
+            if (safeSource[field] !== undefined) {
+                sanitizedUpdate[field] = safeSource[field];
+            }
+        }
+
+        // Map virtual 'comment' alias to the real 'content' field
+        if (safeSource['comment'] !== undefined && sanitizedUpdate['content'] === undefined) {
+            sanitizedUpdate['content'] = safeSource['comment'];
+        }
+
+        sanitizedUpdate['updatedAt'] = new Date();
+
+        // Only updatedAt means no valid fields were provided
+        if (Object.keys(sanitizedUpdate).length === 1) {
+            throw new HttpError(HttpStatusCode.BAD_REQUEST, 'No valid fields provided to update review');
+        }
+
         const session = await startSession();
 
         try {
             const updatedReview = await session.withTransaction(async () => {
-                const updated = await Review.findByIdAndUpdate(
-                    reviewId,
-                    { ...updateData, updatedAt: new Date() },
-                    { new: true, session }
-                ).populate('author', 'firstName lastName');
+                const updated = await Review.findByIdAndUpdate(reviewId, sanitizedUpdate, {
+                    new: true,
+                    session,
+                    runValidators: true,
+                    context: 'query',
+                }).populate('author', 'firstName lastName');
                 if (!updated) {
                     throw new HttpError(HttpStatusCode.NOT_FOUND, 'Review not found');
                 }
@@ -689,7 +723,15 @@ export const reviewService = {
             .populate('author', 'name')
             .sort({ createdAt: -1 });
 
-        await cacheService.setWithTags(cacheKey, reviews, [`reviews:entity:${entityId}`], 300);
+        // Always include a stable entity-scoped tag so mutations can invalidate
+        // this cache entry even when the reviews array is empty (no entityType
+        // to derive from). Entity-type-specific tags are added when available.
+        const tags = ['reviews', `reviews:entity:${entityId}`];
+        const firstReview = reviews[0] as IReview | undefined;
+        if (firstReview?.entityType) {
+            tags.push(`reviews:${firstReview.entityType}:${entityId}`);
+        }
+        await cacheService.setWithTags(cacheKey, reviews, tags, 300);
         return reviews;
     },
 };
