@@ -69,7 +69,9 @@ export function buildAllowedUpdatePayload<TField extends string>(
 
     Object.assign(update, options.extraAssignments);
 
-    const effectiveFieldCount = Object.keys(update).filter(key => !(options.extraAssignments && key in options.extraAssignments)).length;
+    const effectiveFieldCount = Object.keys(update).filter(
+        key => !(options.extraAssignments && key in options.extraAssignments)
+    ).length;
     if (effectiveFieldCount === 0) {
         throw new HttpError(
             HttpStatusCode.BAD_REQUEST,

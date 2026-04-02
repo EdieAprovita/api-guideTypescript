@@ -232,7 +232,9 @@ class TokenService {
         this.debugLog('About to store in Redis with key:', refreshTokenKey);
 
         try {
-            await this.executeRedis('store refresh token', () => this.redis.setex(refreshTokenKey, 7 * 24 * 60 * 60, refreshToken));
+            await this.executeRedis('store refresh token', () =>
+                this.redis.setex(refreshTokenKey, 7 * 24 * 60 * 60, refreshToken)
+            );
             this.debugLog('Successfully stored in Redis');
         } catch (redisError) {
             this.debugError('Redis error storing refresh token:', redisError);
@@ -383,14 +385,18 @@ class TokenService {
         try {
             const decoded = jwt.decode(token) as { jti?: string } | null;
             if (decoded?.jti) {
-                const result = await this.executeRedis('get blacklist jti', () => this.redis.get(`blacklist:${decoded.jti}`));
+                const result = await this.executeRedis('get blacklist jti', () =>
+                    this.redis.get(`blacklist:${decoded.jti}`)
+                );
                 return result !== null;
             }
         } catch {
             // jwt.decode failed — fall through to hash check
         }
         const tokenHash = createHash('sha256').update(token).digest('hex');
-        const result = await this.executeRedis('get blacklist hash', () => this.redis.get(`blacklist:hash:${tokenHash}`));
+        const result = await this.executeRedis('get blacklist hash', () =>
+            this.redis.get(`blacklist:hash:${tokenHash}`)
+        );
         return result !== null;
     }
 
@@ -404,7 +410,9 @@ class TokenService {
 
         // Mark all access tokens for this user as revoked
         const userTokenKey = `user_tokens:${userId}`;
-        await this.executeRedis('revoke all user tokens', () => this.redis.setex(userTokenKey, 24 * 60 * 60, 'revoked'));
+        await this.executeRedis('revoke all user tokens', () =>
+            this.redis.setex(userTokenKey, 24 * 60 * 60, 'revoked')
+        );
     }
 
     async isUserTokensRevoked(userId: string): Promise<boolean> {
@@ -449,9 +457,8 @@ class TokenService {
     async cleanup(): Promise<void> {
         let cursor = '0';
         do {
-            const [nextCursor, keys] = await this.executeRedis(
-                'scan blacklist keys',
-                () => this.redis.scan(cursor, 'MATCH', 'blacklist:*', 'COUNT', 100)
+            const [nextCursor, keys] = await this.executeRedis('scan blacklist keys', () =>
+                this.redis.scan(cursor, 'MATCH', 'blacklist:*', 'COUNT', 100)
             );
             cursor = nextCursor;
             for (const key of keys) {
