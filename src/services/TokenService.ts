@@ -5,6 +5,7 @@ const Redis = RedisLib.default || RedisLib;
 import { randomUUID, createHash } from 'crypto';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
 import logger from '../utils/logger.js';
+import { redisRetryStrategy } from '../utils/redisRetryStrategy.js';
 
 interface TokenPayload {
     userId: string;
@@ -145,10 +146,19 @@ class TokenService {
             lazyConnect: true,
             retryDelayOnFailover: 100,
             maxRetriesPerRequest: 1,
+            retryStrategy: redisRetryStrategy,
             ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
         };
 
         this.redis = new Redis(redisConfig);
+
+        this.redis.on('error', (error: Error) => {
+            logger.error('TokenService Redis error', { error: error.message });
+        });
+
+        this.redis.on('reconnecting', (delay: number) => {
+            logger.warn('TokenService Redis reconnecting', { delay });
+        });
     }
 
     private initializeSecrets(): void {

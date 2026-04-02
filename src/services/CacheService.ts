@@ -2,6 +2,7 @@ import RedisLib from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
 const Redis = RedisLib.default || RedisLib;
 import logger from '../utils/logger.js';
+import { redisRetryStrategy } from '../utils/redisRetryStrategy.js';
 
 export interface CacheStats {
     hitRatio: number;
@@ -70,7 +71,6 @@ export class CacheService {
             maxRetriesPerRequest: 3,
             lazyConnect: true,
             keepAlive: 30000,
-            // Configuración de timeouts
             connectTimeout: 10000,
             commandTimeout: 5000,
         };
@@ -80,7 +80,7 @@ export class CacheService {
             redisConfig.password = process.env.REDIS_PASSWORD;
         }
 
-        this.redis = new Redis(redisConfig);
+        this.redis = new Redis({ ...redisConfig, retryStrategy: redisRetryStrategy });
 
         // Event listeners para monitoreo
         this.redis.on('connect', () => {
@@ -317,6 +317,20 @@ export class CacheService {
                 memoryUsage: 'Error',
                 uptime: 0,
             };
+        }
+    }
+
+    /**
+     * Sends a PING command to Redis and returns `true` when the reply is PONG.
+     * Returns `false` on any connection or command error, making it safe to use
+     * as a non-throwing health check.
+     */
+    async ping(): Promise<boolean> {
+        try {
+            const result = await this.redis.ping();
+            return result === 'PONG';
+        } catch {
+            return false;
         }
     }
 

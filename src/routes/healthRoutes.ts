@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import logger from '../utils/logger.js';
 import mongoose from 'mongoose';
+import { cacheService } from '../services/CacheService.js';
 
 const router = express.Router();
 
@@ -38,31 +39,43 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 
 /**
- * @description Readiness probe - indicates if the server is ready to accept requests
+ * @description Readiness probe — indicates if the server is ready to accept traffic.
+ * Gates on both MongoDB and Redis connectivity. The Redis ping is bounded to 500 ms
+ * so a hung Redis connection cannot block Kubernetes probes long enough to cause
+ * an unnecessary pod restart.
  * @route GET /ready
  */
 router.get('/ready', async (_req: Request, res: Response) => {
     try {
         logger.debug('Readiness probe requested');
 
-        // Verify MongoDB
         const mongoConnected = mongoose.connection.readyState === 1;
+        // Bounded ping: resolves false after 500 ms so a stalled Redis connection
+        // cannot hold the probe open past the Kubernetes failureThreshold window.
+        const redisPingWithTimeout = (): Promise<boolean> =>
+            Promise.race([cacheService.ping(), new Promise<boolean>(resolve => setTimeout(() => resolve(false), 500))]);
 
-        if (mongoConnected) {
-            logger.info('Readiness check passed - MongoDB connected');
+        const redisConnected = await redisPingWithTimeout();
+        const ready = mongoConnected && redisConnected;
+
+        if (ready) {
+            logger.info('Readiness check passed');
             res.status(200).json({
                 ready: true,
-                mongodb: mongoConnected,
+                mongo: mongoConnected,
+                redis: redisConnected,
                 timestamp: new Date().toISOString(),
                 message: 'Service is ready to accept requests',
             });
         } else {
-            logger.warn('Readiness check failed - MongoDB not connected', {
+            logger.warn('Readiness check failed', {
                 mongoState: mongoose.connection.readyState,
+                redis: redisConnected,
             });
             res.status(503).json({
                 ready: false,
-                mongodb: mongoConnected,
+                mongo: mongoConnected,
+                redis: redisConnected,
                 timestamp: new Date().toISOString(),
                 message: 'Service is not ready',
             });
