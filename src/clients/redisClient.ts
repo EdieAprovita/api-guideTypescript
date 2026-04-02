@@ -16,12 +16,22 @@ export interface CircuitBreakerState {
 
 const CIRCUIT_BREAKER_THRESHOLD = 5;
 const CIRCUIT_BREAKER_RESET_MS = 30_000; // 30 seconds
+const CIRCUIT_BREAKER_WINDOW_MS = 60_000; // 60 seconds
 
-const circuitBreaker: CircuitBreakerState = {
-    state: 'closed',
-    failures: 0,
-    lastFailure: null,
-    nextRetry: null,
+/**
+ * In-process circuit breaker for Redis connections.
+ *
+ * WARNING  **Multi-replica limitation:** This state is held in the Node.js process
+ * memory and is NOT shared across Cloud Run replicas or PM2 worker processes.
+ * Each replica maintains its own independent failure count and circuit state.
+ * For coordinated circuit breaking across replicas, use a distributed lock
+ * or store the state in Redis itself (with a separate, low-latency client).
+ */
+const circuitBreaker = {
+    state: 'closed' as 'closed' | 'open' | 'half-open',
+    failureTimestamps: [] as number[],
+    lastFailure: null as number | null,
+    nextRetry: null as number | null,
 };
 
 export function checkAndAdvanceState(): void {
@@ -33,22 +43,46 @@ export function checkAndAdvanceState(): void {
 }
 
 export function getCircuitBreakerState(): CircuitBreakerState {
-    return { ...circuitBreaker };
+    const now = Date.now();
+    const failures = circuitBreaker.failureTimestamps.filter(ts => now - ts < CIRCUIT_BREAKER_WINDOW_MS).length;
+    return {
+        state: circuitBreaker.state,
+        failures,
+        lastFailure: circuitBreaker.lastFailure,
+        nextRetry: circuitBreaker.nextRetry,
+    };
 }
 
 export function recordFailure(): void {
-    circuitBreaker.failures++;
-    circuitBreaker.lastFailure = Date.now();
-    if (circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD && circuitBreaker.state !== 'open') {
+    const now = Date.now();
+    // Any failure during the probe immediately re-opens the circuit,
+    // independent of the sliding window count (which may have pruned old entries).
+    if (circuitBreaker.state === 'half-open') {
         circuitBreaker.state = 'open';
-        circuitBreaker.nextRetry = Date.now() + CIRCUIT_BREAKER_RESET_MS;
-        logger.warn('Redis circuit breaker OPEN', { failures: circuitBreaker.failures });
+        circuitBreaker.nextRetry = now + CIRCUIT_BREAKER_RESET_MS;
+        circuitBreaker.failureTimestamps.push(now);
+        circuitBreaker.lastFailure = now;
+        logger.warn('Redis circuit breaker re-OPEN after failed half-open probe');
+        return;
+    }
+    // Prune entries outside the sliding window
+    circuitBreaker.failureTimestamps = circuitBreaker.failureTimestamps.filter(
+        ts => now - ts < CIRCUIT_BREAKER_WINDOW_MS
+    );
+    circuitBreaker.failureTimestamps.push(now);
+    circuitBreaker.lastFailure = now;
+    if (circuitBreaker.failureTimestamps.length >= CIRCUIT_BREAKER_THRESHOLD && circuitBreaker.state !== 'open') {
+        circuitBreaker.state = 'open';
+        circuitBreaker.nextRetry = now + CIRCUIT_BREAKER_RESET_MS;
+        logger.warn('Redis circuit breaker OPEN', {
+            failures: circuitBreaker.failureTimestamps.length,
+        });
     }
 }
 
 export function resetCircuitBreaker(): void {
     circuitBreaker.state = 'closed';
-    circuitBreaker.failures = 0;
+    circuitBreaker.failureTimestamps = [];
     circuitBreaker.lastFailure = null;
     circuitBreaker.nextRetry = null;
 }
@@ -57,7 +91,7 @@ function recordSuccess(): void {
     if (circuitBreaker.state === 'half-open') {
         resetCircuitBreaker();
         logger.info('Redis circuit breaker CLOSED after successful operation');
-    } else if (circuitBreaker.failures > 0) {
+    } else if (circuitBreaker.failureTimestamps.length > 0) {
         resetCircuitBreaker();
         logger.debug('Redis circuit breaker reset after successful operation');
     }
@@ -107,6 +141,7 @@ export function getRedisClient(): RedisType {
         commandTimeout: 5000,
         retryStrategy: redisRetryStrategy,
         ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
+        ...(process.env.REDIS_TLS === 'true' && { tls: {} }),
     };
 
     sharedClient = new Redis(redisConfig);

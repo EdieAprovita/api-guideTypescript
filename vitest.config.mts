@@ -14,6 +14,7 @@ export default defineConfig({
             'src/test/controllers/**/*.test.ts',
             'src/test/middleware/**/*.test.ts',
             'src/test/routes/**/*.test.ts',
+            'src/test/clients/**/*.test.ts',
         ],
 
         // Exclude problematic integration tests for now
