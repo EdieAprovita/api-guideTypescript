@@ -78,7 +78,7 @@ export class CacheService {
                     key,
                     error: parseError instanceof Error ? parseError.message : String(parseError),
                 });
-                await this.redis.del(key).catch(() => {});
+                await this.executeRedis(`DEL ${key}`, () => this.redis.del(key), 0);
                 return null;
             }
         } else {
@@ -110,7 +110,7 @@ export class CacheService {
         }
 
         if (options.tags) {
-            await this.associateTags(key, options.tags);
+            await this.associateTags(key, options.tags, ttl);
         }
 
         const duration = Date.now() - start;
@@ -169,6 +169,9 @@ export class CacheService {
     /**
      * Invalidar múltiples claves por patrón
      * @param pattern - Patrón de claves (ej: "restaurants:*")
+     * @param maxKeys - Máximo de claves a escanear e invalidar en una llamada (default 1000).
+     *                  Si se alcanza el límite el escaneo se detiene y algunas claves que
+     *                  coincidan con el patrón podrían no invalidarse en esta ejecución.
      */
     async invalidatePattern(pattern: string, maxKeys = 1000): Promise<void> {
         try {
@@ -188,7 +191,7 @@ export class CacheService {
                     logger.warn('CacheService: invalidatePattern hit maxKeys limit, stopping scan', {
                         pattern,
                         maxKeys,
-                        deletedSoFar: keys.length,
+                        matchedSoFar: keys.length,
                     });
                     break;
                 }
@@ -424,9 +427,12 @@ export class CacheService {
      *
      * Forward index:  tag:{tagName}  → SET of cache keys
      * Reverse index:  keytags:{key}  → SET of tag names
+     * @param key    - Cache key being tagged
+     * @param tags   - Tags to associate with the key
+     * @param keyTtl - TTL (seconds) of the cache key; tag sets will live at least as long
      * @private
      */
-    private async associateTags(key: string, tags: string[]): Promise<void> {
+    private async associateTags(key: string, tags: string[], keyTtl = 0): Promise<void> {
         if (tags.length === 0) return;
 
         try {
@@ -435,9 +441,10 @@ export class CacheService {
                 async () => {
                     const pipeline = this.redis.pipeline();
 
-                    // TAG_SET_TTL: 14400s (4h = 2× max cache TTL of 7200s)
-                    // Prevents unbounded Redis memory growth (M-04)
-                    const TAG_SET_TTL = 14400;
+                    // Tag sets must outlive the cache keys they index.
+                    // Use 2× the key TTL with a minimum of 14400s (4h) so that
+                    // tag-based invalidation remains valid for the full key lifetime.
+                    const TAG_SET_TTL = Math.max(14400, keyTtl * 2);
 
                     for (const tag of tags) {
                         pipeline.sadd(`tag:${tag}`, key);
