@@ -431,17 +431,18 @@ export const reviewService = {
 
         // Sanitize input: only allow whitelisted fields to prevent mass assignment.
         // The virtual alias 'comment' is mapped to the actual schema field 'content'.
-        const sanitizedUpdate: Record<string, unknown> = {};
+        // Security: OWASP A04:2021 – Insecure Design / Mass Assignment
         const safeSource = updateData as Record<string, unknown>;
+        const sanitizedUpdate: Record<string, unknown> = {};
 
         for (const field of ALLOWED_REVIEW_UPDATE_FIELDS) {
-            if (safeSource[field] !== undefined) {
+            if (field in safeSource) {
                 sanitizedUpdate[field] = safeSource[field];
             }
         }
 
-        // Map virtual 'comment' alias to the real 'content' field
-        if (safeSource['comment'] !== undefined && sanitizedUpdate['content'] === undefined) {
+        // Map 'comment' alias to 'content' only if 'content' was not explicitly provided
+        if (!('content' in safeSource) && 'comment' in safeSource) {
             sanitizedUpdate['content'] = safeSource['comment'];
         }
 
@@ -477,6 +478,7 @@ export const reviewService = {
                 });
 
                 await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
+                await cacheService.invalidateByTag(`reviews:entity:${updatedReview.entity}`);
 
                 // Phase 8: Structured logging
                 logger.info('Review updated successfully', {
@@ -532,6 +534,7 @@ export const reviewService = {
             });
 
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
+            await cacheService.invalidateByTag(`reviews:entity:${review.entity}`);
 
             // Phase 8: Structured logging
             logger.info('Review deleted successfully', {

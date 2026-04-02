@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import logger from '../utils/logger.js';
 import mongoose from 'mongoose';
 import { cacheService } from '../services/CacheService.js';
+import { getCircuitBreakerState, checkAndAdvanceState } from '../clients/redisClient.js';
 
 const router = express.Router();
 
@@ -52,8 +53,15 @@ router.get('/ready', async (_req: Request, res: Response) => {
         const mongoConnected = mongoose.connection.readyState === 1;
         // Bounded ping: resolves false after 500 ms so a stalled Redis connection
         // cannot hold the probe open past the Kubernetes failureThreshold window.
-        const redisPingWithTimeout = (): Promise<boolean> =>
-            Promise.race([cacheService.ping(), new Promise<boolean>(resolve => setTimeout(() => resolve(false), 500))]);
+        const redisPingWithTimeout = (): Promise<boolean> => {
+            let timeoutId: ReturnType<typeof setTimeout>;
+            return Promise.race([
+                cacheService.ping().finally(() => clearTimeout(timeoutId)),
+                new Promise<boolean>(resolve => {
+                    timeoutId = setTimeout(() => resolve(false), 500);
+                }),
+            ]);
+        };
 
         const redisConnected = await redisPingWithTimeout();
         const ready = mongoConnected && redisConnected;
@@ -99,15 +107,32 @@ router.get('/deep', async (_req: Request, res: Response) => {
         logger.debug('Deep health check requested');
 
         const mongoConnected = mongoose.connection.readyState === 1;
+
+        // Bounded Redis ping: resolves false after 500 ms
+        const redisConnected = await Promise.race([
+            cacheService.ping(),
+            new Promise<boolean>(resolve => setTimeout(() => resolve(false), 500)),
+        ]);
+
+        checkAndAdvanceState();
+        const circuitBreaker = getCircuitBreakerState();
         const uptime = process.uptime();
         const memoryUsage = process.memoryUsage();
 
+        const allHealthy = mongoConnected && redisConnected && circuitBreaker.state === 'closed';
+
         const healthStatus = {
-            status: mongoConnected ? 'healthy' : 'degraded',
+            status: allHealthy ? 'healthy' : 'degraded',
             timestamp: new Date().toISOString(),
             uptime: `${Math.floor(uptime / 60)} minutes`,
             services: {
                 mongodb: mongoConnected,
+                redis: redisConnected,
+                circuitBreaker: {
+                    state: circuitBreaker.state,
+                    failures: circuitBreaker.failures,
+                    nextRetry: circuitBreaker.nextRetry ? new Date(circuitBreaker.nextRetry).toISOString() : null,
+                },
             },
             memory: {
                 rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
@@ -119,9 +144,11 @@ router.get('/deep', async (_req: Request, res: Response) => {
         logger.info('Deep health check completed', {
             status: healthStatus.status,
             mongoConnected,
+            redisConnected,
+            circuitBreakerState: circuitBreaker.state,
         });
 
-        res.status(mongoConnected ? 200 : 503).json(healthStatus);
+        res.status(allHealthy ? 200 : 503).json(healthStatus);
     } catch (error) {
         logger.error('Deep health check error', error as Error);
         res.status(503).json({
