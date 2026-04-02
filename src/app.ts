@@ -20,6 +20,7 @@ import {
     limitRequestSize,
     validateUserAgent,
     requireAPIVersion,
+    addCorrelationId,
 } from './middleware/security.js';
 import { sanitizeInput } from './middleware/validation.js';
 
@@ -105,6 +106,9 @@ try {
 
 // Add standard response wrapper
 app.use(responseWrapper);
+
+// Correlation ID: must run before request logger so logs include the ID
+app.use(addCorrelationId);
 
 // Add request logger early in the middleware chain
 app.use(requestLogger);
