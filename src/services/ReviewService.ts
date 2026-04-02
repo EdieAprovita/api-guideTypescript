@@ -34,6 +34,15 @@ interface PaginationOptions {
 }
 
 const VALID_ENTITY_TYPES = ['Restaurant', 'Recipe', 'Market', 'Business', 'Doctor', 'Sanctuary'] as const;
+
+/**
+ * Whitelist of fields that users are allowed to modify via updateReview.
+ * Prevents mass assignment of protected fields such as author, entity,
+ * entityType, helpfulVotes, helpfulCount, and timestamps.
+ *
+ * Security: OWASP A04:2021 – Insecure Design / Mass Assignment
+ */
+const ALLOWED_REVIEW_UPDATE_FIELDS = ['rating', 'content', 'title', 'visitDate', 'recommendedDishes', 'tags'] as const;
 type ValidEntityType = (typeof VALID_ENTITY_TYPES)[number];
 
 /**
@@ -419,15 +428,32 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.FORBIDDEN, 'Unauthorized to update this review');
         }
 
+        // Sanitize input: only allow whitelisted fields to prevent mass assignment.
+        // The virtual alias 'comment' is mapped to the actual schema field 'content'.
+        const sanitizedUpdate: Record<string, unknown> = {};
+        const safeSource = updateData as Record<string, unknown>;
+
+        for (const field of ALLOWED_REVIEW_UPDATE_FIELDS) {
+            if (safeSource[field] !== undefined) {
+                sanitizedUpdate[field] = safeSource[field];
+            }
+        }
+
+        // Map virtual 'comment' alias to the real 'content' field
+        if (safeSource['comment'] !== undefined && sanitizedUpdate['content'] === undefined) {
+            sanitizedUpdate['content'] = safeSource['comment'];
+        }
+
+        sanitizedUpdate['updatedAt'] = new Date();
+
         const session = await startSession();
 
         try {
             const updatedReview = await session.withTransaction(async () => {
-                const updated = await Review.findByIdAndUpdate(
-                    reviewId,
-                    { ...updateData, updatedAt: new Date() },
-                    { new: true, session }
-                ).populate('author', 'firstName lastName');
+                const updated = await Review.findByIdAndUpdate(reviewId, sanitizedUpdate, {
+                    new: true,
+                    session,
+                }).populate('author', 'firstName lastName');
                 if (!updated) {
                     throw new HttpError(HttpStatusCode.NOT_FOUND, 'Review not found');
                 }
