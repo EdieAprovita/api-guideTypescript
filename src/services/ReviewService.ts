@@ -81,16 +81,16 @@ const validateEntityTypeAndId = async (entityType: string, entityId: string): Pr
 };
 
 /**
- * Recalculates and syncs the denormalized rating, numReviews, and reviews[]
- * fields on the parent entity after any review mutation.
+ * Recalculates and syncs the denormalized rating and numReviews fields on the
+ * parent entity after any review mutation.
  *
  * Uses aggregation to compute the average rating and count, then updates the
- * entity document atomically. When no reviews remain, resets to defaults (0, 0, []).
+ * entity document atomically. When no reviews remain, resets to defaults (0, 0).
  */
 const recalculateEntityRating = async (
     entityType: string,
     entityId: string,
-    session?: mongoose.ClientSession,
+    session?: mongoose.ClientSession
 ): Promise<void> => {
     const EntityModel = await getEntityModel(entityType);
     if (!EntityModel) return; // test environment
@@ -125,18 +125,10 @@ const recalculateEntityRating = async (
     // Only denormalize rating and numReviews — the full review list is queried
     // from the Review collection directly when needed (avoids unbounded array growth)
     const updateOpts = session ? { session } : {};
-    await EntityModel.findByIdAndUpdate(entityId, {
-        rating: avgRating,
-        numReviews: count,
-    }, updateOpts);
+    await EntityModel.findByIdAndUpdate(entityId, { rating: avgRating, numReviews: count }, updateOpts);
 
-    logger.info('Entity rating recalculated', {
-        operation: 'entity_rating_recalculated',
-        entityType,
-        entityId,
-        rating: avgRating,
-        numReviews: count,
-    });
+    // NOTE: callers are responsible for logging after the transaction commits
+    // to avoid duplicate log entries on Mongoose transaction retries.
 };
 
 const buildReviewListCacheKey = (
@@ -375,6 +367,12 @@ export const reviewService = {
                 throw new HttpError(HttpStatusCode.INTERNAL_SERVER_ERROR, 'Failed to create review');
             }
 
+            logger.info('Entity rating recalculated', {
+                operation: 'entity_rating_recalculated',
+                entityType: narrowedEntityType,
+                entityId: narrowedEntityId,
+            });
+
             // Fetch populated review for logging
             const populatedReview = await Review.findById(review._id).populate('author', 'firstName lastName');
 
@@ -430,13 +428,20 @@ export const reviewService = {
                     { ...updateData, updatedAt: new Date() },
                     { new: true, session }
                 ).populate('author', 'firstName lastName');
-                if (updated) {
-                    await recalculateEntityRating(updated.entityType, updated.entity?.toString() ?? '', session);
+                if (!updated) {
+                    throw new HttpError(HttpStatusCode.NOT_FOUND, 'Review not found');
                 }
+                await recalculateEntityRating(updated.entityType, updated.entity?.toString() ?? '', session);
                 return updated;
             });
 
             if (updatedReview) {
+                logger.info('Entity rating recalculated', {
+                    operation: 'entity_rating_recalculated',
+                    entityType: updatedReview.entityType,
+                    entityId: updatedReview.entity?.toString(),
+                });
+
                 await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
 
                 // Phase 8: Structured logging
@@ -484,6 +489,12 @@ export const reviewService = {
             await session.withTransaction(async () => {
                 await Review.findByIdAndDelete(reviewId, { session });
                 await recalculateEntityRating(entityToInvalidate.entityType, entityToInvalidate.entityId, session);
+            });
+
+            logger.info('Entity rating recalculated', {
+                operation: 'entity_rating_recalculated',
+                entityType: entityToInvalidate.entityType,
+                entityId: entityToInvalidate.entityId,
             });
 
             await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
