@@ -362,7 +362,9 @@ export const reviewService = {
         const narrowedEntityType: string = entityTypeValue;
         const narrowedEntityId: string = entityId.toString();
 
-        const session = await startSession();
+        const session = await startSession({
+            defaultTransactionOptions: { writeConcern: { w: 'majority' } },
+        });
 
         try {
             const review = await session.withTransaction(async () => {
@@ -453,7 +455,9 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'No valid fields provided to update review');
         }
 
-        const session = await startSession();
+        const session = await startSession({
+            defaultTransactionOptions: { writeConcern: { w: 'majority' } },
+        });
 
         try {
             const updatedReview = await session.withTransaction(async () => {
@@ -515,7 +519,9 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.FORBIDDEN, 'Unauthorized to delete this review');
         }
 
-        const session = await startSession();
+        const session = await startSession({
+            defaultTransactionOptions: { writeConcern: { w: 'majority' } },
+        });
         const entityToInvalidate = {
             entityType: review.entityType,
             entityId: review.entity.toString(),
@@ -567,7 +573,9 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.CONFLICT, 'User has already voted this review as helpful');
         }
 
-        const session = await startSession();
+        const session = await startSession({
+            defaultTransactionOptions: { writeConcern: { w: 'majority' } },
+        });
 
         try {
             const updatedReview = await session.withTransaction(async () => {
@@ -612,7 +620,9 @@ export const reviewService = {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'Vote not found');
         }
 
-        const session = await startSession();
+        const session = await startSession({
+            defaultTransactionOptions: { writeConcern: { w: 'majority' } },
+        });
 
         try {
             const updatedReview = await session.withTransaction(async () => {
