@@ -361,7 +361,7 @@ describe('Audit fixes B4 — real middleware', () => {
             // Simulate non-production
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'development';
-            testApp.set('trust proxy', process.env.NODE_ENV === 'production' ? true : 'loopback');
+            testApp.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : 'loopback');
             expect(testApp.get('trust proxy')).toBe('loopback');
             process.env.NODE_ENV = originalEnv;
         });
@@ -453,19 +453,19 @@ describe('Audit fixes B4 — real middleware', () => {
             expect(res.status).toBe(200);
         });
 
-        it('passes through when no Content-Length header is present (undefined → no rejection)', async () => {
-            const a = express();
-            a.use(limitRequestSize(5)); // 5 byte limit
-            a.post('/test', (_req: express.Request, res: express.Response) => res.json({ success: true }));
+        it('passes through when no Content-Length header is present (undefined → no rejection)', () => {
+            // Supertest always injects Content-Length, so test the middleware unit directly
+            // to validate the absent-header branch (numericLength === undefined).
+            const middleware = limitRequestSize(5);
+            const mockReq = { get: (_header: string) => undefined } as unknown as express.Request;
+            const mockRes = {} as express.Response;
+            const mockNext = vi.fn();
 
-            // Explicitly remove the Content-Length header so numericLength is undefined.
-            // Without it the middleware must not reject with 413.
-            const res = await request(a)
-                .post('/test')
-                .set('Content-Type', 'text/plain')
-                .unset('Content-Length')
-                .send();
-            expect(res.status).toBe(200);
+            middleware(mockReq, mockRes, mockNext);
+
+            // With no Content-Length, numericLength is undefined → must call next() without 413
+            expect(mockNext).toHaveBeenCalledTimes(1);
+            expect(mockNext).toHaveBeenCalledWith();
         });
     });
 
