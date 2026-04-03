@@ -12,6 +12,32 @@ import {
     ValidEntityType,
 } from './reviewService/reviewPolicies.js';
 
+async function invalidateReviewCache(
+    entityType: string,
+    entityId: string,
+    cache: Pick<typeof cacheService, 'invalidateByTag'>
+): Promise<void> {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+            // Primary tag format used by getReviewsByEntity, getReviewStats, getReviewById, addReview
+            await cache.invalidateByTag(`reviews:${entityType}:${entityId}`);
+            // Secondary format used by listReviewsForModel
+            await cache.invalidateByTag(`reviews:entity:${entityId}`);
+            return;
+        } catch (error) {
+            if (attempt === 2) {
+                logger.warn('Cache invalidation failed after 2 attempts', {
+                    entityType,
+                    entityId,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+    }
+}
+
 interface ReviewStats {
     totalReviews: number;
     averageRating: number;
@@ -337,8 +363,7 @@ export const reviewService = {
             // Fetch populated review for logging
             const populatedReview = await Review.findById(review._id).populate('author', 'firstName lastName');
 
-            await cacheService.invalidateByTag(`reviews:${reviewData.entityType}:${reviewData.entity}`);
-            await cacheService.invalidateByTag(`reviews:entity:${reviewData.entity}`);
+            await invalidateReviewCache(review.entityType, review.entity.toString(), cacheService);
 
             // Phase 8: Structured logging
             if (populatedReview) {
@@ -409,8 +434,14 @@ export const reviewService = {
                     entityId: updatedReview.entity?.toString(),
                 });
 
-                await cacheService.invalidateByTag(`reviews:${updatedReview.entityType}:${updatedReview.entity}`);
-                await cacheService.invalidateByTag(`reviews:entity:${updatedReview.entity}`);
+                const entityIdStr = updatedReview.entity?.toString();
+                if (!entityIdStr) {
+                    logger.warn('updateReview: committed document missing entity — skipping cache invalidation', {
+                        reviewId: updatedReview._id,
+                    });
+                } else {
+                    await invalidateReviewCache(updatedReview.entityType, entityIdStr, cacheService);
+                }
 
                 // Phase 8: Structured logging
                 logger.info('Review updated successfully', {
@@ -467,8 +498,7 @@ export const reviewService = {
                 entityId: entityToInvalidate.entityId,
             });
 
-            await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
-            await cacheService.invalidateByTag(`reviews:entity:${review.entity}`);
+            await invalidateReviewCache(entityToInvalidate.entityType, entityToInvalidate.entityId, cacheService);
 
             // Phase 8: Structured logging
             logger.info('Review deleted successfully', {
@@ -610,23 +640,9 @@ export const reviewService = {
     },
 
     async getTopRatedReviews(entityType: string): Promise<IReview[]> {
-        const validTypes = [
-            'Restaurant',
-            'Recipe',
-            'Market',
-            'Business',
-            'Doctor',
-            'Sanctuary',
-            'restaurant',
-            'business',
-            'doctor',
-            'profession',
-            'professionProfile',
-            'sanctuary',
-        ];
         const normalizedType = entityType.charAt(0).toUpperCase() + entityType.slice(1).toLowerCase();
 
-        if (!validTypes.includes(entityType) && !validTypes.includes(normalizedType)) {
+        if (!VALID_ENTITY_TYPES.includes(normalizedType as ValidEntityType)) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, `Invalid entity type: ${entityType}`);
         }
 
