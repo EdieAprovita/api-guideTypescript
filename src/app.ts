@@ -81,15 +81,8 @@ export const getMongoStatus = () => ({
 
 const app = express();
 
-// 🔧 Configure Express to trust proxies (essential for GCP, Heroku, etc.)
-// This allows Express to correctly identify real client IPs from X-Forwarded-For headers
-if (process.env.NODE_ENV === 'production') {
-    // In production (GCP), trust the first proxy
-    app.set('trust proxy', 1);
-} else {
-    // In development, trust all proxies (for local testing with proxies)
-    app.set('trust proxy', true);
-}
+// Allow X-Forwarded-For only from loopback in non-prod to prevent IP spoofing / rate-limit bypass
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? true : 'loopback');
 
 // Load Swagger documentation with correct path for production
 let swaggerDocument: JsonObject | null = null;
@@ -112,6 +105,10 @@ app.use(addCorrelationId);
 
 // Add request logger early in the middleware chain
 app.use(requestLogger);
+
+// Health check endpoints mounted BEFORE requireAPIVersion so probes are never
+// blocked by API-version enforcement (M-02: health routes bypass requireAPIVersion)
+app.use('/health', healthRoutes);
 
 // Enhanced security middleware configuration
 app.use(enforceHTTPS); // Force HTTPS in production
@@ -163,9 +160,6 @@ app.get('/', (_req, res) => {
 app.get('/api/v1', (_req, res) => {
     res.json('API is running');
 });
-
-// Health check endpoints (without authentication)
-app.use('/health', healthRoutes);
 
 // Routes
 app.use('/api/v1/auth', authRoutes);

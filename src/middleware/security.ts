@@ -213,7 +213,11 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         return false;
     };
 
-    const isSuspicious = Boolean(checkValue(req.body) || checkValue(req.query) || checkValue(req.params));
+    // Don't scan req.body for POST/PUT/PATCH — mongoSanitize and xss-clean
+    // handle body sanitization; false positives on legitimate email/phone chars
+    // such as '@', '+', '(', ')' would block valid content routes (M-01).
+    const bodyIsSuspicious = !['POST', 'PUT', 'PATCH'].includes(req.method) && checkValue(req.body);
+    const isSuspicious = Boolean(bodyIsSuspicious || checkValue(req.query) || checkValue(req.params));
 
     if (isSuspicious) {
         // Log metadata only to avoid leaking sensitive payloads
@@ -245,12 +249,13 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
  */
 export const limitRequestSize = (maxSize: number = 1024 * 1024) => {
     // 1MB default
+    // Pre-parse gate: runs before body-parser, so req.body is always undefined here.
+    // Only the Content-Length header is available at this point (H-09: dead computedBodySize branch removed).
     return (req: Request, res: Response, next: NextFunction) => {
         const contentLength = req.get('content-length');
         const numericLength = contentLength ? parseInt(contentLength) : undefined;
-        const computedBodySize = req.body ? Buffer.byteLength(JSON.stringify(req.body)) : 0;
 
-        if ((numericLength && numericLength > maxSize) || computedBodySize > maxSize) {
+        if (numericLength !== undefined && numericLength > maxSize) {
             return res.status(413).json({
                 success: false,
                 message: 'Request entity too large',
