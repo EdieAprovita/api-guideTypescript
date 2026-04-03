@@ -81,8 +81,10 @@ export const getMongoStatus = () => ({
 
 const app = express();
 
-// Allow X-Forwarded-For only from loopback in non-prod to prevent IP spoofing / rate-limit bypass
-app.set('trust proxy', process.env.NODE_ENV === 'production' ? true : 'loopback');
+// In production, trust only the first proxy hop to prevent IP spoofing via
+// forged X-Forwarded-For chains while still reading the client IP correctly.
+// In non-prod, restrict to loopback only.
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : 'loopback');
 
 // Load Swagger documentation with correct path for production
 let swaggerDocument: JsonObject | null = null;

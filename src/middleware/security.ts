@@ -213,9 +213,10 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
         return false;
     };
 
-    // Don't scan req.body for POST/PUT/PATCH — mongoSanitize and xss-clean
-    // handle body sanitization; false positives on legitimate email/phone chars
-    // such as '@', '+', '(', ')' would block valid content routes (M-01).
+    // Don't scan req.body for POST/PUT/PATCH — mongoSanitize, xssSanitizer(),
+    // and sanitizeInput() handle body sanitization; false positives on
+    // legitimate email/phone chars such as '@', '+', '(', ')' would block
+    // valid content routes (M-01).
     const bodyIsSuspicious = !['POST', 'PUT', 'PATCH'].includes(req.method) && checkValue(req.body);
     const isSuspicious = Boolean(bodyIsSuspicious || checkValue(req.query) || checkValue(req.params));
 
@@ -253,7 +254,8 @@ export const limitRequestSize = (maxSize: number = 1024 * 1024) => {
     // Only the Content-Length header is available at this point (H-09: dead computedBodySize branch removed).
     return (req: Request, res: Response, next: NextFunction) => {
         const contentLength = req.get('content-length');
-        const numericLength = contentLength ? parseInt(contentLength) : undefined;
+        const parsedLength = contentLength ? parseInt(contentLength, 10) : NaN;
+        const numericLength = Number.isFinite(parsedLength) ? parsedLength : undefined;
 
         if (numericLength !== undefined && numericLength > maxSize) {
             return res.status(413).json({
