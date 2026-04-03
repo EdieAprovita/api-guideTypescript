@@ -3,6 +3,7 @@ import request from 'supertest';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import healthRoutes from '../../routes/healthRoutes.js';
+import * as authMiddleware from '../../middleware/authMiddleware.js';
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -41,10 +42,11 @@ vi.mock('../../utils/logger', () => ({
     },
 }));
 
-// Mock auth middleware — default: passes through as admin (existing tests unaffected)
+// Mock auth middleware — default: passes through (existing tests unaffected).
+// Using vi.fn() so individual tests can override with mockImplementationOnce.
 vi.mock('../../middleware/authMiddleware.js', () => ({
-    protect: (_req: Request, _res: Response, next: NextFunction) => next(),
-    admin: (_req: Request, _res: Response, next: NextFunction) => next(),
+    protect: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
+    admin: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
 }));
 
 // ---------------------------------------------------------------------------
@@ -228,28 +230,16 @@ describe('GET /health/deep', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /health/deep — auth guard (H-01)', () => {
-    it('returns 401 when no Authorization header is provided', async () => {
-        // Build a separate app whose protect middleware rejects unauthenticated requests
-        const { default: authlessApp } = await (async () => {
-            const appNoAuth = express();
-            appNoAuth.use(express.json());
-
-            // Inline middleware that simulates protect rejecting missing token
-            const rejectUnauth = (_req: Request, res: Response, _next: NextFunction) => {
+    it('returns 401 when protect middleware rejects the request', async () => {
+        // Override the module-level protect mock for this single test so the
+        // REAL healthRoutes router (already mounted in `app`) returns 401.
+        vi.mocked(authMiddleware.protect).mockImplementationOnce(
+            (_req: Request, res: Response, _next: NextFunction) => {
                 res.status(401).json({ success: false, message: 'Not authorized to access this route' });
-            };
-            const passAdmin = (_req: Request, _res: Response, next: NextFunction) => next();
+            }
+        );
 
-            // Re-create the router with the rejecting middleware for this test
-            const healthRouter = express.Router();
-            healthRouter.get('/deep', rejectUnauth, passAdmin, (_req: Request, res: Response) => {
-                res.status(200).json({ status: 'healthy' });
-            });
-            appNoAuth.use('/health', healthRouter);
-            return { default: appNoAuth };
-        })();
-
-        const response = await request(authlessApp).get('/health/deep');
+        const response = await request(app).get('/health/deep');
         expect(response.status).toBe(401);
     });
 });

@@ -370,22 +370,32 @@ describe('TokenService', () => {
 
     // -----------------------------------------------------------------------
     describe('revokeRefreshToken', () => {
-        it('should scan and delete all per-device tokens for the user (H-17)', async () => {
+        it('should scan and pipeline-delete all per-device tokens for the user (H-17)', async () => {
             const userId = faker.database.mongodbObjectId();
             const jti1 = faker.string.uuid();
             const jti2 = faker.string.uuid();
 
-            // First SCAN returns two per-device keys, second SCAN signals done
+            // SCAN returns two per-device keys; cursor '0' signals iteration complete
             mockRedis.scan.mockResolvedValueOnce([
                 '0',
                 [`refresh_token:${userId}:${jti1}`, `refresh_token:${userId}:${jti2}`],
             ]);
 
+            const delPipeline = {
+                ttl: vi.fn().mockReturnThis(),
+                del: vi.fn().mockReturnThis(),
+                exec: vi.fn().mockResolvedValue([[null, 1], [null, 1]]),
+            };
+            mockRedis.pipeline.mockReturnValueOnce(delPipeline);
+
             await service.revokeRefreshToken(userId);
 
             expect(mockRedis.scan).toHaveBeenCalledWith('0', 'MATCH', `refresh_token:${userId}:*`, 'COUNT', 100);
-            expect(mockRedis.del).toHaveBeenCalledWith(`refresh_token:${userId}:${jti1}`);
-            expect(mockRedis.del).toHaveBeenCalledWith(`refresh_token:${userId}:${jti2}`);
+            // DELs are pipelined — individual redis.del must NOT have been called
+            expect(mockRedis.del).not.toHaveBeenCalled();
+            expect(delPipeline.del).toHaveBeenCalledWith(`refresh_token:${userId}:${jti1}`);
+            expect(delPipeline.del).toHaveBeenCalledWith(`refresh_token:${userId}:${jti2}`);
+            expect(delPipeline.exec).toHaveBeenCalledTimes(1);
         });
 
         it('should handle user with no active sessions gracefully', async () => {
@@ -396,6 +406,7 @@ describe('TokenService', () => {
 
             expect(mockRedis.scan).toHaveBeenCalledWith('0', 'MATCH', `refresh_token:${userId}:*`, 'COUNT', 100);
             expect(mockRedis.del).not.toHaveBeenCalled();
+            expect(mockRedis.pipeline).not.toHaveBeenCalled();
         });
     });
 

@@ -3,6 +3,7 @@ import request from 'supertest';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import cacheRoutes from '../../routes/cacheRoutes.js';
+import * as authMiddleware from '../../middleware/authMiddleware.js';
 
 // Create test app
 const app = express();
@@ -10,12 +11,13 @@ app.use(express.json());
 app.use('/api/cache', cacheRoutes);
 
 // Mock dependencies
+// Using vi.fn() so individual tests can override with mockImplementationOnce.
 vi.mock('../../middleware/authMiddleware', () => ({
-    protect: (req: Request, res: Response, next: NextFunction) => {
+    protect: vi.fn((req: Request, _res: Response, next: NextFunction) => {
         req.user = { _id: 'testuser', role: 'admin' };
         next();
-    },
-    admin: (req: Request, res: Response, next: NextFunction) => next(),
+    }),
+    admin: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
 }));
 
 vi.mock('../../services/CacheService', () => ({
@@ -177,23 +179,15 @@ describe('Cache Routes', () => {
 
         // H-02: /cache/health must reject unauthenticated requests
         it('returns 401 when protect middleware rejects the request (H-02)', async () => {
-            // Build a minimal app where protect actually rejects missing tokens
-            const express2 = (await import('express')).default;
-            const appNoAuth = express2();
-            appNoAuth.use(express2.json());
+            // Override the module-level protect mock for this single test so the
+            // REAL cacheRoutes router (already mounted in `app`) returns 401.
+            vi.mocked(authMiddleware.protect).mockImplementationOnce(
+                (_req: Request, res: Response, _next: NextFunction) => {
+                    res.status(401).json({ success: false, message: 'Not authorized to access this route' });
+                }
+            );
 
-            const rejectUnauth = (_req: Request, res: Response, _next: NextFunction) => {
-                res.status(401).json({ success: false, message: 'Not authorized to access this route' });
-            };
-            const passAdmin = (_req: Request, _res: Response, next: NextFunction) => next();
-
-            const cacheRouter = express2.Router();
-            cacheRouter.get('/health', rejectUnauth, passAdmin, (_req: Request, res: Response) => {
-                res.status(200).json({ success: true });
-            });
-            appNoAuth.use('/api/cache', cacheRouter);
-
-            const response = await request(appNoAuth).get('/api/cache/health');
+            const response = await request(app).get('/api/cache/health');
             expect(response.status).toBe(401);
         });
     });

@@ -365,7 +365,7 @@ class TokenService {
             // The jti embedded in the payload identifies the exact session/device (H-17).
             const jti = (payload as { jti?: string }).jti;
             if (!jti) {
-                throw new Error('Refresh token missing jti — cannot verify session');
+                throw new Error('Refresh token missing jti');
             }
             const refreshTokenKey = `refresh_token:${payload.userId}:${jti}`;
             const storedToken = await this.executeRedis('load refresh token', () => this.redis.get(refreshTokenKey));
@@ -462,8 +462,13 @@ class TokenService {
                 this.redis.scan(cursor, 'MATCH', `refresh_token:${userId}:*`, 'COUNT', 100)
             );
             cursor = nextCursor;
-            for (const key of keys) {
-                await this.executeRedis(`delete refresh token ${key}`, () => this.redis.del(key));
+            if (keys.length > 0) {
+                // Pipeline all DELs per SCAN batch to avoid N+1 round-trips
+                const delPipeline = (this.redis as RedisType & { pipeline: () => PipelineClient }).pipeline();
+                for (const key of keys) {
+                    delPipeline.del(key);
+                }
+                await this.executeRedis('pipeline DEL revoked tokens', () => delPipeline.exec());
             }
         } while (cursor !== '0');
     }
@@ -544,7 +549,7 @@ class TokenService {
                 for (const key of keys) {
                     ttlPipeline.ttl(key);
                 }
-                const ttlResults = await ttlPipeline.exec();
+                const ttlResults = await this.executeRedis('pipeline TTL batch', () => ttlPipeline.exec());
 
                 // Collect keys with no TTL set (TTL === -1 means key exists but no expiry)
                 const noTtlKeys = keys.filter((_key, i) => {
@@ -558,7 +563,7 @@ class TokenService {
                     for (const key of noTtlKeys) {
                         delPipeline.del(key);
                     }
-                    await delPipeline.exec();
+                    await this.executeRedis('pipeline DEL batch', () => delPipeline.exec());
                     deletedCount += noTtlKeys.length;
                 }
             }
