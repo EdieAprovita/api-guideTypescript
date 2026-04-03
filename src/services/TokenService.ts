@@ -27,6 +27,13 @@ interface TokenInfo {
     error?: string;
 }
 
+// Minimal pipeline interface used by cleanup() (H-11)
+interface PipelineClient {
+    ttl(key: string): this;
+    del(key: string): this;
+    exec(): Promise<Array<[Error | null, unknown]>>;
+}
+
 // Mock Redis for testing
 interface MockRedisEntry {
     value: string;
@@ -100,6 +107,32 @@ class TokenService {
             mockRedisStorage = new Map<string, MockRedisEntry>();
         }
 
+        // Minimal pipeline stub: collects commands and executes them on exec()
+        const makePipeline = () => {
+            const commands: Array<() => Promise<[null, unknown]>> = [];
+            const pipe = {
+                ttl: (key: string) => {
+                    commands.push(async () => {
+                        const entry = mockRedisStorage.get(key);
+                        if (!entry) return [null, -2] as [null, number];
+                        const remaining = Math.floor((entry.expiry - Date.now()) / 1000);
+                        return [null, remaining > 0 ? remaining : -1] as [null, number];
+                    });
+                    return pipe;
+                },
+                del: (key: string) => {
+                    commands.push(async () => {
+                        const existed = mockRedisStorage.has(key);
+                        mockRedisStorage.delete(key);
+                        return [null, existed ? 1 : 0] as [null, number];
+                    });
+                    return pipe;
+                },
+                exec: async () => Promise.all(commands.map(fn => fn())),
+            };
+            return pipe;
+        };
+
         this.redis = {
             setex: (key: string, seconds: number, value: string) => {
                 const expiry = Date.now() + seconds * 1000;
@@ -134,6 +167,7 @@ class TokenService {
                 const remainingTime = Math.floor((entry.expiry - Date.now()) / 1000);
                 return Promise.resolve(remainingTime > 0 ? remainingTime : -1);
             },
+            pipeline: makePipeline,
             disconnect: () => {
                 mockRedisStorage.clear();
                 return Promise.resolve();
@@ -227,8 +261,11 @@ class TokenService {
         const refreshToken = this.signToken(refreshPayload, this.refreshTokenSecret!, this.refreshTokenExpiry);
         this.debugLog('Refresh token result:', refreshToken ? 'GENERATED' : 'UNDEFINED');
 
-        // Store refresh token in Redis
-        const refreshTokenKey = `refresh_token:${payload.userId}`;
+        // Store refresh token in Redis using per-device key (H-17).
+        // Key pattern: refresh_token:{userId}:{jti} — the jti from tokenPayload
+        // uniquely identifies this session, enabling per-device revocation without
+        // invalidating other active sessions for the same user.
+        const refreshTokenKey = `refresh_token:${payload.userId}:${tokenPayload.jti}`;
         this.debugLog('About to store in Redis with key:', refreshTokenKey);
 
         try {
@@ -324,8 +361,13 @@ class TokenService {
                 throw new Error('Invalid token type');
             }
 
-            // Verify token exists in Redis
-            const refreshTokenKey = `refresh_token:${payload.userId}`;
+            // Verify the token exists in Redis using the per-device key.
+            // The jti embedded in the payload identifies the exact session/device (H-17).
+            const jti = (payload as { jti?: string }).jti;
+            if (!jti) {
+                throw new Error('Refresh token missing jti — cannot verify session');
+            }
+            const refreshTokenKey = `refresh_token:${payload.userId}:${jti}`;
             const storedToken = await this.executeRedis('load refresh token', () => this.redis.get(refreshTokenKey));
 
             if (!storedToken || storedToken !== token) {
@@ -342,8 +384,15 @@ class TokenService {
     async refreshTokens(refreshToken: string): Promise<TokenPair> {
         const payload = await this.verifyRefreshToken(refreshToken);
 
-        // Blacklist old refresh token and revoke stored entry
-        await Promise.all([this.blacklistToken(refreshToken), this.revokeRefreshToken(payload.userId)]);
+        // Blacklist old refresh token and revoke the specific per-device entry (H-17).
+        // revokeRefreshToken with a jti targets only this session's key.
+        const jti = (payload as { jti?: string }).jti;
+        await Promise.all([
+            this.blacklistToken(refreshToken),
+            jti
+                ? this.revokeRefreshTokenByKey(`refresh_token:${payload.userId}:${jti}`)
+                : this.revokeRefreshToken(payload.userId),
+        ]);
 
         // Generate new token pair
         return this.generateTokenPair({
@@ -400,9 +449,32 @@ class TokenService {
         return result !== null;
     }
 
+    /**
+     * Revokes all per-device refresh tokens for a user by scanning
+     * the refresh_token:{userId}:* key space and deleting every match.
+     * Used by revokeAllUserTokens and as a fallback in refreshTokens
+     * when jti is unavailable (H-17).
+     */
     async revokeRefreshToken(userId: string): Promise<void> {
-        const refreshTokenKey = `refresh_token:${userId}`;
-        await this.executeRedis('revoke refresh token', () => this.redis.del(refreshTokenKey));
+        let cursor = '0';
+        do {
+            const [nextCursor, keys] = await this.executeRedis('scan refresh tokens for user', () =>
+                this.redis.scan(cursor, 'MATCH', `refresh_token:${userId}:*`, 'COUNT', 100)
+            );
+            cursor = nextCursor;
+            for (const key of keys) {
+                await this.executeRedis(`delete refresh token ${key}`, () => this.redis.del(key));
+            }
+        } while (cursor !== '0');
+    }
+
+    /**
+     * Revokes a single per-device refresh token by its exact Redis key.
+     * Used during token rotation (refreshTokens) to remove only the
+     * session being rotated, leaving other active sessions intact (H-17).
+     */
+    private async revokeRefreshTokenByKey(key: string): Promise<void> {
+        await this.executeRedis('revoke single refresh token', () => this.redis.del(key));
     }
 
     async revokeAllUserTokens(userId: string): Promise<void> {
@@ -449,26 +521,50 @@ class TokenService {
     }
 
     /**
-     * Removes blacklist entries that have no TTL set (should not normally
-     * happen, but provides a safety net for manual admin operations).
-     * Redis auto-expires entries with a TTL, so this only targets the edge
-     * case where setex was bypassed.
+     * Removes blacklist entries that have no TTL set (should not normally happen,
+     * but provides a safety net for manual admin operations that bypass setex).
+     *
+     * H-11: Eliminates the N+1 Redis call pattern by pipelining all TTL checks
+     * per SCAN batch, then pipelining the DEL operations for keys without a TTL.
+     * Returns the number of keys deleted.
      */
-    async cleanup(): Promise<void> {
+    async cleanup(): Promise<number> {
         let cursor = '0';
+        let deletedCount = 0;
+
         do {
             const [nextCursor, keys] = await this.executeRedis('scan blacklist keys', () =>
                 this.redis.scan(cursor, 'MATCH', 'blacklist:*', 'COUNT', 100)
             );
             cursor = nextCursor;
-            for (const key of keys) {
-                const ttl = await this.executeRedis(`ttl ${key}`, () => this.redis.ttl(key));
-                if (ttl === -1) {
-                    // Key exists but has no TTL — remove it
-                    await this.executeRedis(`delete ${key}`, () => this.redis.del(key));
+
+            if (keys.length > 0) {
+                // Pipeline all TTL checks for this batch in a single round-trip
+                const ttlPipeline = (this.redis as RedisType & { pipeline: () => PipelineClient }).pipeline();
+                for (const key of keys) {
+                    ttlPipeline.ttl(key);
+                }
+                const ttlResults = await ttlPipeline.exec();
+
+                // Collect keys with no TTL set (TTL === -1 means key exists but no expiry)
+                const noTtlKeys = keys.filter((_key, i) => {
+                    const ttl = ttlResults?.[i]?.[1] as number | undefined;
+                    return ttl === -1;
+                });
+
+                // Pipeline DEL operations for all expired/no-TTL keys
+                if (noTtlKeys.length > 0) {
+                    const delPipeline = (this.redis as RedisType & { pipeline: () => PipelineClient }).pipeline();
+                    for (const key of noTtlKeys) {
+                        delPipeline.del(key);
+                    }
+                    await delPipeline.exec();
+                    deletedCount += noTtlKeys.length;
                 }
             }
         } while (cursor !== '0');
+
+        return deletedCount;
     }
 
     async disconnect(): Promise<void> {

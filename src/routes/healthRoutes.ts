@@ -3,6 +3,7 @@ import logger from '../utils/logger.js';
 import mongoose from 'mongoose';
 import { cacheService } from '../services/CacheService.js';
 import { getCircuitBreakerState, checkAndAdvanceState } from '../clients/redisClient.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -99,10 +100,11 @@ router.get('/ready', async (_req: Request, res: Response) => {
 });
 
 /**
- * @description Deep health check
+ * @description Deep health check — exposes internal service status, memory, and
+ * circuit-breaker state. Restricted to authenticated admins only (H-01).
  * @route GET /deep
  */
-router.get('/deep', async (_req: Request, res: Response) => {
+router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
     try {
         logger.debug('Deep health check requested');
 
