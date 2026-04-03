@@ -106,8 +106,8 @@ router.delete('/invalidate-tag/:tag', protect, admin, async (req, res) => {
     }
 });
 
-// Get cache health status
-router.get('/health', async (_req, res) => {
+// Get cache health status — restricted to authenticated admins (H-02)
+router.get('/health', protect, admin, async (_req, res) => {
     try {
         const stats = await cacheService.getStats();
         const isHealthy = stats.hitRatio > 0.1; // Consider healthy if hit ratio > 10%

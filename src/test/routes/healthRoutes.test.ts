@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import healthRoutes from '../../routes/healthRoutes.js';
+import * as authMiddleware from '../../middleware/authMiddleware.js';
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -38,6 +40,13 @@ vi.mock('../../utils/logger', () => ({
         warn: vi.fn(),
         error: vi.fn(),
     },
+}));
+
+// Mock auth middleware — default: passes through (existing tests unaffected).
+// Using vi.fn() so individual tests can override with mockImplementationOnce.
+vi.mock('../../middleware/authMiddleware.js', () => ({
+    protect: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
+    admin: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
 }));
 
 // ---------------------------------------------------------------------------
@@ -213,5 +222,24 @@ describe('GET /health/deep', () => {
         expect(response.body.status).toBe('degraded');
         expect(response.body.services.redis).toBe(true);
         expect(response.body.services.circuitBreaker.state).toBe('open');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// H-01: /health/deep is protected — returns 401 without a valid token
+// ---------------------------------------------------------------------------
+
+describe('GET /health/deep — auth guard (H-01)', () => {
+    it('returns 401 when protect middleware rejects the request', async () => {
+        // Override the module-level protect mock for this single test so the
+        // REAL healthRoutes router (already mounted in `app`) returns 401.
+        vi.mocked(authMiddleware.protect).mockImplementationOnce(
+            (_req: Request, res: Response, _next: NextFunction) => {
+                res.status(401).json({ success: false, message: 'Not authorized to access this route' });
+            }
+        );
+
+        const response = await request(app).get('/health/deep');
+        expect(response.status).toBe(401);
     });
 });
