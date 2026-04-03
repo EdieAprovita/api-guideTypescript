@@ -250,8 +250,10 @@ export const detectSuspiciousActivity = (req: Request, res: Response, next: Next
  */
 export const limitRequestSize = (maxSize: number = 1024 * 1024) => {
     // 1MB default
-    // Pre-parse gate: runs before body-parser, so req.body is always undefined here.
-    // Only the Content-Length header is available at this point (H-09: dead computedBodySize branch removed).
+    // Intended as a pre-parse gate: mount before body-parser so req.body is
+    // undefined and only the Content-Length header is available. If mounted
+    // after a body parser, body inspection is not performed here — size is
+    // still enforced at the parser level (H-09: dead computedBodySize branch removed).
     return (req: Request, res: Response, next: NextFunction) => {
         const contentLength = req.get('content-length');
         const parsedLength = contentLength ? parseInt(contentLength, 10) : NaN;

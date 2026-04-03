@@ -45,7 +45,8 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
     // Use the correlation ID already set by addCorrelationId (security.ts),
     // falling back to header or a new UUID for resilience.
     // Note: do NOT call res.setHeader here — addCorrelationId already sets
-    // X-Correlation-ID; a second setHeader is a no-op but confusing (H-08).
+    // X-Correlation-ID; calling setHeader again would overwrite it with a
+    // different value and lose the ID set by the correlation middleware (H-08).
     const correlationId: string =
         req.correlationId || req.get('X-Correlation-ID') || req.get('X-Request-ID') || uuidv4();
     req.correlationId = correlationId;
