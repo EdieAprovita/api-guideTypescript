@@ -1,4 +1,5 @@
-import mongoose, { Types } from 'mongoose';
+import type mongoose from 'mongoose';
+import { Types } from 'mongoose';
 import { Review } from '../../models/Review.js';
 import { HttpError, HttpStatusCode } from '../../types/Errors.js';
 import logger from '../../utils/logger.js';

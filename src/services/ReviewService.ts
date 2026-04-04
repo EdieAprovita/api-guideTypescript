@@ -43,7 +43,15 @@ export const reviewService = {
         const { sortField, sortDir } = extractSortParams(filters, pagination);
         const ratingForKey = extractRatingForKey(filters);
 
-        const cacheKey = buildReviewListCacheKey(entityType, entityId, page, limit, sortField, ratingForKey);
+        const cacheKey = buildReviewListCacheKey(
+            entityType,
+            entityId,
+            page,
+            limit,
+            sortField,
+            ratingForKey,
+            pagination.sortOrder
+        );
 
         const cached = await cacheService.get<{
             data: IReview[];

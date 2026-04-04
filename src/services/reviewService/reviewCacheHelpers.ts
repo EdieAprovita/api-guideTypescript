@@ -33,11 +33,13 @@ export const buildReviewListCacheKey = (
     page: number,
     limit: number,
     sortField: string,
-    rating?: number
+    rating?: number,
+    sortOrder?: 'asc' | 'desc'
 ): string => {
     const parts = [`p=${page}`, `l=${limit}`];
     if (typeof rating === 'number') parts.push(`r=${rating}`);
     parts.push(`s=${sortField}`);
+    if (sortOrder) parts.push(`o=${sortOrder}`);
     return `reviews:${entityType}:${entityId}:` + parts.join('&');
 };
 

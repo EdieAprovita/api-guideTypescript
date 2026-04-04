@@ -8,7 +8,7 @@ export const extractPaginationParams = (filters: ReviewFilters, pagination: Pagi
 };
 
 export const extractSortParams = (filters: ReviewFilters, pagination: PaginationOptions) => {
-    const sortRaw: string | undefined = (pagination as any).sortBy ?? filters.sort ?? undefined;
+    const sortRaw: string | undefined = pagination.sortBy ?? filters.sort ?? undefined;
     const sortFieldRaw = typeof sortRaw === 'string' ? sortRaw : undefined;
     const sortIsDesc = sortFieldRaw?.startsWith('-') ?? false;
     const sortFieldClean = sortFieldRaw?.replace(/^-/, '') || undefined;
