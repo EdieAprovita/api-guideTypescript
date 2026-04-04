@@ -61,9 +61,13 @@ export class CacheService {
     /**
      * Obtener valor del cache
      * @param key - Clave del cache
-     * @returns Valor parseado o null si no existe
+     * @param validate - Optional type-guard to validate the parsed value at runtime.
+     *   When provided and the guard returns false, the corrupt/stale entry is evicted
+     *   and null is returned so the caller can re-fetch from the source of truth.
+     *   Callers that omit this parameter retain the previous behaviour.
+     * @returns Valor parseado o null si no existe o falla la validación
      */
-    async get<T>(key: string): Promise<T | null> {
+    async get<T>(key: string, validate?: (data: unknown) => data is T): Promise<T | null> {
         const start = Date.now();
         const value = await this.executeRedis(`GET ${key}`, () => this.redis.get(key), null);
         const duration = Date.now() - start;
@@ -71,8 +75,9 @@ export class CacheService {
         if (value) {
             this.hits++;
             logger.debug(`Cache HIT: ${key} (${duration}ms)`);
+            let parsed: unknown;
             try {
-                return JSON.parse(value) as T;
+                parsed = JSON.parse(value);
             } catch (parseError) {
                 logger.warn('CacheService: corrupted JSON in cache, evicting key', {
                     key,
@@ -81,6 +86,28 @@ export class CacheService {
                 await this.executeRedis(`DEL ${key}`, () => this.redis.del(key), 0);
                 return null;
             }
+
+            if (validate) {
+                try {
+                    if (!validate(parsed)) {
+                        logger.warn('CacheService: cached value failed runtime validation, evicting key', {
+                            key,
+                            cachedType: typeof parsed,
+                        });
+                        await this.executeRedis(`DEL ${key}`, () => this.redis.del(key), 0);
+                        return null;
+                    }
+                } catch (validationError) {
+                    logger.warn('CacheService: validator threw an error, evicting key', {
+                        key,
+                        error: validationError instanceof Error ? validationError.message : String(validationError),
+                    });
+                    await this.executeRedis(`DEL ${key}`, () => this.redis.del(key), 0);
+                    return null;
+                }
+            }
+
+            return parsed as T;
         } else {
             this.misses++;
             logger.debug(`❌ Cache MISS: ${key} (${duration}ms)`);

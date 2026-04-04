@@ -291,3 +291,59 @@ describe('CacheService.set() via associateTags() — M-04: tag set TTL', () => {
         expect(mockPipeline.expire).not.toHaveBeenCalled();
     });
 });
+
+// ---------------------------------------------------------------------------
+// C-05 — CacheService.get() optional runtime type validation
+// ---------------------------------------------------------------------------
+
+describe('CacheService.get() — C-05: optional runtime type validation', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockRedis.pipeline.mockReturnValue(mockPipeline);
+    });
+
+    it('returns the value when a validator is provided and passes', async () => {
+        const data = { id: 1, name: 'resto' };
+        mockRedis.get.mockResolvedValue(JSON.stringify(data));
+
+        const isShape = (d: unknown): d is typeof data =>
+            typeof d === 'object' && d !== null && 'id' in d && 'name' in d;
+
+        const service = makeService();
+        const result = await service.get<typeof data>('valid:key', isShape);
+
+        expect(result).toEqual(data);
+        expect(mockRedis.del).not.toHaveBeenCalled();
+    });
+
+    it('returns null and evicts the key when a validator is provided and fails', async () => {
+        const wrongShape = { unexpected: true };
+        mockRedis.get.mockResolvedValue(JSON.stringify(wrongShape));
+        mockRedis.del.mockResolvedValue(1);
+
+        type Expected = { id: number; name: string };
+        const isExpected = (d: unknown): d is Expected =>
+            typeof d === 'object' && d !== null && 'id' in d && 'name' in d;
+
+        const service = makeService();
+        const result = await service.get<Expected>('stale:key', isExpected);
+
+        expect(result).toBeNull();
+        expect(mockRedis.del).toHaveBeenCalledWith('stale:key');
+        expect(logger.warn).toHaveBeenCalledWith(
+            'CacheService: cached value failed runtime validation, evicting key',
+            expect.objectContaining({ key: 'stale:key' })
+        );
+    });
+
+    it('returns the parsed value as-is when no validator is provided (backward compat)', async () => {
+        const data = { id: 99, extra: 'field' };
+        mockRedis.get.mockResolvedValue(JSON.stringify(data));
+
+        const service = makeService();
+        const result = await service.get<typeof data>('any:key');
+
+        expect(result).toEqual(data);
+        expect(mockRedis.del).not.toHaveBeenCalled();
+    });
+});
