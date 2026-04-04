@@ -111,7 +111,7 @@ class TokenService {
                 expiresIn,
                 issuer: JWT_CONFIG.issuer,
                 audience: JWT_CONFIG.audience,
-                algorithm: 'HS256',
+                algorithm: JWT_CONFIG.algorithm,
             } as jwt.SignOptions);
 
             if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
@@ -194,7 +194,7 @@ class TokenService {
             const decoded = jwt.verify(token, secret, {
                 issuer: JWT_CONFIG.issuer,
                 audience: JWT_CONFIG.audience,
-                algorithms: ['HS256'],
+                algorithms: [JWT_CONFIG.algorithm],
             }) as TokenPayload;
 
             // Check if token is blacklisted — fail-closed: reject token if Redis is unavailable

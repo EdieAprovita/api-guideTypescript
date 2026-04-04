@@ -1,7 +1,7 @@
 import type { Redis } from 'ioredis';
 import type { MockRedisEntry, PipelineClient } from './tokenTypes.js';
 
-let mockRedisStorage: Map<string, MockRedisEntry>;
+let mockRedisStorage: Map<string, MockRedisEntry> = new Map<string, MockRedisEntry>();
 
 /**
  * Creates a minimal in-memory Redis mock suitable for unit tests.
@@ -9,10 +9,6 @@ let mockRedisStorage: Map<string, MockRedisEntry>;
  * test process operate on the same store (preserving the original semantics).
  */
 export function createMockRedis(): Redis {
-    if (!mockRedisStorage) {
-        mockRedisStorage = new Map<string, MockRedisEntry>();
-    }
-
     // Minimal pipeline stub: collects commands and executes them on exec()
     const makePipeline = () => {
         const commands: Array<() => Promise<[null, unknown]>> = [];
