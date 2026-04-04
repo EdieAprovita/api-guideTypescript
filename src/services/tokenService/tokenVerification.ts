@@ -31,7 +31,7 @@ export function buildVerifyToken(isTokenBlacklisted: (token: string) => Promise<
             const decoded = jwt.verify(token, secret, {
                 issuer: JWT_CONFIG.issuer,
                 audience: JWT_CONFIG.audience,
-                algorithms: ['HS256'],
+                algorithms: [JWT_CONFIG.algorithm],
             }) as TokenPayload;
 
             // Fail-closed blacklist check: reject token if Redis is unavailable
@@ -76,8 +76,9 @@ export async function verifyAccessTokenImpl(token: string, verifyFn: VerifyFn, s
     try {
         return await verifyFn(token, secret);
     } catch (error: unknown) {
-        // Preserve TokenRevokedError so errorHandler can map it to 401
-        if (error instanceof TokenRevokedError) {
+        // Preserve intentional typed errors — TokenRevokedError (401) and
+        // HttpError (e.g. 503 from fail-closed Redis path in buildVerifyToken)
+        if (error instanceof TokenRevokedError || error instanceof HttpError) {
             throw error;
         }
         const message = error instanceof Error ? error.message : 'Unknown error';
@@ -117,6 +118,11 @@ export async function verifyRefreshTokenImpl(
 
         return payload;
     } catch (error) {
+        // Preserve intentional typed errors — HttpError (503 fail-closed Redis) and
+        // TokenRevokedError (401) must not be collapsed into a generic Error
+        if (error instanceof HttpError || error instanceof TokenRevokedError) {
+            throw error;
+        }
         const message = error instanceof Error ? error.message : 'Unknown error';
         throw new Error(`Invalid or expired refresh token: ${message}`);
     }
