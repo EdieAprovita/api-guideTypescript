@@ -65,14 +65,17 @@ export default defineConfig({
                 'src/server.ts',
                 'src/app.ts',
             ],
-            // Thresholds set to current baseline — raise as coverage improves.
-            // Target: 60/50/60/60 by Sprint 13.
+            // Thresholds set to measured actuals minus 5pp (floor) — raise as coverage improves.
+            // Order: branches/functions/lines/statements
+            // Current actuals : 76% / 60% / 42% / 42%
+            // Current floors  : 71  / 55  / 37  / 37  (actuals − 5pp, enforced below)
+            // Sprint-13 target: 81% / 65% / 47% / 47%
             thresholds: {
                 global: {
-                    branches: 40,
-                    functions: 40,
-                    lines: 34,
-                    statements: 34,
+                    branches: 71,
+                    functions: 55,
+                    lines: 37,
+                    statements: 37,
                 },
             },
         },
