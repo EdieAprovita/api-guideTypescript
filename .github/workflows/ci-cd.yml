@@ -320,8 +320,10 @@ jobs:
         steps:
             - name: Check Sonar token
               id: sonar-token
+              env:
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
               run: |
-                  if [ -z "${{ secrets.SONAR_TOKEN }}" ]; then
+                  if [ -z "$SONAR_TOKEN" ]; then
                     echo "skip=true" >> "$GITHUB_OUTPUT"
                     echo "::notice::SONAR_TOKEN not configured; skipping SonarCloud analysis."
                   else
@@ -342,7 +344,7 @@ jobs:
                   path: coverage
 
             - name: SonarQube Cloud Scan
-              uses: SonarSource/sonarqube-scan-action@v5
+              uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703
               if: ${{ steps.sonar-token.outputs.skip == 'false' }}
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
