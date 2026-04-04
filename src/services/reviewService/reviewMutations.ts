@@ -241,7 +241,7 @@ export async function markAsHelpful(reviewId: string, userId: string): Promise<I
             return await review.save({ session });
         });
 
-        await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
+        await invalidateReviewCache(review.entityType, review.entity.toString(), cacheService);
 
         // Phase 8: Structured logging
         logger.info('Helpful vote added successfully', {
@@ -288,7 +288,7 @@ export async function removeHelpfulVote(reviewId: string, userId: string): Promi
             return await review.save({ session });
         });
 
-        await cacheService.invalidateByTag(`reviews:${review.entityType}:${review.entity}`);
+        await invalidateReviewCache(review.entityType, review.entity.toString(), cacheService);
 
         // Phase 8: Structured logging
         logger.info('Helpful vote removed successfully', {
