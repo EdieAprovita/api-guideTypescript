@@ -75,17 +75,9 @@ export class CacheService {
         if (value) {
             this.hits++;
             logger.debug(`Cache HIT: ${key} (${duration}ms)`);
+            let parsed: unknown;
             try {
-                const parsed: unknown = JSON.parse(value);
-                if (validate && !validate(parsed)) {
-                    logger.warn('CacheService: cached value failed runtime validation, evicting key', {
-                        key,
-                        cachedType: typeof parsed,
-                    });
-                    await this.executeRedis(`DEL invalid cached value`, () => this.redis.del(key), 0);
-                    return null;
-                }
-                return parsed as T;
+                parsed = JSON.parse(value);
             } catch (parseError) {
                 logger.warn('CacheService: corrupted JSON in cache, evicting key', {
                     key,
@@ -94,6 +86,28 @@ export class CacheService {
                 await this.executeRedis(`DEL ${key}`, () => this.redis.del(key), 0);
                 return null;
             }
+
+            if (validate) {
+                try {
+                    if (!validate(parsed)) {
+                        logger.warn('CacheService: cached value failed runtime validation, evicting key', {
+                            key,
+                            cachedType: typeof parsed,
+                        });
+                        await this.executeRedis(`DEL ${key}`, () => this.redis.del(key), 0);
+                        return null;
+                    }
+                } catch (validationError) {
+                    logger.warn('CacheService: validator threw an error, evicting key', {
+                        key,
+                        error: validationError instanceof Error ? validationError.message : String(validationError),
+                    });
+                    await this.executeRedis(`DEL ${key}`, () => this.redis.del(key), 0);
+                    return null;
+                }
+            }
+
+            return parsed as T;
         } else {
             this.misses++;
             logger.debug(`❌ Cache MISS: ${key} (${duration}ms)`);
