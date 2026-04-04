@@ -4,7 +4,7 @@ import * as jwtNamespace from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { setupTestEnvironment, cleanupTestEnvironment } from '../testConfig.js';
 import { TokenService } from '../../services/TokenService.js';
-import { TokenRevokedError } from '../../types/Errors.js';
+import { TokenRevokedError, HttpError, HttpStatusCode } from '../../types/Errors.js';
 import type { Redis as RedisType } from 'ioredis';
 
 vi.mock('../../clients/redisClient.js', () => ({
@@ -235,14 +235,16 @@ describe('TokenService', () => {
         });
 
         it('should reject token when Redis is unavailable (fail-closed)', async () => {
-            // JWT is valid but Redis throws — the token must be rejected, not silently accepted
+            // JWT is valid but Redis throws — the token must be rejected, not silently accepted.
+            // The fail-closed path in buildVerifyToken throws HttpError(503) which is preserved
+            // up the stack (not wrapped into a plain Error) so callers can map it correctly.
             const mockPayload = { userId: faker.database.mongodbObjectId(), email: faker.internet.email() };
             setupMockToken(mockPayload);
             mockRedis.get.mockRejectedValue(new Error('Redis connection refused'));
 
-            await expect(service.verifyAccessToken('valid-jwt-redis-down')).rejects.toThrow(
-                'Invalid or expired access token'
-            );
+            const err = await service.verifyAccessToken('valid-jwt-redis-down').catch(e => e);
+            expect(err).toBeInstanceOf(HttpError);
+            expect((err as HttpError).statusCode).toBe(HttpStatusCode.SERVICE_UNAVAILABLE);
         });
 
         it('should propagate TokenRevokedError as rejected (not swallowed as Redis error)', async () => {
@@ -384,7 +386,10 @@ describe('TokenService', () => {
             const delPipeline = {
                 ttl: vi.fn().mockReturnThis(),
                 del: vi.fn().mockReturnThis(),
-                exec: vi.fn().mockResolvedValue([[null, 1], [null, 1]]),
+                exec: vi.fn().mockResolvedValue([
+                    [null, 1],
+                    [null, 1],
+                ]),
             };
             mockRedis.pipeline.mockReturnValueOnce(delPipeline);
 
