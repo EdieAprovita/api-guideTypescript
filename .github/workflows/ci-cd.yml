@@ -316,23 +316,34 @@ jobs:
         name: SonarCloud Code Analysis
         runs-on: ubuntu-latest
         needs: test
-        # Only run when token is configured.
-        if: ${{ secrets.SONAR_TOKEN != '' }}
 
         steps:
+            - name: Check Sonar token
+              id: sonar-token
+              run: |
+                  if [ -z "${{ secrets.SONAR_TOKEN }}" ]; then
+                    echo "skip=true" >> "$GITHUB_OUTPUT"
+                    echo "::notice::SONAR_TOKEN not configured; skipping SonarCloud analysis."
+                  else
+                    echo "skip=false" >> "$GITHUB_OUTPUT"
+                  fi
+
             - name: Checkout code
               uses: actions/checkout@v4
+              if: ${{ steps.sonar-token.outputs.skip == 'false' }}
               with:
                   fetch-depth: 0
 
             - name: Download coverage artifacts
               uses: actions/download-artifact@v4
+              if: ${{ steps.sonar-token.outputs.skip == 'false' }}
               with:
                   name: coverage-reports
                   path: coverage
 
             - name: SonarQube Cloud Scan
               uses: SonarSource/sonarqube-scan-action@v5
+              if: ${{ steps.sonar-token.outputs.skip == 'false' }}
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
                   SONAR_HOST_URL: https://sonarcloud.io
