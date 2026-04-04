@@ -66,7 +66,10 @@ export default defineConfig({
                 'src/app.ts',
             ],
             // Thresholds set to measured actuals minus 5pp (floor) — raise as coverage improves.
-            // Target: 76/60/55/47 by Sprint 13 (current actuals: stmts 42%, branch 76%, funcs 60%, lines 42%).
+            // Order: branches/functions/lines/statements
+            // Current actuals : 76% / 60% / 42% / 42%
+            // Current floors  : 71  / 55  / 37  / 37  (actuals − 5pp, enforced below)
+            // Sprint-13 target: 81% / 65% / 47% / 47%
             thresholds: {
                 global: {
                     branches: 71,
