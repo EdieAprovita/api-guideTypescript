@@ -133,15 +133,17 @@ export async function verifyRefreshTokenImpl(
  * Rotates a refresh token: verifies the old one, revokes it (per-device key
  * or full-user scan fallback), then generates and returns a new token pair.
  *
- * Dependency injection avoids coupling to blacklist or generation modules.
- * revokeByKeyFn is supplied from tokenBlacklist.ts (PR-T3).
+ * Revocation strategy (H-17):
+ *   - jti present  → revokeByKeyFn deletes the exact per-device Redis key
+ *   - jti absent   → revokeRefreshTokenFallback scan-revokes all sessions
  *
+ * @param refreshToken    - The refresh token to rotate
  * @param verifyRefreshFn - Pre-bound verifyRefreshToken (handles JWT + Redis lookup)
  * @param generateFn      - Pre-bound generateTokenPair
- * @param blacklistFn     - Pre-bound blacklistToken
- * @param revokeByKeyFn   - Revoke a single per-device key (jti path, H-17)
+ * @param revokeByKeyFn   - Revoke a single per-device key (jti path, H-17);
+ *                          supplied from tokenBlacklist.ts by TokenService
  * @param executeRedis    - Circuit-breaker-aware Redis executor from TokenService
- * @param redis           - Raw Redis client (passed through to revokeByKeyFn)
+ * @param redis           - Raw Redis client (passed to revocation functions)
  */
 export async function refreshTokensImpl(
     refreshToken: string,
@@ -153,7 +155,7 @@ export async function refreshTokensImpl(
 ): Promise<TokenPair> {
     const payload = await verifyRefreshFn(refreshToken);
 
-    // Blacklist old refresh token and revoke the per-device entry (H-17).
+    // Revoke the per-device refresh token entry (H-17).
     const jti = (payload as { jti?: string }).jti;
 
     if (jti) {
