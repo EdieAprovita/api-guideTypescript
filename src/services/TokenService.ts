@@ -4,43 +4,15 @@ import { randomUUID, createHash } from 'crypto';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
 import logger from '../utils/logger.js';
 import { executeIfCircuitClosed, getRedisClient } from '../clients/redisClient.js';
-
-interface TokenPayload {
-    userId: string;
-    email: string;
-    role?: string;
-}
-
-interface TokenPair {
-    accessToken: string;
-    refreshToken: string;
-}
-
-interface RefreshTokenPayload extends TokenPayload {
-    type: 'refresh';
-}
-
-interface TokenInfo {
-    header?: jwt.JwtHeader;
-    payload?: jwt.JwtPayload;
-    isValid: boolean;
-    error?: string;
-}
-
-// Minimal pipeline interface used by cleanup() (H-11)
-interface PipelineClient {
-    ttl(key: string): this;
-    del(key: string): this;
-    exec(): Promise<Array<[Error | null, unknown]>>;
-}
-
-// Mock Redis for testing
-interface MockRedisEntry {
-    value: string;
-    expiry: number;
-}
-
-let mockRedisStorage: Map<string, MockRedisEntry>;
+import type {
+    TokenPayload,
+    TokenPair,
+    RefreshTokenPayload,
+    TokenInfo,
+    PipelineClient,
+} from './tokenService/tokenTypes.js';
+import { JWT_CONFIG, REDIS_KEY_PATTERNS, TOKEN_TTL } from './tokenService/tokenTypes.js';
+import { createMockRedis } from './tokenService/mockRedis.js';
 
 class TokenService {
     private redis!: RedisType;
@@ -48,8 +20,6 @@ class TokenService {
     private refreshTokenSecret?: string;
     private accessTokenExpiry!: string;
     private refreshTokenExpiry!: string;
-    private readonly issuer = 'vegan-guide-api';
-    private readonly audience = 'vegan-guide-client';
     private readonly useCircuitBreaker: boolean;
     private initialized = false;
 
@@ -74,7 +44,7 @@ class TokenService {
             this.redis = redisClient;
             this.useCircuitBreaker = false;
         } else if (process.env.NODE_ENV === 'test') {
-            this.initializeMockRedis();
+            this.redis = createMockRedis();
             this.useCircuitBreaker = false;
         } else {
             this.redis = getRedisClient();
@@ -100,83 +70,6 @@ class TokenService {
                 throw error;
             }
         }
-    }
-
-    private initializeMockRedis(): void {
-        if (!mockRedisStorage) {
-            mockRedisStorage = new Map<string, MockRedisEntry>();
-        }
-
-        // Minimal pipeline stub: collects commands and executes them on exec()
-        const makePipeline = () => {
-            const commands: Array<() => Promise<[null, unknown]>> = [];
-            const pipe = {
-                ttl: (key: string) => {
-                    commands.push(async () => {
-                        const entry = mockRedisStorage.get(key);
-                        if (!entry) return [null, -2] as [null, number];
-                        const remaining = Math.floor((entry.expiry - Date.now()) / 1000);
-                        return [null, remaining > 0 ? remaining : -1] as [null, number];
-                    });
-                    return pipe;
-                },
-                del: (key: string) => {
-                    commands.push(async () => {
-                        const existed = mockRedisStorage.has(key);
-                        mockRedisStorage.delete(key);
-                        return [null, existed ? 1 : 0] as [null, number];
-                    });
-                    return pipe;
-                },
-                exec: async () => Promise.all(commands.map(fn => fn())),
-            };
-            return pipe;
-        };
-
-        this.redis = {
-            setex: (key: string, seconds: number, value: string) => {
-                const expiry = Date.now() + seconds * 1000;
-                mockRedisStorage.set(key, { value, expiry });
-                return Promise.resolve('OK');
-            },
-            get: (key: string) => {
-                const entry = mockRedisStorage.get(key);
-                if (!entry || Date.now() > entry.expiry) {
-                    mockRedisStorage.delete(key);
-                    return Promise.resolve(null);
-                }
-                return Promise.resolve(entry.value);
-            },
-            del: (key: string) => {
-                const existed = mockRedisStorage.has(key);
-                mockRedisStorage.delete(key);
-                return Promise.resolve(existed ? 1 : 0);
-            },
-            scan: (_cursor: string, _matchArg: string, pattern: string, _countArg: string, _count: number) => {
-                const allKeys = Array.from(mockRedisStorage.keys());
-                const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-                const regex = new RegExp(`^${escaped}$`);
-                const matched = allKeys.filter(key => regex.test(key));
-                // Return all results in one shot (cursor '0' = done)
-                return Promise.resolve(['0', matched] as [string, string[]]);
-            },
-            ttl: (key: string) => {
-                const entry = mockRedisStorage.get(key);
-                if (!entry) return Promise.resolve(-2);
-
-                const remainingTime = Math.floor((entry.expiry - Date.now()) / 1000);
-                return Promise.resolve(remainingTime > 0 ? remainingTime : -1);
-            },
-            pipeline: makePipeline,
-            disconnect: () => {
-                mockRedisStorage.clear();
-                return Promise.resolve();
-            },
-            flushall: () => {
-                mockRedisStorage.clear();
-                return Promise.resolve('OK');
-            },
-        } as unknown as RedisType;
     }
 
     private initializeSecrets(): void {
@@ -208,17 +101,17 @@ class TokenService {
                 payloadKeys: Object.keys(payload),
                 secretLength: secret.length,
                 expiresIn,
-                issuer: this.issuer,
-                audience: this.audience,
+                issuer: JWT_CONFIG.issuer,
+                audience: JWT_CONFIG.audience,
             });
         }
 
         try {
             const result = jwt.sign(payload, secret, {
                 expiresIn,
-                issuer: this.issuer,
-                audience: this.audience,
-                algorithm: 'HS256',
+                issuer: JWT_CONFIG.issuer,
+                audience: JWT_CONFIG.audience,
+                algorithm: JWT_CONFIG.algorithm,
             } as jwt.SignOptions);
 
             if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
@@ -265,12 +158,12 @@ class TokenService {
         // Key pattern: refresh_token:{userId}:{jti} — the jti from tokenPayload
         // uniquely identifies this session, enabling per-device revocation without
         // invalidating other active sessions for the same user.
-        const refreshTokenKey = `refresh_token:${payload.userId}:${tokenPayload.jti}`;
+        const refreshTokenKey = REDIS_KEY_PATTERNS.refreshToken(payload.userId, tokenPayload.jti);
         this.debugLog('About to store in Redis with key:', refreshTokenKey);
 
         try {
             await this.executeRedis('store refresh token', () =>
-                this.redis.setex(refreshTokenKey, 7 * 24 * 60 * 60, refreshToken)
+                this.redis.setex(refreshTokenKey, TOKEN_TTL.refreshTokenSeconds, refreshToken)
             );
             this.debugLog('Successfully stored in Redis');
         } catch (redisError) {
@@ -299,9 +192,9 @@ class TokenService {
         try {
             // First verify the JWT signature and structure
             const decoded = jwt.verify(token, secret, {
-                issuer: this.issuer,
-                audience: this.audience,
-                algorithms: ['HS256'],
+                issuer: JWT_CONFIG.issuer,
+                audience: JWT_CONFIG.audience,
+                algorithms: [JWT_CONFIG.algorithm],
             }) as TokenPayload;
 
             // Check if token is blacklisted — fail-closed: reject token if Redis is unavailable
@@ -367,7 +260,7 @@ class TokenService {
             if (!jti) {
                 throw new Error('Refresh token missing jti');
             }
-            const refreshTokenKey = `refresh_token:${payload.userId}:${jti}`;
+            const refreshTokenKey = REDIS_KEY_PATTERNS.refreshToken(payload.userId, jti);
             const storedToken = await this.executeRedis('load refresh token', () => this.redis.get(refreshTokenKey));
 
             if (!storedToken || storedToken !== token) {
@@ -390,7 +283,7 @@ class TokenService {
         await Promise.all([
             this.blacklistToken(refreshToken),
             jti
-                ? this.revokeRefreshTokenByKey(`refresh_token:${payload.userId}:${jti}`)
+                ? this.revokeRefreshTokenByKey(REDIS_KEY_PATTERNS.refreshToken(payload.userId, jti))
                 : this.revokeRefreshToken(payload.userId),
         ]);
 
@@ -404,25 +297,25 @@ class TokenService {
 
     async blacklistToken(token: string): Promise<void> {
         let blacklistKey: string;
-        let ttl = 3600; // Default: 1 hour
+        let ttl: number = TOKEN_TTL.blacklistDefaultSeconds;
 
         try {
             const decoded = jwt.decode(token) as { exp?: number; jti?: string } | null;
             if (decoded?.jti) {
-                blacklistKey = `blacklist:${decoded.jti}`;
+                blacklistKey = REDIS_KEY_PATTERNS.blacklistJti(decoded.jti);
             } else {
                 const tokenHash = createHash('sha256').update(token).digest('hex');
-                blacklistKey = `blacklist:hash:${tokenHash}`;
+                blacklistKey = REDIS_KEY_PATTERNS.blacklistHash(tokenHash);
                 logger.warn('blacklistToken: token missing jti — using SHA-256 hash as fallback key');
             }
             if (decoded?.exp) {
                 const expirationTime = decoded.exp - Math.floor(Date.now() / 1000);
-                ttl = Math.max(expirationTime, 3600);
+                ttl = Math.max(expirationTime, TOKEN_TTL.blacklistDefaultSeconds);
             }
         } catch {
             // jwt.decode failed (malformed token) — fall back to SHA-256 hash
             const tokenHash = createHash('sha256').update(token).digest('hex');
-            blacklistKey = `blacklist:hash:${tokenHash}`;
+            blacklistKey = REDIS_KEY_PATTERNS.blacklistHash(tokenHash);
         }
 
         // Fail-closed: if Redis is unavailable this will throw. The logout controller
@@ -435,7 +328,7 @@ class TokenService {
             const decoded = jwt.decode(token) as { jti?: string } | null;
             if (decoded?.jti) {
                 const result = await this.executeRedis('get blacklist jti', () =>
-                    this.redis.get(`blacklist:${decoded.jti}`)
+                    this.redis.get(REDIS_KEY_PATTERNS.blacklistJti(decoded.jti!))
                 );
                 return result !== null;
             }
@@ -444,7 +337,7 @@ class TokenService {
         }
         const tokenHash = createHash('sha256').update(token).digest('hex');
         const result = await this.executeRedis('get blacklist hash', () =>
-            this.redis.get(`blacklist:hash:${tokenHash}`)
+            this.redis.get(REDIS_KEY_PATTERNS.blacklistHash(tokenHash))
         );
         return result !== null;
     }
@@ -459,7 +352,7 @@ class TokenService {
         let cursor = '0';
         do {
             const [nextCursor, keys] = await this.executeRedis('scan refresh tokens for user', () =>
-                this.redis.scan(cursor, 'MATCH', `refresh_token:${userId}:*`, 'COUNT', 100)
+                this.redis.scan(cursor, 'MATCH', REDIS_KEY_PATTERNS.refreshTokenScan(userId), 'COUNT', 100)
             );
             cursor = nextCursor;
             if (keys.length > 0) {
@@ -486,14 +379,14 @@ class TokenService {
         await this.revokeRefreshToken(userId);
 
         // Mark all access tokens for this user as revoked
-        const userTokenKey = `user_tokens:${userId}`;
+        const userTokenKey = REDIS_KEY_PATTERNS.userTokens(userId);
         await this.executeRedis('revoke all user tokens', () =>
-            this.redis.setex(userTokenKey, 24 * 60 * 60, 'revoked')
+            this.redis.setex(userTokenKey, TOKEN_TTL.userTokensSeconds, 'revoked')
         );
     }
 
     async isUserTokensRevoked(userId: string): Promise<boolean> {
-        const userTokenKey = `user_tokens:${userId}`;
+        const userTokenKey = REDIS_KEY_PATTERNS.userTokens(userId);
         const result = await this.executeRedis('get user token revocation', () => this.redis.get(userTokenKey));
         return result === 'revoked';
     }
@@ -539,7 +432,7 @@ class TokenService {
 
         do {
             const [nextCursor, keys] = await this.executeRedis('scan blacklist keys', () =>
-                this.redis.scan(cursor, 'MATCH', 'blacklist:*', 'COUNT', 100)
+                this.redis.scan(cursor, 'MATCH', REDIS_KEY_PATTERNS.blacklistAll, 'COUNT', 100)
             );
             cursor = nextCursor;
 
