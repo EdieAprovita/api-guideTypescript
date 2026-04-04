@@ -1,7 +1,6 @@
 import * as jwt from 'jsonwebtoken';
 import type { Redis as RedisType } from 'ioredis';
-import { randomUUID, createHash } from 'crypto';
-import { TokenRevokedError, HttpError, HttpStatusCode } from '../types/Errors.js';
+import { createHash } from 'crypto';
 import logger from '../utils/logger.js';
 import { executeIfCircuitClosed, getRedisClient } from '../clients/redisClient.js';
 import type {
@@ -13,6 +12,13 @@ import type {
 } from './tokenService/tokenTypes.js';
 import { JWT_CONFIG, REDIS_KEY_PATTERNS, TOKEN_TTL } from './tokenService/tokenTypes.js';
 import { createMockRedis } from './tokenService/mockRedis.js';
+import { createTokenPayload, signToken, debugLog, debugError } from './tokenService/tokenGeneration.js';
+import {
+    buildVerifyToken,
+    verifyAccessTokenImpl,
+    verifyRefreshTokenImpl,
+    refreshTokensImpl,
+} from './tokenService/tokenVerification.js';
 
 class TokenService {
     private redis!: RedisType;
@@ -87,94 +93,52 @@ class TokenService {
         return value;
     }
 
-    private createTokenPayload(payload: TokenPayload): TokenPayload & { iat: number; jti: string } {
-        return {
-            ...payload,
-            iat: Math.floor(Date.now() / 1000),
-            jti: randomUUID(),
-        };
-    }
-
-    private signToken(payload: object, secret: string, expiresIn: string): string {
-        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-            logger.debug('TokenService.signToken called', {
-                payloadKeys: Object.keys(payload),
-                secretLength: secret.length,
-                expiresIn,
-                issuer: JWT_CONFIG.issuer,
-                audience: JWT_CONFIG.audience,
-            });
-        }
-
-        try {
-            const result = jwt.sign(payload, secret, {
-                expiresIn,
-                issuer: JWT_CONFIG.issuer,
-                audience: JWT_CONFIG.audience,
-                algorithm: JWT_CONFIG.algorithm,
-            } as jwt.SignOptions);
-
-            if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-                logger.debug('TokenService.signToken result', { generated: Boolean(result) });
-            }
-            return result;
-        } catch (error) {
-            if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-                logger.error('TokenService.signToken error', error as Error);
-            }
-            throw error;
-        }
-    }
-
-    private debugLog(message: string, ...optionalParams: any[]): void {
-        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-            logger.debug(`TokenService debug: ${message}`, { optionalParams });
-        }
-    }
-
-    private debugError(message: string, ...optionalParams: any[]): void {
-        if (process.env.DEBUG_TOKENS || process.env.DEBUG_TESTS) {
-            logger.error(`TokenService debug error: ${message}`, { optionalParams });
-        }
+    /**
+     * Core token verifier: validates JWT signature/claims then checks blacklist.
+     * Built via buildVerifyToken so the logic lives in tokenVerification.ts while
+     * the blacklist dependency (isTokenBlacklisted) is wired here in the class.
+     */
+    private verifyToken(token: string, secret: string): Promise<TokenPayload> {
+        return buildVerifyToken(t => this.isTokenBlacklisted(t))(token, secret);
     }
 
     async generateTokenPair(payload: TokenPayload): Promise<TokenPair> {
         this.ensureInitialized();
-        this.debugLog('generateTokenPair called with payload:', payload);
+        debugLog('generateTokenPair called with payload:', payload);
 
-        const tokenPayload = this.createTokenPayload(payload);
-        this.debugLog('Created token payload:', tokenPayload);
+        const tokenPayload = createTokenPayload(payload);
+        debugLog('Created token payload:', tokenPayload);
 
-        this.debugLog('About to sign access token...');
-        const accessToken = this.signToken(tokenPayload, this.accessTokenSecret!, this.accessTokenExpiry);
-        this.debugLog('Access token result:', accessToken ? 'GENERATED' : 'UNDEFINED');
+        debugLog('About to sign access token...');
+        const accessToken = signToken(tokenPayload, this.accessTokenSecret!, this.accessTokenExpiry, JWT_CONFIG);
+        debugLog('Access token result:', accessToken ? 'GENERATED' : 'UNDEFINED');
 
         const refreshPayload = { ...tokenPayload, type: 'refresh' as const };
-        this.debugLog('About to sign refresh token...');
-        const refreshToken = this.signToken(refreshPayload, this.refreshTokenSecret!, this.refreshTokenExpiry);
-        this.debugLog('Refresh token result:', refreshToken ? 'GENERATED' : 'UNDEFINED');
+        debugLog('About to sign refresh token...');
+        const refreshToken = signToken(refreshPayload, this.refreshTokenSecret!, this.refreshTokenExpiry, JWT_CONFIG);
+        debugLog('Refresh token result:', refreshToken ? 'GENERATED' : 'UNDEFINED');
 
         // Store refresh token in Redis using per-device key (H-17).
         // Key pattern: refresh_token:{userId}:{jti} — the jti from tokenPayload
         // uniquely identifies this session, enabling per-device revocation without
         // invalidating other active sessions for the same user.
         const refreshTokenKey = REDIS_KEY_PATTERNS.refreshToken(payload.userId, tokenPayload.jti);
-        this.debugLog('About to store in Redis with key:', refreshTokenKey);
+        debugLog('About to store in Redis with key:', refreshTokenKey);
 
         try {
             await this.executeRedis('store refresh token', () =>
                 this.redis.setex(refreshTokenKey, TOKEN_TTL.refreshTokenSeconds, refreshToken)
             );
-            this.debugLog('Successfully stored in Redis');
+            debugLog('Successfully stored in Redis');
         } catch (redisError) {
-            this.debugError('Redis error storing refresh token:', redisError);
+            debugError('Redis error storing refresh token:', redisError);
             // Fail-closed: if we can't persist the refresh token, the user won't be
             // able to refresh later. Better to fail now than issue an unusable pair.
             throw new Error('Unable to complete token generation — please try again later');
         }
 
         const result = { accessToken, refreshToken };
-        this.debugLog('Final result:', result);
+        debugLog('Final result:', result);
         return result;
     }
 
@@ -188,111 +152,31 @@ class TokenService {
         return this.generateTokenPair(payload);
     }
 
-    private async verifyToken(token: string, secret: string): Promise<TokenPayload> {
-        try {
-            // First verify the JWT signature and structure
-            const decoded = jwt.verify(token, secret, {
-                issuer: JWT_CONFIG.issuer,
-                audience: JWT_CONFIG.audience,
-                algorithms: [JWT_CONFIG.algorithm],
-            }) as TokenPayload;
-
-            // Check if token is blacklisted — fail-closed: reject token if Redis is unavailable
-            try {
-                const isBlacklisted = await this.isTokenBlacklisted(token);
-                if (isBlacklisted) {
-                    throw new TokenRevokedError();
-                }
-            } catch (redisError) {
-                // Re-throw intentional revocations (not Redis infrastructure failures)
-                if (redisError instanceof TokenRevokedError) {
-                    throw redisError;
-                }
-                // Fail-closed: if Redis is unavailable, reject the token for safety.
-                // A revoked token must never be accepted due to infrastructure failure.
-                logger.error('Redis blacklist check unavailable — rejecting token for safety', redisError as Error);
-                throw new HttpError(
-                    HttpStatusCode.SERVICE_UNAVAILABLE,
-                    'Token verification unavailable — please try again later'
-                );
-            }
-
-            return decoded;
-        } catch (error) {
-            if (error instanceof jwt.TokenExpiredError) {
-                throw new Error('Token has expired');
-            } else if (error instanceof jwt.NotBeforeError) {
-                throw new Error('Token not active yet');
-            } else if (error instanceof jwt.JsonWebTokenError) {
-                throw new Error(`JWT verification failed: ${error.message}`);
-            } else {
-                throw error;
-            }
-        }
-    }
-
     async verifyAccessToken(token: string): Promise<TokenPayload> {
         this.ensureInitialized();
-        try {
-            return await this.verifyToken(token, this.accessTokenSecret!);
-        } catch (error: unknown) {
-            // Preserve TokenRevokedError so errorHandler can map it to 401
-            if (error instanceof TokenRevokedError) {
-                throw error;
-            }
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            throw new Error(`Invalid or expired access token: ${message}`);
-        }
+        return verifyAccessTokenImpl(token, (t, s) => this.verifyToken(t, s), this.accessTokenSecret!);
     }
 
     async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
         this.ensureInitialized();
-        try {
-            const payload = (await this.verifyToken(token, this.refreshTokenSecret!)) as RefreshTokenPayload;
-
-            if (payload.type !== 'refresh') {
-                throw new Error('Invalid token type');
-            }
-
-            // Verify the token exists in Redis using the per-device key.
-            // The jti embedded in the payload identifies the exact session/device (H-17).
-            const jti = (payload as { jti?: string }).jti;
-            if (!jti) {
-                throw new Error('Refresh token missing jti');
-            }
-            const refreshTokenKey = REDIS_KEY_PATTERNS.refreshToken(payload.userId, jti);
-            const storedToken = await this.executeRedis('load refresh token', () => this.redis.get(refreshTokenKey));
-
-            if (!storedToken || storedToken !== token) {
-                throw new Error('Refresh token not found or invalid');
-            }
-
-            return payload;
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            throw new Error(`Invalid or expired refresh token: ${message}`);
-        }
+        return verifyRefreshTokenImpl(
+            token,
+            (t, s) => this.verifyToken(t, s),
+            this.refreshTokenSecret!,
+            (name, op) => this.executeRedis(name, op),
+            this.redis
+        );
     }
 
     async refreshTokens(refreshToken: string): Promise<TokenPair> {
-        const payload = await this.verifyRefreshToken(refreshToken);
-
-        // Blacklist old refresh token and revoke the specific per-device entry (H-17).
-        // revokeRefreshToken with a jti targets only this session's key.
-        const jti = (payload as { jti?: string }).jti;
-        await Promise.all([
-            this.blacklistToken(refreshToken),
-            jti
-                ? this.revokeRefreshTokenByKey(REDIS_KEY_PATTERNS.refreshToken(payload.userId, jti))
-                : this.revokeRefreshToken(payload.userId),
-        ]);
-
-        // Generate new token pair
-        return this.generateTokenPair({
-            userId: payload.userId,
-            email: payload.email,
-            ...(payload.role && { role: payload.role }),
-        });
+        return refreshTokensImpl(
+            refreshToken,
+            t => this.verifyRefreshToken(t),
+            p => this.generateTokenPair(p),
+            t => this.blacklistToken(t),
+            key => this.revokeRefreshTokenByKey(key),
+            userId => this.revokeRefreshToken(userId)
+        );
     }
 
     async blacklistToken(token: string): Promise<void> {
