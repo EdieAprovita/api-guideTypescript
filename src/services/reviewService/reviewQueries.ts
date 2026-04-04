@@ -74,10 +74,10 @@ export async function getReviewsByEntity(
             hasNext: page < totalPages,
             hasPrevious: page > 1,
         },
-    } as const;
+    };
 
     await cacheService.setWithTags(cacheKey, result, [`reviews:${entityType}:${entityId}`, 'reviews']);
-    return result as any;
+    return result;
 }
 
 export async function getReviewStats(entityType: string, entityId: string): Promise<ReviewStats> {
@@ -89,7 +89,8 @@ export async function getReviewStats(entityType: string, entityId: string): Prom
         return cached;
     }
 
-    // Use aggregation to align with tests and avoid heavy in-memory work
+    // Compute rating distribution inside the aggregation pipeline to avoid
+    // materialising an array of all ratings in application memory (O(n) payload).
     const agg = await Review.aggregate([
         {
             $match: buildReviewEntityMatch(entityType as ValidEntityType, entityId),
@@ -99,22 +100,28 @@ export async function getReviewStats(entityType: string, entityId: string): Prom
                 _id: null,
                 averageRating: { $avg: '$rating' },
                 totalReviews: { $sum: 1 },
-                ratingDistribution: { $push: '$rating' },
+                r1: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
+                r2: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
+                r3: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
+                r4: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
+                r5: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
             },
         },
     ]);
 
-    const base = agg[0] || { averageRating: 0, totalReviews: 0, ratingDistribution: [] as number[] };
-    const rd = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<1 | 2 | 3 | 4 | 5, number>;
-    (base.ratingDistribution as number[]).forEach(r => {
-        const key = Math.max(1, Math.min(5, Math.round(r))) as 1 | 2 | 3 | 4 | 5;
-        rd[key] = (rd[key] || 0) + 1;
-    });
+    const base = agg[0] ?? { averageRating: 0, totalReviews: 0, r1: 0, r2: 0, r3: 0, r4: 0, r5: 0 };
+    const ratingDistribution: Record<1 | 2 | 3 | 4 | 5, number> = {
+        1: (base.r1 as number) ?? 0,
+        2: (base.r2 as number) ?? 0,
+        3: (base.r3 as number) ?? 0,
+        4: (base.r4 as number) ?? 0,
+        5: (base.r5 as number) ?? 0,
+    };
 
     const stats: ReviewStats = {
-        totalReviews: base.totalReviews || 0,
-        averageRating: Math.round(((base.averageRating || 0) as number) * 100) / 100,
-        ratingDistribution: rd as any,
+        totalReviews: (base.totalReviews as number) ?? 0,
+        averageRating: Math.round(((base.averageRating as number) ?? 0) * 100) / 100,
+        ratingDistribution,
     };
 
     await cacheService.setWithTags(cacheKey, stats, [`reviews:${entityType}:${entityId}`, 'reviews']);
