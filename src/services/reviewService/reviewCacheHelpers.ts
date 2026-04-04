@@ -12,6 +12,10 @@ export async function invalidateReviewCache(
             await cache.invalidateByTag(`reviews:${entityType}:${entityId}`);
             // Secondary format used by listReviewsForModel
             await cache.invalidateByTag(`reviews:entity:${entityId}`);
+            // Type-level tag used by getTopRatedReviews (reviews:${normalizedType})
+            await cache.invalidateByTag(`reviews:${entityType}`);
+            // Global top-rated tag — any review mutation can affect top-rated rankings
+            await cache.invalidateByTag('top-rated');
             return;
         } catch (error) {
             if (attempt === 2) {
