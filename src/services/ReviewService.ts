@@ -1,7 +1,7 @@
 import { Review, IReview } from '../models/Review.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 import { cacheService } from './CacheService.js';
-import mongoose, { Types, startSession } from 'mongoose';
+import { Types, startSession } from 'mongoose';
 import logger from '../utils/logger.js';
 import {
     buildReviewEntityMatch,
@@ -11,194 +11,14 @@ import {
     VALID_ENTITY_TYPES,
     ValidEntityType,
 } from './reviewService/reviewPolicies.js';
-
-async function invalidateReviewCache(
-    entityType: string,
-    entityId: string,
-    cache: Pick<typeof cacheService, 'invalidateByTag'>
-): Promise<void> {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-            // Primary tag format used by getReviewsByEntity, getReviewStats, getReviewById, addReview
-            await cache.invalidateByTag(`reviews:${entityType}:${entityId}`);
-            // Secondary format used by listReviewsForModel
-            await cache.invalidateByTag(`reviews:entity:${entityId}`);
-            return;
-        } catch (error) {
-            if (attempt === 2) {
-                logger.warn('Cache invalidation failed after 2 attempts', {
-                    entityType,
-                    entityId,
-                    error: error instanceof Error ? error.message : String(error),
-                });
-                return;
-            }
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-    }
-}
-
-interface ReviewStats {
-    totalReviews: number;
-    averageRating: number;
-    ratingDistribution: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-    };
-}
-
-interface PaginationOptions {
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-}
-
-/**
- * Dynamically imports and returns the Mongoose model for a given entity type.
- * Returns null in test environment to avoid heavy module imports.
- */
-const getEntityModel = async (entityType: string): Promise<mongoose.Model<any> | null> => {
-    if (!VALID_ENTITY_TYPES.includes(entityType as ValidEntityType)) {
-        throw new HttpError(HttpStatusCode.BAD_REQUEST, `Invalid entity type: ${entityType}`);
-    }
-
-    // Skip dynamic imports in test environment to avoid mocking conflicts
-    if (process.env.NODE_ENV === 'test') return null;
-
-    switch (entityType as ValidEntityType) {
-        case 'Restaurant':
-            return (await import('../models/Restaurant.js')).Restaurant;
-        case 'Recipe':
-            return (await import('../models/Recipe.js')).Recipe;
-        case 'Market':
-            return (await import('../models/Market.js')).Market;
-        case 'Business':
-            return (await import('../models/Business.js')).Business;
-        case 'Doctor':
-            return (await import('../models/Doctor.js')).Doctor;
-        case 'Sanctuary':
-            return (await import('../models/Sanctuary.js')).Sanctuary;
-        default:
-            throw new HttpError(HttpStatusCode.BAD_REQUEST, `Invalid entity type: ${entityType}`);
-    }
-};
-
-const validateEntityTypeAndId = async (entityType: string, entityId: string): Promise<void> => {
-    if (!Types.ObjectId.isValid(entityId)) {
-        throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Invalid entity ID format');
-    }
-
-    const EntityModel = await getEntityModel(entityType);
-    if (!EntityModel) return; // test environment
-
-    const entity = await EntityModel.findById(entityId);
-    if (!entity) {
-        throw new HttpError(HttpStatusCode.NOT_FOUND, `${entityType} not found`);
-    }
-};
-
-/**
- * Recalculates and syncs the denormalized rating and numReviews fields on the
- * parent entity after any review mutation.
- *
- * Uses aggregation to compute the average rating and count, then updates the
- * entity document atomically. When no reviews remain, resets to defaults (0, 0).
- */
-const recalculateEntityRating = async (
-    entityType: string,
-    entityId: string,
-    session?: mongoose.ClientSession
-): Promise<void> => {
-    const EntityModel = await getEntityModel(entityType);
-    if (!EntityModel) return; // test environment
-
-    if (!entityId || !Types.ObjectId.isValid(entityId)) {
-        logger.warn('Skipping rating recalculation: invalid entity ID', { entityType, entityId });
-        return;
-    }
-
-    const safeEntityId = new Types.ObjectId(entityId);
-
-    // Single aggregation pipeline to compute avgRating and count atomically
-    const pipeline = [
-        { $match: buildReviewEntityMatch(entityType, safeEntityId) },
-        {
-            $group: {
-                _id: null,
-                avgRating: { $avg: '$rating' },
-                count: { $sum: 1 },
-            },
-        },
-    ];
-
-    const aggregationResult = session
-        ? await Review.aggregate(pipeline).session(session)
-        : await Review.aggregate(pipeline);
-
-    const stats = aggregationResult[0];
-    const avgRating = stats ? Math.round(stats.avgRating * 10) / 10 : 0;
-    const count = stats ? stats.count : 0;
-
-    // Only denormalize rating and numReviews — the full review list is queried
-    // from the Review collection directly when needed (avoids unbounded array growth)
-    const updateOpts = session ? { session } : {};
-    await EntityModel.findByIdAndUpdate(entityId, { rating: avgRating, numReviews: count }, updateOpts);
-
-    // NOTE: callers are responsible for logging after the transaction commits
-    // to avoid duplicate log entries on Mongoose transaction retries.
-};
-
-const buildReviewListCacheKey = (
-    entityType: string,
-    entityId: string,
-    page: number,
-    limit: number,
-    sortField: string,
-    rating?: number
-): string => {
-    const parts = [`p=${page}`, `l=${limit}`];
-    if (typeof rating === 'number') parts.push(`r=${rating}`);
-    parts.push(`s=${sortField}`);
-    return `reviews:${entityType}:${entityId}:` + parts.join('&');
-};
-
-const extractPaginationParams = (filters: ReviewFilters, pagination: PaginationOptions) => {
-    const page = Math.max(1, pagination.page ?? filters.page ?? 1);
-    const limit = Math.min(100, Math.max(1, pagination.limit ?? filters.limit ?? 10));
-    return { page, limit };
-};
-
-const extractSortParams = (filters: ReviewFilters, pagination: PaginationOptions) => {
-    const sortRaw: string | undefined = (pagination as any).sortBy ?? filters.sort ?? undefined;
-    const sortFieldRaw = typeof sortRaw === 'string' ? sortRaw : undefined;
-    const sortIsDesc = sortFieldRaw?.startsWith('-') ?? false;
-    const sortFieldClean = sortFieldRaw?.replace(/^-/, '') || undefined;
-    const allowedSortFields = new Set(['rating', 'createdAt', 'helpfulCount', 'visitDate']);
-    const sortField = sortFieldClean && allowedSortFields.has(sortFieldClean) ? sortFieldClean : 'createdAt';
-
-    let sortDir: 1 | -1;
-    if (sortIsDesc) {
-        sortDir = -1;
-    } else if (pagination.sortOrder === 'asc') {
-        sortDir = 1;
-    } else {
-        sortDir = -1;
-    }
-
-    return { sortField, sortDir };
-};
-
-const extractRatingForKey = (filters: ReviewFilters): number | undefined => {
-    const prelimRating = filters.rating;
-    if (typeof prelimRating === 'number') {
-        return Math.max(1, Math.min(5, prelimRating));
-    }
-    return undefined;
-};
+import { ReviewStats, PaginationOptions } from './reviewService/reviewTypes.js';
+import { invalidateReviewCache, buildReviewListCacheKey } from './reviewService/reviewCacheHelpers.js';
+import {
+    extractPaginationParams,
+    extractSortParams,
+    extractRatingForKey,
+} from './reviewService/reviewPaginationHelpers.js';
+import { validateEntityTypeAndId, recalculateEntityRating } from './reviewService/reviewEntityHelpers.js';
 
 export const reviewService = {
     async getReviewsByEntity(
@@ -315,7 +135,7 @@ export const reviewService = {
 
         await validateEntityTypeAndId(reviewData.entityType, reviewData.entity.toString());
 
-        if (!reviewData.author || !mongoose.Types.ObjectId.isValid(reviewData.author.toString())) {
+        if (!reviewData.author || !Types.ObjectId.isValid(reviewData.author.toString())) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Valid author ID is required');
         }
 
