@@ -4,6 +4,9 @@ import { JWT_CONFIG, REDIS_KEY_PATTERNS } from './tokenTypes.js';
 import logger from '../../utils/logger.js';
 import { TokenRevokedError, HttpError, HttpStatusCode } from '../../types/Errors.js';
 import * as jwt from 'jsonwebtoken';
+import { revokeRefreshToken as revokeRefreshTokenFallback } from './tokenBlacklist.js';
+
+type ExecuteRedis = <T>(name: string, op: () => Promise<T>) => Promise<T>;
 
 /** Performs raw JWT verification plus blacklist check; returns the decoded payload. */
 type VerifyFn = (token: string, secret: string) => Promise<TokenPayload>;
@@ -13,12 +16,10 @@ type GenerateFn = (payload: TokenPayload) => Promise<TokenPair>;
 
 /**
  * Revokes a single per-device refresh token by its exact Redis key.
- * Will be satisfied by revokeRefreshTokenByKey from tokenBlacklist.ts (PR-T3).
+ * Satisfied by revokeRefreshTokenByKey from tokenBlacklist.ts (PR-T3).
+ * Receives executeRedis and redis to avoid class coupling.
  */
-type RevokeByKeyFn = (key: string) => Promise<void>;
-
-/** Scan-based full revocation for a user (fallback when jti is absent, H-17). */
-type RevokeAllForUserFn = (userId: string) => Promise<void>;
+type RevokeByKeyFn = (key: string, executeRedis: ExecuteRedis, redis: RedisType) => Promise<void>;
 
 /**
  * Builds the core verifyToken helper used by both verifyAccessTokenImpl and
@@ -133,33 +134,34 @@ export async function verifyRefreshTokenImpl(
  * or full-user scan fallback), then generates and returns a new token pair.
  *
  * Dependency injection avoids coupling to blacklist or generation modules.
- * PR-T3 will supply revokeByKeyFn from tokenBlacklist.ts.
+ * revokeByKeyFn is supplied from tokenBlacklist.ts (PR-T3).
  *
  * @param verifyRefreshFn - Pre-bound verifyRefreshToken (handles JWT + Redis lookup)
  * @param generateFn      - Pre-bound generateTokenPair
  * @param blacklistFn     - Pre-bound blacklistToken
  * @param revokeByKeyFn   - Revoke a single per-device key (jti path, H-17)
- * @param revokeAllForUserFn - Scan-revoke all sessions (fallback when jti absent)
+ * @param executeRedis    - Circuit-breaker-aware Redis executor from TokenService
+ * @param redis           - Raw Redis client (passed through to revokeByKeyFn)
  */
 export async function refreshTokensImpl(
     refreshToken: string,
     verifyRefreshFn: (token: string) => Promise<RefreshTokenPayload>,
     generateFn: GenerateFn,
-    blacklistFn: (token: string) => Promise<void>,
     revokeByKeyFn: RevokeByKeyFn,
-    revokeAllForUserFn: RevokeAllForUserFn
+    executeRedis: ExecuteRedis,
+    redis: RedisType
 ): Promise<TokenPair> {
     const payload = await verifyRefreshFn(refreshToken);
 
     // Blacklist old refresh token and revoke the per-device entry (H-17).
     const jti = (payload as { jti?: string }).jti;
-    await Promise.all([
-        blacklistFn(refreshToken),
-        jti
-            ? revokeByKeyFn(REDIS_KEY_PATTERNS.refreshToken(payload.userId, jti))
-            : // Fallback: jti absent → scan-revoke all sessions for this user
-              revokeAllForUserFn(payload.userId),
-    ]);
+
+    if (jti) {
+        await revokeByKeyFn(REDIS_KEY_PATTERNS.refreshToken(payload.userId, jti), executeRedis, redis);
+    } else {
+        // Fallback: jti absent → scan-revoke all sessions for this user.
+        await revokeRefreshTokenFallback(payload.userId, executeRedis, redis);
+    }
 
     return generateFn({
         userId: payload.userId,
