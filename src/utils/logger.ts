@@ -74,8 +74,9 @@ if (shouldUseFileLogging) {
             fs.mkdirSync(logsDir, { recursive: true });
         }
         canWriteLogs = true;
-    } catch (error) {
-        console.warn('⚠️  Unable to create logs directory, using console-only logging');
+    } catch {
+        // Pre-logger fallback: process.stderr is safe before the logger is initialised
+        process.stderr.write('[logger] Unable to create logs directory, using console-only logging\n');
         canWriteLogs = false;
     }
 }
@@ -144,11 +145,15 @@ const logger = winston.createLogger({
 // Export as default and also individual methods
 export default logger;
 
+// Structured metadata type — a plain record with any JSON-serialisable values.
+// Using `Record<string, unknown>` keeps strict typing while remaining flexible.
+export type LogMeta = Record<string, unknown>;
+
 // Export typed convenience methods
-export const logInfo = (message: string, meta?: any) => logger.info(message, meta);
+export const logInfo = (message: string, meta?: LogMeta) => logger.info(message, meta);
 
 // Helper function to process errors
-const processError = (message: string, error?: Error | string, meta?: any) => {
+const processError = (message: string, error?: Error | string, meta?: LogMeta) => {
     if (error instanceof Error) {
         logger.error(message, { error: error.message, stack: error.stack, ...meta });
     } else {
@@ -156,10 +161,10 @@ const processError = (message: string, error?: Error | string, meta?: any) => {
     }
 };
 
-export const logError = (message: string, error?: Error | string, meta?: any) => processError(message, error, meta);
+export const logError = (message: string, error?: Error | string, meta?: LogMeta) => processError(message, error, meta);
 
-export const logWarn = (message: string, meta?: any) => logger.warn(message, meta);
-export const logDebug = (message: string, meta?: any) => logger.debug(message, meta);
+export const logWarn = (message: string, meta?: LogMeta) => logger.warn(message, meta);
+export const logDebug = (message: string, meta?: LogMeta) => logger.debug(message, meta);
 
 /**
  * Logs a fatal error. By default, exits the process unless in 'test' environment or shouldExit is false.
@@ -168,7 +173,7 @@ export const logDebug = (message: string, meta?: any) => logger.debug(message, m
  * @param meta Optional metadata
  * @param shouldExit Whether to exit the process (default: true)
  */
-export const logFatal = (message: string, error?: Error, meta?: any, shouldExit: boolean = true) => {
+export const logFatal = (message: string, error?: Error, meta?: LogMeta, shouldExit: boolean = true) => {
     processError(message, error, meta);
     if (shouldExit && process.env.NODE_ENV !== 'test') {
         process.exit(1);

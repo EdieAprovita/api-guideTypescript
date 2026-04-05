@@ -109,8 +109,10 @@ app.use(addCorrelationId);
 app.use(requestLogger);
 
 // Health check endpoints mounted BEFORE requireAPIVersion so probes are never
-// blocked by API-version enforcement (M-02: health routes bypass requireAPIVersion)
+// blocked by API-version enforcement (M-02: health routes bypass requireAPIVersion).
+// /api/v1/health is the Sprint-3 versioned alias — same router, second mount.
 app.use('/health', healthRoutes);
+app.use('/api/v1/health', healthRoutes);
 
 // Enhanced security middleware configuration
 app.use(enforceHTTPS); // Force HTTPS in production

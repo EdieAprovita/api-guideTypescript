@@ -243,3 +243,110 @@ describe('GET /health/deep — auth guard (H-01)', () => {
         expect(response.status).toBe(401);
     });
 });
+
+// ---------------------------------------------------------------------------
+// B3-03: GET /health/v1 — Sprint-3 versioned liveness endpoint
+// ---------------------------------------------------------------------------
+
+describe('GET /health/v1 (Sprint-3 contract)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('returns 200 with status "ok" and services mongo/redis "ok" when both are up', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        vi.mocked(cacheService.ping).mockResolvedValue(true);
+
+        const response = await request(app).get('/health/v1').expect(200);
+
+        expect(response.body).toMatchObject({
+            status: 'ok',
+            services: { mongo: 'ok', redis: 'ok' },
+        });
+        expect(typeof response.body.uptime).toBe('number');
+        expect(response.body.timestamp).toBeDefined();
+    });
+
+    it('returns 503 with status "degraded" and redis "down" when Redis is unavailable', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        vi.mocked(cacheService.ping).mockResolvedValue(false);
+
+        const response = await request(app).get('/health/v1').expect(503);
+
+        expect(response.body).toMatchObject({
+            status: 'degraded',
+            services: { mongo: 'ok', redis: 'down' },
+        });
+    });
+
+    it('returns 503 with status "degraded" and mongo "down" when MongoDB is disconnected', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+
+        (mongoose.connection as { readyState: number }).readyState = 0;
+        vi.mocked(cacheService.ping).mockResolvedValue(true);
+
+        const response = await request(app).get('/health/v1').expect(503);
+
+        expect(response.body).toMatchObject({
+            status: 'degraded',
+            services: { mongo: 'down', redis: 'ok' },
+        });
+    });
+
+    it('returns 503 with both services "down" when both are unavailable', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+
+        (mongoose.connection as { readyState: number }).readyState = 0;
+        vi.mocked(cacheService.ping).mockResolvedValue(false);
+
+        const response = await request(app).get('/health/v1').expect(503);
+
+        expect(response.body).toMatchObject({
+            status: 'degraded',
+            services: { mongo: 'down', redis: 'down' },
+        });
+    });
+
+    it('completes within 2500 ms even when Redis hangs indefinitely (2 s bounded ping)', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        // Simulate a hung Redis connection — never resolves
+        vi.mocked(cacheService.ping).mockReturnValue(new Promise(() => {}));
+
+        const start = Date.now();
+        const response = await request(app).get('/health/v1');
+        const elapsed = Date.now() - start;
+
+        expect(elapsed).toBeLessThan(2_500);
+        expect(response.status).toBe(503);
+        expect(response.body.services.redis).toBe('down');
+    });
+
+    it('does NOT require authentication', async () => {
+        // Reset protect mock to ensure it would block if called
+        vi.mocked(authMiddleware.protect).mockImplementationOnce(
+            (_req: Request, res: Response, _next: NextFunction) => {
+                res.status(401).json({ success: false, message: 'Not authorized' });
+            }
+        );
+
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        vi.mocked(cacheService.ping).mockResolvedValue(true);
+
+        // /health/v1 must NOT invoke protect — it should succeed even when protect would block
+        const response = await request(app).get('/health/v1');
+        expect(response.status).toBe(200);
+    });
+});

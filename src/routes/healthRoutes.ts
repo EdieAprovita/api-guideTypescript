@@ -5,6 +5,18 @@ import { cacheService } from '../services/CacheService.js';
 import { getCircuitBreakerState, checkAndAdvanceState } from '../clients/redisClient.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
+// Bounded ping helper: resolves false after `timeoutMs` so a stalled
+// connection cannot hold the probe open indefinitely.
+async function pingWithTimeout(timeoutMs: number): Promise<boolean> {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return Promise.race([
+        cacheService.ping().finally(() => clearTimeout(timeoutId)),
+        new Promise<boolean>(resolve => {
+            timeoutId = setTimeout(() => resolve(false), timeoutMs);
+        }),
+    ]);
+}
+
 const router = express.Router();
 
 /**
@@ -52,19 +64,7 @@ router.get('/ready', async (_req: Request, res: Response) => {
         logger.debug('Readiness probe requested');
 
         const mongoConnected = mongoose.connection.readyState === 1;
-        // Bounded ping: resolves false after 500 ms so a stalled Redis connection
-        // cannot hold the probe open past the Kubernetes failureThreshold window.
-        const redisPingWithTimeout = (): Promise<boolean> => {
-            let timeoutId: ReturnType<typeof setTimeout>;
-            return Promise.race([
-                cacheService.ping().finally(() => clearTimeout(timeoutId)),
-                new Promise<boolean>(resolve => {
-                    timeoutId = setTimeout(() => resolve(false), 500);
-                }),
-            ]);
-        };
-
-        const redisConnected = await redisPingWithTimeout();
+        const redisConnected = await pingWithTimeout(500);
         const ready = mongoConnected && redisConnected;
 
         if (ready) {
@@ -109,12 +109,7 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
         logger.debug('Deep health check requested');
 
         const mongoConnected = mongoose.connection.readyState === 1;
-
-        // Bounded Redis ping: resolves false after 500 ms
-        const redisConnected = await Promise.race([
-            cacheService.ping(),
-            new Promise<boolean>(resolve => setTimeout(() => resolve(false), 500)),
-        ]);
+        const redisConnected = await pingWithTimeout(500);
 
         checkAndAdvanceState();
         const circuitBreaker = getCircuitBreakerState();
@@ -159,6 +154,53 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
             status: 'unhealthy',
             message: 'Health check failed',
             timestamp: new Date().toISOString(),
+        });
+    }
+});
+
+/**
+ * @description Versioned liveness + service health endpoint.
+ * Returns a normalised payload conforming to the Sprint-3 contract:
+ *   { status, uptime, timestamp, services: { mongo: 'ok'|'down', redis: 'ok'|'down' } }
+ * Redis ping is bounded to 2 s so this endpoint degrades gracefully.
+ * No authentication required — safe for external load-balancer probes.
+ * @route GET /v1
+ */
+router.get('/v1', async (_req: Request, res: Response) => {
+    try {
+        logger.debug('v1 health check requested');
+
+        const isMongoUp = mongoose.connection.readyState === 1;
+        const isRedisUp = await pingWithTimeout(2_000);
+
+        const allUp = isMongoUp && isRedisUp;
+
+        const payload = {
+            status: allUp ? 'ok' : 'degraded',
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+            services: {
+                mongo: isMongoUp ? ('ok' as const) : ('down' as const),
+                redis: isRedisUp ? ('ok' as const) : ('down' as const),
+            },
+        };
+
+        logger.info('v1 health check completed', {
+            status: payload.status,
+            mongo: payload.services.mongo,
+            redis: payload.services.redis,
+        });
+
+        res.status(allUp ? 200 : 503).json(payload);
+    } catch (error) {
+        logger.error('v1 health check failed', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        res.status(503).json({
+            status: 'error',
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+            services: { mongo: 'down', redis: 'down' },
         });
     }
 });
