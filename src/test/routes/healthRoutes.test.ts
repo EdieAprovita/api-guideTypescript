@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import healthRoutes from '../../routes/healthRoutes.js';
+import healthRoutes, { healthV1Router } from '../../routes/healthRoutes.js';
 import * as authMiddleware from '../../middleware/authMiddleware.js';
 
 // ---------------------------------------------------------------------------
@@ -50,12 +50,19 @@ vi.mock('../../middleware/authMiddleware.js', () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Test app
+// Test apps
 // ---------------------------------------------------------------------------
 
 const app = express();
 app.use(express.json());
 app.use('/health', healthRoutes);
+
+// Mirrors the production mount in app.ts — used by B-C3 tests to catch
+// routing regressions on the /api/v1/health alias specifically.
+const apiApp = express();
+apiApp.use(express.json());
+apiApp.use('/health', healthRoutes);
+apiApp.use('/api/v1/health', healthV1Router);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -348,5 +355,51 @@ describe('GET /health/v1 (Sprint-3 contract)', () => {
         // /health/v1 must NOT invoke protect — it should succeed even when protect would block
         const response = await request(app).get('/health/v1');
         expect(response.status).toBe(200);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// B-C3: GET /api/v1/health — routing alias must serve the Sprint-3 contract
+// These tests hit the /api/v1/health path (not /health/v1) to catch future
+// regressions in the healthV1Router mount in app.ts.
+// ---------------------------------------------------------------------------
+
+describe('GET /api/v1/health (B-C3 routing alias)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('returns 200 with Sprint-3 contract payload when all services are up', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        vi.mocked(cacheService.ping).mockResolvedValue(true);
+
+        const response = await request(apiApp).get('/api/v1/health').expect(200);
+
+        expect(response.body).toMatchObject({
+            status: 'ok',
+            services: { mongo: 'ok', redis: 'ok' },
+        });
+        expect(typeof response.body.uptime).toBe('number');
+        expect(typeof response.body.timestamp).toBe('string');
+    });
+
+    it('returns 503 with status "degraded" when Redis ping times out', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        // Simulate Redis ping timeout — never resolves, bounded at 2 s
+        vi.mocked(cacheService.ping).mockReturnValue(new Promise(() => {}));
+
+        const response = await request(apiApp).get('/api/v1/health');
+
+        expect(response.status).toBe(503);
+        expect(response.body).toMatchObject({
+            status: 'degraded',
+            services: { mongo: 'ok', redis: 'down' },
+        });
     });
 });

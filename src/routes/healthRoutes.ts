@@ -159,14 +159,12 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
 });
 
 /**
- * @description Versioned liveness + service health endpoint.
- * Returns a normalised payload conforming to the Sprint-3 contract:
- *   { status, uptime, timestamp, services: { mongo: 'ok'|'down', redis: 'ok'|'down' } }
- * Redis ping is bounded to 2 s so this endpoint degrades gracefully.
+ * Sprint-3 contract handler — shared by both `/health/v1` and `/api/v1/health`.
+ * Returns { status, uptime, timestamp, services: { mongo, redis } }.
+ * Redis ping is bounded to 2 s so the endpoint degrades gracefully.
  * No authentication required — safe for external load-balancer probes.
- * @route GET /v1
  */
-router.get('/v1', async (_req: Request, res: Response) => {
+async function sprint3HealthHandler(_req: Request, res: Response): Promise<void> {
     try {
         logger.debug('v1 health check requested');
 
@@ -185,11 +183,20 @@ router.get('/v1', async (_req: Request, res: Response) => {
             },
         };
 
-        logger.info('v1 health check completed', {
-            status: payload.status,
-            mongo: payload.services.mongo,
-            redis: payload.services.redis,
-        });
+        // B-C2: reduce log volume — debug on success, warn on degraded
+        if (payload.status === 'ok') {
+            logger.debug('v1 health check completed', {
+                status: payload.status,
+                mongo: payload.services.mongo,
+                redis: payload.services.redis,
+            });
+        } else {
+            logger.warn('v1 health check completed', {
+                status: payload.status,
+                mongo: payload.services.mongo,
+                redis: payload.services.redis,
+            });
+        }
 
         res.status(allUp ? 200 : 503).json(payload);
     } catch (error) {
@@ -203,6 +210,21 @@ router.get('/v1', async (_req: Request, res: Response) => {
             services: { mongo: 'down', redis: 'down' },
         });
     }
-});
+}
 
+/**
+ * @description Versioned liveness + service health endpoint.
+ * @route GET /v1
+ */
+router.get('/v1', sprint3HealthHandler);
+
+/**
+ * Dedicated sub-router for the `/api/v1/health` alias (B-C1).
+ * Exposes ONLY the Sprint-3 contract at `/` so that mounting at
+ * `/api/v1/health` routes correctly without colliding with the legacy `/health` handler.
+ */
+const healthV1Router = express.Router();
+healthV1Router.get('/', sprint3HealthHandler);
+
+export { healthV1Router };
 export default router;
