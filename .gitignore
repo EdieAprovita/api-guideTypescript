@@ -240,3 +240,4 @@ lerna-debug.log*
 
 logs/
 *.log
+.claude/worktrees/
