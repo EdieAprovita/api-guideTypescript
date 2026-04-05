@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import logger from '../../utils/logger.js';
 
 describe('Logger Module Tests', () => {
@@ -97,6 +97,61 @@ describe('Logger Module Tests', () => {
                 logger.info('Test with undefined', undefined);
                 logger.info('Test with null', null);
             }).not.toThrow();
+        });
+    });
+
+    describe('Convenience exports (B3-01: typed, no any)', () => {
+        // These tests import the actual logger module (bypassing vi.mock) so they
+        // exercise the real convenience functions rather than the global test mock.
+
+        it('logInfo accepts a message without meta', async () => {
+            const { logInfo } = await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            expect(() => logInfo('info message')).not.toThrow();
+        });
+
+        it('logInfo accepts a message with LogMeta', async () => {
+            const { logInfo } = await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            expect(() => logInfo('info with meta', { correlationId: 'abc-123', userId: 42 })).not.toThrow();
+        });
+
+        it('logWarn accepts a message with LogMeta', async () => {
+            const { logWarn } = await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            expect(() => logWarn('warn message', { reason: 'rate-limit' })).not.toThrow();
+        });
+
+        it('logError accepts an Error instance', async () => {
+            const { logError } = await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            expect(() => logError('error message', new Error('boom'))).not.toThrow();
+        });
+
+        it('logError accepts a string error', async () => {
+            const { logError } = await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            expect(() => logError('error message', 'string-error')).not.toThrow();
+        });
+
+        it('logDebug accepts a message with LogMeta', async () => {
+            const { logDebug } = await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            expect(() => logDebug('debug message', { query: 'SELECT 1', duration: 5 })).not.toThrow();
+        });
+
+        it('logFatal does not call process.exit in test environment', async () => {
+            const { logFatal } = await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            // In NODE_ENV=test, logFatal must NOT exit regardless of shouldExit flag
+            expect(() => logFatal('fatal — test env', new Error('fatal error'), {}, true)).not.toThrow();
+        });
+
+        it('actual logger defaultMeta includes service name', async () => {
+            const { logger: realLogger } =
+                await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            // Winston exposes defaultMeta directly on the logger instance
+            const loggerAny = realLogger as unknown as { defaultMeta?: { service?: string } };
+            expect(loggerAny.defaultMeta?.service).toBe('api-guide-typescript');
+        });
+
+        it('actual logger has at least one transport configured', async () => {
+            const { logger: realLogger } =
+                await vi.importActual<typeof import('../../utils/logger.js')>('../../utils/logger.js');
+            expect(realLogger.transports.length).toBeGreaterThan(0);
         });
     });
 

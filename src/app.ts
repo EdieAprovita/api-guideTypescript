@@ -37,7 +37,7 @@ import sanctuaryRoutes from './routes/sanctuaryRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import cacheRoutes from './routes/cacheRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
-import healthRoutes from './routes/healthRoutes.js';
+import healthRoutes, { healthV1Router } from './routes/healthRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
 import swaggerUi, { JsonObject } from 'swagger-ui-express';
 import yaml from 'js-yaml';
@@ -109,8 +109,12 @@ app.use(addCorrelationId);
 app.use(requestLogger);
 
 // Health check endpoints mounted BEFORE requireAPIVersion so probes are never
-// blocked by API-version enforcement (M-02: health routes bypass requireAPIVersion)
+// blocked by API-version enforcement (M-02: health routes bypass requireAPIVersion).
+// /api/v1/health is the Sprint-3 versioned alias — uses a dedicated sub-router
+// (healthV1Router) that exposes only the Sprint-3 contract at its root so that
+// GET /api/v1/health hits the correct handler, not the legacy GET / handler (B-C1).
 app.use('/health', healthRoutes);
+app.use('/api/v1/health', healthV1Router);
 
 // Enhanced security middleware configuration
 app.use(enforceHTTPS); // Force HTTPS in production
