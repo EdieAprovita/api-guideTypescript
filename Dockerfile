@@ -39,9 +39,9 @@ RUN npm update -g npm && \
     npm cache clean --force && \
     rm -rf /tmp/*
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/swagger.yaml ./
+# Copy built application from builder stage (no --chown: files owned by root, read-only for nodejs user)
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/swagger.yaml ./
 
 # Copy healthcheck script
 COPY healthcheck.cjs ./

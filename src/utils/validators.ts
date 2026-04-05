@@ -347,6 +347,16 @@ export const searchSchemas = {
     }),
 };
 
+// Admin review query schema
+export const reviewAdminQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(50).default(20),
+    resourceType: Joi.string().valid('restaurant', 'recipe', 'market', 'doctor', 'business', 'sanctuary').optional(),
+    minRating: Joi.number().integer().min(1).max(5).optional(),
+    sortBy: Joi.string().valid('newest', 'oldest', 'rating', 'helpful').default('newest'),
+    search: Joi.string().max(200).optional(),
+});
+
 // Parameter schemas
 export const paramSchemas = {
     id: Joi.object({

@@ -1,14 +1,17 @@
 import express from 'express';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
-import { reviewSchemas, paramSchemas } from '../utils/validators.js';
-import { getReviewById, updateReview, deleteReview } from '../controllers/reviewControllers.js';
+import { reviewSchemas, paramSchemas, reviewAdminQuerySchema } from '../utils/validators.js';
+import { getReviewById, updateReview, deleteReview, getAllReviews } from '../controllers/reviewControllers.js';
 import { reviewService as ReviewService } from '../services/ReviewService.js';
 
 import asyncHandler from '../middleware/asyncHandler.js';
 import { HttpError, HttpStatusCode } from '../types/Errors.js';
 
 const router = express.Router();
+
+// GET / — list all reviews (admin only, paginated + filtered)
+router.get('/', rateLimits.api, protect, admin, validate({ query: reviewAdminQuerySchema }), getAllReviews);
 
 // Get review by ID
 router.get('/:id', rateLimits.api, validate({ params: paramSchemas.id }), getReviewById);
