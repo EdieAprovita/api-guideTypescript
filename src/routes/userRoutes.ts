@@ -2,7 +2,13 @@ import express from 'express';
 import Joi from 'joi';
 import { protect, admin, checkOwnership } from '../middleware/authMiddleware.js';
 import { validate, rateLimits, validateInputLength } from '../middleware/validation.js';
-import { userSchemas, paramSchemas, querySchemas, commonSchemas, createPasswordSchema } from '../utils/validators.js';
+import {
+    userSchemas,
+    paramSchemas,
+    commonSchemas,
+    createPasswordSchema,
+    userListQuerySchema,
+} from '../utils/validators.js';
 import {
     registerUser,
     loginUser,
@@ -22,7 +28,7 @@ import {
 const router = express.Router();
 
 // Routes with validation and rate limiting
-router.get('/', rateLimits.api, protect, admin, validate({ query: querySchemas.search }), getUsers);
+router.get('/', rateLimits.api, protect, admin, validate({ query: userListQuerySchema }), getUsers);
 
 router.get('/profile', rateLimits.api, protect, getCurrentUserProfile);
 
