@@ -158,11 +158,11 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
  */
 
 export const getReviewById = asyncHandler(async (req: Request, res: Response) => {
-    const { reviewId } = req.params;
-    if (!reviewId) {
+    const { id } = req.params;
+    if (!id) {
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
-    const review = await ReviewService.getReviewById(reviewId);
+    const review = await ReviewService.getReviewById(id);
     res.status(200).json({ success: true, data: review });
 });
 
