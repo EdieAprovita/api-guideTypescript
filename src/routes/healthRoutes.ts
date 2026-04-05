@@ -5,6 +5,18 @@ import { cacheService } from '../services/CacheService.js';
 import { getCircuitBreakerState, checkAndAdvanceState } from '../clients/redisClient.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
+// Bounded ping helper: resolves false after `timeoutMs` so a stalled
+// connection cannot hold the probe open indefinitely.
+async function pingWithTimeout(timeoutMs: number): Promise<boolean> {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return Promise.race([
+        cacheService.ping().finally(() => clearTimeout(timeoutId)),
+        new Promise<boolean>(resolve => {
+            timeoutId = setTimeout(() => resolve(false), timeoutMs);
+        }),
+    ]);
+}
+
 const router = express.Router();
 
 /**
@@ -52,19 +64,7 @@ router.get('/ready', async (_req: Request, res: Response) => {
         logger.debug('Readiness probe requested');
 
         const mongoConnected = mongoose.connection.readyState === 1;
-        // Bounded ping: resolves false after 500 ms so a stalled Redis connection
-        // cannot hold the probe open past the Kubernetes failureThreshold window.
-        const redisPingWithTimeout = (): Promise<boolean> => {
-            let timeoutId: ReturnType<typeof setTimeout>;
-            return Promise.race([
-                cacheService.ping().finally(() => clearTimeout(timeoutId)),
-                new Promise<boolean>(resolve => {
-                    timeoutId = setTimeout(() => resolve(false), 500);
-                }),
-            ]);
-        };
-
-        const redisConnected = await redisPingWithTimeout();
+        const redisConnected = await pingWithTimeout(500);
         const ready = mongoConnected && redisConnected;
 
         if (ready) {
@@ -109,12 +109,7 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
         logger.debug('Deep health check requested');
 
         const mongoConnected = mongoose.connection.readyState === 1;
-
-        // Bounded Redis ping: resolves false after 500 ms
-        const redisConnected = await Promise.race([
-            cacheService.ping(),
-            new Promise<boolean>(resolve => setTimeout(() => resolve(false), 500)),
-        ]);
+        const redisConnected = await pingWithTimeout(500);
 
         checkAndAdvanceState();
         const circuitBreaker = getCircuitBreakerState();
@@ -163,4 +158,73 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
     }
 });
 
+/**
+ * Sprint-3 contract handler — shared by both `/health/v1` and `/api/v1/health`.
+ * Returns { status, uptime, timestamp, services: { mongo, redis } }.
+ * Redis ping is bounded to 2 s so the endpoint degrades gracefully.
+ * No authentication required — safe for external load-balancer probes.
+ */
+async function sprint3HealthHandler(_req: Request, res: Response): Promise<void> {
+    try {
+        logger.debug('v1 health check requested');
+
+        const isMongoUp = mongoose.connection.readyState === 1;
+        const isRedisUp = await pingWithTimeout(2_000);
+
+        const allUp = isMongoUp && isRedisUp;
+
+        const payload = {
+            status: allUp ? 'ok' : 'degraded',
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+            services: {
+                mongo: isMongoUp ? ('ok' as const) : ('down' as const),
+                redis: isRedisUp ? ('ok' as const) : ('down' as const),
+            },
+        };
+
+        // B-C2: reduce log volume — debug on success, warn on degraded
+        if (payload.status === 'ok') {
+            logger.debug('v1 health check completed', {
+                status: payload.status,
+                mongo: payload.services.mongo,
+                redis: payload.services.redis,
+            });
+        } else {
+            logger.warn('v1 health check completed', {
+                status: payload.status,
+                mongo: payload.services.mongo,
+                redis: payload.services.redis,
+            });
+        }
+
+        res.status(allUp ? 200 : 503).json(payload);
+    } catch (error) {
+        logger.error('v1 health check failed', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        res.status(503).json({
+            status: 'error',
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+            services: { mongo: 'down', redis: 'down' },
+        });
+    }
+}
+
+/**
+ * @description Versioned liveness + service health endpoint.
+ * @route GET /v1
+ */
+router.get('/v1', sprint3HealthHandler);
+
+/**
+ * Dedicated sub-router for the `/api/v1/health` alias (B-C1).
+ * Exposes ONLY the Sprint-3 contract at `/` so that mounting at
+ * `/api/v1/health` routes correctly without colliding with the legacy `/health` handler.
+ */
+const healthV1Router = express.Router();
+healthV1Router.get('/', sprint3HealthHandler);
+
+export { healthV1Router };
 export default router;
