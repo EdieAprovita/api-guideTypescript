@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import Joi from 'joi';
-import { userSchemas, paramSchemas, commonSchemas, querySchemas } from '../../utils/validators.js';
+import { userSchemas, paramSchemas, commonSchemas, querySchemas, businessSchemas } from '../../utils/validators.js';
 import { validate, validateInputLength, sanitizeInput } from '../../middleware/validation.js';
 import testConfig from '../testConfig.js';
 
@@ -512,10 +512,7 @@ describe('Validation Edge Cases — validateInputLength', () => {
         // Passing an empty string to .set() removes the header from the request,
         // so req.get('content-length') returns undefined inside the middleware and
         // the `if (contentLength && ...)` guard is skipped — exercising the absent-header branch.
-        const response = await request(app)
-            .post('/test-input-length')
-            .set('Content-Length', '')
-            .send({ a: 1 });
+        const response = await request(app).post('/test-input-length').set('Content-Length', '').send({ a: 1 });
 
         expect(response.status).toBe(200);
     });
@@ -660,5 +657,164 @@ describe('Validation Edge Cases — Malformed data and boundary values', () => {
         // %3C and %3E should be stripped by the full sanitizer
         expect(response.body.body.input).not.toContain('%3C');
         expect(response.body.body.input).not.toContain('%3E');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// timePattern validator — unit tests for commonSchemas.time
+// Regex: /^([01]?\d|2[0-3]):[0-5]\d$/  (24-hour HH:MM, leading zero optional)
+// ---------------------------------------------------------------------------
+
+describe('timePattern validator — commonSchemas.time', () => {
+    const timeSchema = commonSchemas.time.required();
+
+    const valid = async (value: string) => {
+        await expect(timeSchema.validateAsync(value)).resolves.toBe(value);
+    };
+    const invalid = async (value: unknown) => {
+        await expect(timeSchema.validateAsync(value)).rejects.toThrow();
+    };
+
+    describe('valid times', () => {
+        it('accepts "00:00" (midnight boundary)', async () => valid('00:00'));
+        it('accepts "23:59" (max valid time)', async () => valid('23:59'));
+        it('accepts "12:30" (midday)', async () => valid('12:30'));
+        it('accepts "09:05" (zero-padded hour and minute)', async () => valid('09:05'));
+        it('accepts "0:00" (single-digit hour — leading zero optional)', async () => valid('0:00'));
+        it('accepts "9:59" (single-digit hour, max minute)', async () => valid('9:59'));
+        it('accepts "2:30" (single-digit hour — covered by [01]?\\d branch)', async () => valid('2:30'));
+        it('accepts "19:00" (afternoon, zero minutes)', async () => valid('19:00'));
+    });
+
+    describe('invalid times', () => {
+        it('rejects "24:00" (hour 24 out of range)', async () => invalid('24:00'));
+        it('rejects "25:00" (hour > 23)', async () => invalid('25:00'));
+        it('rejects "12:60" (minute 60 out of range)', async () => invalid('12:60'));
+        it('rejects "23:60" (minute boundary — one past max)', async () => invalid('23:60'));
+        it('rejects "12:5" (single-digit minute — must be two digits)', async () => invalid('12:5'));
+        it('rejects "01:5" (single-digit minute with padded hour)', async () => invalid('01:5'));
+        it('rejects "1:0" (single-digit minute)', async () => invalid('1:0'));
+        it('rejects "" (empty string)', async () => invalid(''));
+        it('rejects "abc" (non-numeric)', async () => invalid('abc'));
+        it('rejects "12-30" (wrong separator)', async () => invalid('12-30'));
+        it('rejects non-string number 1230', async () => invalid(1230));
+    });
+
+    describe('optional vs required', () => {
+        const optionalTimeSchema = commonSchemas.time.optional();
+
+        it('allows undefined when field is optional', async () => {
+            await expect(optionalTimeSchema.validateAsync(undefined)).resolves.toBeUndefined();
+        });
+
+        it('still rejects an invalid value when field is optional', async () => {
+            await expect(optionalTimeSchema.validateAsync('24:00')).rejects.toThrow();
+        });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// timePattern integration — businessSchemas.create openingHours end-to-end
+// Exercises the full schema that composes commonSchemas.time inside
+// createOpeningHoursSchema(), validating the real request path.
+// ---------------------------------------------------------------------------
+
+const businessApp = express();
+businessApp.use(express.json());
+
+const createBusinessValidationMiddleware = (schema: Joi.Schema) => {
+    return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        try {
+            const validated = await schema.validateAsync(req.body, {
+                abortEarly: false,
+                stripUnknown: true,
+                convert: true,
+            });
+            req.body = validated;
+            next();
+        } catch (error) {
+            if (error instanceof Joi.ValidationError) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Validation failed',
+                    errors: error.details.map(d => ({ field: d.path.join('.'), message: d.message })),
+                });
+            }
+            return next(error);
+        }
+    };
+};
+
+businessApp.post('/test-business-create', createBusinessValidationMiddleware(businessSchemas.create), (_req, res) =>
+    res.json({ success: true, data: _req.body })
+);
+
+const validBusinessPayload = () => ({
+    name: 'Green Bites',
+    address: '123 Vegan St',
+    phoneNumber: '+1 555 123 4567',
+    category: 'cafe',
+    location: { type: 'Point', coordinates: [-73.9857, 40.7484] },
+});
+
+describe('timePattern integration — businessSchemas.create openingHours', () => {
+    it('accepts a valid openingHours block with correct HH:MM times', async () => {
+        const payload = {
+            ...validBusinessPayload(),
+            openingHours: {
+                monday: { open: '09:00', close: '21:30' },
+                friday: { open: '08:00', close: '23:59' },
+            },
+        };
+
+        const response = await request(businessApp).post('/test-business-create').send(payload);
+
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.openingHours.monday.open).toBe('09:00');
+    });
+
+    it('rejects openingHours with an invalid close time "24:00"', async () => {
+        const payload = {
+            ...validBusinessPayload(),
+            openingHours: { monday: { open: '09:00', close: '24:00' } },
+        };
+
+        const response = await request(businessApp).post('/test-business-create').send(payload);
+
+        expect(response.status).toBe(400);
+        expect(response.body.success).toBe(false);
+        expect(response.body.errors.some((e: { message: string }) => e.message.includes('HH:MM'))).toBe(true);
+    });
+
+    it('rejects openingHours with a single-digit minute "9:0" as close time', async () => {
+        const payload = {
+            ...validBusinessPayload(),
+            openingHours: { tuesday: { open: '08:00', close: '9:0' } },
+        };
+
+        const response = await request(businessApp).post('/test-business-create').send(payload);
+
+        expect(response.status).toBe(400);
+        expect(response.body.success).toBe(false);
+    });
+
+    it('omitting openingHours entirely is valid (field is optional)', async () => {
+        const response = await request(businessApp).post('/test-business-create').send(validBusinessPayload());
+
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+    });
+
+    it('rejects an invalid open time "25:00" while close time is valid', async () => {
+        const payload = {
+            ...validBusinessPayload(),
+            openingHours: { wednesday: { open: '25:00', close: '18:00' } },
+        };
+
+        const response = await request(businessApp).post('/test-business-create').send(payload);
+
+        expect(response.status).toBe(400);
+        expect(response.body.success).toBe(false);
     });
 });
