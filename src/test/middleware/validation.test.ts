@@ -722,30 +722,9 @@ describe('timePattern validator — commonSchemas.time', () => {
 const businessApp = express();
 businessApp.use(express.json());
 
-const createBusinessValidationMiddleware = (schema: Joi.Schema) => {
-    return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-        try {
-            const validated = await schema.validateAsync(req.body, {
-                abortEarly: false,
-                stripUnknown: true,
-                convert: true,
-            });
-            req.body = validated;
-            next();
-        } catch (error) {
-            if (error instanceof Joi.ValidationError) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Validation failed',
-                    errors: error.details.map(d => ({ field: d.path.join('.'), message: d.message })),
-                });
-            }
-            return next(error);
-        }
-    };
-};
-
-businessApp.post('/test-business-create', createBusinessValidationMiddleware(businessSchemas.create), (_req, res) =>
+// Reuse the real production validation middleware so the integration test
+// exercises the actual request path (BE-C1 from Copilot review on PR #166).
+businessApp.post('/test-business-create', validate({ body: businessSchemas.create }), (_req, res) =>
     res.json({ success: true, data: _req.body })
 );
 
