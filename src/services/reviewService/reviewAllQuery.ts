@@ -1,4 +1,5 @@
 import { Review, IReview } from '../../models/Review.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 export interface FindAllReviewsParams {
     page?: number;
@@ -39,7 +40,7 @@ export async function findAllReviews(params: FindAllReviewsParams): Promise<{
     }
 
     if (params.search) {
-        filter.content = { $regex: params.search, $options: 'i' };
+        filter.content = { $regex: escapeRegex(params.search), $options: 'i' };
     }
 
     const sortMap: Record<NonNullable<FindAllReviewsParams['sortBy']>, Record<string, 1 | -1>> = {
@@ -52,13 +53,7 @@ export async function findAllReviews(params: FindAllReviewsParams): Promise<{
 
     const [totalItems, data] = await Promise.all([
         Review.countDocuments(filter),
-        Review.find(filter)
-            .populate('author', 'username photo -_id')
-            .lean()
-            .sort(sortOptions)
-            .skip(skip)
-            .limit(limit)
-            .exec(),
+        Review.find(filter).populate('author', 'username photo').sort(sortOptions).skip(skip).limit(limit).exec(),
     ]);
 
     const totalPages = Math.ceil(totalItems / limit);
