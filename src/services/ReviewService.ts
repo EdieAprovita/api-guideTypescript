@@ -14,6 +14,7 @@ import {
     markAsHelpful,
     removeHelpfulVote,
 } from './reviewService/reviewMutations.js';
+import { findAllReviews } from './reviewService/reviewAllQuery.js';
 
 export const reviewService = {
     async getReviewsByEntity(...args: Parameters<typeof getReviewsByEntity>) {
@@ -62,5 +63,9 @@ export const reviewService = {
 
     async listReviewsForModel(...args: Parameters<typeof listReviewsForModel>) {
         return listReviewsForModel(...args);
+    },
+
+    async findAllReviews(...args: Parameters<typeof findAllReviews>) {
+        return findAllReviews(...args);
     },
 };

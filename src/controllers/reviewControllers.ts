@@ -30,6 +30,42 @@ const validateReviewOwnership = async (reviewId: string, userId: string) => {
 };
 
 /**
+ * @description Get all reviews (admin only, paginated + filtered)
+ * @name getAllReviews
+ */
+export const getAllReviews = asyncHandler(async (req: Request, res: Response) => {
+    // Joi's validate middleware coerces and assigns these values; cast them after validation
+    const params: import('../services/reviewService/reviewAllQuery.js').FindAllReviewsParams = {};
+
+    if (req.query.page !== undefined) {
+        params.page = req.query.page as unknown as number;
+    }
+    if (req.query.limit !== undefined) {
+        params.limit = req.query.limit as unknown as number;
+    }
+    if (req.query.resourceType !== undefined) {
+        params.resourceType = req.query.resourceType as string;
+    }
+    if (req.query.minRating !== undefined) {
+        params.minRating = req.query.minRating as unknown as number;
+    }
+    if (req.query.sortBy !== undefined) {
+        params.sortBy = req.query.sortBy as 'newest' | 'oldest' | 'rating' | 'helpful';
+    }
+    if (req.query.search !== undefined) {
+        params.search = req.query.search as string;
+    }
+
+    const result = await ReviewService.findAllReviews(params);
+
+    res.status(200).json({
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
+    });
+});
+
+/**
  * @description Get all reviews
  * @name listReviews
  */
