@@ -156,11 +156,25 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
  * @returns {Promise<Response>}
  * */
 
-export const getUsers = asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
+export const getUsers = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const users = await UserServices.findAllUsers();
-        res.status(200).json(users);
+        const query = req.query as unknown as {
+            page: number;
+            limit: number;
+            search?: string;
+            sortBy?: 'newest' | 'oldest' | 'username';
+        };
+        const { page, limit, search, sortBy } = query;
+        const params: { page: number; limit: number; search?: string; sortBy?: 'newest' | 'oldest' | 'username' } = {
+            page,
+            limit,
+        };
+        if (search !== undefined) params.search = search;
+        if (sortBy !== undefined) params.sortBy = sortBy;
+        const result = await UserServices.findAllUsers(params);
+        res.status(200).json({ success: true, ...result });
     } catch (error) {
+        if (error instanceof HttpError) return next(error);
         next(
             new HttpError(
                 HttpStatusCode.INTERNAL_SERVER_ERROR,
@@ -432,9 +446,9 @@ export const deleteUserById = asyncHandler(async (req: Request, res: Response, n
             return next(new HttpError(HttpStatusCode.BAD_REQUEST, 'User ID is required'));
         }
         const message = await UserServices.deleteUserById(id);
-        if (!message) throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
         res.json(message);
     } catch (error) {
+        if (error instanceof HttpError) return next(error);
         next(
             new HttpError(
                 HttpStatusCode.INTERNAL_SERVER_ERROR,

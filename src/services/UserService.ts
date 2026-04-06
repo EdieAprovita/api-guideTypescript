@@ -2,6 +2,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
 import { User, IUser } from '../models/User.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors.js';
 import { getErrorMessage } from '../types/modalTypes.js';
 import TokenService from './TokenService.js';
@@ -198,9 +199,49 @@ class UserService extends BaseService {
         return { message: 'Password reset successful' };
     }
 
-    async findAllUsers() {
-        const users = await User.find({}).exec();
-        return users.map(this.getUserResponse);
+    async findAllUsers(params: {
+        page: number;
+        limit: number;
+        search?: string;
+        sortBy?: 'newest' | 'oldest' | 'username';
+    }) {
+        const { page, limit, search, sortBy } = params;
+        const skip = (page - 1) * limit;
+
+        const filter: Record<string, unknown> = {};
+        if (search) {
+            const escaped = escapeRegex(search);
+            filter.$or = [
+                { username: { $regex: escaped, $options: 'i' } },
+                { email: { $regex: escaped, $options: 'i' } },
+            ];
+        }
+
+        const sortMap: Record<NonNullable<typeof sortBy>, Record<string, 1 | -1>> = {
+            newest: { createdAt: -1 },
+            oldest: { createdAt: 1 },
+            username: { username: 1 },
+        };
+        const sort = sortMap[sortBy ?? 'newest'];
+
+        const [total, users] = await Promise.all([
+            User.countDocuments(filter),
+            User.find(filter).sort(sort).skip(skip).limit(limit).exec(),
+        ]);
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+            data: users.map(u => this.getUserResponse(u)),
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+                hasNext: page < totalPages,
+                hasPrevious: page > 1,
+            },
+        };
     }
 
     async findUserById(userId: string) {
@@ -219,7 +260,10 @@ class UserService extends BaseService {
     }
 
     async deleteUserById(userId: string) {
-        await User.findByIdAndDelete(userId).exec();
+        const deleted = await User.findByIdAndDelete(userId).exec();
+        if (!deleted) {
+            throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        }
         return { message: 'User deleted successfully' };
     }
 
