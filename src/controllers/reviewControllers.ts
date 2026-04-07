@@ -177,7 +177,10 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
 
-    const userId = (req as any).user?._id;
+    const userId = req.user?._id;
+    if (!userId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
+    }
     await validateReviewOwnership(id, userId);
 
     const updatedReview = await ReviewService.updateReview(id, req.body, userId);
@@ -195,7 +198,10 @@ export const deleteReview = asyncHandler(async (req: Request, res: Response) => 
         throw new HttpError(HttpStatusCode.BAD_REQUEST, 'Review ID is required');
     }
 
-    const userId = (req as any).user?._id;
+    const userId = req.user?._id;
+    if (!userId) {
+        throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'Authentication required');
+    }
     await validateReviewOwnership(id, userId);
 
     await ReviewService.deleteReview(id, userId);
