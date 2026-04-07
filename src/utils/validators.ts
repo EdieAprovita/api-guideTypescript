@@ -347,6 +347,14 @@ export const searchSchemas = {
     }),
 };
 
+// User list query schema (GET /users — admin only)
+export const userListQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    search: Joi.string().max(200).optional(),
+    sortBy: Joi.string().valid('newest', 'oldest', 'username').optional(),
+});
+
 // Admin review query schema
 export const reviewAdminQuerySchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),

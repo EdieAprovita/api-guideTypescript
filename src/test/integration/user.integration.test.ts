@@ -201,4 +201,165 @@ describe('User API Integration Tests', () => {
             expect(response.status).toBe(401);
         });
     });
+
+    describe('GET /api/v1/users — pagination', () => {
+        const ADMIN_ID = new Types.ObjectId('bbbbbbbbbbbbbbbbbbbbbbbb');
+        const adminToken = generateTokenForUser(ADMIN_ID.toString(), 'admin');
+
+        beforeEach(async () => {
+            // Seed admin user
+            const existingAdmin = await User.findById(ADMIN_ID);
+            if (!existingAdmin) {
+                const admin = new User({
+                    _id: ADMIN_ID,
+                    username: 'paginationadmin',
+                    email: 'paginationadmin@test.com',
+                    password: 'AdminPass123!',
+                    role: 'admin',
+                });
+                await admin.save();
+            }
+
+            // Seed 12 regular users so we can test pagination
+            for (let i = 1; i <= 12; i++) {
+                const ts = `${i}`.padStart(3, '0');
+                const uid = new Types.ObjectId();
+                const u = new User({
+                    _id: uid,
+                    username: `bulkuser_${ts}`,
+                    email: `bulkuser_${ts}@example.com`,
+                    password: 'BulkPass123!',
+                    role: 'user',
+                });
+                await u.save();
+            }
+        });
+
+        it('returns 200 with pagination metadata using default params', async () => {
+            const response: Response = await request(app)
+                .get('/api/v1/users')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('success', true);
+            expect(response.body).toHaveProperty('data');
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body).toHaveProperty('pagination');
+            expect(response.body.pagination).toMatchObject({
+                page: 1,
+                limit: 20,
+            });
+        });
+
+        it('returns 200 with correct page/limit when explicitly requested', async () => {
+            const response: Response = await request(app)
+                .get('/api/v1/users?page=2&limit=5')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.pagination).toMatchObject({
+                page: 2,
+                limit: 5,
+            });
+            // 13 total (12 bulk + 1 admin), page 2 of 5-per-page = items 6-10
+            expect(response.body.data.length).toBeLessThanOrEqual(5);
+        });
+
+        it('returns 400 when limit exceeds max (500 > 100)', async () => {
+            const response: Response = await request(app)
+                .get('/api/v1/users?limit=500')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(400);
+        });
+
+        it('returns 400 when limit is 0 (below min)', async () => {
+            const response: Response = await request(app)
+                .get('/api/v1/users?limit=0')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(400);
+        });
+
+        it('uses defaults when no params are supplied (page=1, limit=20)', async () => {
+            const response: Response = await request(app)
+                .get('/api/v1/users')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.pagination.page).toBe(1);
+            expect(response.body.pagination.limit).toBe(20);
+        });
+    });
+
+    describe('DELETE /api/v1/users/:id — 404 for missing user', () => {
+        const ADMIN_ID = new Types.ObjectId('cccccccccccccccccccccccc');
+        const adminToken = generateTokenForUser(ADMIN_ID.toString(), 'admin');
+
+        beforeEach(async () => {
+            const existingAdmin = await User.findById(ADMIN_ID);
+            if (!existingAdmin) {
+                const admin = new User({
+                    _id: ADMIN_ID,
+                    username: 'deleteadmin',
+                    email: 'deleteadmin@test.com',
+                    password: 'AdminPass123!',
+                    role: 'admin',
+                });
+                await admin.save();
+            }
+        });
+
+        it('returns 404 when deleting a non-existent user', async () => {
+            const nonExistentId = '507f1f77bcf86cd799439011';
+            const response: Response = await request(app)
+                .delete(`/api/v1/users/${nonExistentId}`)
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(404);
+        });
+
+        it('returns 200 when deleting an existing user', async () => {
+            const targetUser = new User({
+                username: 'tobedeleted',
+                email: 'tobedeleted@example.com',
+                password: 'ToDelete123!',
+                role: 'user',
+            });
+            await targetUser.save();
+            const targetId = (targetUser._id as Types.ObjectId).toString();
+
+            const response: Response = await request(app)
+                .delete(`/api/v1/users/${targetId}`)
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(200);
+            // responseWrapper wraps non-success-keyed objects: { success: true, data: { message: ... } }
+            expect(response.body).toHaveProperty('success', true);
+            expect(response.body.data).toHaveProperty('message', 'User deleted successfully');
+        });
+
+        it('returns 404 on second delete of the same id', async () => {
+            const targetUser = new User({
+                username: 'deletedtwice',
+                email: 'deletedtwice@example.com',
+                password: 'ToDelete123!',
+                role: 'user',
+            });
+            await targetUser.save();
+            const targetId = (targetUser._id as Types.ObjectId).toString();
+
+            // First delete — should succeed
+            const first: Response = await request(app)
+                .delete(`/api/v1/users/${targetId}`)
+                .set('Authorization', `Bearer ${adminToken}`);
+            expect(first.status).toBe(200);
+
+            // Second delete — user is gone, must be 404
+            const second: Response = await request(app)
+                .delete(`/api/v1/users/${targetId}`)
+                .set('Authorization', `Bearer ${adminToken}`);
+            expect(second.status).toBe(404);
+        });
+    });
 });

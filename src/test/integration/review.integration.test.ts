@@ -103,7 +103,7 @@ describe('GET /api/v1/reviews/:id', () => {
             title: 'Test Review',
             content: 'Test Content',
             rating: 5,
-        } as never);
+        } as unknown as Awaited<ReturnType<typeof reviewService.getReviewById>>);
     });
 
     it('should return 200 with review payload for an existing review', async () => {
@@ -138,7 +138,7 @@ describe('Review Service Tests - Unit Tests', () => {
 
     describe('Service Mock Tests', () => {
         it('should have restaurant service mocked correctly', async () => {
-            const { restaurantService } = await import('../../services/RestaurantService');
+            const { restaurantService } = await import('../../services/RestaurantService.js');
 
             const restaurant = await restaurantService.findById(testRestaurantId);
             expect(restaurant).toBeDefined();
@@ -147,7 +147,7 @@ describe('Review Service Tests - Unit Tests', () => {
         });
 
         it('should have review service mocked correctly', async () => {
-            const { reviewService } = await import('../../services/ReviewService');
+            const { reviewService } = await import('../../services/ReviewService.js');
 
             const review = await reviewService.addReview(validReviewData);
             expect(review).toBeDefined();
@@ -158,7 +158,7 @@ describe('Review Service Tests - Unit Tests', () => {
 
     describe('Auth Middleware Mock Tests', () => {
         it('should have auth middleware mocked correctly', async () => {
-            const { protect } = await import('../../middleware/authMiddleware');
+            const { protect } = await import('../../middleware/authMiddleware.js');
 
             const req: MockRequest = {};
             const res: MockResponse = { json: vi.fn() };
