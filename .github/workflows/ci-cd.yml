@@ -243,13 +243,14 @@ jobs:
                   npm_config_target_platform: linux
                   npm_config_target_arch: x64
 
-            - name: Run integration tests
+            - name: Run integration tests (fast — with auth bypass for backward compat)
               run: npm run test:integration
               env:
                   CI: true
                   NODE_ENV: test
                   # Required by BACK-02: handleTestEnvironment now gates on both
                   # NODE_ENV=test AND this flag to prevent accidental staging bypasses.
+                  # Kept here for backward compatibility with existing integration suites.
                   BYPASS_AUTH_FOR_TESTING: 'true'
                   MONGODB_MEMORY_SERVER_VERSION: '6.0.4'
                   MONGODB_MEMORY_SERVER_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
@@ -257,6 +258,19 @@ jobs:
                   MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY: '5'
                   MONGODB_MEMORY_SERVER_LAUNCH_TIMEOUT: '60000'
                   # Increase Node.js memory for CI
+                  NODE_OPTIONS: '--max-old-space-size=4096'
+
+            - name: Run real auth & rate-limit integration tests (no bypass)
+              run: npx vitest run --config vitest.integration.config.mts src/test/integration/realAuth.integration.test.ts src/test/integration/realRateLimit.integration.test.ts --reporter=verbose
+              env:
+                  CI: true
+                  NODE_ENV: test
+                  # No BYPASS_AUTH_FOR_TESTING — these suites exercise the real middleware
+                  MONGODB_MEMORY_SERVER_VERSION: '6.0.4'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_TIMEOUT: '120000'
+                  MONGODB_MEMORY_SERVER_DOWNLOAD_RETRY: '5'
+                  MONGODB_MEMORY_SERVER_LAUNCH_TIMEOUT: '60000'
                   NODE_OPTIONS: '--max-old-space-size=4096'
 
             - name: Generate coverage report

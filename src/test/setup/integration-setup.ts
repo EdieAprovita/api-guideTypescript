@@ -149,9 +149,11 @@ const setupMocks = (): void => {
         },
     }));
 
-    // Mock rate limiting
+    // Mock rate limiting so fast integration suites are not throttled.
+    // Tests that need real 429 behaviour should build their own express app
+    // with a tight rate-limiter instance (see realRateLimit.integration.test.ts).
     vi.mock('express-rate-limit', () => ({
-        default: vi.fn(() => (req: unknown, res: unknown, next: () => void) => next()),
+        default: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
     }));
 };
 
@@ -171,5 +173,24 @@ afterAll(async () => {
 beforeEach(async () => {
     await clearDatabase();
 });
+
+/**
+ * Explicit no-op helper for fast suites that document their intent to skip
+ * rate-limit enforcement.  The global setupMocks() already mocks
+ * express-rate-limit for all integration tests; this function exists purely
+ * as a self-documenting opt-in marker for suites that want to make that
+ * contract explicit.
+ *
+ * Tests that need real 429 behaviour must build their own express app instance
+ * with a tight rateLimit() instance rather than relying on the main app.
+ *
+ * @example
+ * // my-fast.integration.test.ts
+ * import { mockRateLimiter } from '../setup/integration-setup.js';
+ * mockRateLimiter(); // documents: this suite intentionally skips rate-limit
+ */
+export const mockRateLimiter = (): void => {
+    // No-op: express-rate-limit is already mocked globally in setupMocks().
+};
 
 export { setupTestEnvironment, setupDatabase, teardownDatabase, clearDatabase, setupMocks };
