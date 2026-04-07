@@ -16,7 +16,6 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import express, { type Request, type Response, type NextFunction } from 'express';
-import { createServer, type Server } from 'http';
 
 // ---------------------------------------------------------------------------
 // Build a minimal test app with a real rate-limiter
@@ -40,7 +39,7 @@ type RateLimitModule = { default: RateLimitFn };
  *
  * The server responds 200 on GET /ping for every non-rate-limited request.
  */
-const buildRateLimitedServer = async (windowMs: number, max: number): Promise<Server> => {
+const buildRateLimitedServer = async (windowMs: number, max: number) => {
     const { default: rateLimit } = (await vi.importActual('express-rate-limit')) as RateLimitModule;
 
     const app = express();
@@ -51,7 +50,7 @@ const buildRateLimitedServer = async (windowMs: number, max: number): Promise<Se
         max,
         standardHeaders: true,
         legacyHeaders: false,
-        keyGenerator: (req: Request) => req.ip ?? 'unknown',
+        keyGenerator: (req: Request) => req.get('x-test-client-id') ?? req.ip ?? 'unknown',
         handler: (_req: Request, res: Response) => {
             res.status(429).json({ success: false, message: 'Rate limit exceeded' });
         },
@@ -61,7 +60,7 @@ const buildRateLimitedServer = async (windowMs: number, max: number): Promise<Se
         res.status(200).json({ success: true });
     });
 
-    return createServer(app);
+    return app;
 };
 
 // ---------------------------------------------------------------------------
@@ -75,7 +74,7 @@ describe('Real Rate-Limit Middleware — express-rate-limit', () => {
 
         const statuses: number[] = [];
         for (let i = 0; i < 5; i++) {
-            const res = await request(server).get('/ping').set('X-Forwarded-For', '10.1.1.1');
+            const res = await request(server).get('/ping').set('x-test-client-id', 'client-a');
             statuses.push(res.status);
         }
 
@@ -93,11 +92,11 @@ describe('Real Rate-Limit Middleware — express-rate-limit', () => {
         const server = await buildRateLimitedServer(2000, 2);
 
         // Exhaust the limit
-        await request(server).get('/ping').set('X-Forwarded-For', '10.2.2.2');
-        await request(server).get('/ping').set('X-Forwarded-For', '10.2.2.2');
+        await request(server).get('/ping').set('x-test-client-id', 'client-a');
+        await request(server).get('/ping').set('x-test-client-id', 'client-a');
 
         // This one should be rate-limited
-        const res = await request(server).get('/ping').set('X-Forwarded-For', '10.2.2.2');
+        const res = await request(server).get('/ping').set('x-test-client-id', 'client-a');
 
         expect(res.status).toBe(429);
         expect(res.body).toMatchObject({ success: false });
@@ -108,12 +107,12 @@ describe('Real Rate-Limit Middleware — express-rate-limit', () => {
         const server = await buildRateLimitedServer(2000, 2);
 
         // Exhaust limit for IP A
-        await request(server).get('/ping').set('X-Forwarded-For', '10.3.3.1');
-        await request(server).get('/ping').set('X-Forwarded-For', '10.3.3.1');
-        const rateLimitedA = await request(server).get('/ping').set('X-Forwarded-For', '10.3.3.1');
+        await request(server).get('/ping').set('x-test-client-id', 'client-a');
+        await request(server).get('/ping').set('x-test-client-id', 'client-a');
+        const rateLimitedA = await request(server).get('/ping').set('x-test-client-id', 'client-a');
 
         // IP B should still have its own fresh counter
-        const freshB = await request(server).get('/ping').set('X-Forwarded-For', '10.3.3.2');
+        const freshB = await request(server).get('/ping').set('x-test-client-id', 'client-b');
 
         expect(rateLimitedA.status).toBe(429);
         expect(freshB.status).toBe(200);
