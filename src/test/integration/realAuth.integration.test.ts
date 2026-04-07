@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { Types } from 'mongoose';
+import { randomBytes } from 'crypto';
 import { User } from '../../models/User.js';
 import app from '../../app.js';
 import { JWT_CONFIG } from '../../services/tokenService/tokenTypes.js';
@@ -17,7 +18,7 @@ import { JWT_CONFIG } from '../../services/tokenService/tokenTypes.js';
 // Token helpers
 // ---------------------------------------------------------------------------
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-jwt-secret-key-12345';
+const JWT_SECRET = process.env.JWT_SECRET ?? randomBytes(32).toString('hex');
 
 /**
  * Signs a JWT that the real TokenService.verifyAccessToken will accept.
@@ -87,7 +88,7 @@ describe('Real Auth Middleware — protect', () => {
     });
 
     it('returns 401 with a token signed by a wrong secret (tampered)', async () => {
-        const tamperedSecret = `${JWT_SECRET}-tampered`;
+        const tamperedSecret = randomBytes(32).toString('hex');
         const tamperedToken = jwt.sign(
             { userId: USER_ID.toString(), email: 'realauth_user@test.com', role: 'user' },
             tamperedSecret,
