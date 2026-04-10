@@ -151,9 +151,7 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
             error: error instanceof Error ? error.message : 'Unknown error',
             restaurantId: req.params.restaurantId,
             userId: req.user?._id?.toString(),
-            ...(process.env.NODE_ENV !== 'production' && error instanceof Error
-                ? { stack: error.stack }
-                : {}),
+            ...(process.env.NODE_ENV !== 'production' && error instanceof Error ? { stack: error.stack } : {}),
         });
         throw error;
     }

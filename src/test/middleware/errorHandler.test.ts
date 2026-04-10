@@ -201,50 +201,67 @@ describe('Error Handler Middleware Tests', () => {
             }
         };
 
-        it('sanitizes CastError in production (no raw _id leaked)', async () => {
+        const expectProdSanitizedResponse = async (
+            path: string,
+            expectedStatus: number,
+            expectedMessage: string,
+            options: { expectedError?: string; hiddenText?: string } = {}
+        ) => {
             await withProdEnv(async () => {
-                const response = await request(app).get('/cast-error');
-                expect(response.status).toBe(400);
-                expect(response.body.message).toBe('Invalid resource identifier');
-                expect(response.body.message).not.toContain('invalid-id');
-                expect(response.body.error).toBe('Bad request');
+                const response = await request(app).get(path);
+                expect(response.status).toBe(expectedStatus);
+                expect(response.body.message).toBe(expectedMessage);
+                if (options.expectedError) {
+                    expect(response.body.error).toBe(options.expectedError);
+                }
+                if (options.hiddenText) {
+                    expect(response.body.message).not.toContain(options.hiddenText);
+                }
             });
-        });
+        };
 
-        it('sanitizes DuplicateKeyError in production', async () => {
-            await withProdEnv(async () => {
-                const response = await request(app).get('/duplicate-key-error');
-                expect(response.status).toBe(409);
-                expect(response.body.message).toBe('Duplicate entry');
-                expect(response.body.message).not.toContain('email');
-                expect(response.body.error).toBe('Conflict');
-            });
-        });
-
-        it('sanitizes TypeError (builtin) in production', async () => {
-            await withProdEnv(async () => {
-                const response = await request(app).get('/type-error');
-                expect(response.status).toBe(500);
-                expect(response.body.message).toBe('An internal error occurred. Please try again later.');
-                expect(response.body.message).not.toContain('Cannot read property');
-            });
-        });
-
-        it('sanitizes SyntaxError in production', async () => {
-            await withProdEnv(async () => {
-                const response = await request(app).get('/syntax-error');
-                expect(response.status).toBe(400);
-                expect(response.body.message).toBe('Invalid request syntax');
-                expect(response.body.message).not.toContain('Unexpected token');
-            });
-        });
-
-        it('sanitizes string errors in production', async () => {
-            await withProdEnv(async () => {
-                const response = await request(app).get('/string-error');
-                expect(response.status).toBe(500);
-                expect(response.body.message).toBe('An internal error occurred. Please try again later.');
-                expect(response.body.message).not.toContain('String error message');
+        it.each([
+            {
+                name: 'sanitizes CastError in production (no raw _id leaked)',
+                path: '/cast-error',
+                expectedStatus: 400,
+                expectedMessage: 'Invalid resource identifier',
+                expectedError: 'Bad request',
+                hiddenText: 'invalid-id',
+            },
+            {
+                name: 'sanitizes DuplicateKeyError in production',
+                path: '/duplicate-key-error',
+                expectedStatus: 409,
+                expectedMessage: 'Duplicate entry',
+                expectedError: 'Conflict',
+                hiddenText: 'email',
+            },
+            {
+                name: 'sanitizes TypeError (builtin) in production',
+                path: '/type-error',
+                expectedStatus: 500,
+                expectedMessage: 'An internal error occurred. Please try again later.',
+                hiddenText: 'Cannot read property',
+            },
+            {
+                name: 'sanitizes SyntaxError in production',
+                path: '/syntax-error',
+                expectedStatus: 400,
+                expectedMessage: 'Invalid request syntax',
+                hiddenText: 'Unexpected token',
+            },
+            {
+                name: 'sanitizes string errors in production',
+                path: '/string-error',
+                expectedStatus: 500,
+                expectedMessage: 'An internal error occurred. Please try again later.',
+                hiddenText: 'String error message',
+            },
+        ])('$name', async ({ path, expectedStatus, expectedMessage, expectedError, hiddenText }) => {
+            await expectProdSanitizedResponse(path, expectedStatus, expectedMessage, {
+                expectedError,
+                hiddenText,
             });
         });
 
