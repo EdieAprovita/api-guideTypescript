@@ -714,9 +714,9 @@ describe('timePattern validator — commonSchemas.time', () => {
 });
 
 // ---------------------------------------------------------------------------
-// timePattern integration — businessSchemas.create openingHours end-to-end
+// timePattern integration — businessSchemas.create hours end-to-end
 // Exercises the full schema that composes commonSchemas.time inside
-// createOpeningHoursSchema(), validating the real request path.
+// the business hours validator, validating the real request path.
 // ---------------------------------------------------------------------------
 
 const businessApp = express();
@@ -729,34 +729,33 @@ businessApp.post('/test-business-create', validate({ body: businessSchemas.creat
 );
 
 const validBusinessPayload = () => ({
-    name: 'Green Bites',
+    namePlace: 'Green Bites',
     address: '123 Vegan St',
-    phoneNumber: '+1 555 123 4567',
-    category: 'cafe',
+    typeBusiness: 'cafe',
     location: { type: 'Point', coordinates: [-73.9857, 40.7484] },
 });
 
-describe('timePattern integration — businessSchemas.create openingHours', () => {
-    it('accepts a valid openingHours block with correct HH:MM times', async () => {
+describe('timePattern integration — businessSchemas.create hours', () => {
+    it('accepts a valid hours block with correct HH:MM times', async () => {
         const payload = {
             ...validBusinessPayload(),
-            openingHours: {
-                monday: { open: '09:00', close: '21:30' },
-                friday: { open: '08:00', close: '23:59' },
-            },
+            hours: [
+                { dayOfWeek: 'monday', openTime: '09:00', closeTime: '21:30' },
+                { dayOfWeek: 'friday', openTime: '08:00', closeTime: '23:59' },
+            ],
         };
 
         const response = await request(businessApp).post('/test-business-create').send(payload);
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
-        expect(response.body.data.openingHours.monday.open).toBe('09:00');
+        expect(response.body.data.hours[0].openTime).toBe('09:00');
     });
 
-    it('rejects openingHours with an invalid close time "24:00"', async () => {
+    it('rejects hours with an invalid close time "24:00"', async () => {
         const payload = {
             ...validBusinessPayload(),
-            openingHours: { monday: { open: '09:00', close: '24:00' } },
+            hours: [{ dayOfWeek: 'monday', openTime: '09:00', closeTime: '24:00' }],
         };
 
         const response = await request(businessApp).post('/test-business-create').send(payload);
@@ -766,10 +765,10 @@ describe('timePattern integration — businessSchemas.create openingHours', () =
         expect(response.body.errors.some((e: { message: string }) => e.message.includes('HH:MM'))).toBe(true);
     });
 
-    it('rejects openingHours with a single-digit minute "9:0" as close time', async () => {
+    it('rejects hours with a single-digit minute "9:0" as close time', async () => {
         const payload = {
             ...validBusinessPayload(),
-            openingHours: { tuesday: { open: '08:00', close: '9:0' } },
+            hours: [{ dayOfWeek: 'tuesday', openTime: '08:00', closeTime: '9:0' }],
         };
 
         const response = await request(businessApp).post('/test-business-create').send(payload);
@@ -778,7 +777,7 @@ describe('timePattern integration — businessSchemas.create openingHours', () =
         expect(response.body.success).toBe(false);
     });
 
-    it('omitting openingHours entirely is valid (field is optional)', async () => {
+    it('omitting hours entirely is valid (field is optional)', async () => {
         const response = await request(businessApp).post('/test-business-create').send(validBusinessPayload());
 
         expect(response.status).toBe(200);
@@ -788,7 +787,7 @@ describe('timePattern integration — businessSchemas.create openingHours', () =
     it('rejects an invalid open time "25:00" while close time is valid', async () => {
         const payload = {
             ...validBusinessPayload(),
-            openingHours: { wednesday: { open: '25:00', close: '18:00' } },
+            hours: [{ dayOfWeek: 'wednesday', openTime: '25:00', closeTime: '18:00' }],
         };
 
         const response = await request(businessApp).post('/test-business-create').send(payload);
