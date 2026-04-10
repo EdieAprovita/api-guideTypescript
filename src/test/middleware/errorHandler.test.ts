@@ -6,7 +6,11 @@ import { errorHandler } from '../../middleware/errorHandler.js';
 import { HttpError, HttpStatusCode, TokenRevokedError } from '../../types/Errors.js';
 import logger from '../../utils/logger.js';
 import testConfig from '../testConfig.js';
-import { expectErrorResponse, expectValidationErrorResponse, expectServerError } from '../utils/responseExpectations.js';
+import {
+    expectErrorResponse,
+    expectValidationErrorResponse,
+    expectServerError,
+} from '../utils/responseExpectations.js';
 
 // Mock logger
 vi.mock('../../utils/logger', () => ({
@@ -101,7 +105,6 @@ app.get('/token-revoked-error', (_req, _res, next) => {
     next(new TokenRevokedError());
 });
 
-
 // Specialized error routes
 app.get('/validation-error', (_req, _res, next) => {
     const error = new Error('Validation failed') as Error & {
@@ -183,7 +186,134 @@ describe('Error Handler Middleware Tests', () => {
 
         it('should handle duplicate key errors', async () => {
             const response = await request(app).get('/duplicate-key-error');
-            expectErrorResponse(response, 400, 'Duplicate field value: email', 'Duplicate field value entered');
+            expectErrorResponse(response, 409, 'Duplicate field value: email', 'Duplicate field value entered');
+        });
+    });
+
+    describe('Production sanitization across error branches', () => {
+        const withProdEnv = async (fn: () => Promise<void>) => {
+            const originalEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'production';
+            try {
+                await fn();
+            } finally {
+                process.env.NODE_ENV = originalEnv;
+            }
+        };
+
+        it('sanitizes CastError in production (no raw _id leaked)', async () => {
+            await withProdEnv(async () => {
+                const response = await request(app).get('/cast-error');
+                expect(response.status).toBe(400);
+                expect(response.body.message).toBe('Invalid resource identifier');
+                expect(response.body.message).not.toContain('invalid-id');
+                expect(response.body.error).toBe('Bad request');
+            });
+        });
+
+        it('sanitizes DuplicateKeyError in production', async () => {
+            await withProdEnv(async () => {
+                const response = await request(app).get('/duplicate-key-error');
+                expect(response.status).toBe(409);
+                expect(response.body.message).toBe('Duplicate entry');
+                expect(response.body.message).not.toContain('email');
+                expect(response.body.error).toBe('Conflict');
+            });
+        });
+
+        it('sanitizes TypeError (builtin) in production', async () => {
+            await withProdEnv(async () => {
+                const response = await request(app).get('/type-error');
+                expect(response.status).toBe(500);
+                expect(response.body.message).toBe('An internal error occurred. Please try again later.');
+                expect(response.body.message).not.toContain('Cannot read property');
+            });
+        });
+
+        it('sanitizes SyntaxError in production', async () => {
+            await withProdEnv(async () => {
+                const response = await request(app).get('/syntax-error');
+                expect(response.status).toBe(400);
+                expect(response.body.message).toBe('Invalid request syntax');
+                expect(response.body.message).not.toContain('Unexpected token');
+            });
+        });
+
+        it('sanitizes string errors in production', async () => {
+            await withProdEnv(async () => {
+                const response = await request(app).get('/string-error');
+                expect(response.status).toBe(500);
+                expect(response.body.message).toBe('An internal error occurred. Please try again later.');
+                expect(response.body.message).not.toContain('String error message');
+            });
+        });
+
+        it('HttpError carve-out: 4xx intentional errors STILL expose their message in production', async () => {
+            await withProdEnv(async () => {
+                const response = await request(app).get('/http-error');
+                expect(response.status).toBe(400);
+                // Developer-authored HttpError messages must NOT be sanitized
+                expect(response.body.message).toBe('Bad request error');
+            });
+        });
+
+        it('HttpError carve-out: 401 Unauthorized message preserved in production', async () => {
+            await withProdEnv(async () => {
+                const response = await request(app).get('/http-error-unauthorized');
+                expect(response.status).toBe(401);
+                expect(response.body.message).toBe('Unauthorized access');
+            });
+        });
+    });
+
+    describe('Server-side log preserves original error details', () => {
+        it('logs originalMessage (un-sanitized) and clientMessage (sanitized) in production', async () => {
+            const originalEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'production';
+            try {
+                await request(app).get('/generic-error');
+
+                expect(mockedLogger.error).toHaveBeenCalledWith(
+                    'Error Handler:',
+                    expect.objectContaining({
+                        // Original error message preserved for SRE diagnostics
+                        originalMessage: 'Something went wrong',
+                        // Sanitized message sent to client (audit trail)
+                        clientMessage: 'An internal error occurred. Please try again later.',
+                        // Stack trace always present for Error instances
+                        stack: expect.stringContaining('Error: Something went wrong'),
+                        name: 'Error',
+                        status: 500,
+                        path: '/generic-error',
+                        method: 'GET',
+                    })
+                );
+            } finally {
+                process.env.NODE_ENV = originalEnv;
+            }
+        });
+
+        it('logs stack trace even in development', async () => {
+            await request(app).get('/generic-error');
+
+            expect(mockedLogger.error).toHaveBeenCalledWith(
+                'Error Handler:',
+                expect.objectContaining({
+                    stack: expect.stringContaining('Error: Something went wrong'),
+                    originalMessage: 'Something went wrong',
+                })
+            );
+        });
+
+        it('logs requestId from x-correlation-id header when present', async () => {
+            await request(app).get('/generic-error').set('x-correlation-id', 'test-correlation-123');
+
+            expect(mockedLogger.error).toHaveBeenCalledWith(
+                'Error Handler:',
+                expect.objectContaining({
+                    requestId: 'test-correlation-123',
+                })
+            );
         });
     });
 
@@ -213,7 +343,14 @@ describe('Error Handler Middleware Tests', () => {
 
     describe('Error Logging', () => {
         const loggerTestCases = [
-            { path: '/http-error', expectedProps: { status: 400, message: 'Bad request error' } },
+            {
+                path: '/http-error',
+                expectedProps: {
+                    status: 400,
+                    originalMessage: 'Bad request error',
+                    clientMessage: 'Bad request error',
+                },
+            },
             { path: '/validation-error', expectedProps: { name: 'ValidationError' } },
         ];
 
@@ -234,7 +371,6 @@ describe('Error Handler Middleware Tests', () => {
             expect(response.status).toBe(HttpStatusCode.UNAUTHORIZED);
             expect(response.body.message).toBe('Token has been revoked');
         });
-
     });
 
     describe('Edge Cases', () => {
