@@ -163,7 +163,7 @@ export const getNearbyBusinesses = asyncHandler(async (req: Request, res: Respon
             limit: limit as string,
         });
 
-        sendPaginatedResponse(res, result.data, result.meta, 'Nearby businesses fetched successfully');
+        sendPaginatedResponse(res, result.data, result.pagination, 'Nearby businesses fetched successfully');
     } catch (error) {
         next(
             new HttpError(
@@ -194,7 +194,7 @@ export const searchBusinesses = asyncHandler(async (req: Request, res: Response,
             limit: limit as string,
         });
 
-        sendPaginatedResponse(res, result.data, result.meta, 'Business search results fetched successfully');
+        sendPaginatedResponse(res, result.data, result.pagination, 'Business search results fetched successfully');
     } catch (error) {
         next(
             new HttpError(

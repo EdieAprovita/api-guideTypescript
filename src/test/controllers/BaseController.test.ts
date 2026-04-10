@@ -32,7 +32,7 @@ describe('BaseController', () => {
             getAll: vi.fn().mockResolvedValue([{ id: '1' }]),
             getAllPaginated: vi.fn().mockResolvedValue({
                 data: [{ id: '1' }],
-                meta: { page: 1, limit: 10, total: 1, pages: 1 },
+                pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
             }),
             findById: vi.fn().mockResolvedValue({ id: '1' }),
             create: vi.fn().mockResolvedValue({ id: '1' }),
@@ -297,8 +297,8 @@ describe('BaseController', () => {
             expect(res.status).toHaveBeenCalledWith(HttpStatusCode.OK);
 
             const jsonCall = (res.json as any).mock.calls[0][0];
-            expect(jsonCall).toHaveProperty('meta');
-            expect(jsonCall.meta).toEqual({ page: 1, limit: 10, total: 1, pages: 1 });
+            expect(jsonCall).toHaveProperty('pagination');
+            expect(jsonCall.pagination).toEqual({ currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false });
         });
 
         it('should call getAllPaginated when only limit query param is present', async () => {
@@ -325,7 +325,7 @@ describe('BaseController', () => {
             expect(service.getAll).not.toHaveBeenCalled();
 
             const jsonCall = (res.json as any).mock.calls[0][0];
-            expect(jsonCall).toHaveProperty('meta');
+            expect(jsonCall).toHaveProperty('pagination');
         });
 
         it('should forward pagination errors', async () => {

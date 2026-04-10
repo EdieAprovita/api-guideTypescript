@@ -81,7 +81,7 @@ const MOCK_RECIPE_LIST = [
 
 const MOCK_PAGINATED = {
     data: MOCK_RECIPE_LIST,
-    meta: { total: 2, page: 1, limit: 10, totalPages: 1 },
+    pagination: { currentPage: 1, totalPages: 1, totalItems: 2, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
 };
 
 // ---------------------------------------------------------------------------
@@ -136,8 +136,8 @@ describe('getRecipes controller', () => {
 
         expect(mockGetAllPaginated).toHaveBeenCalledWith('1', '10');
         const body = getJsonResponse(res);
-        expect(body).toHaveProperty('meta');
-        expect(body.meta).toHaveProperty('total', 2);
+        expect(body).toHaveProperty('pagination');
+        expect(body.pagination).toHaveProperty('totalItems', 2);
     });
 
     it('returns empty array when no recipes exist', async () => {

@@ -7,6 +7,7 @@ import { HttpError, HttpStatusCode, UserIdRequiredError } from '../types/Errors.
 import { getErrorMessage } from '../types/modalTypes.js';
 import TokenService from './TokenService.js';
 import logger from '../utils/logger.js';
+import { buildPaginationMeta } from '../types/pagination.js';
 
 /**
  * Validates and sanitizes email input to prevent NoSQL injection attacks
@@ -224,23 +225,14 @@ class UserService extends BaseService {
         };
         const sort = sortMap[sortBy ?? 'newest'];
 
-        const [total, users] = await Promise.all([
+        const [totalItems, users] = await Promise.all([
             User.countDocuments(filter),
             User.find(filter).sort(sort).skip(skip).limit(limit).exec(),
         ]);
 
-        const totalPages = Math.ceil(total / limit);
-
         return {
             data: users.map(u => this.getUserResponse(u)),
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages,
-                hasNext: page < totalPages,
-                hasPrevious: page > 1,
-            },
+            pagination: buildPaginationMeta({ page, limit, totalItems }),
         };
     }
 

@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { Review, IReview } from '../../models/Review.js';
 import { HttpError, HttpStatusCode } from '../../types/Errors.js';
 import { cacheService } from '../CacheService.js';
+import { PaginationMeta, buildPaginationMeta } from '../../types/pagination.js';
 import {
     buildReviewEntityMatch,
     buildReviewQuery,
@@ -21,14 +22,7 @@ export async function getReviewsByEntity(
     pagination: PaginationOptions = {}
 ): Promise<{
     data: IReview[];
-    pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalItems: number;
-        itemsPerPage: number;
-        hasNext: boolean;
-        hasPrevious: boolean;
-    };
+    pagination: PaginationMeta;
 }> {
     await validateEntityTypeAndId(entityType, entityId);
 
@@ -40,14 +34,7 @@ export async function getReviewsByEntity(
 
     const cached = await cacheService.get<{
         data: IReview[];
-        pagination: {
-            currentPage: number;
-            totalPages: number;
-            totalItems: number;
-            itemsPerPage: number;
-            hasNext: boolean;
-            hasPrevious: boolean;
-        };
+        pagination: PaginationMeta;
     }>(cacheKey);
     if (cached) {
         return cached;
@@ -58,22 +45,14 @@ export async function getReviewsByEntity(
     const sortOptions: Record<string, 1 | -1> = {};
     sortOptions[sortField] = sortDir;
 
-    const [reviews, totalCount] = await Promise.all([
+    const [reviews, totalItems] = await Promise.all([
         Review.find(query).populate('author', 'name').sort(sortOptions).skip(skip).limit(limit),
         Review.countDocuments(query),
     ]);
 
-    const totalPages = Math.ceil(totalCount / limit);
     const result = {
         data: reviews,
-        pagination: {
-            currentPage: page,
-            totalPages,
-            totalItems: totalCount,
-            itemsPerPage: limit,
-            hasNext: page < totalPages,
-            hasPrevious: page > 1,
-        },
+        pagination: buildPaginationMeta({ page, limit, totalItems }),
     };
 
     await cacheService.setWithTags(cacheKey, result, [`reviews:${entityType}:${entityId}`, 'reviews']);

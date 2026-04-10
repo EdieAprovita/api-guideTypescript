@@ -57,7 +57,7 @@ describe('Phase 1 — getNearbyBusinesses controller', () => {
         const { getNearbyBusinesses } = await import('@/controllers/businessControllers.js');
         const mockResult = {
             data: [{ namePlace: 'Vegan Spot', _id: '1' }],
-            meta: { page: 1, limit: 10, total: 1, pages: 1 },
+            pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
         };
         mockFindNearbyPaginated.mockResolvedValue(mockResult);
 
@@ -74,7 +74,7 @@ describe('Phase 1 — getNearbyBusinesses controller', () => {
         });
         expect(res.status).toHaveBeenCalledWith(HttpStatusCode.OK);
         const jsonCall = (res.json as any).mock.calls[0][0];
-        expect(jsonCall.meta).toEqual(mockResult.meta);
+        expect(jsonCall.pagination).toEqual(mockResult.pagination);
         expect(jsonCall.data).toEqual(mockResult.data);
     });
 
@@ -113,7 +113,7 @@ describe('Phase 1 — getNearbyBusinesses controller', () => {
         const { getNearbyBusinesses } = await import('@/controllers/businessControllers.js');
         mockFindNearbyPaginated.mockResolvedValue({
             data: [],
-            meta: { page: 1, limit: 10, total: 0, pages: 0 },
+            pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
         });
 
         const { req, res, next } = setupTest({ latitude: '19.43', longitude: '-99.13' });
@@ -133,7 +133,7 @@ describe('Phase 1 — searchBusinesses controller', () => {
         const { searchBusinesses } = await import('@/controllers/businessControllers.js');
         const mockResult = {
             data: [{ namePlace: 'Vegan Kitchen', _id: '1' }],
-            meta: { page: 1, limit: 10, total: 1, pages: 1 },
+            pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
         };
         mockSearchPaginated.mockResolvedValue(mockResult);
 
@@ -156,7 +156,7 @@ describe('Phase 1 — searchBusinesses controller', () => {
         const { searchBusinesses } = await import('@/controllers/businessControllers.js');
         mockSearchPaginated.mockResolvedValue({
             data: [],
-            meta: { page: 1, limit: 10, total: 0, pages: 0 },
+            pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
         });
 
         const { req, res, next } = setupTest({ category: 'restaurant', sortBy: 'rating', sortOrder: 'desc' });

@@ -472,8 +472,8 @@ const swaggerDocument: OpenAPIV3.Document = {
                     totalPages: { type: 'integer', example: 10 },
                     totalItems: { type: 'integer', example: 100 },
                     itemsPerPage: { type: 'integer', example: 10 },
-                    hasNext: { type: 'boolean', example: true },
-                    hasPrevious: { type: 'boolean', example: false },
+                    hasNextPage: { type: 'boolean', example: true },
+                    hasPrevPage: { type: 'boolean', example: false },
                 },
             },
             ReviewStatsData: {

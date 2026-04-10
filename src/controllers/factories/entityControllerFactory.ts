@@ -72,7 +72,7 @@ export function createGetNearbyHandler<T extends Document>(
                 success: true,
                 message: `Nearby ${entityName.toLowerCase()}s fetched successfully`,
                 data: result.data,
-                meta: result.meta,
+                pagination: result.pagination,
             });
         } catch (error: unknown) {
             handleControllerError(error, next);
@@ -99,7 +99,7 @@ export function createGetAllHandler<T extends Document>(
                     success: true,
                     message: `${entityName}s fetched successfully`,
                     data: result.data,
-                    meta: result.meta,
+                    pagination: result.pagination,
                 });
             } else {
                 result = options.useCache ? await service.getAllCached() : await service.getAll();

@@ -13,60 +13,81 @@ function createMockResponse(): Response {
 }
 
 describe('sendPaginatedResponse', () => {
-    it('sends paginated data with meta and 200 status', () => {
+    it('sends paginated data with pagination and 200 status', () => {
         const res = createMockResponse();
         const data = [{ id: '1' }, { id: '2' }];
-        const meta: PaginationMeta = { page: 1, limit: 10, total: 2, pages: 1 };
+        const pagination: PaginationMeta = {
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: 2,
+            itemsPerPage: 10,
+            hasNextPage: false,
+            hasPrevPage: false,
+        };
 
-        sendPaginatedResponse(res, data, meta);
+        sendPaginatedResponse(res, data, pagination);
 
         expect(res.status).toHaveBeenCalledWith(HttpStatusCode.OK);
         expect(res.json).toHaveBeenCalledWith({
             success: true,
             message: 'Resources fetched successfully',
             data,
-            meta,
+            pagination,
         });
     });
 
     it('accepts custom message and status code', () => {
         const res = createMockResponse();
         const data = [{ name: 'test' }];
-        const meta: PaginationMeta = { page: 2, limit: 5, total: 12, pages: 3 };
+        const pagination: PaginationMeta = {
+            currentPage: 2,
+            totalPages: 3,
+            totalItems: 12,
+            itemsPerPage: 5,
+            hasNextPage: true,
+            hasPrevPage: true,
+        };
 
-        sendPaginatedResponse(res, data, meta, 'Custom message', 201);
+        sendPaginatedResponse(res, data, pagination, 'Custom message', 201);
 
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(
             expect.objectContaining({
                 message: 'Custom message',
-                meta,
+                pagination,
             })
         );
     });
 
-    it('returns empty array with correct meta for empty results', () => {
+    it('returns empty array with correct pagination for empty results', () => {
         const res = createMockResponse();
-        const meta: PaginationMeta = { page: 1, limit: 10, total: 0, pages: 0 };
+        const pagination: PaginationMeta = {
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: 0,
+            itemsPerPage: 10,
+            hasNextPage: false,
+            hasPrevPage: false,
+        };
 
-        sendPaginatedResponse(res, [], meta);
+        sendPaginatedResponse(res, [], pagination);
 
         expect(res.json).toHaveBeenCalledWith(
             expect.objectContaining({
                 data: [],
-                meta: { page: 1, limit: 10, total: 0, pages: 0 },
+                pagination,
             })
         );
     });
 });
 
 describe('sendSuccessResponse (backward compat)', () => {
-    it('does NOT include meta field when called without it', () => {
+    it('does NOT include pagination field when called without it', () => {
         const res = createMockResponse();
         sendSuccessResponse(res, { id: '1' });
 
         const jsonArg = (res.json as any).mock.calls[0][0];
-        expect(jsonArg).not.toHaveProperty('meta');
+        expect(jsonArg).not.toHaveProperty('pagination');
         expect(jsonArg.success).toBe(true);
     });
 });

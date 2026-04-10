@@ -62,7 +62,7 @@ export class BaseController<T extends Document> {
             const { page, limit } = req.query;
             // Always use pagination to prevent DoS via unbounded queries
             const result = await this.service.getAllPaginated((page as string) || '1', (limit as string) || '10');
-            sendPaginatedResponse(res, result.data, result.meta, 'Resources fetched successfully');
+            sendPaginatedResponse(res, result.data, result.pagination, 'Resources fetched successfully');
         } catch (error) {
             this.handleError(error, next, 'Failed to fetch resources');
         }

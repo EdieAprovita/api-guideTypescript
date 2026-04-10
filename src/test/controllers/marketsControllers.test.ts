@@ -86,7 +86,7 @@ const MOCK_MARKET_LIST = [
 
 const MOCK_PAGINATED = {
     data: MOCK_MARKET_LIST,
-    meta: { total: 2, page: 1, limit: 10, totalPages: 1 },
+    pagination: { currentPage: 1, totalPages: 1, totalItems: 2, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
 };
 
 // ---------------------------------------------------------------------------
@@ -141,7 +141,7 @@ describe('getMarkets controller', () => {
 
         expect(mockGetAllPaginated).toHaveBeenCalledWith('1', '5');
         const body = getJsonResponse(res);
-        expect(body).toHaveProperty('meta');
+        expect(body).toHaveProperty('pagination');
     });
 
     it('returns empty array when no markets exist', async () => {

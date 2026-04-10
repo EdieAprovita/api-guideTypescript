@@ -94,7 +94,7 @@ const MOCK_BUSINESS_LIST = [MOCK_BUSINESS, { ...MOCK_BUSINESS, _id: '64f8e2a1c9d
 
 const MOCK_PAGINATED = {
     data: MOCK_BUSINESS_LIST,
-    meta: { total: 2, page: 1, limit: 10, totalPages: 1 },
+    pagination: { currentPage: 1, totalPages: 1, totalItems: 2, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
 };
 
 // ---------------------------------------------------------------------------
@@ -149,8 +149,8 @@ describe('getBusinesses controller', () => {
 
         expect(mockGetAllPaginated).toHaveBeenCalledWith('1', '10');
         const body = getJsonResponse(res);
-        expect(body).toHaveProperty('meta');
-        expect(body.meta).toHaveProperty('total');
+        expect(body).toHaveProperty('pagination');
+        expect(body.pagination).toHaveProperty('totalItems');
     });
 
     it('returns empty data array when no businesses exist', async () => {
@@ -478,7 +478,7 @@ describe('getNearbyBusinesses controller', () => {
         const body = getJsonResponse(res);
         expect(body.success).toBe(true);
         expect(body).toHaveProperty('data');
-        expect(body).toHaveProperty('meta');
+        expect(body).toHaveProperty('pagination');
     });
 
     it('calls next with 400 when resolveCoords throws due to missing coords', async () => {

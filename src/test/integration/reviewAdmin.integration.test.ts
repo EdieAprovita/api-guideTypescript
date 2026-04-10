@@ -48,11 +48,11 @@ vi.mock('../../services/ReviewService.js', () => ({
             data: [],
             pagination: {
                 currentPage: 1,
-                totalPages: 0,
+                totalPages: 1,
                 totalItems: 0,
                 itemsPerPage: 20,
-                hasNext: false,
-                hasPrevious: false,
+                hasNextPage: false,
+                hasPrevPage: false,
             },
         }),
         getReviewsByEntity: vi.fn().mockResolvedValue({ data: [], pagination: {} }),
@@ -139,8 +139,8 @@ describe('GET /api/v1/reviews — admin list all reviews', () => {
             expect(pagination).toHaveProperty('totalPages');
             expect(pagination).toHaveProperty('totalItems');
             expect(pagination).toHaveProperty('itemsPerPage');
-            expect(pagination).toHaveProperty('hasNext');
-            expect(pagination).toHaveProperty('hasPrevious');
+            expect(pagination).toHaveProperty('hasNextPage');
+            expect(pagination).toHaveProperty('hasPrevPage');
         });
     });
 

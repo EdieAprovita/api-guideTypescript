@@ -22,12 +22,12 @@ export const responseWrapper = (_req: Request, res: Response, next: NextFunction
         }
 
         // Handle paginated responses from services
-        // These already have { data, meta } structure
-        if (body && typeof body === 'object' && 'data' in body && 'meta' in body) {
+        // These already have { data, pagination } structure
+        if (body && typeof body === 'object' && 'data' in body && 'pagination' in body) {
             return originalJson.call(this, {
                 success: true,
                 data: body.data,
-                meta: body.meta,
+                pagination: body.pagination,
             });
         }
 

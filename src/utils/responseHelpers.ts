@@ -6,7 +6,7 @@ export interface SuccessResponse<T> {
     success: true;
     message: string;
     data: T;
-    meta?: PaginationMeta;
+    pagination?: PaginationMeta;
 }
 
 export interface ErrorResponse {
@@ -31,7 +31,7 @@ export const sendSuccessResponse = <T>(
 export const sendPaginatedResponse = <T>(
     res: Response,
     data: T[],
-    meta: PaginationMeta,
+    pagination: PaginationMeta,
     message: string = 'Resources fetched successfully',
     statusCode: number = HttpStatusCode.OK
 ): Response<SuccessResponse<T[]>> => {
@@ -39,7 +39,7 @@ export const sendPaginatedResponse = <T>(
         success: true,
         message,
         data,
-        meta,
+        pagination,
     });
 };
 

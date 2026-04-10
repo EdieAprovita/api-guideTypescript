@@ -7,8 +7,8 @@ import { escapeRegex } from '../utils/escapeRegex.js';
 import { assertSafeUpdatePayload } from '../utils/safeUpdates.js';
 import {
     PaginatedResponse,
-    PaginationMeta,
     normalizePaginationParams,
+    buildPaginationMeta,
     MAX_LIMIT,
     DEFAULT_LIMIT,
     DEFAULT_PAGE,
@@ -79,19 +79,15 @@ class BaseService<T extends Document> {
         const { page: normalizedPage, limit: normalizedLimit } = normalizePaginationParams(page, limit);
         const skip = (normalizedPage - 1) * normalizedLimit;
 
-        const [data, total] = await Promise.all([
+        const [data, totalItems] = await Promise.all([
             this.model.find(filter).skip(skip).limit(normalizedLimit).exec(),
             this.model.countDocuments(filter).exec(),
         ]);
 
-        const meta: PaginationMeta = {
-            page: normalizedPage,
-            limit: normalizedLimit,
-            total,
-            pages: Math.ceil(total / normalizedLimit),
+        return {
+            data: data as T[],
+            pagination: buildPaginationMeta({ page: normalizedPage, limit: normalizedLimit, totalItems }),
         };
-
-        return { data: data as T[], meta };
     }
 
     async findById(id: string): Promise<T> {
@@ -457,7 +453,7 @@ class BaseService<T extends Document> {
             }));
         }
 
-        const [data, total] = await Promise.all([
+        const [data, totalItems] = await Promise.all([
             this.model
                 .find(combinedFilter as FilterQuery<T>)
                 .skip(skip)
@@ -475,14 +471,10 @@ class BaseService<T extends Document> {
                 .exec(),
         ]);
 
-        const meta: PaginationMeta = {
-            page: normalizedPage,
-            limit: normalizedLimit,
-            total,
-            pages: Math.ceil(total / normalizedLimit),
+        return {
+            data: data as T[],
+            pagination: buildPaginationMeta({ page: normalizedPage, limit: normalizedLimit, totalItems }),
         };
-
-        return { data: data as T[], meta };
     }
 
     /**
@@ -526,7 +518,7 @@ class BaseService<T extends Document> {
         const sortDirection = sortOrder === 'desc' ? -1 : 1;
         const sortQuery = { [safeSortBy]: sortDirection } as any;
 
-        const [data, total] = await Promise.all([
+        const [data, totalItems] = await Promise.all([
             this.model
                 .find(filter as FilterQuery<T>)
                 .sort(sortQuery)
@@ -536,14 +528,10 @@ class BaseService<T extends Document> {
             this.model.countDocuments(filter as FilterQuery<T>).exec(),
         ]);
 
-        const meta: PaginationMeta = {
-            page: normalizedPage,
-            limit: normalizedLimit,
-            total,
-            pages: Math.ceil(total / normalizedLimit),
+        return {
+            data: data as T[],
+            pagination: buildPaginationMeta({ page: normalizedPage, limit: normalizedLimit, totalItems }),
         };
-
-        return { data: data as T[], meta };
     }
 }
 export default BaseService;

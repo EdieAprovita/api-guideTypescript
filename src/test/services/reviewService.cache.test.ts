@@ -80,7 +80,7 @@ describe('ReviewService Cache Tests', () => {
         it('should return cached data when available', async () => {
             const cachedData = {
                 data: [{ id: '1', title: 'Cached Review' }],
-                pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 10, hasNext: false, hasPrevious: false }
+                pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false }
             };
 
             mockedCacheService.get.mockResolvedValue(cachedData);
@@ -96,7 +96,7 @@ describe('ReviewService Cache Tests', () => {
             const dbReviews = [{ id: '1', title: 'DB Review' }];
             const expectedResult = {
                 data: dbReviews,
-                pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 10, hasNext: false, hasPrevious: false }
+                pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false }
             };
 
             mockedCacheService.get.mockResolvedValue(null);

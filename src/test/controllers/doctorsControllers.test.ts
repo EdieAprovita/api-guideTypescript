@@ -83,7 +83,7 @@ const MOCK_DOCTOR_LIST = [
 
 const MOCK_PAGINATED = {
     data: MOCK_DOCTOR_LIST,
-    meta: { total: 2, page: 1, limit: 10, totalPages: 1 },
+    pagination: { currentPage: 1, totalPages: 1, totalItems: 2, itemsPerPage: 10, hasNextPage: false, hasPrevPage: false },
 };
 
 // ---------------------------------------------------------------------------
@@ -138,7 +138,7 @@ describe('getDoctors controller', () => {
 
         expect(mockGetAllPaginated).toHaveBeenCalledWith('2', '5');
         const body = getJsonResponse(res);
-        expect(body).toHaveProperty('meta');
+        expect(body).toHaveProperty('pagination');
     });
 
     it('returns empty array when no doctors exist', async () => {
