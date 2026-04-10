@@ -55,6 +55,8 @@ abstract class BaseService {
 
     protected async validateUserNotExists(email: string) {
         const sanitizedEmail = validateAndSanitizeEmail(email);
+        // Intentionally NOT filtering by isDeleted: a soft-deleted account still
+        // owns the email address and must not be reused for a new registration.
         const existingUser = await User.findOne({ email: sanitizedEmail }).exec();
         if (existingUser) {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('User already exists'));
@@ -63,7 +65,11 @@ abstract class BaseService {
 
     protected async getUserByEmail(email: string) {
         const sanitizedEmail = validateAndSanitizeEmail(email);
-        const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
+        // Soft-deleted accounts MUST NOT be resolvable via email lookups used by
+        // authentication flows (BE-03 follow-up: prevent login/reset reuse).
+        const user = await User.findOne({ email: sanitizedEmail, isDeleted: false })
+            .select('+password')
+            .exec();
         this.validateUserExists(user);
         return user!;
     }
@@ -116,7 +122,11 @@ abstract class BaseService {
             throw new HttpError(HttpStatusCode.BAD_REQUEST, getErrorMessage('Invalid reset token'));
         }
 
-        const user = await User.findById(decoded.userId).exec();
+        // Soft-deleted accounts must not be able to consume an otherwise-valid
+        // reset token (BE-03 follow-up).
+        const user = await User.findOne({ _id: decoded.userId, isDeleted: false })
+            .select('+password')
+            .exec();
         this.validateUserExists(user);
         return user!;
     }
@@ -143,7 +153,12 @@ class UserService extends BaseService {
 
     async loginUser(email: string, password: string) {
         const sanitizedEmail = validateAndSanitizeEmail(email);
-        const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
+        // BE-03 follow-up: soft-deleted users must not be able to authenticate.
+        // The isDeleted:false filter ensures we return the same "Invalid credentials"
+        // error as a non-existent account (no account enumeration).
+        const user = await User.findOne({ email: sanitizedEmail, isDeleted: false })
+            .select('+password')
+            .exec();
         await this.validateUserCredentials(user, password);
         const tokens = await TokenService.generateTokens(user!._id.toString(), user!.email, user!.role);
         const userResponse = this.getUserResponse(user!);
@@ -172,7 +187,10 @@ class UserService extends BaseService {
 
         try {
             const sanitizedEmail = validateAndSanitizeEmail(email);
-            const user = await User.findOne({ email: sanitizedEmail }).select('+password').exec();
+            // BE-03 follow-up: soft-deleted users must not trigger reset emails.
+            const user = await User.findOne({ email: sanitizedEmail, isDeleted: false })
+                .select('+password')
+                .exec();
 
             if (user) {
                 const resetToken = await this.generateResetToken(user);
@@ -267,6 +285,18 @@ class UserService extends BaseService {
         ).exec();
         if (!updated) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
+        }
+        // BE-03 follow-up: revoke all outstanding access/refresh tokens so that
+        // any session opened before the soft delete is immediately invalidated.
+        // Token revocation failures must not mask a successful soft delete, but
+        // they must be surfaced in logs so ops can detect replay risk.
+        try {
+            await TokenService.revokeAllUserTokens(userId);
+        } catch (error) {
+            logger.error('deleteUserById: failed to revoke tokens for soft-deleted user', {
+                userId,
+                error,
+            });
         }
         return { message: 'User deleted successfully' };
     }
