@@ -53,7 +53,15 @@ router.post(
     addReviewToBusiness
 );
 
-router.put('/:id', protect, admin, validateObjectId(), validateInputLength(2048), validate({ body: businessSchemas.update }), updateBusiness);
+router.put(
+    '/:id',
+    protect,
+    admin,
+    validateObjectId(),
+    validateInputLength(2048),
+    validate({ body: businessSchemas.update }),
+    updateBusiness
+);
 router.delete('/:id', protect, admin, validateObjectId(), deleteBusiness);
 
 export default router;
