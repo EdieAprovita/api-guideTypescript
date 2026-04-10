@@ -106,10 +106,11 @@ const handleGenericObjectError = (err: UnknownError): ErrorResult => {
     }
 
     if (err.message) {
+        const isProd = process.env.NODE_ENV === 'production';
         return {
             status: HttpStatusCode.INTERNAL_SERVER_ERROR,
-            message: err.message,
-            errorDetail: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+            message: isProd ? 'An internal error occurred. Please try again later.' : err.message,
+            errorDetail: isProd ? 'Internal server error' : err.message,
         };
     }
 
@@ -177,6 +178,6 @@ export const errorHandler = (err: unknown, req: Request, res: Response, _next: N
     res.status(errorResult.status).json(response);
 };
 
-export const notFound = (req: Request, res: Response) => {
-    res.status(HttpStatusCode.NOT_FOUND).json({ success: false, message: `Not Found - ${req.originalUrl}` });
+export const notFound = (_req: Request, res: Response) => {
+    res.status(HttpStatusCode.NOT_FOUND).json({ success: false, message: 'Resource not found' });
 };

@@ -188,22 +188,26 @@ describe('Error Handler Middleware Tests', () => {
     });
 
     describe('Environment-specific behavior', () => {
-        const testEnvironmentBehavior = async (env: string, expectedError: string) => {
+        const testEnvironmentBehavior = async (env: string, expectedMessage: string, expectedError: string) => {
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = env;
 
             const response = await request(app).get('/generic-error');
-            expectErrorResponse(response, 500, 'Something went wrong', expectedError);
+            expectErrorResponse(response, 500, expectedMessage, expectedError);
 
             process.env.NODE_ENV = originalEnv;
         };
 
         it('should not expose error details in production', async () => {
-            await testEnvironmentBehavior('production', 'Internal server error');
+            await testEnvironmentBehavior(
+                'production',
+                'An internal error occurred. Please try again later.',
+                'Internal server error'
+            );
         });
 
         it('should expose error details in development', async () => {
-            await testEnvironmentBehavior('development', 'Something went wrong');
+            await testEnvironmentBehavior('development', 'Something went wrong', 'Something went wrong');
         });
     });
 
