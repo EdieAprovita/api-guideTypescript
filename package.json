@@ -100,7 +100,7 @@
         "mongodb": "^6.3.0",
         "mongoose": "^8.15.2",
         "morgan": "^1.10.0",
-        "nodemailer": "^8.0.4",
+        "nodemailer": "^8.0.5",
         "redis": "^5.5.6",
         "swagger-ui-express": "^5.0.1",
         "uuid": "^13.0.0",
@@ -157,7 +157,7 @@
     "overrides": {
         "test-exclude": "^7.0.1",
         "brace-expansion": "^2.0.2",
-        "axios": "^1.12.0",
+        "axios": "^1.15.0",
         "dompurify": ">=3.3.3",
         "glob": "^10.5.0",
         "lodash": ">=4.18.0"
