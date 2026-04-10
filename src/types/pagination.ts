@@ -27,6 +27,10 @@ export function normalizePaginationParams(
 
 /**
  * Helper to build canonical pagination metadata from MongoDB counters.
+ *
+ * When `page` exceeds `totalPages`, it is clamped to `totalPages` so that
+ * `hasPrevPage` / `hasNextPage` are always logically consistent and callers
+ * never receive a cursor pointing past the last page.
  */
 export function buildPaginationMeta(params: {
     page: number;
@@ -34,12 +38,18 @@ export function buildPaginationMeta(params: {
     totalItems: number;
 }): PaginationMeta {
     const totalPages = Math.max(1, Math.ceil(params.totalItems / params.limit));
+    // Clamp currentPage to valid range [1..totalPages] when items exist.
+    // When totalItems === 0, totalPages is already forced to 1 and page = 1.
+    const clampedPage =
+        params.totalItems === 0
+            ? 1
+            : Math.min(Math.max(1, params.page), totalPages);
     return {
-        currentPage: params.page,
+        currentPage: clampedPage,
         totalPages,
         totalItems: params.totalItems,
         itemsPerPage: params.limit,
-        hasNextPage: params.page < totalPages,
-        hasPrevPage: params.page > 1,
+        hasNextPage: clampedPage < totalPages,
+        hasPrevPage: clampedPage > 1,
     };
 }

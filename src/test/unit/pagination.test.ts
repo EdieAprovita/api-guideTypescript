@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     normalizePaginationParams,
+    buildPaginationMeta,
     DEFAULT_PAGE,
     DEFAULT_LIMIT,
     MAX_LIMIT,
@@ -47,6 +48,65 @@ describe('normalizePaginationParams', () => {
     it('handles undefined explicitly', () => {
         const result = normalizePaginationParams(undefined, undefined);
         expect(result).toEqual({ page: DEFAULT_PAGE, limit: DEFAULT_LIMIT });
+    });
+});
+
+describe('buildPaginationMeta', () => {
+    it('empty result set → currentPage 1, no next, no prev', () => {
+        const result = buildPaginationMeta({ page: 1, limit: 10, totalItems: 0 });
+        expect(result).toEqual({
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: 0,
+            itemsPerPage: 10,
+            hasNextPage: false,
+            hasPrevPage: false,
+        });
+    });
+
+    it('first of multiple pages → hasNextPage true, hasPrevPage false', () => {
+        const result = buildPaginationMeta({ page: 1, limit: 10, totalItems: 25 });
+        expect(result.currentPage).toBe(1);
+        expect(result.totalPages).toBe(3);
+        expect(result.hasNextPage).toBe(true);
+        expect(result.hasPrevPage).toBe(false);
+    });
+
+    it('middle page → hasNextPage true, hasPrevPage true', () => {
+        const result = buildPaginationMeta({ page: 2, limit: 10, totalItems: 25 });
+        expect(result.currentPage).toBe(2);
+        expect(result.hasNextPage).toBe(true);
+        expect(result.hasPrevPage).toBe(true);
+    });
+
+    it('last page → hasNextPage false, hasPrevPage true', () => {
+        const result = buildPaginationMeta({ page: 3, limit: 10, totalItems: 25 });
+        expect(result.currentPage).toBe(3);
+        expect(result.hasNextPage).toBe(false);
+        expect(result.hasPrevPage).toBe(true);
+    });
+
+    it('out-of-bounds page is clamped to totalPages → hasNextPage false, hasPrevPage true', () => {
+        const result = buildPaginationMeta({ page: 10, limit: 10, totalItems: 25 });
+        expect(result.currentPage).toBe(3);
+        expect(result.totalPages).toBe(3);
+        expect(result.hasNextPage).toBe(false);
+        expect(result.hasPrevPage).toBe(true);
+    });
+
+    it('exact fit (totalItems equals limit) → single page, no next, no prev', () => {
+        const result = buildPaginationMeta({ page: 1, limit: 10, totalItems: 10 });
+        expect(result.currentPage).toBe(1);
+        expect(result.totalPages).toBe(1);
+        expect(result.hasNextPage).toBe(false);
+        expect(result.hasPrevPage).toBe(false);
+    });
+
+    it('page 0 is clamped up to 1', () => {
+        const result = buildPaginationMeta({ page: 0, limit: 10, totalItems: 25 });
+        expect(result.currentPage).toBe(1);
+        expect(result.hasPrevPage).toBe(false);
+        expect(result.hasNextPage).toBe(true);
     });
 });
 
