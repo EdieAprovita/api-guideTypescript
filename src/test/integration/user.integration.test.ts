@@ -246,8 +246,8 @@ describe('User API Integration Tests', () => {
             expect(Array.isArray(response.body.data)).toBe(true);
             expect(response.body).toHaveProperty('pagination');
             expect(response.body.pagination).toMatchObject({
-                page: 1,
-                limit: 20,
+                currentPage: 1,
+                itemsPerPage: 20,
             });
         });
 
@@ -258,8 +258,8 @@ describe('User API Integration Tests', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.pagination).toMatchObject({
-                page: 2,
-                limit: 5,
+                currentPage: 2,
+                itemsPerPage: 5,
             });
             // 13 total (12 bulk + 1 admin), page 2 of 5-per-page = items 6-10
             expect(response.body.data.length).toBeLessThanOrEqual(5);
@@ -287,8 +287,8 @@ describe('User API Integration Tests', () => {
                 .set('Authorization', `Bearer ${adminToken}`);
 
             expect(response.status).toBe(200);
-            expect(response.body.pagination.page).toBe(1);
-            expect(response.body.pagination.limit).toBe(20);
+            expect(response.body.pagination.currentPage).toBe(1);
+            expect(response.body.pagination.itemsPerPage).toBe(20);
         });
     });
 
