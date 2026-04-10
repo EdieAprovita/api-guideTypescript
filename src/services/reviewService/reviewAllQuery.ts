@@ -53,7 +53,7 @@ export async function findAllReviews(params: FindAllReviewsParams): Promise<{
 
     const [totalItems, data] = await Promise.all([
         Review.countDocuments(filter),
-        Review.find(filter).populate('author', 'username photo').sort(sortOptions).skip(skip).limit(limit).exec(),
+        Review.find(filter).populate('author', 'username firstName lastName photo').sort(sortOptions).skip(skip).limit(limit).exec(),
     ]);
 
     const totalPages = Math.ceil(totalItems / limit);

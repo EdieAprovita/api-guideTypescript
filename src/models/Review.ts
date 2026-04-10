@@ -1,5 +1,17 @@
 import mongoose, { Schema, Types, Document } from 'mongoose';
 
+/**
+ * Shape of the author field after `.populate('author', 'username firstName lastName photo')`.
+ * Use this type in service/controller code that accesses author sub-fields.
+ */
+export interface PopulatedAuthor {
+    _id: Types.ObjectId | string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
+    photo?: string;
+}
+
 export interface IReview extends Document {
     _id: string;
     rating: number;
@@ -8,7 +20,8 @@ export interface IReview extends Document {
     visitDate: Date;
     recommendedDishes?: string[];
     tags?: string[];
-    author: Types.ObjectId;
+    /** Raw ObjectId when un-populated; PopulatedAuthor after `.populate('author', ...)`. */
+    author: Types.ObjectId | PopulatedAuthor;
     // Polymorphic entity fields
     entityType: 'Restaurant' | 'Recipe' | 'Market' | 'Business' | 'Doctor' | 'Sanctuary';
     entity: Types.ObjectId;

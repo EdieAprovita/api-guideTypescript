@@ -59,7 +59,7 @@ export async function getReviewsByEntity(
     sortOptions[sortField] = sortDir;
 
     const [reviews, totalCount] = await Promise.all([
-        Review.find(query).populate('author', 'name').sort(sortOptions).skip(skip).limit(limit),
+        Review.find(query).populate('author', 'username firstName lastName photo').sort(sortOptions).skip(skip).limit(limit),
         Review.countDocuments(query),
     ]);
 
@@ -139,7 +139,7 @@ export async function getReviewById(reviewId: string): Promise<IReview> {
         return cached;
     }
 
-    const review = await Review.findById(reviewId).populate('author', 'name');
+    const review = await Review.findById(reviewId).populate('author', 'username firstName lastName photo');
     if (!review) {
         throw new HttpError(HttpStatusCode.NOT_FOUND, 'Review not found');
     }
@@ -167,7 +167,7 @@ export async function getTopRatedReviews(entityType: string): Promise<IReview[]>
     })
         .sort({ rating: -1, helpfulCount: -1, createdAt: -1 })
         .limit(10)
-        .populate('author', 'name');
+        .populate('author', 'username firstName lastName photo');
 
     await cacheService.setWithTags(cacheKey, reviews, [`reviews:${normalizedType}`, 'top-rated'], 600);
     return reviews;
@@ -187,7 +187,7 @@ export async function listReviewsForModel(entityId: string): Promise<IReview[]> 
     const reviews = await Review.find({
         $or: [{ entity: new Types.ObjectId(entityId) }, { restaurant: new Types.ObjectId(entityId) }],
     })
-        .populate('author', 'name')
+        .populate('author', 'username firstName lastName photo')
         .sort({ createdAt: -1 });
 
     // Always include a stable entity-scoped tag so mutations can invalidate
