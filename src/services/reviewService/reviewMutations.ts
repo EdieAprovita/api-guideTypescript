@@ -60,7 +60,7 @@ export async function addReview(reviewData: Partial<IReview>): Promise<IReview> 
         });
 
         // Fetch populated review for logging
-        const populatedReview = await Review.findById(review._id).populate('author', 'firstName lastName');
+        const populatedReview = await Review.findById(review._id).populate('author', 'username firstName lastName photo');
 
         await invalidateReviewCache(review.entityType, review.entity.toString(), cacheService);
 
@@ -118,7 +118,7 @@ export async function updateReview(reviewId: string, updateData: Partial<IReview
                 session,
                 runValidators: true,
                 context: 'query',
-            }).populate('author', 'firstName lastName');
+            }).populate('author', 'username firstName lastName photo');
             if (!updated) {
                 throw new HttpError(HttpStatusCode.NOT_FOUND, 'Review not found');
             }

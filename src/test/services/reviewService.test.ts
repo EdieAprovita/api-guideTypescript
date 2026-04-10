@@ -327,3 +327,83 @@ describe('H-10 — addReview cache tags use committed document fields', () => {
         expect(mockedCache.invalidateByTag).toHaveBeenCalledWith(expect.stringContaining(savedEntityId));
     });
 });
+
+// ---------------------------------------------------------------------------
+// P-01 — populate author fields: username, firstName, lastName, photo
+// Verifies that the populated author returned by addReview and getReviewById
+// always exposes all four required fields.
+// ---------------------------------------------------------------------------
+describe('P-01 — populated author contains username, firstName, lastName, photo', () => {
+    const entityId = '507f1f77bcf86cd799439011';
+    const authorId = '507f1f77bcf86cd799439012';
+
+    const populatedAuthor = {
+        _id: authorId,
+        username: 'jane_doe',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        photo: 'https://cdn.example.com/jane.jpg',
+    };
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockedCache.get.mockResolvedValue(null);
+        mockedCache.invalidateByTag.mockResolvedValue(undefined);
+    });
+
+    it('addReview returns a review whose author has username, firstName, lastName, photo', async () => {
+        const committedReview = {
+            _id: '507f1f77bcf86cd799439099',
+            entityType: 'Restaurant',
+            entity: { toString: () => entityId },
+            author: populatedAuthor,
+            rating: 4,
+        };
+
+        mockedReview.findOne.mockResolvedValue(null);
+        mockedReview.create.mockResolvedValue([committedReview]);
+        mockedReview.findById.mockReturnValue({
+            populate: vi.fn().mockResolvedValue(committedReview),
+        });
+
+        const result = await reviewService.addReview({
+            entityType: 'Restaurant',
+            entity: entityId as unknown as never,
+            author: authorId as unknown as never,
+            rating: 4,
+        });
+
+        // The author field must be the populated object, not a raw ObjectId string
+        expect(typeof result.author).toBe('object');
+        const author = result.author as typeof populatedAuthor;
+        expect(author.username).toBe('jane_doe');
+        expect(author.firstName).toBe('Jane');
+        expect(author.lastName).toBe('Doe');
+        expect(author.photo).toBe('https://cdn.example.com/jane.jpg');
+    });
+
+    it('getReviewById returns a review whose author has username, firstName, lastName, photo', async () => {
+        const reviewId = '507f1f77bcf86cd799439055';
+        const storedReview = {
+            _id: reviewId,
+            entityType: 'Recipe',
+            entity: { toString: () => entityId },
+            author: populatedAuthor,
+            rating: 5,
+        };
+
+        mockedReview.findById.mockReturnValue({
+            populate: vi.fn().mockResolvedValue(storedReview),
+        });
+        mockedCache.setWithTags = vi.fn().mockResolvedValue(undefined);
+
+        const result = await reviewService.getReviewById(reviewId);
+
+        expect(typeof result.author).toBe('object');
+        const author = result.author as typeof populatedAuthor;
+        expect(author.username).toBe('jane_doe');
+        expect(author.firstName).toBe('Jane');
+        expect(author.lastName).toBe('Doe');
+        expect(author.photo).toBe('https://cdn.example.com/jane.jpg');
+    });
+});
