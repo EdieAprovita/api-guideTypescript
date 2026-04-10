@@ -31,45 +31,41 @@ const createLocationSchema = (required = false) => {
     return required ? schema.required() : schema.optional();
 };
 
-const createSocialMediaSchema = () =>
-    Joi.object({
-        facebook: commonSchemas.url.optional(),
-        instagram: commonSchemas.url.optional(),
-        twitter: commonSchemas.url.optional(),
-    }).optional();
-
-const createOpeningHoursSchema = () =>
-    Joi.object()
-        .pattern(
-            Joi.string().valid('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
-            Joi.object({
-                open: commonSchemas.time.required(),
-                close: commonSchemas.time.required(),
-            })
-        )
-        .optional();
-
 const createBusinessBaseSchema = (isRequired = true) => {
     const schema = {
-        name: Joi.string().trim().min(2).max(100),
+        namePlace: Joi.string().trim().min(2).max(100),
         description: Joi.string().trim().max(1000).optional(),
         address: Joi.string().trim().max(200),
-        phoneNumber: commonSchemas.phone,
-        email: commonSchemas.email.optional(),
-        website: commonSchemas.url.optional(),
-        socialMedia: createSocialMediaSchema(),
-        location: createLocationSchema(isRequired),
-        openingHours: createOpeningHoursSchema(),
+        image: Joi.string().trim().optional(),
+        budget: Joi.number().optional(),
+        contact: Joi.array()
+            .items(
+                Joi.object({
+                    phone: Joi.string().optional(),
+                    email: commonSchemas.email.optional(),
+                    facebook: Joi.string().optional(),
+                    instagram: Joi.string().optional(),
+                })
+            )
+            .optional(),
+        hours: Joi.array()
+            .items(
+                Joi.object({
+                    dayOfWeek: Joi.string().required(),
+                    openTime: commonSchemas.time.required(),
+                    closeTime: commonSchemas.time.required(),
+                })
+            )
+            .optional(),
+        location: createLocationSchema(false),
     };
 
     if (isRequired) {
-        schema.name = schema.name.required();
+        schema.namePlace = schema.namePlace.required();
         schema.address = schema.address.required();
-        schema.phoneNumber = schema.phoneNumber.required();
     } else {
-        schema.name = schema.name.optional();
+        schema.namePlace = schema.namePlace.optional();
         schema.address = schema.address.optional();
-        schema.phoneNumber = schema.phoneNumber.optional();
     }
 
     return schema;
@@ -172,14 +168,15 @@ export const userSchemas = {
 export const businessSchemas = {
     create: Joi.object({
         ...createBusinessBaseSchema(true),
-        category: Joi.string().trim().required(),
+        typeBusiness: Joi.string().trim().required(),
     }),
 
     update: Joi.object({
         ...createBusinessBaseSchema(false),
-        category: Joi.string().trim().optional(),
+        typeBusiness: Joi.string().trim().optional(),
     }),
 
+    // `category` here is a search/filter query param, not a model field — intentionally kept as-is
     search: Joi.object({
         category: Joi.string().trim().optional(),
         latitude: Joi.number().min(-90).max(90).optional(),

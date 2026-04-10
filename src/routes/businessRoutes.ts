@@ -2,7 +2,7 @@ import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { browserCacheValidation, businessCacheMiddleware } from '../middleware/cache.js';
 import { validate, rateLimits, validateInputLength, validateObjectId } from '../middleware/validation.js';
-import { paramSchemas, reviewSchemas } from '../utils/validators.js';
+import { paramSchemas, reviewSchemas, businessSchemas } from '../utils/validators.js';
 import {
     getBusinesses,
     getBusinessById,
@@ -25,7 +25,7 @@ router.get('/search', searchBusinesses);
 
 router.get('/', businessCacheMiddleware(), getBusinesses);
 router.get('/:id', validateObjectId(), businessCacheMiddleware(), getBusinessById);
-router.post('/', protect, createBusiness);
+router.post('/', protect, validateInputLength(2048), validate({ body: businessSchemas.create }), createBusiness);
 
 // Standardized review routes (new OpenAPI 3.0 compliant paths)
 router.post(
@@ -53,7 +53,7 @@ router.post(
     addReviewToBusiness
 );
 
-router.put('/:id', protect, admin, validateObjectId(), updateBusiness);
+router.put('/:id', protect, admin, validateObjectId(), validateInputLength(2048), validate({ body: businessSchemas.update }), updateBusiness);
 router.delete('/:id', protect, admin, validateObjectId(), deleteBusiness);
 
 export default router;
