@@ -20,6 +20,13 @@ interface ErrorResult {
     validationErrors?: Array<{ field: string; message: string }>;
 }
 
+const isProduction = (): boolean => process.env.NODE_ENV === 'production';
+
+const GENERIC_INTERNAL_MESSAGE = 'An internal error occurred. Please try again later.';
+const GENERIC_INTERNAL_DETAIL = 'Internal server error';
+
+// HttpError carve-out: intentional 4xx errors (400/401/403/404) are developer-authored
+// and MUST preserve their message client-side. They never leak internals.
 const handleHttpError = (err: HttpError): ErrorResult => ({
     status: err.statusCode,
     message: err.message,
@@ -28,8 +35,8 @@ const handleHttpError = (err: HttpError): ErrorResult => ({
 
 const handleStringError = (err: string): ErrorResult => ({
     status: HttpStatusCode.INTERNAL_SERVER_ERROR,
-    message: err,
-    errorDetail: 'An error occurred',
+    message: isProduction() ? GENERIC_INTERNAL_MESSAGE : err,
+    errorDetail: isProduction() ? GENERIC_INTERNAL_DETAIL : 'An error occurred',
 });
 
 const handleValidationError = (err: UnknownError): ErrorResult => {
@@ -49,42 +56,48 @@ const handleValidationError = (err: UnknownError): ErrorResult => {
     };
 };
 
-const handleCastError = (err: UnknownError): ErrorResult => ({
-    status: HttpStatusCode.BAD_REQUEST,
-    message: `Invalid _id: ${err.value}`,
-    errorDetail: 'Invalid data format',
-});
+const handleCastError = (err: UnknownError): ErrorResult => {
+    const prod = isProduction();
+    return {
+        status: HttpStatusCode.BAD_REQUEST,
+        message: prod ? 'Invalid resource identifier' : `Invalid _id: ${err.value}`,
+        errorDetail: prod ? 'Bad request' : 'Invalid data format',
+    };
+};
 
 const handleDuplicateKeyError = (err: UnknownError): ErrorResult => {
     const field = err.keyPattern ? (Object.keys(err.keyPattern)[0] ?? 'field') : 'field';
+    const prod = isProduction();
     return {
-        status: HttpStatusCode.BAD_REQUEST,
-        message: `Duplicate field value: ${field}`,
-        errorDetail: 'Duplicate field value entered',
+        status: HttpStatusCode.CONFLICT,
+        message: prod ? 'Duplicate entry' : `Duplicate field value: ${field}`,
+        errorDetail: prod ? 'Conflict' : 'Duplicate field value entered',
     };
 };
 
 const handleBuiltInError = (err: Error): ErrorResult => {
+    const prod = isProduction();
+
     if (err instanceof SyntaxError) {
         return {
             status: HttpStatusCode.BAD_REQUEST,
-            message: `Syntax Error: ${err.message}`,
-            errorDetail: 'Invalid request syntax',
+            message: prod ? 'Invalid request syntax' : `Syntax Error: ${err.message}`,
+            errorDetail: prod ? 'Bad request' : 'Invalid request syntax',
         };
     }
 
     if (err instanceof RangeError) {
         return {
             status: HttpStatusCode.BAD_REQUEST,
-            message: `Range Error: ${err.message}`,
-            errorDetail: 'Value out of range',
+            message: prod ? 'Value out of range' : `Range Error: ${err.message}`,
+            errorDetail: prod ? 'Bad request' : 'Value out of range',
         };
     }
 
     return {
         status: HttpStatusCode.INTERNAL_SERVER_ERROR,
-        message: `Type Error: ${err.message}`,
-        errorDetail: 'Internal type error',
+        message: prod ? GENERIC_INTERNAL_MESSAGE : `Type Error: ${err.message}`,
+        errorDetail: prod ? GENERIC_INTERNAL_DETAIL : 'Internal type error',
     };
 };
 
@@ -106,10 +119,11 @@ const handleGenericObjectError = (err: UnknownError): ErrorResult => {
     }
 
     if (err.message) {
+        const prod = isProduction();
         return {
             status: HttpStatusCode.INTERNAL_SERVER_ERROR,
-            message: err.message,
-            errorDetail: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+            message: prod ? GENERIC_INTERNAL_MESSAGE : err.message,
+            errorDetail: prod ? GENERIC_INTERNAL_DETAIL : err.message,
         };
     }
 
@@ -158,14 +172,31 @@ export const errorHandler = (err: unknown, req: Request, res: Response, _next: N
 
     const errorResult = processError(err);
 
+    // Preserve original error details in server-side logs for diagnostics.
+    // These fields are NEVER sent to the client — the sanitized response
+    // is built separately below from errorResult.
+    const correlationId =
+        (req as unknown as { id?: string }).id ??
+        (req.headers['x-correlation-id'] as string | undefined) ??
+        (req.headers['x-request-id'] as string | undefined);
+
     logger.error('Error Handler:', {
         status: errorResult.status,
-        message: errorResult.message,
-        name: (err as any)?.name,
+        name: err instanceof Error ? err.name : (err as { name?: string } | null)?.name,
+        // Original, un-sanitized error message for SRE diagnostics
+        originalMessage: err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err),
+        // Full stack trace — always logged server-side (logs are not client-exposed)
+        stack: err instanceof Error ? err.stack : undefined,
         path: req.path,
         method: req.method,
-        user: req.user ? req.user._id : 'Guest',
+        requestId: correlationId,
+        userId: req.user?._id?.toString() ?? 'Guest',
+        // Sanitized message that was actually sent to the client (audit trail)
+        clientMessage: errorResult.message,
     });
+
+    // TODO(observability): hook Sentry.captureException(err, { extra: { requestId, path } })
+    // once @sentry/node is wired up so we have post-mortem APM in production.
 
     const response = {
         success: false,
@@ -177,6 +208,6 @@ export const errorHandler = (err: unknown, req: Request, res: Response, _next: N
     res.status(errorResult.status).json(response);
 };
 
-export const notFound = (req: Request, res: Response) => {
-    res.status(HttpStatusCode.NOT_FOUND).json({ success: false, message: `Not Found - ${req.originalUrl}` });
+export const notFound = (_req: Request, res: Response) => {
+    res.status(HttpStatusCode.NOT_FOUND).json({ success: false, message: 'Resource not found' });
 };

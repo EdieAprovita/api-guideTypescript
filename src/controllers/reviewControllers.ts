@@ -102,7 +102,9 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
         logger.info('Creating review for restaurant', {
             restaurantId,
             userId: userId?.toString(),
-            body: req.body,
+            hasRating: typeof req.body?.rating === 'number',
+            contentLength: typeof req.body?.content === 'string' ? req.body.content.length : 0,
+            titleLength: typeof req.body?.title === 'string' ? req.body.title.length : 0,
         });
 
         if (!userId) {
@@ -132,7 +134,11 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
             restaurant: restaurantId,
         };
 
-        logger.info('Creating review with data', { reviewData });
+        logger.info('Review data prepared', {
+            restaurantId,
+            userId: userId?.toString(),
+            hasAuthor: Boolean(reviewData.author),
+        });
 
         const review = await ReviewService.addReview(reviewData);
 
@@ -143,10 +149,9 @@ export const createReviewForRestaurant = asyncHandler(async (req: Request, res: 
     } catch (error) {
         logger.error('Error creating review', {
             error: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined,
             restaurantId: req.params.restaurantId,
             userId: req.user?._id?.toString(),
-            body: req.body,
+            ...(process.env.NODE_ENV !== 'production' && error instanceof Error ? { stack: error.stack } : {}),
         });
         throw error;
     }
