@@ -32,18 +32,11 @@ export function normalizePaginationParams(
  * `hasPrevPage` / `hasNextPage` are always logically consistent and callers
  * never receive a cursor pointing past the last page.
  */
-export function buildPaginationMeta(params: {
-    page: number;
-    limit: number;
-    totalItems: number;
-}): PaginationMeta {
+export function buildPaginationMeta(params: { page: number; limit: number; totalItems: number }): PaginationMeta {
     const totalPages = Math.max(1, Math.ceil(params.totalItems / params.limit));
     // Clamp currentPage to valid range [1..totalPages] when items exist.
     // When totalItems === 0, totalPages is already forced to 1 and page = 1.
-    const clampedPage =
-        params.totalItems === 0
-            ? 1
-            : Math.min(Math.max(1, params.page), totalPages);
+    const clampedPage = params.totalItems === 0 ? 1 : Math.min(Math.max(1, params.page), totalPages);
     return {
         currentPage: clampedPage,
         totalPages,
