@@ -208,7 +208,7 @@ class UserService extends BaseService {
         const { page, limit, search, sortBy } = params;
         const skip = (page - 1) * limit;
 
-        const filter: Record<string, unknown> = {};
+        const filter: Record<string, unknown> = { isDeleted: false };
         if (search) {
             const escaped = escapeRegex(search);
             filter.$or = [
@@ -246,7 +246,7 @@ class UserService extends BaseService {
 
     async findUserById(userId: string) {
         if (!userId) throw new UserIdRequiredError('User ID not found');
-        const user = await User.findById(userId).exec();
+        const user = await User.findOne({ _id: userId, isDeleted: false }).exec();
         return user;
     }
 
@@ -260,8 +260,12 @@ class UserService extends BaseService {
     }
 
     async deleteUserById(userId: string) {
-        const deleted = await User.findByIdAndDelete(userId).exec();
-        if (!deleted) {
+        const updated = await User.findOneAndUpdate(
+            { _id: userId, isDeleted: false },
+            { isDeleted: true, isActive: false },
+            { new: true }
+        ).exec();
+        if (!updated) {
             throw new HttpError(HttpStatusCode.NOT_FOUND, 'User not found');
         }
         return { message: 'User deleted successfully' };
