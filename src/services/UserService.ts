@@ -67,9 +67,7 @@ abstract class BaseService {
         const sanitizedEmail = validateAndSanitizeEmail(email);
         // Soft-deleted accounts MUST NOT be resolvable via email lookups used by
         // authentication flows (BE-03 follow-up: prevent login/reset reuse).
-        const user = await User.findOne({ email: sanitizedEmail, isDeleted: false })
-            .select('+password')
-            .exec();
+        const user = await User.findOne({ email: sanitizedEmail, isDeleted: false }).select('+password').exec();
         this.validateUserExists(user);
         return user!;
     }
@@ -124,9 +122,7 @@ abstract class BaseService {
 
         // Soft-deleted accounts must not be able to consume an otherwise-valid
         // reset token (BE-03 follow-up).
-        const user = await User.findOne({ _id: decoded.userId, isDeleted: false })
-            .select('+password')
-            .exec();
+        const user = await User.findOne({ _id: decoded.userId, isDeleted: false }).select('+password').exec();
         this.validateUserExists(user);
         return user!;
     }
@@ -156,9 +152,7 @@ class UserService extends BaseService {
         // BE-03 follow-up: soft-deleted users must not be able to authenticate.
         // The isDeleted:false filter ensures we return the same "Invalid credentials"
         // error as a non-existent account (no account enumeration).
-        const user = await User.findOne({ email: sanitizedEmail, isDeleted: false })
-            .select('+password')
-            .exec();
+        const user = await User.findOne({ email: sanitizedEmail, isDeleted: false }).select('+password').exec();
         await this.validateUserCredentials(user, password);
         const tokens = await TokenService.generateTokens(user!._id.toString(), user!.email, user!.role);
         const userResponse = this.getUserResponse(user!);
@@ -188,9 +182,7 @@ class UserService extends BaseService {
         try {
             const sanitizedEmail = validateAndSanitizeEmail(email);
             // BE-03 follow-up: soft-deleted users must not trigger reset emails.
-            const user = await User.findOne({ email: sanitizedEmail, isDeleted: false })
-                .select('+password')
-                .exec();
+            const user = await User.findOne({ email: sanitizedEmail, isDeleted: false }).select('+password').exec();
 
             if (user) {
                 const resetToken = await this.generateResetToken(user);
