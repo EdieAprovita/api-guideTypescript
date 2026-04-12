@@ -129,22 +129,31 @@ let sharedClient: RedisType | null = null;
 export function getRedisClient(): RedisType {
     if (sharedClient) return sharedClient;
 
+    const isConfigured = !!(process.env.REDIS_HOST || process.env.REDIS_URL);
+
     const redisConfig = {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379'),
         db: 0,
         retryDelayOnFailover: 100,
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: isConfigured ? 3 : 0,
         lazyConnect: true,
         keepAlive: 30000,
         connectTimeout: 10000,
         commandTimeout: 5000,
-        retryStrategy: redisRetryStrategy,
+        retryStrategy: isConfigured ? redisRetryStrategy : () => null,
         ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
         ...(process.env.REDIS_TLS === 'true' && { tls: {} }),
     };
 
     sharedClient = new Redis(redisConfig);
+
+    if (!isConfigured) {
+        logger.info('Redis not configured — cache layer disabled (circuit breaker pre-opened)');
+        circuitBreaker.state = 'open';
+        circuitBreaker.nextRetry = null;
+        return sharedClient;
+    }
 
     sharedClient.on('connect', () => {
         logger.info('Redis connected successfully');
