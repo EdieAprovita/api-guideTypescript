@@ -16,6 +16,7 @@ vi.mock('../../services/CacheService', () => ({
 }));
 
 vi.mock('../../clients/redisClient.js', () => ({
+    isRedisConfigured: vi.fn(() => true),
     getCircuitBreakerState: vi.fn(() => ({
         state: 'closed',
         failures: 0,
@@ -86,9 +87,31 @@ async function getRedisClientModule() {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('GET /health/ready', () => {
+describe('GET /health', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    it('returns 200 even when MongoDB is still connecting', async () => {
+        const mongoose = await getMongoose();
+
+        (mongoose.connection as { readyState: number }).readyState = 0;
+
+        const response = await request(app).get('/health').expect(200);
+
+        expect(response.body).toMatchObject({
+            status: 'ok',
+        });
+        expect(typeof response.body.uptime).toBe('number');
+        expect(response.body.timestamp).toBeDefined();
+    });
+});
+
+describe('GET /health/ready', () => {
+    beforeEach(async () => {
+        vi.clearAllMocks();
+        const redisClient = await getRedisClientModule();
+        vi.mocked(redisClient.isRedisConfigured).mockReturnValue(true);
     });
 
     describe('when MongoDB is connected and Redis responds with PONG', () => {
@@ -123,6 +146,28 @@ describe('GET /health/ready', () => {
             expect(response.body).toMatchObject({
                 ready: false,
                 redis: false,
+            });
+        });
+    });
+
+    describe('when Redis is not configured', () => {
+        it('returns 200 when MongoDB is connected and reports Redis as disabled', async () => {
+            const mongoose = await getMongoose();
+            const cacheService = await getCacheService();
+            const redisClient = await getRedisClientModule();
+
+            (mongoose.connection as { readyState: number }).readyState = 1;
+            vi.mocked(redisClient.isRedisConfigured).mockReturnValue(false);
+            vi.mocked(cacheService.ping).mockResolvedValue(false);
+
+            const response = await request(app).get('/health/ready').expect(200);
+
+            expect(cacheService.ping).not.toHaveBeenCalled();
+            expect(response.body).toMatchObject({
+                ready: true,
+                mongo: true,
+                redis: false,
+                redisConfigured: false,
             });
         });
     });
@@ -185,8 +230,10 @@ describe('GET /health/ready', () => {
 });
 
 describe('GET /health/deep', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
+        const redisClient = await getRedisClientModule();
+        vi.mocked(redisClient.isRedisConfigured).mockReturnValue(true);
     });
 
     it('returns 200 when Redis is healthy and the circuit breaker is half-open', async () => {
@@ -256,8 +303,10 @@ describe('GET /health/deep — auth guard (H-01)', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /health/v1 (Sprint-3 contract)', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
+        const redisClient = await getRedisClientModule();
+        vi.mocked(redisClient.isRedisConfigured).mockReturnValue(true);
     });
 
     it('returns 200 with status "ok" and services mongo/redis "ok" when both are up', async () => {
@@ -365,8 +414,10 @@ describe('GET /health/v1 (Sprint-3 contract)', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /api/v1/health (B-C3 routing alias)', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
+        const redisClient = await getRedisClientModule();
+        vi.mocked(redisClient.isRedisConfigured).mockReturnValue(true);
     });
 
     it('returns 200 with Sprint-3 contract payload when all services are up', async () => {
@@ -384,6 +435,24 @@ describe('GET /api/v1/health (B-C3 routing alias)', () => {
         });
         expect(typeof response.body.uptime).toBe('number');
         expect(typeof response.body.timestamp).toBe('string');
+    });
+
+    it('returns 200 when Mongo is up and Redis is not configured', async () => {
+        const mongoose = await getMongoose();
+        const cacheService = await getCacheService();
+        const redisClient = await getRedisClientModule();
+
+        (mongoose.connection as { readyState: number }).readyState = 1;
+        vi.mocked(redisClient.isRedisConfigured).mockReturnValue(false);
+        vi.mocked(cacheService.ping).mockResolvedValue(false);
+
+        const response = await request(apiApp).get('/api/v1/health').expect(200);
+
+        expect(cacheService.ping).not.toHaveBeenCalled();
+        expect(response.body).toMatchObject({
+            status: 'ok',
+            services: { mongo: 'ok', redis: 'disabled' },
+        });
     });
 
     it('returns 503 with status "degraded" when Redis ping times out', async () => {

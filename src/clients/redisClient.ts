@@ -126,10 +126,14 @@ export async function executeIfCircuitClosed<T>(operation: () => Promise<T>): Pr
 // ---------------------------------------------------------------------------
 let sharedClient: RedisType | null = null;
 
+export function isRedisConfigured(): boolean {
+    return !!(process.env.REDIS_HOST || process.env.REDIS_URL);
+}
+
 export function getRedisClient(): RedisType {
     if (sharedClient) return sharedClient;
 
-    const isConfigured = !!(process.env.REDIS_HOST || process.env.REDIS_URL);
+    const isConfigured = isRedisConfigured();
 
     const redisConfig = {
         host: process.env.REDIS_HOST || 'localhost',

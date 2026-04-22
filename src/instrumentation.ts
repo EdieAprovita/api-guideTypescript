@@ -9,27 +9,32 @@ let sdk: NodeSDK | undefined;
 
 if (process.env.NODE_ENV === 'production') {
     const version = process.env.APP_VERSION || '2.3.0';
+    const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 
-    sdk = new NodeSDK({
-        resource: resourceFromAttributes({
-            [ATTR_SERVICE_NAME]: 'api-guide-typescript',
-            [ATTR_SERVICE_VERSION]: version,
-        }),
-        traceExporter: new OTLPTraceExporter({
-            url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
-        }),
-        instrumentations: [
-            getNodeAutoInstrumentations({
-                '@opentelemetry/instrumentation-fs': { enabled: false },
-                '@opentelemetry/instrumentation-dns': { enabled: false },
+    if (!otlpEndpoint) {
+        logger.info('OpenTelemetry disabled: OTEL_EXPORTER_OTLP_ENDPOINT is not configured');
+    } else {
+        sdk = new NodeSDK({
+            resource: resourceFromAttributes({
+                [ATTR_SERVICE_NAME]: 'api-guide-typescript',
+                [ATTR_SERVICE_VERSION]: version,
             }),
-        ],
-    });
+            traceExporter: new OTLPTraceExporter({
+                url: otlpEndpoint,
+            }),
+            instrumentations: [
+                getNodeAutoInstrumentations({
+                    '@opentelemetry/instrumentation-fs': { enabled: false },
+                    '@opentelemetry/instrumentation-dns': { enabled: false },
+                }),
+            ],
+        });
 
-    try {
-        sdk.start();
-    } catch (error: unknown) {
-        logger.error('Failed to start OpenTelemetry SDK', error as Error);
+        try {
+            sdk.start();
+        } catch (error: unknown) {
+            logger.error('Failed to start OpenTelemetry SDK', error as Error);
+        }
     }
 }
 

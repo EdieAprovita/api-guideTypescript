@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import logger from '../utils/logger.js';
 import mongoose from 'mongoose';
 import { cacheService } from '../services/CacheService.js';
-import { getCircuitBreakerState, checkAndAdvanceState } from '../clients/redisClient.js';
+import { getCircuitBreakerState, checkAndAdvanceState, isRedisConfigured } from '../clients/redisClient.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
 // Bounded ping helper: resolves false after `timeoutMs` so a stalled
@@ -20,43 +20,24 @@ async function pingWithTimeout(timeoutMs: number): Promise<boolean> {
 const router = express.Router();
 
 /**
- * @description Health check — reports server liveness and database connectivity.
- * Returns 200 when the database is connected, 503 when degraded or unavailable.
- * Intentionally lightweight so load-balancer probes remain fast.
+ * @description Liveness check — reports whether the HTTP process is alive.
+ * It intentionally does not gate on MongoDB/Redis; dependency readiness lives
+ * under /health/ready and /health/v1.
  * @route GET /health
  */
-router.get('/', async (_req: Request, res: Response) => {
-    try {
-        logger.debug('Health check requested');
-
-        const dbState = mongoose.connection.readyState;
-        const isDbHealthy = dbState === 1; // 1 = connected
-
-        const health = {
-            status: isDbHealthy ? 'ok' : 'degraded',
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            database: isDbHealthy ? 'connected' : 'disconnected',
-        };
-
-        res.status(isDbHealthy ? 200 : 503).json(health);
-    } catch (error) {
-        logger.error('Health check failed', {
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-        });
-        res.status(503).json({
-            status: 'error',
-            timestamp: new Date().toISOString(),
-        });
-    }
+router.get('/', (_req: Request, res: Response) => {
+    logger.debug('Liveness check requested');
+    res.status(200).json({
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+    });
 });
 
 /**
  * @description Readiness probe — indicates if the server is ready to accept traffic.
- * Gates on both MongoDB and Redis connectivity. The Redis ping is bounded to 500 ms
- * so a hung Redis connection cannot block Kubernetes probes long enough to cause
- * an unnecessary pod restart.
+ * Gates on MongoDB, and on Redis only when Redis is configured. The Redis ping
+ * is bounded to 500 ms so a hung Redis connection cannot block probes.
  * @route GET /ready
  */
 router.get('/ready', async (_req: Request, res: Response) => {
@@ -64,8 +45,9 @@ router.get('/ready', async (_req: Request, res: Response) => {
         logger.debug('Readiness probe requested');
 
         const mongoConnected = mongoose.connection.readyState === 1;
-        const redisConnected = await pingWithTimeout(500);
-        const ready = mongoConnected && redisConnected;
+        const redisConfigured = isRedisConfigured();
+        const redisConnected = redisConfigured ? await pingWithTimeout(500) : false;
+        const ready = mongoConnected && (!redisConfigured || redisConnected);
 
         if (ready) {
             logger.info('Readiness check passed');
@@ -73,6 +55,7 @@ router.get('/ready', async (_req: Request, res: Response) => {
                 ready: true,
                 mongo: mongoConnected,
                 redis: redisConnected,
+                redisConfigured,
                 timestamp: new Date().toISOString(),
                 message: 'Service is ready to accept requests',
             });
@@ -80,11 +63,13 @@ router.get('/ready', async (_req: Request, res: Response) => {
             logger.warn('Readiness check failed', {
                 mongoState: mongoose.connection.readyState,
                 redis: redisConnected,
+                redisConfigured,
             });
             res.status(503).json({
                 ready: false,
                 mongo: mongoConnected,
                 redis: redisConnected,
+                redisConfigured,
                 timestamp: new Date().toISOString(),
                 message: 'Service is not ready',
             });
@@ -109,7 +94,8 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
         logger.debug('Deep health check requested');
 
         const mongoConnected = mongoose.connection.readyState === 1;
-        const redisConnected = await pingWithTimeout(500);
+        const redisConfigured = isRedisConfigured();
+        const redisConnected = redisConfigured ? await pingWithTimeout(500) : false;
 
         checkAndAdvanceState();
         const circuitBreaker = getCircuitBreakerState();
@@ -117,7 +103,7 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
         const memoryUsage = process.memoryUsage();
 
         const redisOperational = redisConnected && circuitBreaker.state !== 'open';
-        const allHealthy = mongoConnected && redisOperational;
+        const allHealthy = mongoConnected && (!redisConfigured || redisOperational);
 
         const healthStatus = {
             status: allHealthy ? 'healthy' : 'degraded',
@@ -126,6 +112,7 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
             services: {
                 mongodb: mongoConnected,
                 redis: redisConnected,
+                redisConfigured,
                 circuitBreaker: {
                     state: circuitBreaker.state,
                     failures: circuitBreaker.failures,
@@ -143,6 +130,7 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
             status: healthStatus.status,
             mongoConnected,
             redisConnected,
+            redisConfigured,
             redisOperational,
             circuitBreakerState: circuitBreaker.state,
         });
@@ -161,7 +149,8 @@ router.get('/deep', protect, admin, async (_req: Request, res: Response) => {
 /**
  * Sprint-3 contract handler — shared by both `/health/v1` and `/api/v1/health`.
  * Returns { status, uptime, timestamp, services: { mongo, redis } }.
- * Redis ping is bounded to 2 s so the endpoint degrades gracefully.
+ * Redis ping is bounded to 2 s when Redis is configured. If Redis is not
+ * configured, Redis is reported as disabled and does not degrade readiness.
  * No authentication required — safe for external load-balancer probes.
  */
 async function sprint3HealthHandler(_req: Request, res: Response): Promise<void> {
@@ -169,9 +158,10 @@ async function sprint3HealthHandler(_req: Request, res: Response): Promise<void>
         logger.debug('v1 health check requested');
 
         const isMongoUp = mongoose.connection.readyState === 1;
-        const isRedisUp = await pingWithTimeout(2_000);
+        const redisConfigured = isRedisConfigured();
+        const isRedisUp = redisConfigured ? await pingWithTimeout(2_000) : false;
 
-        const allUp = isMongoUp && isRedisUp;
+        const allUp = isMongoUp && (!redisConfigured || isRedisUp);
 
         const payload = {
             status: allUp ? 'ok' : 'degraded',
@@ -179,7 +169,7 @@ async function sprint3HealthHandler(_req: Request, res: Response): Promise<void>
             timestamp: new Date().toISOString(),
             services: {
                 mongo: isMongoUp ? ('ok' as const) : ('down' as const),
-                redis: isRedisUp ? ('ok' as const) : ('down' as const),
+                redis: redisConfigured ? (isRedisUp ? ('ok' as const) : ('down' as const)) : ('disabled' as const),
             },
         };
 
