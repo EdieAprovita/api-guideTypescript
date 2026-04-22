@@ -207,6 +207,8 @@ data/
 .rts2_cache_es/
 .rts2_cache_umd/
 .webpack/
+graphify-out/
+.graphifyignore
 
 ################################################################################
 # NPM & YARN

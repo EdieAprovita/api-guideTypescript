@@ -4,6 +4,8 @@ import { HttpError, HttpStatusCode, TokenRevokedError } from '../../types/Errors
 
 // Save original NODE_ENV
 const originalNodeEnv = process.env.NODE_ENV;
+const originalRedisHost = process.env.REDIS_HOST;
+const originalRedisUrl = process.env.REDIS_URL;
 
 // Mock dependencies before importing the module under test
 vi.mock('../../models/User', () => ({
@@ -101,6 +103,8 @@ describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => 
         // Force non-test env so protect() runs validateUserAccount
         // instead of short-circuiting via handleTestEnvironment
         process.env.NODE_ENV = 'development';
+        process.env.REDIS_HOST = 'mock-redis';
+        delete process.env.REDIS_URL;
 
         // Default: token is valid, user tokens not revoked
         vi.mocked(TokenService.verifyAccessToken).mockResolvedValue({
@@ -112,6 +116,16 @@ describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => 
 
     afterEach(() => {
         process.env.NODE_ENV = originalNodeEnv;
+        if (originalRedisHost === undefined) {
+            delete process.env.REDIS_HOST;
+        } else {
+            process.env.REDIS_HOST = originalRedisHost;
+        }
+        if (originalRedisUrl === undefined) {
+            delete process.env.REDIS_URL;
+        } else {
+            process.env.REDIS_URL = originalRedisUrl;
+        }
     });
 
     it('should DENY access when isDeleted=true and isActive=true', async () => {
@@ -158,6 +172,19 @@ describe('authMiddleware — validateUserAccount (isDeleted / isActive)', () => 
 
         const err = expectNextHttpError(next, HttpStatusCode.SERVICE_UNAVAILABLE);
         expect(err.message).toContain('temporarily unavailable');
+    });
+
+    it('should skip token revocation check when Redis is not configured', async () => {
+        process.env.REDIS_HOST = 'localhost';
+        delete process.env.REDIS_URL;
+        vi.mocked(TokenService.isUserTokensRevoked).mockRejectedValue(new Error('should not call Redis'));
+
+        const { req, next } = await runProtect({ isActive: true, isDeleted: false });
+
+        expect(TokenService.isUserTokensRevoked).not.toHaveBeenCalled();
+        expect(next).toHaveBeenCalledOnce();
+        expect(vi.mocked(next).mock.calls[0][0]).toBeUndefined();
+        expect(req.user).toBeDefined();
     });
 });
 

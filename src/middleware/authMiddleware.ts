@@ -70,19 +70,33 @@ const verifyTokenAndGetPayload = async (token: string) => {
     }
 };
 
+// Redis is considered configured when REDIS_URL is set or REDIS_HOST points to a
+// real server (not the localhost default used in local dev without Redis).
+const isRedisConfigured = (): boolean => {
+    if (process.env.REDIS_URL) return true;
+    const host = process.env.REDIS_HOST;
+    return !!host && host !== 'localhost' && host !== '127.0.0.1';
+};
+
 // Helper function to validate user account
 const validateUserAccount = async (userId: string) => {
-    // Fail-closed: if Redis is unavailable we cannot confirm revocation state,
-    // so we reject the request rather than risk accepting a revoked session.
-    try {
-        const areTokensRevoked = await TokenService.isUserTokensRevoked(userId);
-        if (areTokensRevoked) {
-            throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User session has been revoked');
+    // Token revocation check requires Redis. When Redis is not configured we
+    // skip the check rather than blocking every authenticated request with 503.
+    // Trade-off: revoked tokens remain valid until JWT expiry (~15 min).
+    // When Redis IS configured, the original fail-closed behaviour is preserved.
+    if (isRedisConfigured()) {
+        try {
+            const areTokensRevoked = await TokenService.isUserTokensRevoked(userId);
+            if (areTokensRevoked) {
+                throw new HttpError(HttpStatusCode.UNAUTHORIZED, 'User session has been revoked');
+            }
+        } catch (error) {
+            if (error instanceof HttpError) throw error;
+            logger.error('Redis unavailable during token revocation check — denying request', { userId, error });
+            throw new HttpError(HttpStatusCode.SERVICE_UNAVAILABLE, 'Authentication service temporarily unavailable');
         }
-    } catch (error) {
-        if (error instanceof HttpError) throw error;
-        logger.error('Redis unavailable during token revocation check — denying request', { userId, error });
-        throw new HttpError(HttpStatusCode.SERVICE_UNAVAILABLE, 'Authentication service temporarily unavailable');
+    } else {
+        logger.warn('Redis not configured — token revocation check skipped', { userId });
     }
 
     const currentUser = await User.findById(userId).select('-password').exec();

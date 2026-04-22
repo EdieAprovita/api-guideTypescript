@@ -32,7 +32,7 @@ const corsOptions = {
     credentials: true,
     origin: getAllowedOrigins(),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Correlation-ID'],
 };
 
 export default cors(corsOptions);

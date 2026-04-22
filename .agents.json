@@ -120,7 +120,7 @@
     "project": {
         "name": "api-guideTypescript",
         "stack": {
-            "runtime": "Node.js 18+",
+            "runtime": "Node.js 20+",
             "framework": "Express.js",
             "language": "TypeScript 5.x",
             "database": "MongoDB",
@@ -128,17 +128,17 @@
             "build": "TypeScript Compiler"
         },
         "commands": {
-            "install": "yarn install",
-            "dev": "yarn dev",
-            "test": "yarn test",
-            "test-unit": "yarn test:unit",
-            "test-integration": "yarn test:integration",
-            "lint": "yarn lint",
-            "format": "yarn format",
-            "build": "yarn build",
+            "install": "npm install",
+            "dev": "npm run dev",
+            "test": "npm run test",
+            "test-unit": "npm run test:unit",
+            "test-integration": "npm run test:integration",
+            "lint": "npm run lint",
+            "format": "npm run format",
+            "build": "npm run build",
             "type-check": "npx tsc --noEmit"
         }
     },
     "version": "1.0",
-    "lastUpdated": "2025-12-12"
+    "lastUpdated": "2026-04-07"
 }
