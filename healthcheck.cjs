@@ -9,11 +9,10 @@ const options = {
 };
 
 const req = http.request(options, res => {
-    let data = '';
-
-    res.on('data', chunk => {
-        data += chunk;
-    });
+    // Drain the response body without logging it. The body comes from an HTTP
+    // response and must not be written to logs because it can contain
+    // user-controlled content.
+    res.resume();
 
     res.on('end', () => {
         if (res.statusCode === 200) {
@@ -21,7 +20,7 @@ const req = http.request(options, res => {
             process.exit(0);
         } else {
             console.log(`❌ Health check failed with status: ${res.statusCode}`);
-            console.log(`Response: ${data}`);
+            console.log(`Content-Type: ${res.headers['content-type'] || 'unknown'}`);
             process.exit(1);
         }
     });
