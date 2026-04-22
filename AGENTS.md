@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **api-guideTypescript** (1381 symbols, 3000 relationships, 102 execution flows).
+This project is indexed by GitNexus as **api-guideTypescript** (1582 symbols, 3769 relationships, 118 execution flows).
 
 ## Always Start Here
 

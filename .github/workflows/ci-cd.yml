@@ -453,6 +453,12 @@ jobs:
                       GOOGLE_MAPS_API_KEY=google-maps-api-key:latest
                       EMAIL_USER=email-user:latest
                       EMAIL_PASS=email-pass:latest
+                  # Older Cloud Run revisions had some secret-backed values as
+                  # plain environment variables. Remove those legacy plain
+                  # variables in this deploy so --update-secrets can recreate
+                  # them with the correct secret type.
+                  flags: >-
+                      --remove-env-vars=JWT_SECRET,JWT_REFRESH_SECRET,JWT_RESET_SECRET,MONGODB_URI,SESSION_SECRET,GOOGLE_MAPS_API_KEY,EMAIL_USER,EMAIL_PASS
                   env_vars: |
                       NODE_ENV=production
                       LOG_LEVEL=info
